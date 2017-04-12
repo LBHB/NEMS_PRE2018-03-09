@@ -1,0 +1,9 @@
+# Add any directories, files, or patterns you don't want to be tracked by version control
+saved_analysis/
+saved_images/
+saved_models/
+*~
+.DS_Store
+@eaDir
+*.asv
+*#
