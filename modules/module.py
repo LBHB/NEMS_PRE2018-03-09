@@ -23,22 +23,6 @@ class nems_data:
 # end nems_data
 
         
-
-class nems_data_set:
-    """nems_data_set
-
-    Generic NEMS data bucket
-
-    array (dictionary) of nems_data objects that are input and output
-    from each module
-
-    """
-    
-    def __init__(self):
-
-# end nems_data_set
-
-       
         
 class nems_module:
     """nems_module
@@ -47,9 +31,8 @@ class nems_module:
 
     """
     
-    data_in=None  # nems_data_set before transformation by module
-                  # should point to output of previous module in stack
-    data_out=None   # nems_data_set after transformation by module
+    data_in=[]  # list of data buckets fed into module
+    data_out=[]   # list of outputs, same size as data in
     
     input_name='stim'  # name of matrix in data_in that should
                        # provide input to eval
@@ -58,14 +41,15 @@ class nems_module:
     phi=None #vector of parameter values that can be fit
     
     def __init__(self):
-        
+        self.data_in=[]
         
     def eval(self):
-        # default pass-through data from input to output
-        self.data_out=self.data_in
+        # default: pass-through data from input to output
+        del self.data_out[:]
+        self.data_out.extend(self.data_in)
         
     def auto_plot(self):
-        
+        print("dummy")
         
 # end nems_module
 
@@ -77,15 +61,39 @@ class nems_stack:
     Array?/Dictionary? of nems_modules in sequence of execution
 
     """
-    modules=None
+    modules=[]
     
     def __init__(self):
-
-    def eval(start=0):
+        print("dummy")
+        
+    def eval(self,start=0):
         # evalute stack, starting at module # start
-        for ii in range(start,count(self.modules)):
-            self.modules.eval()
+        for ii in range(start,len(self.modules)):
+            self.modules[ii].eval()
             
+    def addmodule(self, mod=nems_module()):
+        if len(self.modules):
+            mod.data_in=self.modules[-1].data_out
+        self.modules.append(mod)
+        
+    def popmodule(self, mod=nems_module()):
+        del self.modules[-1]
+        
+    def output(self):
+        return self.modules[-1].data_out
+        
+        
  # end nems_stack
        
+ stack=nems_stack()
+ stack.addmodule()
+ stack.addmodule()
+ stack.modules[0].data_in.extend([1,3,2])
+ 
+ stack.output()
+ 
+ stack.eval()
+ 
+ stack.output()
+ 
         
