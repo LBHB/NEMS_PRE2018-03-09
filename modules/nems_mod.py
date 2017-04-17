@@ -59,13 +59,15 @@ class nems_module:
         
     def data_setup(self,d_in=None):
         if d_in is None:
-            self.d_in=nems_data() # list of data buckets fed into module
+            self.d_in=[] # list of data buckets fed into module
         else:
             self.d_in=d_in
-        self.d_out=nems_data() # list of outputs, same size as data in
+        self.d_out=[] # list of outputs, same size as data in
 
     def prep_eval(self):
-        self.d_out.copy_keys(self.d_in)
+        del self.d_out[:]
+        for i, val in enumerate(self.d_in):
+            self.d_out.append(val)
         
     def eval(self):
         # default: pass-through pointers to data from input to output,
@@ -80,27 +82,29 @@ class nems_module:
 class load_mat(nems_module):
 
     name='load_mat'
-     
+    est_files=[]
+    val_files=[]
+
     def __init__(self,d_in=None,est_files=[],val_files=[]):
         self.data_setup(d_in)
-        self.d_in.est_files=est_files
-        self.d_in.vall_files=val_files
+        self.est_files=est_files.copy()
+        self.val_files=val_files.copy()
 
     def eval(self):
         self.prep_eval()
 
         # new list object for dat
-        self.d_out.data=copy.deepcopy(self.d_in.data)
+        del self.d_out[:]
         
         # load contents of Matlab data file
-        for f in self.d_in.est_files:
+        for f in self.est_files:
             #f='tor_data_por073b-b1.mat'
             print(f)
             data = scipy.io.loadmat(f,chars_as_strings=True)
             
             # append contents of file to data, assuming data is a dictionary
             # with entries stim, resp, etc...
-            self.d_out.data.append(data)
+            self.d_out.append(data)
 
             # spectrogram of TORC stimuli. 15 frequency bins X 300 time samples X 30 different TORCs
             #stim=data['stim']
@@ -130,10 +134,11 @@ class add_scalar(nems_module):
         self.n=n
        
     def eval(self):
-        self.prep_eval()
-        self.d_out.data=copy.deepcopy(self.d_in.data)
+        del self.d_out[:]
+        for i, val in enumerate(self.d_in):
+            self.d_out.append(val.copy())
 
-        for f in self.d_out.data:
+        for f in self.d_out:
             f[self.output_name]=f[self.input_name]+self.n
         
 class sum_dim(nems_module):
@@ -144,13 +149,45 @@ class sum_dim(nems_module):
         self.dim=dim
         
     def eval(self):
-        self.prep_eval()
+        del self.d_out[:]
+        for i, val in enumerate(self.d_in):
+            self.d_out.append(val.copy())
 
-        self.d_out.data=copy.deepcopy(self.d_in.data)
-
-        for f in self.d_out.data:
+        for f in self.d_out:
             f[self.output_name]=f[self.input_name].sum(axis=self.dim)
 
+            
+class fir_filter(nems_module):
+    name='fir_filter'
+    coefs=None
+    num_dims=0
+    
+    def __init__(self, d_in=None, num_dims=0, num_coefs=20):
+        if d_in and not(num_dims):
+            num_dims=d_in[0]['stim'].shape[0]
+        self.num_dims=num_dims
+        self.num_coefs=num_coefs
+        self.coefs=np.zeros([num_dims,num_coefs])
+        
+        self.data_setup(d_in)
+        
+    def eval(self):
+        del self.d_out[:]
+        for i, val in enumerate(self.d_in):
+            self.d_out.append(val.copy())
+
+        for f in self.d_out:
+            X=f[self.output_name]
+            s=X.shape
+            X=np.reshape(X,[s[0],-1],'F')
+            for i in range(0,s[0]):
+                y=np.convolve(X[i,:],self.coefs[i,:])
+                X[i,:]=y[0:X.shape[1]]
+            X=X.sum(0)
+            f[self.output_name]=np.reshape(X,s[1:],'F')
+
+           
+            
 class nems_stack:
     """nems_stack
 
@@ -158,10 +195,17 @@ class nems_stack:
      modules = list of nems_modules in sequence of execution
 
     """
-     
+    modules=[]  # stack of modules
+    data=[]     # corresponding stack of data in/out for each module
+    modelname=None
+    meta={}
+    
     def __init__(self):
         print("dummy")
         self.modules=[]
+        self.data=[]
+        self.meta={}
+        self.modelname='Empty stack'
 
     def eval(self,start=0):
         # evalute stack, starting at module # start
@@ -176,17 +220,16 @@ class nems_stack:
             mod=nems_module()
         if len(self.modules):
             print("Propagating d_out from {0} into new d_in".format(self.modules[-1].name))
-            mod.d_in=self.modules[-1].d_out
+            mod.d_in=self.data[-1]
         self.modules.append(mod)
+        self.data.append(mod.d_out)
         
     def popmodule(self, mod=nems_module()):
         del self.modules[-1]
+        del self.data[-1]
         
     def output(self):
-        if len(self.modules)==0:
-            return {}
-        else:
-            return self.modules[-1].d_out
+        return self.data[-1]
         
         
 # end nems_stack
@@ -199,25 +242,19 @@ stack.append()
 
 stack.eval()
 out=stack.output()
-print('stim[0][0]: {0}'.format(out.d(0)['stim'][0][0]))
+print('stim[0][0]: {0}'.format(out[0]['stim'][0][0]))
 
 stack.append(add_scalar(n=2))
 stack.eval(1)
 out=stack.output()
-print('stim[0][0]: {0}'.format(out.d(0)['stim'][0][0]))
+print('stim[0][0]: {0}'.format(out[0]['stim'][0][0]))
 
-stack.append(sum_dim(dim=2))
+stack.append(fir_filter(d_in=out,num_coefs=10))
+stack.modules[-1].coefs[0,0]=1
+stack.modules[-1].coefs[0,2]=2
 stack.eval(1)
 out=stack.output()
-print('stim[0][0]: {0}'.format(out.d(0)['stim'][0][0]))
+print('stim[0][0]: {0}'.format(out[0]['stim'][0][0]))
 
 
-#print('Pre eval')
-#stack.output()
-
-#stack.eval()
-
-#print('Output post eval')
-#stack.output()
- 
         
