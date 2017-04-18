@@ -8,6 +8,8 @@ empty_data={}
 class nems_data:
     """nems_data
 
+    NOT USED CURRENTLY!  JUST USING LIST OF DICTIONARIES FOR DATA STACK!
+    
     Generic NEMS data bucket
 
     provides input and output of each nems_module
@@ -102,6 +104,22 @@ class load_mat(nems_module):
             print(f)
             data = scipy.io.loadmat(f,chars_as_strings=True)
             
+            data['raw_stim']=data['stim'].copy()
+            data['raw_resp']=data['resp'].copy()
+            data['fs']=data['stimFs']
+
+            # reshape stimulus to be channel X time
+            s=data['stim'].shape
+            data['stim']=np.transpose(data['stim'],(0,2,1))
+            
+            # resp time (axis 0) should be resampled to match stim time (axis 1)
+            new_resp_size=s[1]
+            data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
+            
+            # average across trials
+            data['resp']=np.mean(data['resp'],axis=1)
+            data['resp']=np.transpose(data['resp'],(1,0))
+            
             # append contents of file to data, assuming data is a dictionary
             # with entries stim, resp, etc...
             self.d_out.append(data)
@@ -136,7 +154,7 @@ class add_scalar(nems_module):
     def eval(self):
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
-            self.d_out.append(val.copy())
+            self.d_out.append(copy.deepcopy(val))
 
         for f in self.d_out:
             f[self.output_name]=f[self.input_name]+self.n
@@ -151,7 +169,7 @@ class sum_dim(nems_module):
     def eval(self):
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
-            self.d_out.append(val.copy())
+            self.d_out.append(copy.deepcopy(val))
 
         for f in self.d_out:
             f[self.output_name]=f[self.input_name].sum(axis=self.dim)
@@ -174,17 +192,17 @@ class fir_filter(nems_module):
     def eval(self):
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
-            self.d_out.append(val.copy())
+            self.d_out.append(copy.deepcopy(val))
 
         for f in self.d_out:
             X=f[self.output_name]
             s=X.shape
-            X=np.reshape(X,[s[0],-1],'F')
+            X=np.reshape(X,[s[0],-1])
             for i in range(0,s[0]):
                 y=np.convolve(X[i,:],self.coefs[i,:])
                 X[i,:]=y[0:X.shape[1]]
             X=X.sum(0)
-            f[self.output_name]=np.reshape(X,s[1:],'F')
+            f[self.output_name]=np.reshape(X,s[1:])
 
            
             
@@ -234,27 +252,6 @@ class nems_stack:
         
 # end nems_stack
 
-est_files=['/Users/svd/python/nems/ref/week5_TORCs/tor_data_por073b-b1.mat']
-
-stack=nems_stack()
-stack.append(load_mat(est_files=est_files))
-stack.append()
-
-stack.eval()
-out=stack.output()
-print('stim[0][0]: {0}'.format(out[0]['stim'][0][0]))
-
-stack.append(add_scalar(n=2))
-stack.eval(1)
-out=stack.output()
-print('stim[0][0]: {0}'.format(out[0]['stim'][0][0]))
-
-stack.append(fir_filter(d_in=out,num_coefs=10))
-stack.modules[-1].coefs[0,0]=1
-stack.modules[-1].coefs[0,2]=2
-stack.eval(1)
-out=stack.output()
-print('stim[0][0]: {0}'.format(out[0]['stim'][0][0]))
 
 
         
