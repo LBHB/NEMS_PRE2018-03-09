@@ -49,13 +49,14 @@ class nems_module:
     """
     
     # common properties for all modules
+    name='pass-through'
     input_name='stim'  # name of input matrix in d_in
     output_name='stim' # name of output matrix in d_out
     phi=None # vector of parameter values that can be fit
     d_in=None
     d_out=None
-    name='pass-through'
-    
+    fit_params=[]
+        
     def __init__(self,d_in=None):
         self.data_setup(d_in)
         
@@ -76,6 +77,19 @@ class nems_module:
         # need to deepcopy individual dict entries if they are changed
         self.prep_eval()
         
+    def parms2phi(self):
+        phi=np.empty(shape=[0,1])
+        for k in self.fit_params:
+            phi=np.append(phi,getattr(self, k).flatten())
+        return phi
+        
+    def phi2parms(self,phi=[]):
+        os=0;
+        for k in self.fit_params:
+            s=getattr(self, k).shape
+            setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
+            os+=np.prod(s)
+            
     def auto_plot(self):
         print("dummy auto_plot")
         
@@ -147,8 +161,9 @@ class add_scalar(nems_module):
  
     name='add_scalar'
     
-    def __init__(self, d_in=None, n=1):
-        self.data_setup()
+    def __init__(self, d_in=None, n=1, fit_params=['n']):
+        self.fit_params=fit_params
+        self.data_setup(d_in)
         self.n=n
        
     def eval(self):
@@ -158,6 +173,40 @@ class add_scalar(nems_module):
 
         for f in self.d_out:
             f[self.output_name]=f[self.input_name]+self.n
+
+class mean_square_error(nems_module):
+ 
+    name='mean_square_error'
+    input1='stim'
+    input2='resp'
+    output=np.ones([1,1])
+    norm=True
+    
+    def __init__(self, d_in=None, input1='stim',input2='resp',norm=True):
+        self.data_setup(d_in)
+        self.input1=input1
+        self.input2=input2
+        self.norm=norm
+        
+    def eval(self):
+        self.prep_eval()
+        x=np.empty(shape=[0,1])
+        y=np.empty(shape=[0,1])
+        for f in self.d_out:
+            #print(f[self.input1].flatten().shape)
+            x=np.append(x,f[self.input1].flatten())
+            y=np.append(y,f[self.input2].flatten())
+        mse=np.sqrt(np.mean(np.square(x-y)))
+        if self.norm:
+            mse=mse/np.std(y)
+        print(mse)
+        self.output=mse
+        return mse
+
+    def error(self, est_data=True):
+        if est_data:
+            return self.output
+        # placeholder for something that can distinguish between est and val
         
 class sum_dim(nems_module):
     name='sum_dim'
@@ -178,22 +227,27 @@ class sum_dim(nems_module):
 class fir_filter(nems_module):
     name='fir_filter'
     coefs=None
+    baseline=np.zeros([1,1])
     num_dims=0
     
-    def __init__(self, d_in=None, num_dims=0, num_coefs=20):
+    def __init__(self, d_in=None, num_dims=0, num_coefs=20, baseline=0, fit_params=['baseline','coefs']):
         if d_in and not(num_dims):
             num_dims=d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
         self.num_coefs=num_coefs
+        self.baseline[0]=baseline
         self.coefs=np.zeros([num_dims,num_coefs])
         
+        self.fit_params=fit_params
         self.data_setup(d_in)
         
     def eval(self):
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
-            self.d_out.append(copy.deepcopy(val))
-
+            #self.d_out.append(copy.deepcopy(val))
+            self.d_out.append(val.copy())
+            self.d_out[-1][self.input_name]=copy.deepcopy(self.d_out[-1][self.input_name])
+                
         for f in self.d_out:
             X=f[self.output_name]
             s=X.shape
@@ -201,10 +255,9 @@ class fir_filter(nems_module):
             for i in range(0,s[0]):
                 y=np.convolve(X[i,:],self.coefs[i,:])
                 X[i,:]=y[0:X.shape[1]]
-            X=X.sum(0)
+            X=X.sum(0)+self.baseline
             f[self.output_name]=np.reshape(X,s[1:])
 
-           
             
 class nems_stack:
     """nems_stack
@@ -224,7 +277,8 @@ class nems_stack:
         self.data=[]
         self.meta={}
         self.modelname='Empty stack'
-
+        self.error=self.default_error
+        
     def eval(self,start=0):
         # evalute stack, starting at module # start
         for ii in range(start,len(self.modules)):
@@ -248,7 +302,9 @@ class nems_stack:
         
     def output(self):
         return self.data[-1]
-        
+    
+    def default_error(self):
+        return np.zeros([1,1])
         
 # end nems_stack
 

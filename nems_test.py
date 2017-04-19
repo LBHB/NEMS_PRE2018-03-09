@@ -19,33 +19,49 @@ datapath='/Users/svd/python/nems/ref/week5_TORCs/'
 est_files=[datapath + 'tor_data_por073b-b1.mat']
 
 stack=nems_stack()
-stack.append(load_mat(est_files=est_files))
-stack.append()   # pass-through module
 
+stack.append(load_mat(est_files=est_files))
 stack.eval()
 out1=stack.output()
-print('stim[0][0]: {0}'.format(out1[0]['stim'][0][0]))
+#print('stim[0][0]: {0}'.format(out1[0]['stim'][0][0]))
 
-
-stack.append(fir_filter(d_in=out,num_coefs=10))
-stack.modules[-1].coefs[0,0]=1
-stack.modules[-1].coefs[0,2]=2
+stack.append(fir_filter(d_in=out1,num_coefs=10))
 stack.eval(1)
 out2=stack.output()
-print('stim[0][0]: {0}'.format(out2[0]['stim'][0][0]))
+#print('stim[0][0]: {0}'.format(out2[0]['stim'][0][0]))
 
-stack.append(add_scalar(n=2))
+stack.append(mean_square_error())
+stack.error=stack.modules[-1].error
 stack.eval(1)
-out3=stack.output()
-print('stim[0][0]: {0}'.format(out3[0]['stim'][0][0]))
 
+phi0=stack.modules[1].parms2phi()
+
+def test_cost(phi):
+    stack.modules[1].phi2parms(phi)
+    stack.eval(1)
+    return stack.error()
+    
+phi=scipy.optimize.fmin(test_cost, phi0)
+
+
+
+
+out3=stack.output()
+mse=stack.modules[-1].output
+print('mse: {0}'.format(mse))
+#print('stim[0][0]: {0}'.format(out3[0,0]))
+#
 d_in=stack.data[1]  # same as out1?
 
 pl.figure()
-ax=pl.subplot(2,1,1);
+ax=pl.subplot(2,2,1);
 ax.imshow(out1[0]['stim'][:,0,:], aspect='auto', origin='lower')
 #ax.imshow(out1[0]['stim'][:,:,0], interpolation='nearest', aspect='auto',origin='lower')
-ax=pl.subplot(2,1,2);
+
+ax=pl.subplot(2,2,2)
+ax.imshow(stack.modules[1].coefs,aspect='auto',origin='lower')
+
+ax=pl.subplot(2,2,3);
 ax.plot(out3[0]['stim'][0,:])
 ax.plot(out3[0]['resp'][0,:],'r')
 
