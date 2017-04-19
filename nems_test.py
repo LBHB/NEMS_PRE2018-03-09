@@ -39,8 +39,13 @@ phi0=stack.modules[1].parms2phi()
 def test_cost(phi):
     stack.modules[1].phi2parms(phi)
     stack.eval(1)
+    test_cost.counter+=1
+    if test_cost.counter % 100 == 0:
+        print('Eval #{0}. MSE={1}'.format(test_cost.counter,stack.error()))
     return stack.error()
     
+test_cost.counter=0
+
 phi=scipy.optimize.fmin(test_cost, phi0)
 
 

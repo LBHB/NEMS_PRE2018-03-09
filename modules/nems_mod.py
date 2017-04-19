@@ -190,16 +190,19 @@ class mean_square_error(nems_module):
         
     def eval(self):
         self.prep_eval()
-        x=np.empty(shape=[0,1])
-        y=np.empty(shape=[0,1])
+        E=np.zeros([1,1])
+        P=np.zeros([1,1])
+        N=0
         for f in self.d_out:
-            #print(f[self.input1].flatten().shape)
-            x=np.append(x,f[self.input1].flatten())
-            y=np.append(y,f[self.input2].flatten())
-        mse=np.sqrt(np.mean(np.square(x-y)))
+            E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
+            P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
+            N+=f[self.input2].size
+            
         if self.norm:
-            mse=mse/np.std(y)
-        print(mse)
+            mse=E/P
+        else:
+            mse=E/N
+            
         self.output=mse
         return mse
 
