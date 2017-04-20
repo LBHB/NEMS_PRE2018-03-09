@@ -20,7 +20,7 @@ est_files=[datapath + 'tor_data_por073b-b1.mat']
 
 stack=nems_stack()
 
-stack.append(load_mat(est_files=est_files))
+stack.append(load_mat(est_files=est_files,fs=100))
 stack.eval()
 out1=stack.output()
 #print('stim[0][0]: {0}'.format(out1[0]['stim'][0][0]))
@@ -42,13 +42,11 @@ def test_cost(phi):
     test_cost.counter+=1
     if test_cost.counter % 100 == 0:
         print('Eval #{0}. MSE={1}'.format(test_cost.counter,stack.error()))
-    return stack.error()
+    return stack.meta['est_mse']
     
 test_cost.counter=0
 
 phi=scipy.optimize.fmin(test_cost, phi0)
-
-
 
 
 out3=stack.output()

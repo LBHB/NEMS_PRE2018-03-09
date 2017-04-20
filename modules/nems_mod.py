@@ -56,7 +56,8 @@ class nems_module:
     d_in=None
     d_out=None
     fit_params=[]
-        
+    meta={}
+
     def __init__(self,d_in=None):
         self.data_setup(d_in)
         
@@ -100,15 +101,19 @@ class load_mat(nems_module):
     name='load_mat'
     est_files=[]
     val_files=[]
-
-    def __init__(self,d_in=None,est_files=[],val_files=[]):
+    fs=100
+    
+    def __init__(self,d_in=None,est_files=[],val_files=[],fs=100):
         self.data_setup(d_in)
         self.est_files=est_files.copy()
         self.val_files=val_files.copy()
+        self.fs=fs
 
     def eval(self):
         self.prep_eval()
-
+        self.meta['est_files']=self.est_files
+        self.meta['val_files']=self.val_files
+        
         # new list object for dat
         del self.d_out[:]
         
@@ -120,15 +125,24 @@ class load_mat(nems_module):
             
             data['raw_stim']=data['stim'].copy()
             data['raw_resp']=data['resp'].copy()
-            data['fs']=data['stimFs']
-
+            data['fs']=self.fs
+            stim_resamp_factor=self.fs/data['stimFs']
+            resp_resamp_factor=self.fs/data['respFs']
+                        
             # reshape stimulus to be channel X time
-            s=data['stim'].shape
             data['stim']=np.transpose(data['stim'],(0,2,1))
-            
+            if stim_resamp_factor != 1:
+                s=data['stim'].shape
+                new_stim_size=s[2]*stim_resamp_factor
+                print('resampling stim from {0} to {1}'.format(s[2],new_stim_size))
+                data['stim']=scipy.signal.resample(data['stim'],new_stim_size,axis=2)
+                
             # resp time (axis 0) should be resampled to match stim time (axis 1)
-            new_resp_size=s[1]
-            data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
+            if resp_resamp_factor != 1:
+                s=data['resp'].shape
+                new_resp_size=s[0]*resp_resamp_factor
+                print('resampling response from {0} to {1}'.format(s[0],new_resp_size))
+                data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
             
             # average across trials
             data['resp']=np.mean(data['resp'],axis=1)
@@ -173,43 +187,6 @@ class add_scalar(nems_module):
 
         for f in self.d_out:
             f[self.output_name]=f[self.input_name]+self.n
-
-class mean_square_error(nems_module):
- 
-    name='mean_square_error'
-    input1='stim'
-    input2='resp'
-    output=np.ones([1,1])
-    norm=True
-    
-    def __init__(self, d_in=None, input1='stim',input2='resp',norm=True):
-        self.data_setup(d_in)
-        self.input1=input1
-        self.input2=input2
-        self.norm=norm
-        
-    def eval(self):
-        self.prep_eval()
-        E=np.zeros([1,1])
-        P=np.zeros([1,1])
-        N=0
-        for f in self.d_out:
-            E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
-            P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
-            N+=f[self.input2].size
-            
-        if self.norm:
-            mse=E/P
-        else:
-            mse=E/N
-            
-        self.output=mse
-        return mse
-
-    def error(self, est_data=True):
-        if est_data:
-            return self.output
-        # placeholder for something that can distinguish between est and val
         
 class sum_dim(nems_module):
     name='sum_dim'
@@ -261,6 +238,45 @@ class fir_filter(nems_module):
             X=X.sum(0)+self.baseline
             f[self.output_name]=np.reshape(X,s[1:])
 
+class mean_square_error(nems_module):
+ 
+    name='mean_square_error'
+    input1='stim'
+    input2='resp'
+    output=np.ones([1,1])
+    norm=True
+    
+    def __init__(self, d_in=None, input1='stim',input2='resp',norm=True):
+        self.data_setup(d_in)
+        self.input1=input1
+        self.input2=input2
+        self.norm=norm
+        
+    def eval(self):
+        self.prep_eval()
+        E=np.zeros([1,1])
+        P=np.zeros([1,1])
+        N=0
+        for f in self.d_out:
+            E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
+            P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
+            N+=f[self.input2].size
+    
+        if self.norm:
+            mse=E/P
+        else:
+            mse=E/N
+            
+        self.meta['est_mse']=mse
+        
+        return mse
+
+    def error(self, est_data=True):
+        if est_data:
+            return self.meta['est_mse']
+        else:
+            # placeholder for something that can distinguish between est and val
+            return self.meta['val_mse']
             
 class nems_stack:
     """nems_stack
@@ -293,6 +309,7 @@ class nems_stack:
     def append(self, mod=None):
         if mod is None:
             mod=nems_module()
+        mod.meta=self.meta
         if len(self.modules):
             print("Propagating d_out from {0} into new d_in".format(self.modules[-1].name))
             mod.d_in=self.data[-1]
