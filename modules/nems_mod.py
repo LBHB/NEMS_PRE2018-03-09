@@ -121,14 +121,28 @@ class load_mat(nems_module):
         for f in self.est_files:
             #f='tor_data_por073b-b1.mat'
             print(f)
-            data = scipy.io.loadmat(f,chars_as_strings=True)
-            
-            data['raw_stim']=data['stim'].copy()
-            data['raw_resp']=data['resp'].copy()
+            matdata = scipy.io.loadmat(f,chars_as_strings=True)
+            try:
+                s=matdata['data'][0][0]
+                data={}
+                data['resp']=s['resp_raster']
+                data['stim']=s['stim']
+                data['respFs']=s['respfs']
+                data['stimFs']=s['stimfs']
+                data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
+                data['isolation']=s['isolation']
+            except:
+                data = scipy.io.loadmat(f,chars_as_strings=True)
+                data['raw_stim']=data['stim'].copy()
+                data['raw_resp']=data['resp'].copy()
+#            data = scipy.io.loadmat(f,chars_as_strings=True)
+#            data['raw_stim']=data['stim'].copy()
+#            data['raw_resp']=data['resp'].copy()
+                
             data['fs']=self.fs
             stim_resamp_factor=self.fs/data['stimFs']
             resp_resamp_factor=self.fs/data['respFs']
-                        
+                                
             # reshape stimulus to be channel X time
             data['stim']=np.transpose(data['stim'],(0,2,1))
             if stim_resamp_factor != 1:
@@ -145,7 +159,7 @@ class load_mat(nems_module):
                 data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
             
             # average across trials
-            data['resp']=np.mean(data['resp'],axis=1)
+            data['resp']=np.nanmean(data['resp'],axis=1)
             data['resp']=np.transpose(data['resp'],(1,0))
             
             # append contents of file to data, assuming data is a dictionary
@@ -222,21 +236,23 @@ class fir_filter(nems_module):
         self.data_setup(d_in)
         
     def eval(self):
+        #if not self.d_out:
+        #    # only allocate memory once, the first time evaling. rish is that output_name could change
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
             #self.d_out.append(copy.deepcopy(val))
             self.d_out.append(val.copy())
-            self.d_out[-1][self.input_name]=copy.deepcopy(self.d_out[-1][self.input_name])
-                
-        for f in self.d_out:
-            X=f[self.output_name]
+            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+            
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in[self.input_name])
             s=X.shape
             X=np.reshape(X,[s[0],-1])
             for i in range(0,s[0]):
                 y=np.convolve(X[i,:],self.coefs[i,:])
                 X[i,:]=y[0:X.shape[1]]
             X=X.sum(0)+self.baseline
-            f[self.output_name]=np.reshape(X,s[1:])
+            f_out[self.output_name]=np.reshape(X,s[1:])
 
 class mean_square_error(nems_module):
  

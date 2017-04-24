@@ -15,8 +15,9 @@ import scipy.signal
 from nems_mod import *
 
 datapath='/Users/svd/python/nems/ref/week5_TORCs/'
-
 est_files=[datapath + 'tor_data_por073b-b1.mat']
+#datapath='/Users/svd/data/'
+#est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 
 stack=nems_stack()
 
