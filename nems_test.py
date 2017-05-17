@@ -14,10 +14,11 @@ import scipy.io
 import scipy.signal
 from nems_mod import *
 
-datapath='/Users/svd/python/nems/ref/week5_TORCs/'
-est_files=[datapath + 'tor_data_por073b-b1.mat']
-#datapath='/Users/svd/data/'
-#est_files=[datapath + 'bbl031f-a1_nat_export.mat']
+#datapath='/Users/svd/python/nems/ref/week5_TORCs/'
+#est_files=[datapath + 'tor_data_por073b-b1.mat']
+
+datapath='/home/svd/python/nems/ref/'
+est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 
 stack=nems_stack()
 
@@ -57,6 +58,7 @@ print('mse: {0}'.format(mse))
 #
 d_in=stack.data[1]  # same as out1?
 
+pl.set_cmap('jet')
 pl.figure()
 ax=pl.subplot(2,2,1);
 ax.imshow(out1[0]['stim'][:,0,:], aspect='auto', origin='lower')

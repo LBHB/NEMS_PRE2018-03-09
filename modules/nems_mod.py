@@ -120,7 +120,6 @@ class load_mat(nems_module):
         # load contents of Matlab data file
         for f in self.est_files:
             #f='tor_data_por073b-b1.mat'
-            print(f)
             matdata = scipy.io.loadmat(f,chars_as_strings=True)
             try:
                 s=matdata['data'][0][0]
@@ -147,23 +146,25 @@ class load_mat(nems_module):
             data['stim']=np.transpose(data['stim'],(0,2,1))
             if stim_resamp_factor != 1:
                 s=data['stim'].shape
-                new_stim_size=s[2]*stim_resamp_factor
+                new_stim_size=np.round(s[2]*stim_resamp_factor)
                 print('resampling stim from {0} to {1}'.format(s[2],new_stim_size))
                 data['stim']=scipy.signal.resample(data['stim'],new_stim_size,axis=2)
                 
             # resp time (axis 0) should be resampled to match stim time (axis 1)
             if resp_resamp_factor != 1:
                 s=data['resp'].shape
-                new_resp_size=s[0]*resp_resamp_factor
+                new_resp_size=np.round(s[0]*resp_resamp_factor)
                 print('resampling response from {0} to {1}'.format(s[0],new_resp_size))
+                # why warning here??
                 data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
-            
+                
             # average across trials
             data['resp']=np.nanmean(data['resp'],axis=1)
             data['resp']=np.transpose(data['resp'],(1,0))
             
             # append contents of file to data, assuming data is a dictionary
             # with entries stim, resp, etc...
+            print('load_mat: appending {0} to d_out stack'.format(f))
             self.d_out.append(data)
 
             # spectrogram of TORC stimuli. 15 frequency bins X 300 time samples X 30 different TORCs
