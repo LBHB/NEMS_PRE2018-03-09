@@ -1,0 +1,37 @@
+<!doctype html>
+<head>
+    <title>
+        Index
+    </title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+    <script>
+    function getValue(selectObject){
+        var value = selectObject.value;
+    }
+    </script>
+</head>
+<body>
+    <div class=page>
+        <h1>Index</h1>
+        <select id="chooseBatch" size="5" onchange="getValue(this)">
+            {% for batch in batchlist %}
+                <option> {{ batch }} </option>
+            {% endfor %}
+        </select>
+        <p> Click submit to go to batch query </p>
+        <script>
+        var batchid = document.getElementById("chooseBatch").value;
+        </script>
+        <a href="" id="batchurl"> SUBMIT </a>
+        <script>
+        function getValue(chooseBatch){
+            var value = chooseBatch.value;
+        }
+            
+        document.getElementById("batchurl").href = "http://127.0.0.1:5000/celllist/batch=" + batchid;
+        </script>
+    </div>
+    <div class=footer>
+    </div>
+</body>
+</html>
