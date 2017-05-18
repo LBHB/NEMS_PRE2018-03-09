@@ -14,6 +14,7 @@ import matplotlib.pyplot as pl
 import pymysql as pysql
 import scipy as scpy
 
+
 #connect to celldb using pymysql
 celldbConnection = pysql.connect(user='lbhbread',passwd='ferret33',\
                                 host='hyrax.ohsu.edu',database='cell')
