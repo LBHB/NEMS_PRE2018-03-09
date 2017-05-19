@@ -33,7 +33,6 @@ data = read_table()
 p = figure()
 p.line(list(data['id']),list(data['r_test']), line_width=2)
 show(p)
-<<<<<<< HEAD
 """
 
 # scatter plot for two models' r_test performance over a batch of cells
@@ -75,7 +74,3 @@ show(p)
 #setup like matplotlib
 
 CONNECTION.close()
-=======
-
-CONNECTION.close()
->>>>>>> b26aac59cced07337f778b6f7611dcce6411335d
