@@ -31,3 +31,5 @@ data = read_table()
 p = figure()
 p.line(list(data['id']),list(data['r_test']), line_width=2)
 show(p)
+
+CONNECTION.close()
