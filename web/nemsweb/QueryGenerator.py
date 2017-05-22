@@ -14,7 +14,7 @@ import pandas as pd
 # global variable to limit number of rows pulled
 # keep this in place unless specifically need to test a larger pull
 # in order to keep load times down for testing
-LIMIT = 2000
+LIMIT = 20000
         
 class QueryGenerator():
     

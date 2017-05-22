@@ -11,6 +11,7 @@
     <div class=page>
         <h1>View Database</h1>
         
+        <! collect form data for database query i.e. table display >
         <form action="{{ url_for('handle_query') }}", method="POST">
         <select name="tablename" size="20">
             <option value="{{ tablelist }}"> {{ tablelist }} </option>
@@ -34,9 +35,37 @@
     <div class=page>
         <h1>Generate Plot</ht>
         
+        <! Collect form data for plot generation >
         <form action="{{ url_for('handle_plot') }}", method="POST">
-        <select name="plottype" size="5">
+        <select name="plottype" size="20">
             <option value="{{ plottypelist }}"> {{ plottypelist }} </option>
+        </select>
+        <select name="measure" size="20">
+            <option value="{{ measurelist }}"> {{ measurelist }} </option>
+        </select>
+        <select name="tablename" size="20">
+            <option value="{{ tablelist }}"> {{ tablelist }} </option>
+        </select>
+                <select name="batchnum" size="20">
+            {% for batch in batchlist %}
+                <option value="{{ batch }}"> {{ batch }} </option>
+            {% endfor %}
+        </select>
+        <select name="modelnameX" size="20">
+            {% for model in modellist %}
+                <option value="{{ model }}"> {{ model }} </option>
+            {% endfor %}
+        </select>
+        
+        <! TODO: fix so that same model name cannot be chosen from both lists>
+        
+        <select name="modelnameY" size="20">
+            {% for model in modellist %}
+                <option value="{{ model }}"> {{ model }} </option>
+            {% endfor %}
+        </select>
+        <select name="measure" size="20">
+            <option value="{{ measurelist }}"> {{ measurelist }} </option>
         </select>
         <input type="submit" value="Submit">
         </form>

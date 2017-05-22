@@ -15,6 +15,7 @@ import pymysql as pysql
 from flask import *
 import pandas as pd
 import QueryGenerator as qg
+import PlotGenerator as pg
 import DB_Connection as dbcon
 
 app = Flask(__name__)
@@ -30,7 +31,8 @@ def main_view():
     # hard coded as only option for now - not really needed for plots,
     # only needed if want to look at tables in adatabase type fashion
     tablelist = 'NarfResults'
-    plottypelist = 'ScatterPlot'
+    plottypelist = 'Scatter'
+    measurelist = 'r_test'
     # TODO: currently queries entire table, then picks out batch ids and model names
     # should figure out a better way to do this
     # i.e. don't query anything until user makes a selection
@@ -52,6 +54,7 @@ def main_view():
                            batchlist = batchlist,\
                            modellist = modellist,\
                            plottypelist = plottypelist,
+                           measurelist = measurelist,
                            )
 
 # takes form data submitted via select objects at '/'
@@ -93,12 +96,38 @@ def req_query(tablename, batchnum, modelname):
 @app.route("/handle_plot", methods = ['POST'])
 def handle_plot():
     plottype = request.form['plottype']
-    return redirect(url_for('make_plot',plottype=plottype))
+    tablename = request.form['tablename']
+    batchnum = request.form['batchnum']
+    # TODO: using these names for now since scatter plot only option,
+    # but will want new naming scheme when more options added
+    modelnameX = request.form['modelnameX']
+    modelnameY = request.form['modelnameY']
+    measure = request.form['measure']
     
-@app.route("/plot/plottype=<plottype>")
-def make_plot(plottype):
-    return "Super awesome scatter plot! Yay!"
+    return redirect(url_for('make_plot',plottype=plottype, tablename=tablename,\
+                            batchnum = batchnum, modelnameX = modelnameX,\
+                            modelnameY = modelnameY, measure=measure\
+                            ))
+    
+@app.route("/plot/plottype=<plottype>/tablename=<tablename>/batchnum=<batchnum>\
+           /modelnameX=<modelnameX>/modelnameY=<modelnameY>/measure=<measure>")
+def make_plot(plottype, tablename, batchnum, modelnameX, modelnameY, measure):
+    plot = pg.PlotGenerator(dbc, plottype, tablename, batchnum,\
+                            modelnameX, modelnameY, measure)
+    """
+    # after invoking plot stuff, just return to main page
+    # since bokeh pops up plot in new window
+    return redirect(url_for('main_view'))
+    """
+    
+    return render_template('debugplot.html', dataX = plot.dataX,\
+                           dataY = plot.dataY)
 
+# check for empty plot request
+@app.route("/empty")
+def empty_plot():
+    return "Empty plot, sad face, try again! If you're seeing this, the \
+            cell list query returned no results"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug='True')

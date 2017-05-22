@@ -48,7 +48,7 @@ modelOne = "fb18ch100_lognn_wcg03_ap3z1_dexp_fit05v"
 modelTwo = "fb18ch100_lognn_wcg03_voltp_ap3z1_dexp_fit05v"
 #make lists of cellid, modelname and r_test
 cellList = list(data['cellid'])
-modelList = list(data['modelname'])
+print(modelone)
 rList = list(data['r_test'])
 #make a blank list to store the r_test values for each cell for the given model
 modelOneList = []
@@ -60,6 +60,8 @@ modelTwoList = []
 #this code isn't really doing what I want at the moment, needs to
 #only plot values for cells that have a value for both models
 #but it still demonstrates the basic concept for doing the scatter plot with bokeh
+
+"""
 for cell in range(len(cellList)):
     if modelList[cell] in modelOne:
         modelOneList.append(rList[cell])
@@ -68,6 +70,7 @@ for cell in range(len(cellList)):
 
 p.circle(modelOneList, modelTwoList, size=5, color="navy", alpha=0.5)
 show(p)
+"""
 
 #Currently running VERY slow compared to narf_analysis
 #will need to either find a way to speed it up or switch to some other plotting
