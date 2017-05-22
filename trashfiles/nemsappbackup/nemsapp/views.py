@@ -4,44 +4,53 @@
 - views looks for the corresponding @app.route to decide which
 - function to run, and parses any variables within the URL
 - to be passed to the proper helper object (i.e. query or plot generator)
-- USE THIS TO LAUNCH SERVER FOR NOW
 """
 
-import numpy as np
+from nemsapp import app
 import pandas.io.sql as psql
 import pymysql as pysql
-import scipy as scpy
 from flask import *
 import pandas as pd
-from connectfunc import *
+import QueryGenerator as qg
 
-app = Flask(__name__)
 
 # TODO: re-write app.routes using new object structure
 
+@app.route("/")
+def main_view():
+    return Response("Main page placeholder", content_type="text/plain")
+
+# TODO: add more variables/query options to route, or find a better way to include them
+# currently, app expects to see all possible variables, which means main.py needs to be
+# set up to always include all of them in URL, even if blank.
+# would be nicer if view could just know to only pass in the variables that
+# are present.
+
+
+# view func for dispalying basic database table
+@app.route("/query/table=<tablename>/batch=<batchnum>/model=<modelname>")
+def req_query(tablename, batchnum, modelname):
+    # parse variables from URL and pass to QueryGenerator object as attributes
+    query = qg.QueryGenerator(tablename, batchnum, modelname)
+    # populate dataframe by calling send_query() on qg object
+    data = query.send_query()
+    # TODO: Figure out best practice for when and where to close database connection.
+    # For now, will continue putting it in any time the conneciton is no longer needed
+    # for current operation.
+    query.close_connection()
+    # generate descriptive table title from variables
+    tabletitle = ("%s, filter by: batch=%s, model=%s" %(tablename, batchnum, modelname))
+    
+    # generage html page via table.html template, pass in html export of dataframe
+    # and table title as variables
+    return render_template('table.html', table=data.to_html(classes='Table'),\
+                           title=tabletitle)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"""
 #COPY PASTE FROM OLD SERVER BELOW TO MAINTAIN FUNCTIONALITY UNTIL NEW PAGES SET UP
-#COMMENT OUT EVERYTHING BELOW EXCEPT LAST TWO LINES WHEN READY TO TEST NEW SITE STRUCTURE
+#COMMENT OUT EVERYTHING BELOW WHEN READY TO TEST NEW SITE STRUCTURE
 
 
 #currently only have one user input partially working (dropbox on /index page)
@@ -107,6 +116,4 @@ def show_gsinglecell():
     data = read_table('gSingleCell')
     
     return render_template('table.html',table=data.to_html(classes='Table'))
-    
-if __name__ == "__main__":
-    app.run(debug=False)
+"""    
