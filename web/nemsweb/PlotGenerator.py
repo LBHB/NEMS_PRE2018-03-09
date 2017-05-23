@@ -7,6 +7,8 @@
 """
 
 from bokeh.plotting import *
+from bokeh.resources import CDN
+from bokeh.embed import file_html, components
 import pandas as pd
 import pandas.io.sql as psql
 #used for checking empty query
@@ -25,8 +27,12 @@ class PlotGenerator():
         self.tablename = tablename
         self.batchnum = batchnum
         # one model for x axis, other for y axis
-        self.modelnameX = "fb18ch100_lognn_wcg03_ap3z1_dexp_fit05v" #change back to modelnameX after test
-        self.modelnameY = "fb18ch100_lognn_wcg03_voltp_ap3z1_dexp_fit05v" #change back to modelnameY after test
+        """modelnames for plot testing 
+        self.modelnameX = "fb18ch100_lognn_wcg03_ap3z1_dexp_fit05v"
+        self.modelnameY = "fb18ch100_lognn_wcg03_voltp_ap3z1_dexp_fit05v" 
+            modelnames for plot testing"""
+        self.modelnameX = modelnameX
+        self.modelnameY = modelnameY
         # measure of performance, i.e. r_test, r_ceiling etc
         self.measure = measure
         
@@ -40,19 +46,20 @@ class PlotGenerator():
     def get_plot(self):
         # query database filtered by batch id and where modelname must be one of
         # either model x or model y
-        """
+        
         data = psql.read_sql('SELECT * FROM %s WHERE (batch="%s") AND ((modelname="%s")\
                                                       OR (modelname="%s"))'\
                              %(self.tablename,self.batchnum, self.modelnameX,\
                              self.modelnameY), self.connection)
+    
         """
-        
-        # temporary hardcoded datapull for testing purposes 
+        # temporary hardcoded query for testing plot creation
         data = psql.read_sql('SELECT * FROM NarfResults WHERE (batch=271) AND \
                              ((modelname="fb18ch100_lognn_wcg03_ap3z1_dexp_fit05v") OR \
                              (modelname="fb18ch100_lognn_wcg03_voltp_ap3z1_dexp_fit05v"))', \
                               self.connection)
-                             
+        """
+        
         if data.size == 0:
             webbrowser.open_new_tab("0.0.0.0:8000/empty")
             
@@ -83,10 +90,24 @@ class PlotGenerator():
         self.dataY.extend(yvalues)
         """ debug attrib """
         
-        p = figure()
+        p = figure(x_range=[0,1],y_range=[0,1])
         p.circle(xvalues, yvalues, size=2, color='navy', alpha=0.5)
         p.line([0,1],[0,1], line_width=1, color='black')
-        show(p)
+        
+        # p.show() this pops up a plot in a new tab, but only server-side
+        # would need to embed bokeh server via iframe or auto_server load
+        
+        # returns the plot as html file..
+        #return file_html(p, CDN, "Scatter Plot")
+        
+        # returns script and div, in that order, in a tuple
+        # embed in html to display plot script.
+        # still can't figure out how to open as new tab, but should be able
+        # to embed on existing page eventually with ajax implementation
+        # also allows extra templating of resulting plot page to add other links etc
+        script,div = components(p)
+        return (script,div)
+        
     
         
         

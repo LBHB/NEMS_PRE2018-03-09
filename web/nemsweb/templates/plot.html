@@ -1,0 +1,17 @@
+<!-- Formats plot page -->
+<!doctype html>
+<head>
+<!-- May have to update version in the future (currently 0.12.5 portion of URL) -->
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.css"
+    rel="stylesheet" type="text/css">
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.5.min.css"
+    rel="stylesheet" type="text/css">
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.5.min.js"></script>
+    {{ script|safe }}
+</head>
+<body>
+    <a href="{{ url_for('main_view') }}"> Return to Main Page </a>
+    {{ div|safe }}
+</body>
+</html>

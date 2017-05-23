@@ -17,6 +17,7 @@ import pandas as pd
 import QueryGenerator as qg
 import PlotGenerator as pg
 import DB_Connection as dbcon
+import webbrowser
 
 app = Flask(__name__)
 # TODO: re-write app.routes using new object structure
@@ -114,20 +115,28 @@ def handle_plot():
 def make_plot(plottype, tablename, batchnum, modelnameX, modelnameY, measure):
     plot = pg.PlotGenerator(dbc, plottype, tablename, batchnum,\
                             modelnameX, modelnameY, measure)
+
+    return render_template("plot.html", script=plot.plot[0], div=plot.plot[1])
+
+    #return plot.plot                       # - takes user to new page w/ plot
+    
     """
-    # after invoking plot stuff, just return to main page
-    # since bokeh pops up plot in new window
-    return redirect(url_for('main_view'))
+    webbrowser.open_new_tab(plot.plot)      # - opens new tab w/ plot (not working)
+    return redirect(url_for('main_view'))   # - then returns to main page
     """
     
+    """ use this instead of redirect for debugging make_plot.
+        will return a page with x and y values printed out (if any are present)
     return render_template('debugplot.html', dataX = plot.dataX,\
                            dataY = plot.dataY)
-
+    """
+    
 # check for empty plot request
 @app.route("/empty")
 def empty_plot():
     return "Empty plot, sad face, try again! If you're seeing this, the \
             cell list query returned no results"
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug='True')
