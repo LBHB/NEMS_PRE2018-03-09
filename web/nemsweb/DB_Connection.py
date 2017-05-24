@@ -4,6 +4,8 @@
 """
 
 import pymysql as pysql
+
+#causing issues?
 import config
 
 class DB_Connection():
@@ -23,4 +25,12 @@ class DB_Connection():
         
     def close_connection(self):
         # call this to close database connection when no longer needed
+        # always connect to celldb when connection started
+        #dbserver='hyrax.ohsu.edu';
+        dbserver='localhost';
+        self.connection = pysql.connect(user='david',passwd='nine1997',\
+                                        host=dbserver,database='cell')
+        
+    def close_connection(self):
+    # call this to close database connection when no longer needed
         self.connection.close()
