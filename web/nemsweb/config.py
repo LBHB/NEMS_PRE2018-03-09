@@ -9,5 +9,5 @@ DEBUG = True  #turn this off when ready to launch as production server
 
 LAB_DATABASE = {'user':'lbhbread','passwd':'ferret33',\
                 'host':'hyrax.ohsu.edu','database':'cell'}
-REMOTE_DATABSE = {'user':'david','passwd':'nine1997',\
-                'host':'dbserver','database':'cell'}
+REMOTE_DATABASE = {'user':'david','passwd':'nine1997',\
+                'host':'localhost','database':'cell'}

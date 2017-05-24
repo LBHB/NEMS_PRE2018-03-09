@@ -24,7 +24,7 @@ app.config.from_object('config')
 # create a database connection, then assign it to
 # dbc to be passed to other objects as needed
 db = dbcon.DB_Connection()
-db.connect_lab()
+db.connect_remote()
 dbc = db.connection
 # use connect_lab() at lab, connect_remote() for amazon server
 
