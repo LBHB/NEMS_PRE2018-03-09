@@ -7,4 +7,5 @@ saved_models/
 @eaDir
 *.asv
 *#
+*.pyc
 __pycache__
