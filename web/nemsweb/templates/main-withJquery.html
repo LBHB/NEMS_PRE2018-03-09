@@ -20,50 +20,37 @@
     <div class=page>
         <h1>Select Analysis</h1>
         
-        <!-- TODO: filter other selections based on analysis selection -->
-        <select id="analysisSelector" name="analysis" size="20" onchange="function() {
-                chooseAnalysis();
-        }">
+        <!-- Collect form data for filtering selections by analysis -->
+        <!-- Not yet implemented, just displays selections -->
+        <form>
+        <select id="analysisSelector" name="analysis" size="20">
             {% for analysis in analysislist %}
                 <option value="{{ analysis }}"> {{ analysis }} </option>
             {% endfor %}
         </select>
         
-        <!-- TODO: change form action based on selection (scatter/etc) -->
-        <form action="{{ url_for('scatter_plot') }}" target="_blank" method="POST">
         <select multiple="multiple" class="multiSelect" name="batchnum" size="20">
             {% for batch in batchlist %}
                 <option value="{{ batch }}"> {{ batch }} </option>
             {% endfor %}
         </select>
         
-        <!-- leave this out for now
         <select multiple="multiple" class="multiSelect" name="celllist" size="20">
             {% for cell in celllist %}
                 <option value="{{ cell }}"> {{ cell }} </option>
             {% endfor %}
         </select>
-        -->
         
-        <!-- have to select at least two -->
         <select multiple="multiple" class="multiSelect" name="modelnames" size="20">
             {% for model in modellist %}
                 <option value="{{ model }}"> {{ model }} </option>
             {% endfor %}
         </select>
         
-        <!-- scatter plot only option for now
-        <input type="radio" name="plottype" value="{{ plottypelist }}"
-            checked/> {{ plottypelist }} <br>                       -->
-        <input type="checkbox" name="measure" value="{{ measurelist }}"
-            checked/> {{ plottypelist }} <br>
-        <!-- TODO: add more checkboxes or radio buttons for other options -->
-        
-        <input type="submit" value="Submit"/>
+        <input type="submit" value="Submit">
         </form>
     
     <div class=footer>
-        <a href="{{ url_for('view_database') }}" target="_blank"> View Database </a>
     </div>
 </body>
 </html>

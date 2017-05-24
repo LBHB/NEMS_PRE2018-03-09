@@ -18,14 +18,19 @@ LIMIT = 20000
         
 class QueryGenerator():
     
-    def __init__(self, connection, tablename="NarfResults", batchnum="", modelname=""):
+    def __init__(self, connection, column='*', tablename="NarfResults", batchnum="", modelname="",\
+                 analysis=""):
+        
         # always establish connection to celldb
         self.connection = connection
+        self.column = column
         # TODO: list out all variables and include them in arguments to initializer
         # so that they can be easily passed by views.py
         self.tablename = tablename
         self.batchnum = batchnum
         self.modelname = modelname
+        # for use with NarfAnalysis table
+        self.analysis = analysis
         # generate query automatically - no reason to leave it blank
         self.query = self.generate_query()
         
@@ -39,7 +44,7 @@ class QueryGenerator():
         
         filterCount = 0
         
-        q = 'SELECT * FROM '
+        q = 'SELECT %s FROM '%(self.column)
         q += self.tablename
         if self.batchnum != "":
             filterCount += 1
@@ -50,7 +55,16 @@ class QueryGenerator():
         if self.modelname != "":
             filterCount += 1
             if filterCount ==1:
-                q+= ' WHERE modelname="' +self.modelname
+                q+= ' WHERE modelname="' + self.modelname + '"'
+            else:
+                q+= ' AND modelname="' + self.modelname + '"'
+        
+        if self.analysis != "":
+            filterCount += 1
+            if filterCount ==1:
+                q+= ' WHERE name="' + self.analysis + '"'
+            else:
+                q+= ' AND name="' + self.analysis + '"'
         
         # apply row pull limit -- keep this in place while testing
         # to keep load times down

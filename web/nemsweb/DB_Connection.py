@@ -4,14 +4,23 @@
 """
 
 import pymysql as pysql
-
+import config
 
 class DB_Connection():
+    
     def __init__(self):
-    # always connect to celldb when connection started
-        self.connection = pysql.connect(user='lbhbread',passwd='ferret33',\
-                                        host='hyrax.ohsu.edu',database='cell')
+        pass
+    
+    def connect_lab(self):
+        lab = config.LAB_DATABASE
+        self.connection = pysql.connect(user=lab['user'],passwd=lab['passwd'],\
+                                        host=lab['host'],database=lab['database'])
+   
+    def connect_remote(self):
+        remote = config.REMOTE_DATABASE
+        self.connection = pysql.connect(user=remote['user'],passwd=remote['passwd'],\
+                                        host=remote['host'],database=remote['database'])
         
     def close_connection(self):
-    # call this to close database connection when no longer needed
+        # call this to close database connection when no longer needed
         self.connection.close()

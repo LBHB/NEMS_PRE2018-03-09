@@ -10,22 +10,24 @@
 - to be passed to the proper helper object (i.e. query or plot generator)
 """
 
-import pandas.io.sql as psql
-import pymysql as pysql
-from flask import *
+from flask import Flask,render_template, redirect, request, jsonify, url_for
 import pandas as pd
 import QueryGenerator as qg
 import PlotGenerator as pg
 import DB_Connection as dbcon
-import webbrowser
+import ModelFinder as mf
 
 app = Flask(__name__)
+app.config.from_object('config')
 # TODO: re-write app.routes using new object structure
 
 # create a database connection, then assign it to
 # dbc to be passed to other objects as needed
 db = dbcon.DB_Connection()
+db.connect_lab()
 dbc = db.connection
+# use connect_lab() at lab, connect_remote() for amazon server
+
 
 @app.route("/")
 def main_view():
@@ -40,48 +42,115 @@ def main_view():
     # read entire celldb one time to create text file lists?
     # then only have to update when new data added, otherwise
     # can pull lists of batch nums, model names etc from text file instead.
+    analyses = qg.QueryGenerator(dbc,column='name',tablename='NarfAnalysis').send_query()
+    analyses = analyses.iloc[:,0] #convert from 1-dim df to series
+    analysislist = analyses.tolist()
+
+    batches = qg.QueryGenerator(dbc,column='batch',tablename='NarfBatches').send_query()
+    batches = batches.iloc[:,0]
+    # get unique list since there are duplicates
+    batchlist = list(set(batches.tolist()))
     
-    batches = qg.QueryGenerator(dbc,'NarfBatches')
-    data = batches.send_query()
-    batchlist = data['batch'].tolist()
-    batchlist = list(set(batchlist))
+    ## Maybe don't need this one with new setup? Cells can just populate after
+    ## analysis is selected. Unless want to be able to sort by a specific cell first.
+    cells = qg.QueryGenerator(dbc,column='cellid',tablename='NarfBatches').send_query()
+    cells = cells.iloc[:,0]
+    # get unique list since there are duplicates
+    celllist = list(set(cells.tolist()))
     
-    models = qg.QueryGenerator(dbc,'NarfResults')
-    data = models.send_query()
-    modellist = data['modelname'].tolist()
-    modellist = list(set(modellist))
+    models = qg.QueryGenerator(dbc,column='modelname',tablename='NarfResults').send_query()
+    models = models.iloc[:,0]
+    modellist = list(set(models.tolist()))
     
-    return render_template('main.html', tablelist = tablelist,\
+    return render_template('main.html', analysislist = analysislist,\
+                           tablelist = tablelist,\
                            batchlist = batchlist,\
+                           celllist = celllist,\
                            modellist = modellist,\
                            plottypelist = plottypelist,
                            measurelist = measurelist,
                            )
 
+
+########     UI update handlers for main page     #########
+###########################################################
+
+
+# TODO: implement this functionality -- should update batch, model etc based
+#       on selected analysis
+
+# update batch option based on analysis selection
+@app.route("/update_batch")
+def update_batch():
+    aSelected = request.args.get('aSelected')
+    analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis',\
+                                 analysis=aSelected).send_query()
+    batchnum = analysis.get_value(analysis.index.values[0],'batch')
+    
+    #return batchnum for selected analysis in jQuery-friendly format
+    return jsonify(batchnum)
+    
+# could probably put both of these together to reduce number of queries, 
+# but leaving separate for now to make jquery code clearer
+
+# update model list based on analysis selection
+@app.route("/update_models")
+def update_models():
+    aSelected = request.args.get('aSelected')
+    analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis',\
+                                 analysis=aSelected).send_query()
+    
+    # pull modeltree text from NarfAnalysis
+    # and convert to string rep
+    modeltree = analysis['modeltree'][0]
+    modelFinder = mf.ModelFinder(modeltree)
+    modellist = modelFinder.modellist
+    
+    # TODO: figure out how to turn analysis modelstring into new model list
+    # re-code keyword_combos from narf in python?
+    return jsonify(modellist)
+    
+    
+# update cell list based on batch selection
+@app.route("/update_cells")
+def update_cells():
+    bSelected = request.args.get('bSelected')
+    celllist = qg.QueryGenerator(dbc,tablename='NarfBatches', batch=bSelected)
+    
+    return jsonify(celllist)
+    
+    
+    
+##########       TABLES        ############
+###########################################
+
 # takes form data submitted via select objects at '/'
 # and uses it to form url for req_query
-@app.route("/handle_query", methods = ['POST'])
-def handle_query():
+@app.route("/view_database")
+def view_database():
+    tablelist = 'NarfResults'
+    
+    batches = qg.QueryGenerator(dbc,column='batch',tablename='NarfBatches').send_query()
+    batches = batches.iloc[:,0]
+    # get unique list since there are duplicates
+    batchlist = list(set(batches.tolist()))
+    
+    models = qg.QueryGenerator(dbc,column='modelname',tablename='NarfResults').send_query()
+    models = models.iloc[:,0]
+    modellist = list(set(models.tolist()))
+    
+    return render_template('database.html', tablelist=tablelist, batchlist=batchlist,\
+                           modellist=modellist)
+
+@app.route("/req_query", methods = ['POST'])
+def req_query():
+    # add if statements to check if request data exists before pulling
     tablename = request.form['tablename']
     batchnum = request.form['batchnum']
     modelname = request.form['modelname']
     
-    return redirect(url_for('req_query', tablename=tablename,\
-                            batchnum=batchnum, modelname=modelname))
-
-
-# TODO: add more variables/query options to route, or find a better way to include them
-# currently, app expects to see all possible variables, which means main.py needs to be
-# set up to always include all of them in URL, even if blank.
-# would be nicer if view could just know to only pass in the variables that
-# are present.
-
-
-# view func for dispalying basic database table
-@app.route("/query/tablename=<tablename>/batchnum=<batchnum>/modelname=<modelname>")
-def req_query(tablename, batchnum, modelname):
-    # parse variables from URL and pass to QueryGenerator object as attributes
-    query = qg.QueryGenerator(dbc,tablename, batchnum, modelname)
+    query = qg.QueryGenerator(dbc,tablename=tablename,batchnum=batchnum,\
+                              modelname=modelname)
     # populate dataframe by calling send_query() on qg object
     data = query.send_query()
 
@@ -92,10 +161,16 @@ def req_query(tablename, batchnum, modelname):
     return render_template('table.html', table=data.to_html(classes='Table'),\
                            title=tabletitle)
 
+
+
+###########       PLOTS       #############
+###########################################
+
 # take form data submitted at '/'
 # and pass to generate_plot function
-@app.route("/handle_plot", methods = ['POST'])
-def handle_plot():
+# used for generic plot generator - may change to individual routes?
+@app.route("/make_plot", methods=['POST'])
+def make_plot():
     plottype = request.form['plottype']
     tablename = request.form['tablename']
     batchnum = request.form['batchnum']
@@ -105,33 +180,29 @@ def handle_plot():
     modelnameY = request.form['modelnameY']
     measure = request.form['measure']
     
-    return redirect(url_for('make_plot',plottype=plottype, tablename=tablename,\
-                            batchnum = batchnum, modelnameX = modelnameX,\
-                            modelnameY = modelnameY, measure=measure\
-                            ))
-    
-@app.route("/plot/plottype=<plottype>/tablename=<tablename>/batchnum=<batchnum>\
-           /modelnameX=<modelnameX>/modelnameY=<modelnameY>/measure=<measure>")
-def make_plot(plottype, tablename, batchnum, modelnameX, modelnameY, measure):
     plot = pg.PlotGenerator(dbc, plottype, tablename, batchnum,\
                             modelnameX, modelnameY, measure)
+    
+    return render_template("plot.html", script=plot.plot[0], div=plot.plot[1])
+    
 
+# use form data to make scatter plot
+# use one of these for each plot type instead of generic above?
+@app.route("/scatter_plot", methods=['GET','POST'])
+def scatter_plot():
+    batchnum = request.form['batchnum']
+    modelnames = request.form.getlist('modelnames')
+    measure = request.form['measure']
+    
+    plot = pg.PlotGenerator(dbc,plottype='Scatter',batchnum=batchnum,\
+                            modelnames=modelnames,measure=measure)
+    plot.scatter_plot()
+    
     return render_template("plot.html", script=plot.plot[0], div=plot.plot[1])
 
-    #return plot.plot                       # - takes user to new page w/ plot
-    
-    """
-    webbrowser.open_new_tab(plot.plot)      # - opens new tab w/ plot (not working)
-    return redirect(url_for('main_view'))   # - then returns to main page
-    """
-    
-    """ use this instead of redirect for debugging make_plot.
-        will return a page with x and y values printed out (if any are present)
-    return render_template('debugplot.html', dataX = plot.dataX,\
-                           dataY = plot.dataY)
-    """
     
 # check for empty plot request
+# uncomment data.size==0 check in PlotGenerator.py to enable
 @app.route("/empty")
 def empty_plot():
     return "Empty plot, sad face, try again! If you're seeing this, the \

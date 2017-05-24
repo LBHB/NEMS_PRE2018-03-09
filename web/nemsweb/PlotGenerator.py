@@ -6,11 +6,12 @@
 - template-friendly format (or just pops it up in a new window if bokeh)
 """
 
-from bokeh.plotting import *
+from bokeh.plotting import figure
 from bokeh.resources import CDN
 from bokeh.embed import file_html, components
 import pandas as pd
 import pandas.io.sql as psql
+
 #used for checking empty query
 import webbrowser
 
@@ -18,7 +19,7 @@ class PlotGenerator():
     # currently just generates a scatter plot for model performance
     # TODO: add functionality for additional plot types
     def __init__(self, connection, plottype='Scatter', tablename='NarfResults',\
-                 batchnum = '', modelnameX = '', modelnameY = '', measure = ''):
+                 batchnum = '', modelnames = '', measure = 'r_test'):
         # pass through db connection for communication with
         # QueryGenerator
         
@@ -31,8 +32,10 @@ class PlotGenerator():
         self.modelnameX = "fb18ch100_lognn_wcg03_ap3z1_dexp_fit05v"
         self.modelnameY = "fb18ch100_lognn_wcg03_voltp_ap3z1_dexp_fit05v" 
             modelnames for plot testing"""
-        self.modelnameX = modelnameX
-        self.modelnameY = modelnameY
+            
+        # only supports two models for now
+        self.modelnameX = modelnames[0]
+        self.modelnameY = modelnames[1]
         # measure of performance, i.e. r_test, r_ceiling etc
         self.measure = measure
         
@@ -41,9 +44,9 @@ class PlotGenerator():
         self.dataY = []
         """  """
         
-        self.plot = self.get_plot()
+        self.plot = None
         
-    def get_plot(self):
+    def scatter_plot(self):
         # query database filtered by batch id and where modelname must be one of
         # either model x or model y
         
@@ -60,9 +63,11 @@ class PlotGenerator():
                               self.connection)
         """
         
+        """  for debugging -- opens a new tab with error message if data is empty
         if data.size == 0:
             webbrowser.open_new_tab("0.0.0.0:8000/empty")
-            
+        """
+        
         clist = list(data['cellid'])
         
         xvalues = []
@@ -106,7 +111,7 @@ class PlotGenerator():
         # to embed on existing page eventually with ajax implementation
         # also allows extra templating of resulting plot page to add other links etc
         script,div = components(p)
-        return (script,div)
+        self.plot = (script,div)
         
     
         
