@@ -14,16 +14,17 @@ import pandas as pd
 # global variable to limit number of rows pulled
 # keep this in place unless specifically need to test a larger pull
 # in order to keep load times down for testing
-LIMIT = 20000
+LIMIT = 2000
         
 class QueryGenerator():
     
-    def __init__(self, connection, column='*', tablename="NarfResults", batchnum="", modelname="",\
-                 analysis=""):
+    def __init__(self,connection,distinct=False,column='*',tablename="NarfResults",\
+                 batchnum="", modelname="",analysis=""):
         
         # always establish connection to celldb
         self.connection = connection
         self.column = column
+        self.distinct = distinct
         # TODO: list out all variables and include them in arguments to initializer
         # so that they can be easily passed by views.py
         self.tablename = tablename
@@ -44,7 +45,12 @@ class QueryGenerator():
         
         filterCount = 0
         
-        q = 'SELECT %s FROM '%(self.column)
+        if self.distinct:
+            distinct = 'DISTINCT'
+        else:
+            distinct = ''
+        
+        q = 'SELECT %s %s FROM '%(distinct, self.column)
         q += self.tablename
         if self.batchnum != "":
             filterCount += 1
