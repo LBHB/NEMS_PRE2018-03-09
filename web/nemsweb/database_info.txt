@@ -1,4 +1,4 @@
-user david
-passwd nine1997
-host 34.210.240.72
+user lbhbread
+passwd ferret33
+host hyrax.ohsu.edu
 database cell

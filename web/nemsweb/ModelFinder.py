@@ -5,18 +5,16 @@
 """
 
 import ast
-from itertools import product
 
-"""
 #for testing w/  actual model string
 import QueryGenerator as qg
 import DB_Connection as dbcon
 db = dbcon.DB_Connection()
 dbc = db.connection
 
-analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='IFN').send_query()
-globmodelstring = analysis['modeltree'][0]
-"""
+analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='Noisy Vocalizations').send_query()
+modstring = analysis['modeltree'][0]
+
 
 """
 # for testing with simpler nested list that (hopefully) won't crash the universe
@@ -67,17 +65,11 @@ class ModelFinder():
             # if it's a list, iteratively append each item to a new path
             # and traverse the rest of the list on each path
             elif type(head) is list:
-                for l in head:
-                    self.traverse_nested(tail,path+[l])
-            # if first element is a list of lists,
-            # find the cartesian product of the lists inside and append each of
-            # the elements of those to their own paths
-            # TODO: better way to do this recursively? seems like this will
-            # break if more than 2 layers deep on nesting
-            elif type(head) is list and type(head[0]) is list:
-                p = list(map(list, product(*head)))
-                for i in range(len(p)):
-                    self.traverse_nested(tail,path+p[i])
+                for l in range(len(head)):
+                    if type(head[l]) is list:
+                        self.traverse_nested(tail,path+head[l])
+                    elif type(head[l]) is str:
+                        self.traverse_nested(tail,path+[head[l]])
         else:
             # some kind of error message, i.e. not a list
             pass
@@ -93,7 +85,6 @@ class ModelFinder():
         # combo array not coming out right
         
         # iterate through rows of combinations
-        for c in range(len(self.comboArray)):
-            models += ['_'.join(self.comboArray[c])]
-        
+        for c in self.comboArray:
+            models += ['_'.join(c)]
         return models
