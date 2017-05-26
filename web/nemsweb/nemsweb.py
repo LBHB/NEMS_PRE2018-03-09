@@ -24,17 +24,23 @@ app.config.from_object('config')
 # dbc to be passed to other objects as needed
 dbc = dbcon.DB_Connection().connection
 
-
 @app.route("/")
 def main_view():
-    # hard coded as only option for now
+
+    
     tablelist = 'NarfResults'
     plottypelist = 'Scatter'
     measurelist = 'r_test'
+    resultstable = ''
     
     # TODO: Figure out how to get initial lists to load faster - added distinct
     # and field selections to shrink query, but initial page load is still very slow
     # if selection limit is lifted (so far tested up to 200k, takes ~20 seconds to load)
+    
+    # possibility: organize as analysis, batch, model objects and load a global-scope
+    # dataframe with the relevant data on app launch? then just have view functions index
+    # into dataframe as needed instead of generating new queries each time
+    
     
     analyses = qg.QueryGenerator(dbc,column='name',tablename='NarfAnalysis').send_query()
     analyses = analyses.iloc[:,0] #convert from 1-dim df to series
@@ -70,11 +76,8 @@ def main_view():
 ###########################################################
 
 
-# TODO: implement this functionality -- should update batch, model etc based
-#       on selected analysis
-
 # update batch option based on analysis selection
-@app.route("/update_batch", methods=['GET','POST'])
+@app.route("/update_batch")
 def update_batch():
     aSelected = request.args.get('aSelected','no selection',type=str)
     
@@ -91,7 +94,7 @@ def update_batch():
 # but leaving separate for now to make jquery code clearer
 
 # update model list based on analysis selection
-@app.route("/update_models", methods=['GET','POST'])
+@app.route("/update_models")
 def update_models():
     aSelected = request.args.get('aSelected','no selection',type=str)
     #currently disabled until modelfinder methods are fixed - combo array
@@ -113,14 +116,81 @@ def update_models():
     
     
 # update cell list based on batch selection
-@app.route("/update_cells", methods=['GET','POST'])
+@app.route("/update_cells")
 def update_cells():
-    bSelected = request.args.get('bSelected')
-    celllist = qg.QueryGenerator(dbc,tablename='NarfBatches', batch=bSelected)
+    bSelected = request.args.get('bSelected','no selection',type=str)
     
-    return jsonify(celllist)
+    celllist = qg.QueryGenerator(dbc,column='cellid',tablename='NarfBatches',\
+                                 batchnum=bSelected).send_query()
     
+    celllist = celllist.iloc[:,0].tolist()
     
+    return jsonify(celllist=celllist)
+
+# update NarfResults display based on batch, model and cell selections
+@app.route("/update_results")
+def update_results():
+    # get user choices
+    # cell and model choices might be list or string?
+    
+    #looking pretty gross - maybe better to hold off on this functionality until
+    #after restructuring with analysis objects?
+    
+    """
+    if 'bSelected' in request.args:
+        bSelected = request.args.get('bSelected','none',type=str)
+    if 'cSelected' in request.args:
+        cSelected = request.args.get('cSelected','none',type=(list,str))
+    if 'mSelected' in request.args:
+        mSelected = request.args.get('mSelected','none',type=(list,str))
+    
+    results = qg.QueryGenerator(dbc)
+    #override generic query
+    
+    #if no choices made, just grab the first 500 cells
+    if not (('bSelected' in request.args) or ('cSelected' in request.args) \
+            or ('mSelected' in request.args)):
+        query = 'SELECT * FROM NarfResults LIMIT 500'
+    else:
+        query = 'SELECT * FROM NarfResults'
+        if 'bSelected' in request.args:
+            query += ' WHERE (batch=' + bSelected + ")"
+        if not 'bSelected' in request.args:
+            query += ' WHERE (batch IS NOT NULL)'
+        if 'cSelected' in request.args:
+            query += ' AND ('
+            if type(cSelected) is str:
+                query += 'cellid="' + cSelected + '")'
+            if type(cSelected) is list:
+                for c in range(len(cSelected)):
+                    if c == (len(cSelected)-1):
+                        query += '(cellid="' + cSelected[c] + '))'
+                    else:
+                        query += '(cellid="' + cSelected[c] + ') OR '
+        if 'mSelected' in request.args:
+            query += ' AND ('
+            if type(mSelected) is str:
+                query += 'modelname="' + mSelected + '")'
+            if type(mSelected) is list:
+                for m in range(len(mSelected)):
+                    if m == (len(mSelected)-1):
+                        query += '(modelname="' + mSelected[m] + '))'
+                    else:
+                        query += '(modelname="' + mSelected[m] + ') OR '
+        
+    results.query = query
+    resultstable = results.send_query().to_html(classes='table')
+    """
+    
+    return jsonify(resultstable="RESULTS TABLE NOT YET IMPLEMENTED <br>\
+                    Current notes/warnings:<br>\
+                    Model filtering is only partially working - some analyses have<br>\
+                        modeltrees that aren't playing nice with ast.literal_eval,<br>\
+                        and will not update model list accordingly. To get a proper<br>\
+                        combination of batch and models, choose analyses until the model<br>\
+                        list updates.<br>")
+    
+
     
 ##########       TABLES        ############
 ###########################################

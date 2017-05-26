@@ -1,6 +1,5 @@
 $(document).ready(function(){       
     $("#analysisSelector").change(function(){
-        alert("Analysis selection has changed!");
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
                          
@@ -12,7 +11,7 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data) {
                 console.log("batchnum retrieved?: " + data.batchnum);
-                $("select[name='batchnum']").val(data.batchnum);
+                $("select[name='batchnum']").val(data.batchnum).change();
             },
             error: function(error) {
                 console.log(error);
@@ -41,30 +40,51 @@ $(document).ready(function(){
         });
     });
 
-    $("input[name='batchnum']").change(function(){
+    $("select[name='batchnum']").change(function(){
         // TODO: update cell list when batch changes
         //       should cascade from change to analysis selection
-        alert("Value of batch selection has changed!");
         // if batch selection changes, get the value of the new selection
-        var bSelected = $("input[name='batchnum']:selected").val();
+        var bSelected = $("select[name='batchnum']").val();
 
         $.ajax({
             url: $SCRIPT_ROOT + '/update_cells',
             data: { bSelected:bSelected },
             type: 'GET',
-            success: function(newCells) {
+            success: function(data) {
                 cells = $("select[name='celllist']");
                 cells.empty();
-                alert("Inside cell update function");
+                console.log("new cell list = " + data.celllist)
 
-                $.each(newCells.celllist, function(cell) {
+                $.each(data.celllist, function(cell) {
                     cells.append($("<option></option>")
-                        .attr("value", cell).text(cell));                    
+                        .attr("value", data.celllist[cell]).text
+                        (data.celllist[cell]));                    
                 });
             },
             error: function(error) {
                 console.log(error);
             }    
+        });
+    });
+
+    $("select[name='batchnum'],select[name='modelnames'],select[name='celllist']")
+    .change(function(){
+        var bSelected = $("select[name='batchnum']").val();
+        var cSelected = $("select[name='celllist']").val();
+        var mSelected = $("select[name='modelnames']").val();
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/update_results',
+            data: { bSelected:bSelected, cSelected:cSelected, mSelected:mSelected },
+            type: 'GET',
+            success: function(data) {
+                //grabs whole div - replace inner html with new table?
+                results = $(".table-responsive");
+                results.html(data.resultstable)
+            },
+            error: function(error) {
+                console.log(error);
+            }
         });
     });
 });

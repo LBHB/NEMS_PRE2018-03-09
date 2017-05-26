@@ -5,6 +5,7 @@
 """
 
 import ast
+import re
 
 #for testing w/  actual model string
 import QueryGenerator as qg
@@ -12,7 +13,7 @@ import DB_Connection as dbcon
 db = dbcon.DB_Connection()
 dbc = db.connection
 
-analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='Noisy Vocalizations').send_query()
+analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='Jake Test').send_query()
 modstring = analysis['modeltree'][0]
 
 
@@ -37,11 +38,25 @@ class ModelFinder():
         
     def string_to_nested_list(self):        
         # replace curly braces with brackets and remove whitespace,
+        # do other string cleanup
         # then interpret as nested list
+        
         s = self.modelstring.replace('{', '[')
         s = s.replace('}', ']')
         s = s.replace(" ","")
-        nestedlist = ast.literal_eval(s)
+        s = s.replace('],]',']]')   #remove trailing commas
+        
+        # issues with this function for some model strings - will need to
+        # fix this to make sure it works for all strings.
+        # TODO: insert commas between strings within list, i.e.
+        # ['abc''dfg'] >> ['abc','dfg']
+        # TODO: identify other problems, or figure out different function
+        # to use to parse string into list of lists
+        
+        try:
+            nestedlist = ast.literal_eval(s)
+        except (ValueError, SyntaxError):
+            print("ast.literal_eval has issue with string format")
         
         return nestedlist
         
