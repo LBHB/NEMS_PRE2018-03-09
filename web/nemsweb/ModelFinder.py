@@ -5,18 +5,23 @@
 """
 
 import ast
-import pprint
+from itertools import product
 
-
-""" for testing w/  actual model string
+"""
+#for testing w/  actual model string
 import QueryGenerator as qg
 import DB_Connection as dbcon
 db = dbcon.DB_Connection()
 dbc = db.connection
 
-analysis = qg.QueryGenerator(dbc, column='name',table='NarfAnalysis', analysis='Fitters').send_query()
+analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='Fitters').send_query()
 globmodelstring = analysis['modeltree'][0]
 """
+
+# for testing with simpler nested list that (hopefully) won't crash the universe
+modstring = "{'a','b',  {{'c','d'},{ 'e','f' }},    'g'}"
+# list of combos should end up as:
+# ['abceg','abcfg','abdeg','abdfg']
 
 class ModelFinder():
     
@@ -50,35 +55,39 @@ class ModelFinder():
         # if passed empty list, must have reached 'leaf'
         if len(nestedlist) == 0:
             self.comboArray += path
-        # double check that a list was passed - otherwise we've got problems
+
         elif type(nestedlist) is list:
             head = nestedlist[0]
             tail = nestedlist[1:]
-            # if length is 1, it's just one string (but still read as a list)
-            # so concat contents onto path, then traverse the next part of list
-            if len(head) == 1:
-                path.append(head[0])
-                self.traverse_nested(tail, path)
-            # if length is greater than 1, it's a list, so
-            # for each item concat to path then traverse the rest of the list
-            elif len(head) > 1:
-                for l in range(len(head)):
-                    path.append(head[l])
-                    self.traverse_nested(tail, path)
+            # if first element is a string, just append and move on
+            if type(head) is str:
+                self.traverse_nested(tail, (path+[head]) )
+                
+            # if first element is a list, go deeper?
+            # TODO: problems with this bit still
+            elif type(head) is list:
+                p = list(map(list, product(head,tail)))
+                for i in range(len(p)):
+                    self.traverse_nested(tail, (path+[p[i]]) )
         else:
             # some kind of error message, i.e. not a list
             pass
+        
+        return
     
     def array_to_list(self,array):
         # parse array into a list of model names (strings)
         # see: narf_analysis > rebuild_modeltree
         models = []
         
+        # TODO: Maybe problems with this too, but could just be due to the
+        # combo array not coming out right
+        
         # iterate through rows of combinations
         for c in range(len(self.comboArray)):
             model = ''
             for s in range(len(self.comboArray[c])):
-                model += ("%s_" + self.comboArray[c][s])
+                model += (self.comboArray[c][s] + "_")
             models += model
         
         return models
