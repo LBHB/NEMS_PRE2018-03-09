@@ -12,14 +12,13 @@ import pandas as pd
 
 
 # global variable to limit number of rows pulled
-# keep this in place unless specifically need to test a larger pull
-# in order to keep load times down for testing
-LIMIT = 2000
+# used as default unless user specifies another value
+LIMIT = 1000
         
 class QueryGenerator():
     
     def __init__(self,connection,distinct=False,column='*',tablename="NarfResults",\
-                 batchnum="", modelname="",analysis=""):
+                 batchnum="", modelname="",analysis="", limit=LIMIT):
         
         # always establish connection to celldb
         self.connection = connection
@@ -32,6 +31,7 @@ class QueryGenerator():
         self.modelname = modelname
         # for use with NarfAnalysis table
         self.analysis = analysis
+        self.limit = limit
         # generate query automatically - no reason to leave it blank
         self.query = self.generate_query()
         

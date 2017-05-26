@@ -1,67 +1,140 @@
-<! Template for main page/user interface >
-<!doctype html>
-
-<head>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>
-        Index
-    </title>
-    <link rel=stylesheet type=text/css href=
-    "{{ url_for('static', filename='css/style.css') }}">
+    <!-- The above 3 meta tags *must* come first in the head; any other head 
+    content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>NEMS Analysis</title>
+
+    <!-- Bootstrap css -->
+    <link rel="stylesheet" href=
+    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" 
+    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" 
+    crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href=
+    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" 
+    integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" 
+    crossorigin="anonymous">
     
-    <!-- do i need these here if i just import script from a separate file? -->
+    <!-- Custom styles for this template -->
+    <link href="{{ url_for('static', filename='css/starter-template.css') }}" rel="stylesheet">
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">NEMS Analysis</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="{{ url_for('main_view') }}">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container-fluid">
+    <div class="starter-template">
+    
+        <div class="row">
+            <div class="col-xs-4">
+            <form class="form" action="{{ url_for('scatter_plot') }}" target="_blank" method="POST">
+            <!-- figure out how to exclude analysis selection from form submit -->
+                <div class="form-group">
+                <label for="analysisSelector"> Select Analysis </label>
+                <select class="form-control" id="analysisSelector">
+                    <option selected disabled> Analysis </option>
+                    {% for analysis in analysislist %}
+                        <option value="{{ analysis }}"> {{ analysis }} </option>
+                    {% endfor %}
+                </select>
+                </div>
+
+                <div class="form-group">
+                <label for="batchSelector"> Select Batch </label>
+                <select class="form-control" name="batchnum" id="batchSelector">
+                    <option selected disabled> Batch </option>
+                    {% for batch in batchlist %}
+                        <option value="{{ batch }}"> {{ batch }} </option>
+                    {% endfor %}
+                </select>
+                </div>
+
+                <div class="form-group">
+                <label for="cellSelector"> Select Cell(s) </label>
+                <select multiple="multiple" class="form-control" name="celllist" size="12"
+                    id="cellSelector">
+                    {% for cell in celllist %}
+                        <option value="{{ cell }}"> {{ cell }} </option>
+                    {% endfor %}
+                </select>
+                </div>
+
+                <div class="form-group">
+                <label for="modelSelector"> Select Model(s) </label>
+                <select multiple="multiple" class="form-control" name="modelnames" size="12"
+                    id="modelSelector">
+                    {% for model in modellist %}
+                        <option value="{{ model }}"> {{ model }} </option>
+                    {% endfor %}
+                </select>
+                </div>
+                
+                <div class="row align-items-start justify-content-start">
+                <input type="checkbox" name="measure" value="{{ measurelist }}"
+                    checked/> {{ plottypelist }} <br>
+                <!-- TODO: add more checkboxes or radio buttons for other options -->
+                <input type="submit" value="Submit"/>
+                </div>
+            </form>
+            </div><!-- col -->
+            <div class="col-xs-8">
+                <div class="table-responsive">
+                    DISPLAY NARF RESULTS TABLE HERE<br>
+                    Current notes/warnings:<br>
+                    Model filtering is only partially working - some analyses have<br>
+                        modeltrees that aren't playing nice with ast.literal_eval,<br>
+                        and will not update model list accordingly. To get a proper<br>
+                        combination of batch and models, choose analyses until the model<br>
+                        list updates.<br>
+                </div>
+            </div>
+        </div><!-- row -->
+
+    </div><!-- starter template-->
+    </div><!-- /.container -->
+
+    <!-- load jquery -->
     <script type=text/javascript src=
         "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+        
+    <!-- Bootstrap JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 
+    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
+    crossorigin="anonymous"></script>
+    
+    <!-- ajax javascript -->
     <script type=text/javascript>
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
     <script type=text/javascript src=
     "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
-</head>
-<body>
-        <h1>Select Analysis</h1>
-        
-        <!-- TODO: filter other selections based on analysis selection -->
-        <select id="analysisSelector" name="analysis" size="20">
-            {% for analysis in analysislist %}
-                <option value="{{ analysis }}"> {{ analysis }} </option>
-            {% endfor %}
-        </select>
-        
-        <!-- TODO: change form action based on selection (scatter/etc) -->
-        <form action="{{ url_for('scatter_plot') }}" target="_blank" method="POST">
-        <select class="multiSelect" name="batchnum" size="20">
-            {% for batch in batchlist %}
-                <option value="{{ batch }}"> {{ batch }} </option>
-            {% endfor %}
-        </select>
-        
-        <!-- leave this out for now
-        <select multiple="multiple" class="multiSelect" name="celllist" size="20">
-            {% for cell in celllist %}
-                <option value="{{ cell }}"> {{ cell }} </option>
-            {% endfor %}
-        </select>
-        -->
-        
-        <!-- have to select at least two -->
-        <select multiple="multiple" class="multiSelect" name="modelnames" size="20">
-            {% for model in modellist %}
-                <option value="{{ model }}"> {{ model }} </option>
-            {% endfor %}
-        </select>
-        
-        <!-- scatter plot only option for now
-        <input type="radio" name="plottype" value="{{ plottypelist }}"
-            checked/> {{ plottypelist }} <br>                       -->
-        <input type="checkbox" name="measure" value="{{ measurelist }}"
-            checked/> {{ plottypelist }} <br>
-        <!-- TODO: add more checkboxes or radio buttons for other options -->
-        
-        <input type="submit" value="Submit"/>
-        </form>
     
-    <div class=footer>
-        <a href="{{ url_for('view_database') }}" target="_blank"> View Database </a>
-    </div>
-</body>
+  </body>
 </html>
