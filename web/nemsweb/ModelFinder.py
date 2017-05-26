@@ -7,7 +7,7 @@
 import ast
 from itertools import product
 
-"""
+
 #for testing w/  actual model string
 import QueryGenerator as qg
 import DB_Connection as dbcon
@@ -16,12 +16,14 @@ dbc = db.connection
 
 analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='Fitters').send_query()
 globmodelstring = analysis['modeltree'][0]
-"""
 
+
+"""
 # for testing with simpler nested list that (hopefully) won't crash the universe
 modstring = "{'a','b',  {{'c','d'},{ 'e','f' }},    'g'}"
 # list of combos should end up as:
 # ['abceg','abcfg','abdeg','abdfg']
+"""
 
 class ModelFinder():
     
@@ -54,7 +56,7 @@ class ModelFinder():
         
         # if passed empty list, must have reached 'leaf'
         if len(nestedlist) == 0:
-            self.comboArray += path
+            self.comboArray.append(path)
 
         elif type(nestedlist) is list:
             head = nestedlist[0]
@@ -66,9 +68,9 @@ class ModelFinder():
             # if first element is a list, go deeper?
             # TODO: problems with this bit still
             elif type(head) is list:
-                p = list(map(list, product(head,tail)))
+                p = list(map(list, product(*head)))
                 for i in range(len(p)):
-                    self.traverse_nested(tail, (path+[p[i]]) )
+                    self.traverse_nested(tail,path+p[i])
         else:
             # some kind of error message, i.e. not a list
             pass
@@ -85,9 +87,6 @@ class ModelFinder():
         
         # iterate through rows of combinations
         for c in range(len(self.comboArray)):
-            model = ''
-            for s in range(len(self.comboArray[c])):
-                model += (self.comboArray[c][s] + "_")
-            models += model
+            models += ['_'.join(self.comboArray[c])]
         
         return models

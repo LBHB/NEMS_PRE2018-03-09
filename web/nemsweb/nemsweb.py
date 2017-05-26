@@ -96,7 +96,7 @@ def update_models():
     aSelected = request.args.get('aSelected')
     #currently disabled until modelfinder methods are fixed - combo array
     #recursion crashing website
-    """
+    
     analysis = qg.QueryGenerator(dbc,column='modeltree',tablename='NarfAnalysis',\
                                  analysis=aSelected).send_query()
     
@@ -106,9 +106,8 @@ def update_models():
     modeltree = analysis.iloc[0,0]
     modelFinder = mf.ModelFinder(modeltree)
     modellist = modelFinder.modellist
-    """
     
-    modellist = ['testing','jquery','code','for','analysis','update',aSelected]
+    #modellist = ['testing','jquery','code','for','analysis','update',aSelected]
     
     return jsonify(modellist)
     
