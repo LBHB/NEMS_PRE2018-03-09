@@ -19,48 +19,42 @@ import ModelFinder as mf
 
 app = Flask(__name__)
 app.config.from_object('config')
-# TODO: re-write app.routes using new object structure
 
 # create a database connection, then assign it to
 # dbc to be passed to other objects as needed
-db = dbcon.DB_Connection()
-db.connect_remote()
-dbc = db.connection
-# use connect_lab() at lab, connect_remote() for amazon server
+dbc = dbcon.DB_Connection().connection
 
 
 @app.route("/")
 def main_view():
-    # hard coded as only option for now - not really needed for plots,
-    # only needed if want to look at tables in adatabase type fashion
+    # hard coded as only option for now
     tablelist = 'NarfResults'
     plottypelist = 'Scatter'
     measurelist = 'r_test'
-    # TODO: currently queries entire table, then picks out batch ids and model names
-    # should figure out a better way to do this
-    # i.e. don't query anything until user makes a selection
-    # read entire celldb one time to create text file lists?
-    # then only have to update when new data added, otherwise
-    # can pull lists of batch nums, model names etc from text file instead.
+    
+    # TODO: Figure out how to get initial lists to load faster - added distinct
+    # and field selections to shrink query, but initial page load is still very slow
+    # if selection limit is lifted (so far tested up to 200k, takes ~20 seconds to load)
+    
     analyses = qg.QueryGenerator(dbc,column='name',tablename='NarfAnalysis').send_query()
     analyses = analyses.iloc[:,0] #convert from 1-dim df to series
     analysislist = analyses.tolist()
 
-    batches = qg.QueryGenerator(dbc,column='batch',tablename='NarfBatches').send_query()
+    batches = qg.QueryGenerator(dbc,distinct=True,column='batch',tablename=\
+                                'NarfBatches').send_query()
     batches = batches.iloc[:,0]
-    # get unique list since there are duplicates
-    batchlist = list(set(batches.tolist()))
+    batchlist = batches.tolist()
     
     ## Maybe don't need this one with new setup? Cells can just populate after
     ## analysis is selected. Unless want to be able to sort by a specific cell first.
-    cells = qg.QueryGenerator(dbc,column='cellid',tablename='NarfBatches').send_query()
+    cells = qg.QueryGenerator(dbc,distinct=True,column='cellid',tablename='NarfBatches').send_query()
     cells = cells.iloc[:,0]
     # get unique list since there are duplicates
-    celllist = list(set(cells.tolist()))
+    celllist = cells.tolist()
     
-    models = qg.QueryGenerator(dbc,column='modelname',tablename='NarfResults').send_query()
+    models = qg.QueryGenerator(dbc,distinct=True,column='modelname',tablename='NarfResults').send_query()
     models = models.iloc[:,0]
-    modellist = list(set(models.tolist()))
+    modellist = models.tolist()
     
     return render_template('main.html', analysislist = analysislist,\
                            tablelist = tablelist,\
@@ -80,39 +74,46 @@ def main_view():
 #       on selected analysis
 
 # update batch option based on analysis selection
-@app.route("/update_batch")
+@app.route("/update_batch", methods=['GET','POST'])
 def update_batch():
-    aSelected = request.args.get('aSelected')
-    analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis',\
+    aSelected = request.args.get('aSelected','no selection',type=str)
+    
+    batch = qg.QueryGenerator(dbc,tablename='NarfAnalysis',\
                                  analysis=aSelected).send_query()
-    batchnum = analysis.get_value(analysis.index.values[0],'batch')
+    
+    # get string of first 3 characters, rest is description of batch
+    batchnum = batch['batch'].iloc[0][:3]
     
     #return batchnum for selected analysis in jQuery-friendly format
-    return jsonify(batchnum)
+    return jsonify(batchnum=batchnum)
     
 # could probably put both of these together to reduce number of queries, 
 # but leaving separate for now to make jquery code clearer
 
 # update model list based on analysis selection
-@app.route("/update_models")
+@app.route("/update_models", methods=['GET','POST'])
 def update_models():
-    aSelected = request.args.get('aSelected')
-    analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis',\
+    aSelected = request.args.get('aSelected','no selection',type=str)
+    #currently disabled until modelfinder methods are fixed - combo array
+    #recursion crashing website
+    
+    analysis = qg.QueryGenerator(dbc,column='modeltree',tablename='NarfAnalysis',\
                                  analysis=aSelected).send_query()
     
     # pull modeltree text from NarfAnalysis
     # and convert to string rep
-    modeltree = analysis['modeltree'][0]
+    
+    modeltree = analysis.iloc[0,0]
     modelFinder = mf.ModelFinder(modeltree)
     modellist = modelFinder.modellist
     
-    # TODO: figure out how to turn analysis modelstring into new model list
-    # re-code keyword_combos from narf in python?
-    return jsonify(modellist)
+    #modellist = ['testing','jquery','code','for','analysis','update',aSelected]
+    
+    return jsonify(modellist=modellist)
     
     
 # update cell list based on batch selection
-@app.route("/update_cells")
+@app.route("/update_cells", methods=['GET','POST'])
 def update_cells():
     bSelected = request.args.get('bSelected')
     celllist = qg.QueryGenerator(dbc,tablename='NarfBatches', batch=bSelected)
@@ -215,6 +216,6 @@ if __name__ == '__main__':
 #disconnect from database when app shuts down
 @app.teardown_appcontext
 def disconnect_from_db():
-    db.close_connection()
+    dbc.close_connection()
 
  
