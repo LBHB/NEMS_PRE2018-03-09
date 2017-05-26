@@ -11,7 +11,7 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                alert("batchnum retrieved?: " + data.batchnum);
+                console.log("batchnum retrieved?: " + data.batchnum);
                 $("select[name='batchnum']").val(data.batchnum);
             },
             error: function(error) {
@@ -21,20 +21,18 @@ $(document).ready(function(){
         // also pass analysis value to 'update_models' in nemsweb.py
         $.ajax({
             url: $SCRIPT_ROOT + '/update_models',
-            data: { aSelected: aSelected }, 
+            data: { aSelected:aSelected }, 
             type: 'GET',
-            success: function(modellist) {
-                alert("modellist = " + modellist);
+            success: function(data) {
+                console.log("modellist = " + data.modellist);
                 var $models = $("select[name='modelnames']");
                 $models.empty();
-        // for each modelname returned by nemsweb.py
-        // append a new option for the select object with both value
-        // and display text equal to modelname
-                $.each(modellist, function(modelname) {
-                    alert("modelname = " + modellist[modelname]);
+                             
+                $.each(data.modellist, function(modelname) {
+                    console.log("modelname = " + data.modellist[modelname]);
                     $models.append($("<option></option>")
-                        .attr("value", modellist[modelname]).text
-                        (modellist[modelname]));
+                        .attr("value", data.modellist[modelname]).text
+                        (data.modellist[modelname]));
                 });
             },
             error: function(error) {

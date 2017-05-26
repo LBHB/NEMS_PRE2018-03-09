@@ -93,7 +93,7 @@ def update_batch():
 # update model list based on analysis selection
 @app.route("/update_models", methods=['GET','POST'])
 def update_models():
-    aSelected = request.args.get('aSelected')
+    aSelected = request.args.get('aSelected','no selection',type=str)
     #currently disabled until modelfinder methods are fixed - combo array
     #recursion crashing website
     
@@ -109,7 +109,7 @@ def update_models():
     
     #modellist = ['testing','jquery','code','for','analysis','update',aSelected]
     
-    return jsonify(modellist)
+    return jsonify(modellist=modellist)
     
     
 # update cell list based on batch selection

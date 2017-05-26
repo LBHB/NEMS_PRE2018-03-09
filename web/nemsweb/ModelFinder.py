@@ -7,16 +7,16 @@
 import ast
 from itertools import product
 
-
+"""
 #for testing w/  actual model string
 import QueryGenerator as qg
 import DB_Connection as dbcon
 db = dbcon.DB_Connection()
 dbc = db.connection
 
-analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='Fitters').send_query()
+analysis = qg.QueryGenerator(dbc,tablename='NarfAnalysis', analysis='IFN').send_query()
 globmodelstring = analysis['modeltree'][0]
-
+"""
 
 """
 # for testing with simpler nested list that (hopefully) won't crash the universe
@@ -64,10 +64,17 @@ class ModelFinder():
             # if first element is a string, just append and move on
             if type(head) is str:
                 self.traverse_nested(tail, (path+[head]) )
-                
-            # if first element is a list, go deeper?
-            # TODO: problems with this bit still
+            # if it's a list, iteratively append each item to a new path
+            # and traverse the rest of the list on each path
             elif type(head) is list:
+                for l in head:
+                    self.traverse_nested(tail,path+[l])
+            # if first element is a list of lists,
+            # find the cartesian product of the lists inside and append each of
+            # the elements of those to their own paths
+            # TODO: better way to do this recursively? seems like this will
+            # break if more than 2 layers deep on nesting
+            elif type(head) is list and type(head[0]) is list:
                 p = list(map(list, product(*head)))
                 for i in range(len(p)):
                     self.traverse_nested(tail,path+p[i])
