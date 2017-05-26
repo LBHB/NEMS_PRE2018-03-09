@@ -1,4 +1,0 @@
-user lbhbread
-passwd ferret33
-host hyrax.ohsu.edu
-database cell
