@@ -2,6 +2,7 @@
 <!doctype html>
 
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>
         Index
     </title>
@@ -10,20 +11,17 @@
     
     <!-- do i need these here if i just import script from a separate file? -->
     <script type=text/javascript src=
-        "{{ url_for('static', filename='js/jquery.js') }}"></script>
+        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
     <script type=text/javascript>
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
     <script type=text/javascript src=
     "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
 </head>
 <body>
-    <div class=page>
         <h1>Select Analysis</h1>
         
         <!-- TODO: filter other selections based on analysis selection -->
-        <select id="analysisSelector" name="analysis" size="20" onchange="function() {
-                chooseAnalysis();
-        }">
+        <select id="analysisSelector" name="analysis" size="20">
             {% for analysis in analysislist %}
                 <option value="{{ analysis }}"> {{ analysis }} </option>
             {% endfor %}
@@ -31,7 +29,7 @@
         
         <!-- TODO: change form action based on selection (scatter/etc) -->
         <form action="{{ url_for('scatter_plot') }}" target="_blank" method="POST">
-        <select multiple="multiple" class="multiSelect" name="batchnum" size="20">
+        <select class="multiSelect" name="batchnum" size="20">
             {% for batch in batchlist %}
                 <option value="{{ batch }}"> {{ batch }} </option>
             {% endfor %}
