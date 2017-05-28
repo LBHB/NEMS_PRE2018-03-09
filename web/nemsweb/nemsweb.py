@@ -130,65 +130,42 @@ def update_cells():
 # update NarfResults display based on batch, model and cell selections
 @app.route("/update_results")
 def update_results():
-    # get user choices
-    # cell and model choices might be list or string?
-    
-    #looking pretty gross - maybe better to hold off on this functionality until
-    #after restructuring with analysis objects?
-    
-    """
+    # get user choices if they exist (batch required)
+    # if only a single model or cell is chosen, conver to list to simplify code
+
     if 'bSelected' in request.args:
         bSelected = request.args.get('bSelected','none',type=str)
+    if not 'bSelected' in request.args:
+        # TODO: Figure out a better way to catch this error, probably
+        # through html solution that requires user to choose batch before
+        # using other selects
+        return jsonify(resultstable="MUST SELECT A BATCH")
     if 'cSelected' in request.args:
         cSelected = request.args.get('cSelected','none',type=(list,str))
+        if type(cSelected) is str:
+            cSelected = [cSelected]
+    if not 'cSelected' in request.args:
+        cSelected = None
     if 'mSelected' in request.args:
         mSelected = request.args.get('mSelected','none',type=(list,str))
-    
-    results = qg.QueryGenerator(dbc)
-    #override generic query
-    
-    #if no choices made, just grab the first 500 cells
-    if not (('bSelected' in request.args) or ('cSelected' in request.args) \
-            or ('mSelected' in request.args)):
-        query = 'SELECT * FROM NarfResults LIMIT 500'
-    else:
-        query = 'SELECT * FROM NarfResults'
-        if 'bSelected' in request.args:
-            query += ' WHERE (batch=' + bSelected + ")"
-        if not 'bSelected' in request.args:
-            query += ' WHERE (batch IS NOT NULL)'
-        if 'cSelected' in request.args:
-            query += ' AND ('
-            if type(cSelected) is str:
-                query += 'cellid="' + cSelected + '")'
-            if type(cSelected) is list:
-                for c in range(len(cSelected)):
-                    if c == (len(cSelected)-1):
-                        query += '(cellid="' + cSelected[c] + '))'
-                    else:
-                        query += '(cellid="' + cSelected[c] + ') OR '
-        if 'mSelected' in request.args:
-            query += ' AND ('
-            if type(mSelected) is str:
-                query += 'modelname="' + mSelected + '")'
-            if type(mSelected) is list:
-                for m in range(len(mSelected)):
-                    if m == (len(mSelected)-1):
-                        query += '(modelname="' + mSelected[m] + '))'
-                    else:
-                        query += '(modelname="' + mSelected[m] + ') OR '
+        if type(mSelected) is str:
+            mSelected = [mSelected]
+    if not 'mSelected' in request.args:
+        mSelected = None
         
-    results.query = query
-    resultstable = results.send_query().to_html(classes='table')
-    """
+    #query narf results by batch, store in dataframe
+    results = qg.QueryGenerator(dbc,tablename='NarfResults',\
+                                batchnum=bSelected).send_query()
     
-    return jsonify(resultstable="RESULTS TABLE NOT YET IMPLEMENTED <br>\
-                    Current notes/warnings:<br>\
-                    Model filtering is only partially working - some analyses have<br>\
-                        modeltrees that aren't playing nice with ast.literal_eval,<br>\
-                        and will not update model list accordingly. To get a proper<br>\
-                        combination of batch and models, choose analyses until the model<br>\
-                        list updates.<br>")
+    #filter dataframe by selected cells, if any
+    if not cSelected is None:
+        results = results[results.cellid in cSelected]
+    #same for selected models, if any
+    if not mSelected is None:
+        results = results[results.modelname in mSelected]
+    
+    return jsonify(resultstable=results.to_html(classes='table-hover\
+                                                table-condensed'))
     
 
     
@@ -229,7 +206,7 @@ def req_query():
     
     # generage html page via table.html template, pass in html export of dataframe
     # and table title as variables
-    return render_template('table.html', table=data.to_html(classes='Table'),\
+    return render_template('table.html', table=data.to_html(classes='table'),\
                            title=tabletitle)
 
 

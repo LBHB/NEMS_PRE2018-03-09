@@ -56,8 +56,10 @@ class ModelFinder():
         try:
             nestedlist = ast.literal_eval(s)
         except (ValueError, SyntaxError):
-            print("ast.literal_eval has issue with string format")
-        
+            print("\n\n ast.literal_eval has issue with string format for this modeltree: \n\n"\
+                  + self.modelstring + "\n\n")
+            return (['ast','eval','did','not','work','for','this','analysis'])
+            
         return nestedlist
         
     def traverse_nested(self,nestedlist, path):

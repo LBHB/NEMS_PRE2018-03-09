@@ -79,7 +79,7 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data) {
                 //grabs whole div - replace inner html with new table?
-                results = $(".table-responsive");
+                results = $("#tableWrapper");
                 results.html(data.resultstable)
             },
             error: function(error) {
