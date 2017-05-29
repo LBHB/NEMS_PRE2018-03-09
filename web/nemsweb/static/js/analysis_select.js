@@ -69,6 +69,7 @@ $(document).ready(function(){
 
     $("select[name='batchnum'],select[name='modelnames'],select[name='celllist']")
     .change(function(){
+
         var bSelected = $("select[name='batchnum']").val();
         var cSelected = $("select[name='celllist']").val();
         var mSelected = $("select[name='modelnames']").val();

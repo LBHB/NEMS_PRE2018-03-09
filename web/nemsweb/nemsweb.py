@@ -51,6 +51,8 @@ def main_view():
     batches = batches.iloc[:,0]
     batchlist = batches.tolist()
     
+    #       Leave this out for now to improve page load time     
+    """
     ## Maybe don't need this one with new setup? Cells can just populate after
     ## analysis is selected. Unless want to be able to sort by a specific cell first.
     cells = qg.QueryGenerator(dbc,distinct=True,column='cellid',tablename='NarfBatches').send_query()
@@ -61,12 +63,13 @@ def main_view():
     models = qg.QueryGenerator(dbc,distinct=True,column='modelname',tablename='NarfResults').send_query()
     models = models.iloc[:,0]
     modellist = models.tolist()
+    """
     
     return render_template('main.html', analysislist = analysislist,\
                            tablelist = tablelist,\
                            batchlist = batchlist,\
-                           celllist = celllist,\
-                           modellist = modellist,\
+                           #celllist = celllist,\
+                           #modellist = modellist,\
                            plottypelist = plottypelist,
                            measurelist = measurelist,
                            )
@@ -120,7 +123,7 @@ def update_models():
 def update_cells():
     bSelected = request.args.get('bSelected','no selection',type=str)
     
-    celllist = qg.QueryGenerator(dbc,column='cellid',tablename='NarfBatches',\
+    celllist = qg.QueryGenerator(dbc,column='cellid',tablename='NarfResults',\
                                  batchnum=bSelected).send_query()
     
     celllist = celllist.iloc[:,0].tolist()
@@ -133,36 +136,31 @@ def update_results():
     # get user choices if they exist (batch required)
     # if only a single model or cell is chosen, conver to list to simplify code
 
-    if 'bSelected' in request.args:
-        bSelected = request.args.get('bSelected','none',type=str)
-    if not 'bSelected' in request.args:
+    bSelected = request.args.get('bSelected',type=str)
+    if len(bSelected) == 0:
         # TODO: Figure out a better way to catch this error, probably
         # through html solution that requires user to choose batch before
         # using other selects
         return jsonify(resultstable="MUST SELECT A BATCH")
-    if 'cSelected' in request.args:
-        cSelected = request.args.get('cSelected','none',type=(list,str))
-        if type(cSelected) is str:
-            cSelected = [cSelected]
-    if not 'cSelected' in request.args:
-        cSelected = None
-    if 'mSelected' in request.args:
-        mSelected = request.args.get('mSelected','none',type=(list,str))
-        if type(mSelected) is str:
-            mSelected = [mSelected]
-    if not 'mSelected' in request.args:
-        mSelected = None
-        
+    
+    cSelected = request.args.getlist('cSelected[]')
+
+    mSelected = request.args.getlist('mSelected[]')
+
+    
     #query narf results by batch, store in dataframe
     results = qg.QueryGenerator(dbc,tablename='NarfResults',\
                                 batchnum=bSelected).send_query()
+
+    # TODO: Figure out why models parsed from analysis selection aren't
+    # matching up with cells filtered by batch selection.
     
     #filter dataframe by selected cells, if any
-    if not cSelected is None:
-        results = results[results.cellid in cSelected]
+    if not (len(cSelected) == 0):
+        results = results[results.cellid.isin(cSelected)]
     #same for selected models, if any
-    if not mSelected is None:
-        results = results[results.modelname in mSelected]
+    if not (len(mSelected) == 0):
+        results = results[results.modelname.isin(mSelected)]
     
     return jsonify(resultstable=results.to_html(classes='table-hover\
                                                 table-condensed'))
@@ -256,11 +254,16 @@ def empty_plot():
     return "Empty plot, sad face, try again! If you're seeing this, the \
             cell list query returned no results"
 
+# returns error log text
+@app.route("/error_log")
+def error_log():
+    return app.send_static_file('error_log.txt')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug='True')
 
 #disconnect from database when app shuts down
+#TODO: is this the right way to use this?
 @app.teardown_appcontext
 def disconnect_from_db():
     dbc.close_connection()

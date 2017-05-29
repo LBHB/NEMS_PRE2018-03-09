@@ -44,7 +44,7 @@
           <ul class="nav navbar-nav">
             <li class="active"><a href="{{ url_for('main_view') }}">Home</a></li>
             <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li><a href="{{ url_for('error_log') }}" target="_blank">Error Log</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -81,9 +81,10 @@
                 <label for="cellSelector"> Select Cell(s) </label>
                 <select multiple="multiple" class="form-control" name="celllist" size="12"
                     id="cellSelector">
-                    {% for cell in celllist %}
+                    <option> Select a batch to populate cells. </option>
+                    <!--{% for cell in celllist %}
                         <option value="{{ cell }}"> {{ cell }} </option>
-                    {% endfor %}
+                    {% endfor %} -->
                 </select>
                 </div>
 
@@ -91,9 +92,10 @@
                 <label for="modelSelector"> Select Model(s) </label>
                 <select multiple="multiple" class="form-control" name="modelnames" size="12"
                     id="modelSelector">
-                    {% for model in modellist %}
+                    <option> Select an analysis to populate models. </option>
+                    <!-- {% for model in modellist %}
                         <option value="{{ model }}"> {{ model }} </option>
-                    {% endfor %}
+                    {% endfor %} -->
                 </select>
                 </div>
                 
@@ -107,13 +109,7 @@
             </div><!-- col -->
             <div class="col-xs-8">
                 <div id="tableWrapper">
-                DISPLAY NARF RESULTS TABLE HERE<br>
-                Current notes/warnings:<br>
-                Model filtering is only partially working - some analyses have<br>
-                    modeltrees that aren't playing nice with ast.literal_eval,<br>
-                    and will not update model list accordingly. To get a proper<br>
-                    combination of batch and models, choose analyses until the model<br>
-                    list updates.<br>
+
                 </div>
             </div>
         </div><!-- row -->

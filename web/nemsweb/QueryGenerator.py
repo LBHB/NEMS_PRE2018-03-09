@@ -13,7 +13,7 @@ import pandas as pd
 
 # global variable to limit number of rows pulled
 # used as default unless user specifies another value
-LIMIT = 1000
+LIMIT = 2000
         
 class QueryGenerator():
     
