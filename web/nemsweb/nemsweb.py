@@ -123,7 +123,7 @@ def update_models():
 def update_cells():
     bSelected = request.args.get('bSelected','no selection',type=str)
     
-    celllist = qg.QueryGenerator(dbc,column='cellid',tablename='NarfResults',\
+    celllist = qg.QueryGenerator(dbc,column='cellid',tablename='NarfBatches',\
                                  batchnum=bSelected).send_query()
     
     celllist = celllist.iloc[:,0].tolist()
@@ -134,7 +134,6 @@ def update_cells():
 @app.route("/update_results")
 def update_results():
     # get user choices if they exist (batch required)
-    # if only a single model or cell is chosen, conver to list to simplify code
 
     bSelected = request.args.get('bSelected',type=str)
     if len(bSelected) == 0:
