@@ -5,6 +5,9 @@
     (2013, 'Lost connection to MySQL server during query') unable to rollback
     
     
-2) ast.literal_eval only works for about half of the model strings. either need to identify
-    common patterns in the strings taht can be corrected by string.replace() or other methods,
-    or need to define a new function for converting the strings to nested lists.
+2) ast.literal_eval is now working for the majority of the model strings, but a few still won't work
+    even after fixing every syntax error I was able to identify.
+    
+3) having issues getting jquery to pick up on value of drop-down checkboxes for
+    column selections for results table. Still a work-in-progress, doesn't currently
+    update the results table display

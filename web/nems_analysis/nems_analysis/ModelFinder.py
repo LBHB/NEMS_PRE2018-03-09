@@ -28,14 +28,17 @@ class ModelFinder():
         s = s.replace('}', ']')
         s = s.replace(" ","")
         s = s.replace('],]',']]')   #remove trailing commas
+        s = s.replace('  ',' ')     #remove extra spaces
+        #insert comma between adjacent quotation marks unless it's an empty
+        #string
+        r = re.compile(r"(?P<ONE>\w)''(?P<TWO>\w)")
+        s = r.sub("\g<ONE>','\g<TWO>", s)
+        s = s.replace("]'","],'")   #insert commas between lists & strings
+        s = s.replace("][","],[")   #insert commas between lists
         
-        # issues with this function for some model strings - will need to
-        # fix this to make sure it works for all strings.
-        # TODO: insert commas between strings within list, i.e.
-        # ['abc''dfg'] >> ['abc','dfg']
-        # TODO: identify other problems, or figure out different function
-        # to use to parse string into list of lists
-        
+        # TODO: Fixed all syntax errors i could find in the model strings, but this
+        #       function still has issues with some analyses. Will likely need to
+        #       implement a custom function in place of ast.literal_eval
         try:
             nestedlist = ast.literal_eval(s)
         except (ValueError, SyntaxError):
@@ -46,12 +49,6 @@ class ModelFinder():
         return nestedlist
         
     def traverse_nested(self,nestedlist, path):
-        # TODO: parse model string into an array of possible combinations
-        # see: narf_analysis > keyword_combos
-        
-        # TODO: it's definitely building an array, but it's much too large -
-        # something not quite right. reaching recursion limit.
-        
         # if passed empty list, must have reached 'leaf'
         if len(nestedlist) == 0:
             self.comboArray.append(path)
@@ -80,10 +77,7 @@ class ModelFinder():
         # parse array into a list of model names (strings)
         # see: narf_analysis > rebuild_modeltree
         models = []
-        
-        # TODO: Maybe problems with this too, but could just be due to the
-        # combo array not coming out right
-        
+
         # iterate through rows of combinations
         for c in self.comboArray:
             models += ['_'.join(c)]

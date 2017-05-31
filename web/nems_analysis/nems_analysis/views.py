@@ -1,7 +1,7 @@
 from flask import render_template, jsonify, request
-import nems_analysis
 from nems_analysis import app, session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
+from nems_analysis.PlotGenerator import Scatter_Plot
 import pandas.io.sql as psql
 
 
@@ -14,19 +14,18 @@ import pandas.io.sql as psql
 # landing page
 @app.route('/')
 def main_view():
-    # hard coded for now, add more options later
-    plottypelist = 'Scatter'
-
     # .all() returns a list of tuples, list comprehension to pull tuple
     # elements out into list
     analysislist = [i[0] for i in session.query(NarfAnalysis.name).all()]
     batchlist = [i[0] for i in session.query(NarfAnalysis.batch).distinct().all()]
     
-    #testing dataframes
-    
+    # returns all columns in the format 'NarfResults.columnName'
+    # then removes the leading 'NarfResults.' from each string
+    collist = ['%s'%(s) for s in NarfResults.__table__.columns]
+    collist = [s.replace('NarfResults.','') for s in collist]
+
     return render_template('main.html',analysislist = analysislist,\
-                           batchlist = batchlist,\
-                           plottypelist = plottypelist,\
+                           batchlist = batchlist, collist=collist,\
                            )
     
 @app.route('/update_batch')
@@ -70,9 +69,13 @@ def update_results():
     
     bSelected = request.args.get('bSelected')
     cSelected = request.args.getlist('cSelected[]')
-    mSelected = request.args.getlist('mSelected[]')  
+    mSelected = request.args.getlist('mSelected[]')
+    #colSelected = request.args.getlist('colSelected[]')
     if (len(bSelected) == 0) or (len(cSelected) == 0) or (len(mSelected) == 0):
+        #or (len(colSelected) == 0):
         return jsonify(resultstable=nullselection)
+    
+    #cols = [NarfResults.getattr(NarfResults,col) for col in colSelected]
     
     # TODO: only shows first 500 results -- code this in as a user option
     #       that can be adjusted near the table display for larger selections
@@ -96,13 +99,22 @@ def update_results():
 # TODO: May want to split these up into a separate 'plot' package with
 #       its own folder and views file as options grow
 
-@app.route('/scatter_plot', methods=['GET','POST'])
+@app.route('/scatter_plot', methods=['POST'])
 def scatter_plot():
-    pass
+    
+    mSelected = request.form.getlist('modelnames')
+    cSelected = request.form.getlist('celllist')
+    measure = request.form['measure']
+    
+    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
+              NarfResults.modelname).filter(NarfResults.cellid.in_(cSelected)).filter\
+              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
+              
+    plot = Scatter_Plot(results,celllist=cSelected,modelnames=mSelected,measure=measure)
+    plot.generate_plot()
+    
+    return render_template("plot.html", script=plot.script, div=plot.div)
 
-@app.route('/empty')
-def empty_plot():
-    pass
 
 
 

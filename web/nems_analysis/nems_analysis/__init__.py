@@ -1,7 +1,5 @@
 from flask import Flask
 from sqlalchemy import create_engine
-#from flask_pymemcache import FlaskPyMemcache
-import pandas.io.sql as psql
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 

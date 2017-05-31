@@ -55,7 +55,7 @@
     
         <div class="row">
             <div class="col-xs-4">
-            <form class="form" action="{{ url_for('scatter_plot') }}" target="_blank" method="POST">
+            <form class="form" id="selections" method="POST" target="_blank">
             <!-- figure out how to exclude analysis selection from form submit -->
                 <div class="form-group">
                 <label for="analysisSelector"> Select Analysis </label>
@@ -69,7 +69,7 @@
 
                 <div class="form-group">
                 <label for="batchSelector"> Select Batch </label>
-                <select class="form-control" name="batch" id="batchSelector">
+                <select class="form-control" id="batchSelector">
                     <option selected disabled> Batch </option>
                     {% for batch in batchlist %}
                         <option value="{{ batch }}"> {{ batch }} </option>
@@ -94,14 +94,33 @@
                 </div>
                 
                 <div class="row align-items-start justify-content-start">
-                <input type="checkbox" name="measure" value="{{ measurelist }}"
-                    checked/> {{ plottypelist }} <br>
+                <input type="checkbox" name="measure" value="r_test"
+                    checked/> r_test <br>
                 <!-- TODO: add more checkboxes or radio buttons for other options -->
-                <input type="submit" value="Submit"/>
+
+                <button type="Submit" name="scatter" form="selections" formaction=
+                        "{{ url_for('scatter_plot') }}"> Scatter
                 </div>
             </form>
             </div><!-- col -->
             <div class="col-xs-8">
+                <div class="input-group">
+                    <div class="input-group-btn">
+                        <button tabindex="-1" class="btn btn-default" type=
+                        "button">Columns</button>
+                        <button tabindex="-1" data-toggle="dropdown" class=
+                        "btn btn-default dropdown-toggle" type="button">
+                        <span class="caret"></span></button>
+                        <div id="tableColumns" class="dropdown-menu">
+                            {% for col in collist %}
+                                <li class="results-option">
+                                <input type="checkbox" value="{{ col }}">
+                                <span class="lbl">{{ col }}</span>
+                                </li>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
                 <div id="tableWrapper">
 
                 </div>
