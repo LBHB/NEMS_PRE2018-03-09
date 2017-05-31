@@ -1,4 +1,0 @@
-user david
-passwd nine1997
-host 34.210.240.72
-database cell
