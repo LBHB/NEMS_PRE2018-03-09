@@ -1,16 +1,26 @@
 from flask import render_template, jsonify, request
 import nems_analysis
-from nems_analysis import app
+from nems_analysis import app, session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
 import pandas.io.sql as psql
 
+
+
+##################################################################
+####################   UI UPDATE FUNCTIONS  ######################
+##################################################################
+
+
+# landing page
 @app.route('/')
 def main_view():
     # hard coded for now, add more options later
     plottypelist = 'Scatter'
 
-    analysislist = nems_analysis.analyses['name'].tolist()
-    batchlist = nems_analysis.batches.iloc[:,0].tolist()
+    # .all() returns a list of tuples, list comprehension to pull tuple
+    # elements out into list
+    analysislist = [i[0] for i in session.query(NarfAnalysis.name).all()]
+    batchlist = [i[0] for i in session.query(NarfAnalysis.batch).distinct().all()]
     
     #testing dataframes
     
@@ -22,8 +32,9 @@ def main_view():
 @app.route('/update_batch')
 def update_batch():
     aSelected = request.args.get('aSelected',type=str)
-    a = nems_analysis.analyses
-    batch = a.loc[a['name'] == aSelected, 'batch'].iloc[0]
+    
+    batch = session.query(NarfAnalysis.batch).filter\
+            (NarfAnalysis.name == aSelected).first()[0]
     
     return jsonify(batch = batch)
     
@@ -31,8 +42,9 @@ def update_batch():
 @app.route('/update_models')
 def update_models():
     aSelected = request.args.get('aSelected',type=str)
-    a = nems_analysis.analyses
-    modeltree = a.loc[a['name'] == aSelected, 'modeltree'].iloc[0]
+    
+    modeltree = session.query(NarfAnalysis.modeltree).filter\
+                (NarfAnalysis.name == aSelected).first()[0]
                 
     mf = ModelFinder(modeltree)
     modellist = mf.modellist
@@ -43,8 +55,9 @@ def update_models():
 def update_cells():
     #just use first 3 indices of str to get the integer-only representation
     bSelected = request.args.get('bSelected',type=str)[:3]
-    c = nems_analysis.cells
-    celllist = c.loc[c['batch'] == bSelected, 'cellid'].tolist()
+
+    celllist = [i[0] for i in session.query(NarfBatches.cellid).filter\
+               (NarfBatches.batch == bSelected).all()]
                
     return jsonify(celllist=celllist)
 
@@ -52,42 +65,36 @@ def update_cells():
 def update_results():
     # TODO: Change Jquery for this function to update on button click
     # instead of on selection change.
+    nullselection = 'MUST SELECT A BATCH AND ONE OR MORE CELLS AND ONE OR MORE\
+                    MODELS BEFORE RESULTS WILL UPDATE'
     
     bSelected = request.args.get('bSelected')
-    if len(bSelected) == 0:
-        return jsonify(resultstable='MUST SELECT A BATCH')
-    bSelected = int(bSelected[:3])
     cSelected = request.args.getlist('cSelected[]')
-    mSelected = request.args.getlist('mSelected[]')
+    mSelected = request.args.getlist('mSelected[]')  
+    if (len(bSelected) == 0) or (len(cSelected) == 0) or (len(mSelected) == 0):
+        return jsonify(resultstable=nullselection)
     
-    #TODO: figure out a better way to do this. may have to go back to 
-    #generating query with for loops based on case.
-    #or try with sql alchemy expressions
-    r = psql.read_sql('SELECT * FROM NarfResults WHERE batch=%d LIMIT 10000'\
-                        %bSelected, nems_analysis.engine)
+    # TODO: only shows first 500 results -- code this in as a user option
+    #       that can be adjusted near the table display for larger selections
     
-    # no cells or models selected
-    if (len(cSelected) == 0) and (len(mSelected) == 0):
-        # TODO: only shows first 500 results -- code this in as a user option
-        #       that can be adjusted near the table display
-        results = r[r.batch == bSelected].head(500)
-    # no cells selected, but model(s) selected
-    elif (len(cSelected) == 0) and (len(mSelected) != 0):
-        results = r[(r.batch == bSelected) & (r.modelname.isin(mSelected))]
-    # cell(s) selected, but no model(s) selected
-    elif (len(cSelected) != 0) and (len(mSelected) == 0):
-        results = r[(r.batch == bSelected) & (r.cellid.isin(cSelected))]
-    # both cell(s) and model(s) selected
-    else:
-        results = r[(r.batch == bSelected) & (r.modelname.isin(mSelected))\
-                    & (r.cellid.isin(cSelected))]
+
+    results = psql.read_sql_query(session.query(NarfResults).filter\
+              (NarfResults.batch == bSelected).filter\
+              (NarfResults.cellid.in_(cSelected)).filter\
+              (NarfResults.modelname.in_(mSelected)).limit(500).statement,\
+              session.bind)
         
     return jsonify(resultstable=results.to_html(classes='table-hover\
                                                 table-condensed'))
 
-@app.route('/make_plot', methods=['POST'])
-def make_plot():
-    pass
+
+####################################################################
+####################    PLOT FUNCTIONS    ##########################
+####################################################################
+
+
+# TODO: May want to split these up into a separate 'plot' package with
+#       its own folder and views file as options grow
 
 @app.route('/scatter_plot', methods=['GET','POST'])
 def scatter_plot():
@@ -97,6 +104,16 @@ def scatter_plot():
 def empty_plot():
     pass
 
+
+
+####################################################################
+###################     MISCELLANEOUS  #############################
+####################################################################
+
+
+# clicking error log link will open text file with notes
+# TODO: add interface to edit text from site, or submit notes some other way,
+# so that users can report bugs/undesired behavior
 @app.route('/error_log')
 def error_log():
-    pass
+    return app.send_static_file('error_log.txt')
