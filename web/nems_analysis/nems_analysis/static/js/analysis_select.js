@@ -1,4 +1,4 @@
-$(document).ready(function(){       
+$(document).ready(function(){
     $("#analysisSelector").change(function(){
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
@@ -66,29 +66,35 @@ $(document).ready(function(){
             }    
         });
     });
+     
     var colSelected = [];
-    $('.result-option').change(function() {
-        if ($(this).is(':checked')){
-            colSelected.append($(this).val());
-        } else {
-            colSelected = colSelected.filter(function(v) {
-                return v !== $(this).val();
-            })
-        }
-        
-    })
     
-    $("#batchSelector,#modelSelector,#cellSelector,.result-option")
-    .change(function(){
+    function updatecols(){
+        var checks = document.getElementsByName('result-option[]');
+        colSelected.length = 0; //empty out the options, then push the new ones
+        for (var i=0; i < checks.length; i++) {
+            if (checks[i].checked) {
+                colSelected.push(checks[i].value);
+            }
+        }
+    }
+    
+    updatecols();
 
+    $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit")
+    .change(function(){
+        
+        updatecols();
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
-        
+        var rowLimit = $("#rowLimit").val();
+                         
         $.ajax({
             url: $SCRIPT_ROOT + '/update_results',
             data: { bSelected:bSelected, cSelected:cSelected, 
-                   mSelected:mSelected, colSelected:colSelected },
+                   mSelected:mSelected, colSelected:colSelected,
+                   rowLimit:rowLimit },
             type: 'GET',
             success: function(data) {
                 //grabs whole div - replace inner html with new table?
