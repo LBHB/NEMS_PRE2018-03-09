@@ -51,6 +51,8 @@ def main_view():
     batches = batches.iloc[:,0]
     batchlist = batches.tolist()
     
+    #       Leave this out for now to improve page load time     
+    """
     ## Maybe don't need this one with new setup? Cells can just populate after
     ## analysis is selected. Unless want to be able to sort by a specific cell first.
     cells = qg.QueryGenerator(dbc,distinct=True,column='cellid',tablename='NarfBatches').send_query()
@@ -61,12 +63,13 @@ def main_view():
     models = qg.QueryGenerator(dbc,distinct=True,column='modelname',tablename='NarfResults').send_query()
     models = models.iloc[:,0]
     modellist = models.tolist()
+    """
     
     return render_template('main.html', analysislist = analysislist,\
                            tablelist = tablelist,\
                            batchlist = batchlist,\
-                           celllist = celllist,\
-                           modellist = modellist,\
+                           #celllist = celllist,\
+                           #modellist = modellist,\
                            plottypelist = plottypelist,
                            measurelist = measurelist,
                            )
@@ -130,65 +133,36 @@ def update_cells():
 # update NarfResults display based on batch, model and cell selections
 @app.route("/update_results")
 def update_results():
-    # get user choices
-    # cell and model choices might be list or string?
+    # get user choices if they exist (batch required)
+
+    bSelected = request.args.get('bSelected',type=str)
+    if len(bSelected) == 0:
+        # TODO: Figure out a better way to catch this error, probably
+        # through html solution that requires user to choose batch before
+        # using other selects
+        return jsonify(resultstable="MUST SELECT A BATCH")
     
-    #looking pretty gross - maybe better to hold off on this functionality until
-    #after restructuring with analysis objects?
+    cSelected = request.args.getlist('cSelected[]')
+
+    mSelected = request.args.getlist('mSelected[]')
+
     
-    """
-    if 'bSelected' in request.args:
-        bSelected = request.args.get('bSelected','none',type=str)
-    if 'cSelected' in request.args:
-        cSelected = request.args.get('cSelected','none',type=(list,str))
-    if 'mSelected' in request.args:
-        mSelected = request.args.get('mSelected','none',type=(list,str))
+    #query narf results by batch, store in dataframe
+    results = qg.QueryGenerator(dbc,tablename='NarfResults',\
+                                batchnum=bSelected).send_query()
+
+    # TODO: Figure out why models parsed from analysis selection aren't
+    # matching up with cells filtered by batch selection.
     
-    results = qg.QueryGenerator(dbc)
-    #override generic query
+    #filter dataframe by selected cells, if any
+    if not (len(cSelected) == 0):
+        results = results[results.cellid.isin(cSelected)]
+    #same for selected models, if any
+    if not (len(mSelected) == 0):
+        results = results[results.modelname.isin(mSelected)]
     
-    #if no choices made, just grab the first 500 cells
-    if not (('bSelected' in request.args) or ('cSelected' in request.args) \
-            or ('mSelected' in request.args)):
-        query = 'SELECT * FROM NarfResults LIMIT 500'
-    else:
-        query = 'SELECT * FROM NarfResults'
-        if 'bSelected' in request.args:
-            query += ' WHERE (batch=' + bSelected + ")"
-        if not 'bSelected' in request.args:
-            query += ' WHERE (batch IS NOT NULL)'
-        if 'cSelected' in request.args:
-            query += ' AND ('
-            if type(cSelected) is str:
-                query += 'cellid="' + cSelected + '")'
-            if type(cSelected) is list:
-                for c in range(len(cSelected)):
-                    if c == (len(cSelected)-1):
-                        query += '(cellid="' + cSelected[c] + '))'
-                    else:
-                        query += '(cellid="' + cSelected[c] + ') OR '
-        if 'mSelected' in request.args:
-            query += ' AND ('
-            if type(mSelected) is str:
-                query += 'modelname="' + mSelected + '")'
-            if type(mSelected) is list:
-                for m in range(len(mSelected)):
-                    if m == (len(mSelected)-1):
-                        query += '(modelname="' + mSelected[m] + '))'
-                    else:
-                        query += '(modelname="' + mSelected[m] + ') OR '
-        
-    results.query = query
-    resultstable = results.send_query().to_html(classes='table')
-    """
-    
-    return jsonify(resultstable="RESULTS TABLE NOT YET IMPLEMENTED <br>\
-                    Current notes/warnings:<br>\
-                    Model filtering is only partially working - some analyses have<br>\
-                        modeltrees that aren't playing nice with ast.literal_eval,<br>\
-                        and will not update model list accordingly. To get a proper<br>\
-                        combination of batch and models, choose analyses until the model<br>\
-                        list updates.<br>")
+    return jsonify(resultstable=results.to_html(classes='table-hover\
+                                                table-condensed'))
     
 
     
@@ -229,7 +203,7 @@ def req_query():
     
     # generage html page via table.html template, pass in html export of dataframe
     # and table title as variables
-    return render_template('table.html', table=data.to_html(classes='Table'),\
+    return render_template('table.html', table=data.to_html(classes='table'),\
                            title=tabletitle)
 
 
@@ -279,11 +253,16 @@ def empty_plot():
     return "Empty plot, sad face, try again! If you're seeing this, the \
             cell list query returned no results"
 
+# returns error log text
+@app.route("/error_log")
+def error_log():
+    return app.send_static_file('error_log.txt')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug='True')
 
 #disconnect from database when app shuts down
+#TODO: is this the right way to use this?
 @app.teardown_appcontext
 def disconnect_from_db():
     dbc.close_connection()

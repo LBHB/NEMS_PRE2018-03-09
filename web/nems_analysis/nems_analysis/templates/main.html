@@ -44,7 +44,7 @@
           <ul class="nav navbar-nav">
             <li class="active"><a href="{{ url_for('main_view') }}">Home</a></li>
             <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li><a href="{{ url_for('error_log') }}" target="_blank">Error Log</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -55,7 +55,7 @@
     
         <div class="row">
             <div class="col-xs-4">
-            <form class="form" action="{{ url_for('scatter_plot') }}" target="_blank" method="POST">
+            <form class="form" id="selections" method="POST" target="_blank">
             <!-- figure out how to exclude analysis selection from form submit -->
                 <div class="form-group">
                 <label for="analysisSelector"> Select Analysis </label>
@@ -69,7 +69,7 @@
 
                 <div class="form-group">
                 <label for="batchSelector"> Select Batch </label>
-                <select class="form-control" name="batchnum" id="batchSelector">
+                <select class="form-control" id="batchSelector">
                     <option selected disabled> Batch </option>
                     {% for batch in batchlist %}
                         <option value="{{ batch }}"> {{ batch }} </option>
@@ -81,9 +81,7 @@
                 <label for="cellSelector"> Select Cell(s) </label>
                 <select multiple="multiple" class="form-control" name="celllist" size="12"
                     id="cellSelector">
-                    {% for cell in celllist %}
-                        <option value="{{ cell }}"> {{ cell }} </option>
-                    {% endfor %}
+                    <option> Select a batch to populate cells. </option>
                 </select>
                 </div>
 
@@ -91,35 +89,46 @@
                 <label for="modelSelector"> Select Model(s) </label>
                 <select multiple="multiple" class="form-control" name="modelnames" size="12"
                     id="modelSelector">
-                    {% for model in modellist %}
-                        <option value="{{ model }}"> {{ model }} </option>
-                    {% endfor %}
+                    <option> Select an analysis to populate models. </option>
                 </select>
                 </div>
                 
                 <div class="row align-items-start justify-content-start">
-                <input type="checkbox" name="measure" value="{{ measurelist }}"
-                    checked/> {{ plottypelist }} <br>
+                <input type="checkbox" name="measure" value="r_test"
+                    checked/> r_test <br>
                 <!-- TODO: add more checkboxes or radio buttons for other options -->
-                <input type="submit" value="Submit"/>
+
+                <button type="Submit" name="scatter" form="selections" formaction=
+                        "{{ url_for('scatter_plot') }}"> Scatter
                 </div>
             </form>
             </div><!-- col -->
             <div class="col-xs-8">
-                <div class="table-responsive">
-                    DISPLAY NARF RESULTS TABLE HERE<br>
-                    Current notes/warnings:<br>
-                    Model filtering is only partially working - some analyses have<br>
-                        modeltrees that aren't playing nice with ast.literal_eval,<br>
-                        and will not update model list accordingly. To get a proper<br>
-                        combination of batch and models, choose analyses until the model<br>
-                        list updates.<br>
+                <div class="input-group">
+                    <div class="input-group-btn">
+                        <button tabindex="-1" class="btn btn-default" type=
+                        "button">Columns</button>
+                        <button tabindex="-1" data-toggle="dropdown" class=
+                        "btn btn-default dropdown-toggle" type="button">
+                        <span class="caret"></span></button>
+                        <div id="tableColumns" class="dropdown-menu">
+                            {% for col in collist %}
+                                <li class="results-option">
+                                <input type="checkbox" value="{{ col }}">
+                                <span class="lbl">{{ col }}</span>
+                                </li>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div id="tableWrapper">
+
                 </div>
             </div>
         </div><!-- row -->
 
     </div><!-- starter template-->
-    </div><!-- /.container -->
+    </div><!-- container -->
 
     <!-- load jquery -->
     <script type=text/javascript src=

@@ -10,8 +10,8 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                console.log("batchnum retrieved?: " + data.batchnum);
-                $("select[name='batchnum']").val(data.batchnum).change();
+                console.log("batch retrieved?: " + data.batch);
+                $("#batchSelector").val(data.batch).change();
             },
             error: function(error) {
                 console.log(error);
@@ -24,7 +24,7 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data) {
                 console.log("modellist = " + data.modellist);
-                var $models = $("select[name='modelnames']");
+                var $models = $("#modelSelector");
                 $models.empty();
                              
                 $.each(data.modellist, function(modelname) {
@@ -40,18 +40,18 @@ $(document).ready(function(){
         });
     });
 
-    $("select[name='batchnum']").change(function(){
+    $("#batchSelector").change(function(){
         // TODO: update cell list when batch changes
         //       should cascade from change to analysis selection
         // if batch selection changes, get the value of the new selection
-        var bSelected = $("select[name='batchnum']").val();
+        var bSelected = $("#batchSelector").val();
 
         $.ajax({
             url: $SCRIPT_ROOT + '/update_cells',
             data: { bSelected:bSelected },
             type: 'GET',
             success: function(data) {
-                cells = $("select[name='celllist']");
+                cells = $("#cellSelector");
                 cells.empty();
                 console.log("new cell list = " + data.celllist)
 
@@ -66,20 +66,33 @@ $(document).ready(function(){
             }    
         });
     });
-
-    $("select[name='batchnum'],select[name='modelnames'],select[name='celllist']")
+    var colSelected = [];
+    $('.result-option').change(function() {
+        if ($(this).is(':checked')){
+            colSelected.append($(this).val());
+        } else {
+            colSelected = colSelected.filter(function(v) {
+                return v !== $(this).val();
+            })
+        }
+        
+    })
+    
+    $("#batchSelector,#modelSelector,#cellSelector,.result-option")
     .change(function(){
-        var bSelected = $("select[name='batchnum']").val();
-        var cSelected = $("select[name='celllist']").val();
-        var mSelected = $("select[name='modelnames']").val();
+
+        var bSelected = $("#batchSelector").val();
+        var cSelected = $("#cellSelector").val();
+        var mSelected = $("#modelSelector").val();
         
         $.ajax({
             url: $SCRIPT_ROOT + '/update_results',
-            data: { bSelected:bSelected, cSelected:cSelected, mSelected:mSelected },
+            data: { bSelected:bSelected, cSelected:cSelected, 
+                   mSelected:mSelected, colSelected:colSelected },
             type: 'GET',
             success: function(data) {
                 //grabs whole div - replace inner html with new table?
-                results = $(".table-responsive");
+                results = $("#tableWrapper");
                 results.html(data.resultstable)
             },
             error: function(error) {

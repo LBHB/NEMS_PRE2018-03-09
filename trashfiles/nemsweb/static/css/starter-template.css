@@ -20,11 +20,23 @@ tables.dataframe, .dataframe th, .dataframe td {
   font-size: 0.9em;
 }
 
-tr:nth-child(odd)		{ background-color:#eee; }
-tr:nth-child(even)	{ background-color:#fff; }
+#tableWrapper {
+  height: 80vh;
+  display: block;
+  overflow: auto;
+  border: none;
+  border-left: 1px solid #C8C8C8;
+  border-top: 1px solid #C8C8C8;
+}
 
-tr:hover            { background-color: #ffff99;}
+.table-hover, .table-condensed {
+  display: block;
+  height: 100%;      
+  text-align: center;
+  border: none;
+}
 
-.table-responsive {
-  text-align:left;      
+.dataframe th , .dataframe td {
+  border:none;
+  text-align:center;        
 }

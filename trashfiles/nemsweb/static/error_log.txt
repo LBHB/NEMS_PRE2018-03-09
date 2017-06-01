@@ -1,0 +1,10 @@
+1) losing database connection when hosting from amazon server. usually stays on for several hours
+    then loses the connection at some point. Some times get a "broken pipeline" error, other times this:
+        
+    DatabaseError: Execution failed on sql: SELECT name FROM NarfAnalysis LIMIT 1000
+    (2013, 'Lost connection to MySQL server during query') unable to rollback
+    
+    
+2) ast.literal_eval only works for about half of the model strings. either need to identify
+    common patterns in the strings taht can be corrected by string.replace() or other methods,
+    or need to define a new function for converting the strings to nested lists.

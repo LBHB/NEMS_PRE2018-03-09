@@ -8,5 +8,5 @@ saved_models/
 *.asv
 *#
 *.pyc
-**/nemsweb/database_info.txt
+**/database_info.txt
 __pycache_
