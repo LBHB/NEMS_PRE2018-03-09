@@ -3,7 +3,7 @@ from nems_analysis import app, session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
 from nems_analysis.PlotGenerator import Scatter_Plot
 import pandas.io.sql as psql
-
+from sqlalchemy.orm import Query
 
 
 ##################################################################
@@ -19,6 +19,9 @@ def main_view():
     analysislist = [i[0] for i in session.query(NarfAnalysis.name).all()]
     batchlist = [i[0] for i in session.query(NarfAnalysis.batch).distinct().all()]
     
+    # TODO: let user choose their default columns and save for later sessions
+    defaultcols = ['id','cellid','batch','modelname','r_test','r_fit']
+    defaultrowlimit = 500
     # returns all columns in the format 'NarfResults.columnName'
     # then removes the leading 'NarfResults.' from each string
     collist = ['%s'%(s) for s in NarfResults.__table__.columns]
@@ -26,6 +29,8 @@ def main_view():
 
     return render_template('main.html',analysislist = analysislist,\
                            batchlist = batchlist, collist=collist,\
+                           defaultcols = defaultcols,\
+                           defaultrowlimit = defaultrowlimit,\
                            )
     
 @app.route('/update_batch')
@@ -65,26 +70,29 @@ def update_results():
     # TODO: Change Jquery for this function to update on button click
     # instead of on selection change.
     nullselection = 'MUST SELECT A BATCH AND ONE OR MORE CELLS AND ONE OR MORE\
-                    MODELS BEFORE RESULTS WILL UPDATE'
+                    MODELS AND ONE OR MORE COLUMNS BEFORE RESULTS WILL UPDATE'
     
     bSelected = request.args.get('bSelected')
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
-    #colSelected = request.args.getlist('colSelected[]')
-    if (len(bSelected) == 0) or (len(cSelected) == 0) or (len(mSelected) == 0):
-        #or (len(colSelected) == 0):
+    colSelected = request.args.getlist('colSelected[]')
+    if (len(bSelected) == 0) or (len(cSelected) == 0) or (len(mSelected) == 0)\
+                                                    or (len(colSelected) == 0):
         return jsonify(resultstable=nullselection)
+    bSelected = bSelected[:3]
     
-    #cols = [NarfResults.getattr(NarfResults,col) for col in colSelected]
-    
+    cols = [getattr(NarfResults,c) for c in colSelected if hasattr(NarfResults,c)]
+    rowlimit = request.args.get('rowLimit',500)
+
     # TODO: only shows first 500 results -- code this in as a user option
     #       that can be adjusted near the table display for larger selections
-    
+    # Note: this no longer affects plot behavior since that data is queried separately
+    #       only affects how many rows are displayed on the results table
 
-    results = psql.read_sql_query(session.query(NarfResults).filter\
+    results = psql.read_sql_query(Query(cols,session).filter\
               (NarfResults.batch == bSelected).filter\
               (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).limit(500).statement,\
+              (NarfResults.modelname.in_(mSelected)).limit(rowlimit).statement,\
               session.bind)
         
     return jsonify(resultstable=results.to_html(classes='table-hover\
@@ -99,18 +107,23 @@ def update_results():
 # TODO: May want to split these up into a separate 'plot' package with
 #       its own folder and views file as options grow
 
+# TODO: Is POST the correct method to use here? Couldn't get GET to work,
+#       but might be a better way than HTML forms via JS etc.
 @app.route('/scatter_plot', methods=['POST'])
 def scatter_plot():
     
+    bSelected = request.form.get('batch')[:3]
     mSelected = request.form.getlist('modelnames')
     cSelected = request.form.getlist('celllist')
     measure = request.form['measure']
     
     results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
-              NarfResults.modelname).filter(NarfResults.cellid.in_(cSelected)).filter\
+              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
+              (NarfResults.cellid.in_(cSelected)).filter\
               (NarfResults.modelname.in_(mSelected)).statement,session.bind)
               
-    plot = Scatter_Plot(results,celllist=cSelected,modelnames=mSelected,measure=measure)
+    plot = Scatter_Plot(results,celllist=cSelected,modelnames=mSelected,\
+                        measure=measure, batch=bSelected)
     plot.generate_plot()
     
     return render_template("plot.html", script=plot.script, div=plot.div)

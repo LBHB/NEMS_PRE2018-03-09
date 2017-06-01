@@ -20,7 +20,17 @@ tables.dataframe, .dataframe th, .dataframe td {
   font-size: 0.9em;
 }
 
+#rowLimit {
+  display: inline-block;
+  width: 20px !important;
+}
+
+#optionsWrapper {
+  display: inline-block;
+}
+
 #tableWrapper {
+  margin-top: 10px;
   height: 80vh;
   display: block;
   overflow: auto;
