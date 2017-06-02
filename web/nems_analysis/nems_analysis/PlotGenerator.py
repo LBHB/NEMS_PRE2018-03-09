@@ -13,6 +13,7 @@ from bokeh.models import ColumnDataSource,HoverTool,ResizeTool,SaveTool,\
 import pandas as pd
 import itertools
 
+
 class PlotGenerator():
     def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
                  measure = 'r_test', batch=''):
@@ -33,22 +34,7 @@ class PlotGenerator():
     def create_hover(self):
         hover_html = 'generated html code'
         return HoverTool(tooltips=hover_html)
-        # example code snippet from fullstackpython.com
-        #    hover_html = """
-        #        <div>
-        #            <span class="hover-tooltip">$x</span>
-        #        </div>
-        #        ..repeat
-        #   return HoverTool(tooltips=hover_html)
-        
-        #   "$x displays the plot's xaxis. @x would show the 
-        #   'x' field from the data source"
-        
-        """ example usage within generate_plot"""
-        """
-            hover_tool = self.create_hover()
-            plot = figure(title=x, x_range=1.... tools=[hover_tool,other_tool])
-        """
+
         
 class Scatter_Plot(PlotGenerator):
         # query database filtered by batch id and where modelname must be one of
@@ -73,18 +59,12 @@ class Scatter_Plot(PlotGenerator):
             
     def generate_plot(self):
         # keep a list of the plots generated for each model combination
-        tools = [PanTool(),ResizeTool(),WheelZoomTool(),SaveTool(),ResetTool(),\
-                 self.create_hover()]
         plots = []
-        
-        # TODO: Re-do this to generate plots from a column data source
-        #       so that additional tools can be used (like a hover tooltip)
-        #       Plan: put xvalues, yvalues, and any desired columns into a new
-        #       dataframe to be stored in a list, so that plots[i] and frames[i]
-        #       point to corresponding plot + data source.
-        
+
         # returns a list of tuples representing all pairs of models
         for pair in list(itertools.combinations(self.modelnames,2)):
+            tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
+                     self.create_hover()]
             # split dataframe into rows that match each model
             modelX = self.data.loc[(self.data['modelname'] == pair[0])]
             modelY = self.data.loc[(self.data['modelname'] == pair[1])]
@@ -99,6 +79,9 @@ class Scatter_Plot(PlotGenerator):
                        x = modelX.loc[modelX['cellid'] == cell]
                        y = modelY.loc[modelY['cellid'] == cell]
                        # append appropriate row from each dataframe
+                       # in x --> y order
+                       # should only be one x row and one y row per cell
+                       # since self.data was filtered by batch
                        dat_source = dat_source.append([x,y],ignore_index=True)
                        
             if dat_source.size > 0:
@@ -119,7 +102,7 @@ class Scatter_Plot(PlotGenerator):
                 
                 p = figure(x_range = [0,1], y_range = [0,1],x_axis_label=pair[0],\
                            y_axis_label=pair[1], title=self.measure, tools=tools)
-            
+                    
                 p.circle('x','y',size=5,color='navy',alpha=0.5,source=dat_source)
                 p.line([0,1],[0,1],line_width=1,color='black')
 
@@ -127,7 +110,7 @@ class Scatter_Plot(PlotGenerator):
         
         # if made more than one plot (i.e. more than 2 models selected),
         # put them in a grid
-        if len(plots) > 1:
+        if len(plots) >= 1:
             # split plot list into a list of lists based on size compared to
             # nearest perfect square
             i = 1
@@ -136,13 +119,16 @@ class Scatter_Plot(PlotGenerator):
                 
             # plots may still wrap around at a specific limit regardless, depending
             # on size and browser
-            nestedplots = [plots[j:j+i] for j in range(0,len(plots),i)]
+            if i == 1:
+                singleplot = plots[0]
+                self.script,self.div = components(singleplot)
+                return
+            else:
+                nestedplots = [plots[j:j+i] for j in range(0,len(plots),i)]
+                
             grid = gridplot(nestedplots)
-            
+
             self.script,self.div = components(grid)
-        # otherwise just return the one plot
-        elif len(plots) == 1:
-            p = plots[0]
-            self.script,self.div = components(p)
+
         else:
             self.script, self.div = ('Error,','No plots to display.')
