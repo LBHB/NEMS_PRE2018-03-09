@@ -1,5 +1,5 @@
 body {
-  padding-top: 70px;
+  padding-top: 25px;
 }
 .starter-template {
   padding: 40px 15px;
@@ -20,13 +20,13 @@ tables.dataframe, .dataframe th, .dataframe td {
   font-size: 0.9em;
 }
 
-#rowLimit {
-  display: inline-block;
-  width: 20px !important;
+.input-group {
+  margin:10px !important;
 }
 
-#optionsWrapper {
-  display: inline-block;
+#rowLimit {
+  width: 60px !important;
+  text-align: center;
 }
 
 #tableWrapper {

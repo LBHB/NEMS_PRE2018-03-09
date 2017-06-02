@@ -103,7 +103,6 @@
             </form>
             </div><!-- col -->
             <div class="col-xs-8" id="resultsArea">
-                <div id="optionsWrapper">
                 <div class="input-group">
                     <div class="input-group-btn">
                         <button tabindex="-1" class="btn btn-default" type=
@@ -125,10 +124,14 @@
                             {% endfor %}
                         </div>
                     </div>
+                    
+    <!--                   TODO: Fix positioning for table options     -->
+                
+                <button tabindex="-1" class="btn btn-default" type=
+                "button">Row Limit</button>
+                <input type="text" id="rowLimit" value="{{ defaultrowlimit }}"
+                            class="form-group">
                 </div>
-                <!-- not working yet
-                <input type="text" id="rowLimit" value="{{ defaultrowlimit }}">  -->
-                </div> <!-- options wrapper -->
                 <div id="tableWrapper">
                 
                 </div>
