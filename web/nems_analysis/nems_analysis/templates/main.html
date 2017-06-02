@@ -54,22 +54,29 @@
     <div class="starter-template">
     
         <div class="row">
+        
+<!--            Left-hand-side, form selections       ---->
+
             <div class="col-xs-4">
             <form class="form" id="selections" method="POST" target="_blank">
                 <div class="form-group">
                 <label for="analysisSelector"> Select Analysis </label>
                 <select class="form-control" id="analysisSelector">
-                    <option selected disabled> Analysis </option>
+                    <option selected disabled value=""> Analysis </option>
                     {% for analysis in analysislist %}
                         <option value="{{ analysis }}"> {{ analysis }} </option>
                     {% endfor %}
                 </select>
+                
+                <button type="button" class="btn btn-secondary" data-toggle=
+                    "popover" id="analysisDetails" data-placement="bottom">
+                    Details </button>
                 </div>
-
+                
                 <div class="form-group">
-                <label for="batchSelector"> Select Batch </label>
+                <label for="batchSelector"> Batch </label>
                 <select class="form-control" id="batchSelector" name="batch">
-                    <option selected disabled> Batch </option>
+                    <option selected disabled value=""> Batch </option>
                     {% for batch in batchlist %}
                         <option value="{{ batch }}"> {{ batch }} </option>
                     {% endfor %}
@@ -77,65 +84,115 @@
                 </div>
 
                 <div class="form-group">
-                <label for="cellSelector"> Select Cell(s) </label>
+                <label for="cellSelector"> Cell(s) </label>
                 <select multiple="multiple" class="form-control" name="celllist" size="12"
                     id="cellSelector">
-                    <option> Select a batch to populate cells. </option>
+                    <option disabled value=""> Select a batch to populate cells. </option>
                 </select>
                 </div>
 
                 <div class="form-group">
-                <label for="modelSelector"> Select Model(s) </label>
+                <label for="modelSelector"> Model(s) </label>
                 <select multiple="multiple" class="form-control" name="modelnames" size="12"
                     id="modelSelector">
-                    <option> Select an analysis to populate models. </option>
+                    <option disabled value=""> Select an analysis to populate models. </option>
                 </select>
                 </div>
                 
-                <div class="row align-items-start justify-content-start">
-                <input type="checkbox" name="measure" value="r_test"
-                    checked/> r_test <br>
-                <!-- TODO: add more checkboxes or radio buttons for other options -->
-
-                <button type="Submit" name="scatter" form="selections" formaction=
-                        "{{ url_for('scatter_plot') }}"> Scatter
+                <div class="form-group">
+                <label for="measureSelector"> Performance Measure </label>
+                <select class="form-control" id="measureSelector" name="measure">
+                    <option selected disabled value=""> Performance Measure </option>
+                    {% for measure in measurelist %}
+                        <option value="{{ measure }}"> {{ measure }} </option>
+                    {% endfor %}
+                </select>
                 </div>
+                
+                <div id="form-warning">
+                <p> Selection required for each option before submission </p>
+                </div>
+                <button type="Submit" name="scatter" form="selections" formaction=
+                        "{{ url_for('scatter_plot') }}" class="plotsub" disabled> Scatter
+                <button type="Submit" name="bar" form="selections" formaction=
+                        "{{ url_for('bar_plot') }}" class="plotsub" disabled> Bar
+                <button type="Submit" name="pareto" form="selections" formaction=
+                        "{{ url_for('pareto_plot') }}" class="plotsub" disabled> Pareto
             </form>
             </div><!-- col -->
+            
+<!--     Right-hand-side, table display and options ------------------>
+
             <div class="col-xs-8" id="resultsArea">
                 <div class="input-group">
-                    <div class="input-group-btn">
-                        <button tabindex="-1" class="btn btn-default" type=
-                        "button">Columns</button>
-                        <button tabindex="-1" data-toggle="dropdown" class=
-                        "btn btn-default dropdown-toggle" type="button">
-                        <span class="caret"></span></button>
-                        <div id="tableColumns" class="dropdown-menu">
-                            {% for col in collist %}
-                                <li>
-                                <input class="result-option" type="checkbox"
-                                value="{{ col }}" name="result-option[]"
-                                {% if col in defaultcols %}
-                                    checked
-                                {% endif %}
-                                >
-                                <span class="lbl">{{ col }}</span>
-                                </li>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-    <!--                   TODO: Fix positioning for table options     -->
                 
-                <button tabindex="-1" class="btn btn-default" type=
-                "button">Row Limit</button>
-                <input type="text" id="rowLimit" value="{{ defaultrowlimit }}"
-                            class="form-group">
+                <div class="input-group-btn">
+                    <button tabindex="-1" class="btn btn-default" type=
+                        "button">Columns</button>
+                    <button tabindex="-1" data-toggle="dropdown" class=
+                        "btn btn-default dropdown-toggle" type="button">
+                    <span class="caret"></span></button>
+                    <div id="tableColumns" class="dropdown-menu">
+                        {% for col in collist %}
+                            <li>
+                            <input class="result-option" type="checkbox"
+                            value="{{ col }}" name="result-option[]"
+                            {% if col in defaultcols %}
+                                checked
+                            {% endif %}
+                            >
+                            <span class="lbl">{{ col }}</span>
+                            </li>
+                        {% endfor %}
+                    </div>
                 </div>
+                
+                <div class="input-group-btn">
+                </div>
+                
+                <div class="input-group-btn">       
+                    <button tabindex="-1" class="btn btn-default" type=
+                    "button">Sort By</button>
+                    <button tabindex="-1" data-toggle="dropdown" class=
+                    "btn btn-default dropdown-toggle" type="button">
+                    <span class="caret"></span></button>
+                    <div id="tableSort" class="dropdown-menu">
+                        <li>
+                        <input class="order-option" type="radio"
+                        value="asc" name="order-option[]"
+                        <span class="lbl">Ascending</span>
+                        </li>
+                        <li>
+                        <input class="order-option" type="radio"
+                        value="desc" name="order-option[]" checked
+                        <span class="lbl">Descending</span>
+                        </li>
+                        {% for col in sortlist %}
+                            <li>
+                            <input class="sort-option" type="radio"
+                            value="{{ col }}" name="sort-option[]"
+                            {% if col == defaultsort %}
+                                checked
+                            {% endif %}
+                            >
+                            <span class="lbl">{{ col }}</span>
+                            </li>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <span class="input-group-addon" id="row-limit-label">
+                                Row Limit</span>
+                    <input type="text" id="rowLimit" value="{{ defaultrowlimit }}"
+                                class="form-control">
+                </div>
+                
+                </div> <!-- input-group -->
                 <div id="tableWrapper">
                 
                 </div>
-            </div>
+            </div><!-- resultsArea  col -->
         </div><!-- row -->
 
     </div><!-- starter template-->

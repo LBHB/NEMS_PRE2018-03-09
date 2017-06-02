@@ -10,8 +10,20 @@ from bokeh.io import gridplot
 from bokeh.embed import components
 from bokeh.models import ColumnDataSource,HoverTool,ResizeTool,SaveTool,\
                             WheelZoomTool,PanTool,ResetTool
+from bokeh.charts import Bar, BoxPlot
 import pandas as pd
+import numpy as np
 import itertools
+
+
+"""
+setting default tools as global variable was causing issues with scatter
+plot, included here as comment for copy-paste as needed instead.
+
+tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
+                     self.create_hover()]
+
+"""
 
 
 class PlotGenerator():
@@ -37,8 +49,7 @@ class PlotGenerator():
 
         
 class Scatter_Plot(PlotGenerator):
-        # query database filtered by batch id and where modelname must be one of
-        # either model x or model y
+    
     def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
                  measure = 'r_test', batch=''):
         PlotGenerator.__init__(self,data,celllist,modelnames,measure,batch)
@@ -132,3 +143,141 @@ class Scatter_Plot(PlotGenerator):
 
         else:
             self.script, self.div = ('Error,','No plots to display.')
+
+
+class Bar_Plot(PlotGenerator):
+    
+        def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
+                 measure = 'r_test', batch=''):
+            PlotGenerator.__init__(self,data,celllist,modelnames,measure,batch)
+            
+        def create_hover(self):
+            hover_html = """
+                <div>
+                    <span class="hover-tooltip">model: $x</span>
+                </div>
+                <div>
+                    <span class="hover-tooltip">mean: @mean</span>
+                </div>
+                <div>
+                    <span class="hover-tooltip">stdev: @stdev</span>
+                </div>
+            """
+            return HoverTool(tooltips=hover_html)
+            
+        def generate_plot(self):
+            
+            # TODO: build custom bar chart instead of using bokeh's built-in
+            #       chart, since it doesn't support a data source for use with
+            #       hover tooltip.
+            # OR:   render stdev information some other way
+            # NOTE: """ commented areas are for using column data source,
+            #       still has bugs to work out. need to figure out how to
+            #       space categories along x axis instead of clumping them all
+            #       in one spot (i.e. specify 'tick' spacing)
+            
+            #build new pandas series of stdev values to be added to dataframe
+            """
+            stdev_col = pd.Series(index=self.data.index)
+            mean_col = pd.Series(index=self.data.index)
+            
+            #for each model, find the stdev over the measure values, then
+            #assign that value at every index that matches its modelname
+            for model in self.modelnames:
+                values = self.data.loc[self.data['modelname'] == model]\
+                                       [self.measure].values
+                stdev = np.std(values,axis=0)
+                mean = np.mean(values,axis=0)
+                indices = self.data.loc[self.data['modelname'] == model]\
+                                        .index.tolist()
+                for i in indices:
+                    stdev_col.iat[i] = stdev
+                    mean_col.iat[i] = mean
+                    
+            self.data = self.data.assign(stdev=stdev_col,mean=mean_col)
+            
+            #build data source from dataframe for use with hover tool
+            dat_source = ColumnDataSource(self.data)
+            """
+            
+            tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
+                     self.create_hover()]
+            
+            """
+            label = self.data['modelname'].values.tolist()
+            
+            p = figure(x_range=label,x_axis_label='Model', y_axis_label=\
+                       'Mean %s'%self.measure,title="Mean %s Performance By Model"\
+                       %self.measure,tools=tools)
+            p.xaxis.major_label_orientation=(np.pi/4)
+            
+            p.vbar(x=label,width=4,top='mean',color='navy',source=dat_source)
+            """
+            
+            p = Bar(self.data,label='modelname',values=self.measure,agg='mean',
+                    title='Mean %s Performance By Model'%self.measure,legend=None,
+                    tools=tools, color='modelname')
+            
+            
+            self.script,self.div = components(p)
+            
+            
+            
+class Pareto_Plot(PlotGenerator):
+            
+    def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
+                 measure = 'r_test', batch=''):
+        PlotGenerator.__init__(self,data,celllist,modelnames,measure,batch)
+            
+    def create_hover(self):
+        hover_html = """
+        <div>
+            <span class="hover-tooltip">parameters: $x</span>
+        </div>
+        <div>
+            <span class="hover-tooltip">mean: $y</span>
+        </div>
+        """
+        return HoverTool(tooltips=hover_html)
+            
+    def generate_plot(self):
+            
+        tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
+                     self.create_hover()]
+            
+        
+        # TODO: Change this to custom char type? Not quite the same as narf pareto
+        #       Currently displays bokeh default box plot with built-in
+        #       summary statistics:
+        #       -'whiskers' cover range of values outside of the 0.25 and 0.75
+        #           quartile marks
+        #       -edges of boxes represent 0.25 and 0.75 quartiles
+        #       -line within box represents mean value
+        #       -markers outside of whiskers represent outlier values
+        
+        p = BoxPlot(self.data,values=self.measure,label='n_parms',\
+                        title="Mean Performance (%s) versus Complexity"%self.measure,\
+                        tools=tools, color='n_parms')
+            
+        self.script,self.div = components(p)
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        
