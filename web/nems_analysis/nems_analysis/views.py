@@ -1,9 +1,10 @@
 from flask import render_template, jsonify, request
 from nems_analysis import app, session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
-from nems_analysis.PlotGenerator import Scatter_Plot
+from nems_analysis.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
+from sqlalchemy import desc, asc
 
 
 ##################################################################
@@ -19,9 +20,17 @@ def main_view():
     analysislist = [i[0] for i in session.query(NarfAnalysis.name).all()]
     batchlist = [i[0] for i in session.query(NarfAnalysis.batch).distinct().all()]
     
-    # TODO: let user choose their default columns and save for later sessions
-    defaultcols = ['id','cellid','batch','modelname','r_test','r_fit']
+    ######  DEFAULT SETTINGS FOR RESULTS DISPLAY  ################
+    # TODO: let user choose their defaults and save for later sessions
+    defaultcols = ['id','cellid','batch','modelname','r_test','r_fit','n_parms']
     defaultrowlimit = 500
+    defaultsort = 'cellid'
+    ##############################################################
+    
+    measurelist = ['r_ceiling','r_test','r_fit','r_active','mse_test','mse_fit',\
+                   'mi_test','mi_fit','nlogl_test','nlogl_fit','cohere_test',\
+                   'cohere_fit']
+    
     # returns all columns in the format 'NarfResults.columnName'
     # then removes the leading 'NarfResults.' from each string
     collist = ['%s'%(s) for s in NarfResults.__table__.columns]
@@ -29,8 +38,9 @@ def main_view():
 
     return render_template('main.html',analysislist = analysislist,\
                            batchlist = batchlist, collist=collist,\
-                           defaultcols = defaultcols,\
-                           defaultrowlimit = defaultrowlimit,\
+                           defaultcols = defaultcols,measurelist=measurelist,\
+                           defaultrowlimit = defaultrowlimit,sortlist=collist,\
+                           defaultsort=defaultsort,\
                            )
     
 @app.route('/update_batch')
@@ -67,8 +77,7 @@ def update_cells():
 
 @app.route('/update_results')
 def update_results():
-    # TODO: Change Jquery for this function to update on button click
-    # instead of on selection change.
+
     nullselection = 'MUST SELECT A BATCH AND ONE OR MORE CELLS AND ONE OR MORE\
                     MODELS AND ONE OR MORE COLUMNS BEFORE RESULTS WILL UPDATE'
     
@@ -83,20 +92,31 @@ def update_results():
     
     cols = [getattr(NarfResults,c) for c in colSelected if hasattr(NarfResults,c)]
     rowlimit = request.args.get('rowLimit',500)
+    ordSelected = request.args.get('ordSelected')
+    if ordSelected == 'asc':
+        ordSelected = asc
+    elif ordSelected == 'desc':
+        ordSelected = desc
+    sortSelected = request.args.get('sortSelected','cellid')
 
-    # TODO: only shows first 500 results -- code this in as a user option
-    #       that can be adjusted near the table display for larger selections
-    # Note: this no longer affects plot behavior since that data is queried separately
-    #       only affects how many rows are displayed on the results table
 
     results = psql.read_sql_query(Query(cols,session).filter\
               (NarfResults.batch == bSelected).filter\
               (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).limit(rowlimit).statement,\
+              (NarfResults.modelname.in_(mSelected)).order_by(ordSelected\
+              (getattr(NarfResults,sortSelected))).limit(rowlimit).statement,\
               session.bind)
-        
+    
     return jsonify(resultstable=results.to_html(classes='table-hover\
                                                 table-condensed'))
+
+
+@app.route('/update_analysis_details')
+def update_analysis_details():
+    
+    aSelected = request.args.get('aSelected')
+    
+    return jsonify(details=('testing: ' + aSelected))
 
 
 ####################################################################
@@ -122,15 +142,55 @@ def scatter_plot():
               (NarfResults.cellid.in_(cSelected)).filter\
               (NarfResults.modelname.in_(mSelected)).statement,session.bind)
               
-    plot = Scatter_Plot(results,celllist=cSelected,modelnames=mSelected,\
+    plot = Scatter_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
                         measure=measure, batch=bSelected)
     plot.generate_plot()
     
     return render_template("plot.html", script=plot.script, div=plot.div)
 
 
+@app.route('/bar_plot',methods=['POST'])
+def bar_plot():
+    # TODO: this is exactly the same as scatter_plot other than the function call
+    # to Bar_Plot instead of Scatter_Plot - should these be combined into a
+    # single function or left separate for clarity?
+    
+    bSelected = request.form.get('batch')[:3]
+    mSelected = request.form.getlist('modelnames')
+    cSelected = request.form.getlist('celllist')
+    measure = request.form['measure']
+    
+    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
+              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
+              (NarfResults.cellid.in_(cSelected)).filter\
+              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
+        
+    plot = Bar_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
+                    measure=measure,batch=bSelected)
+    plot.generate_plot()
+    
+    return render_template("plot.html",script=plot.script,div=plot.div)
 
 
+@app.route('/pareto_plot',methods=['POST'])
+def pareto_plot():
+    
+    bSelected = request.form.get('batch')[:3]
+    mSelected = request.form.getlist('modelnames')
+    cSelected = request.form.getlist('celllist')
+    measure = request.form['measure']
+    
+    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),\
+              NarfResults.cellid,NarfResults.n_parms,\
+              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
+              (NarfResults.cellid.in_(cSelected)).filter\
+              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
+        
+    plot = Pareto_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
+                    measure=measure,batch=bSelected)
+    plot.generate_plot()
+    
+    return render_template("plot.html",script=plot.script,div=plot.div)
 ####################################################################
 ###################     MISCELLANEOUS  #############################
 ####################################################################

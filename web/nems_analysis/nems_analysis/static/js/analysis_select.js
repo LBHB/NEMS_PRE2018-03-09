@@ -1,4 +1,10 @@
 $(document).ready(function(){
+    //initializes bootstrap popover elements
+
+    $('[data-toggle="popover"]').popover({
+        trigger: 'click',
+    });
+    
     $("#analysisSelector").change(function(){
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
@@ -67,8 +73,12 @@ $(document).ready(function(){
         });
     });
      
+    // initialize display option variables
     var colSelected = [];
+    var ordSelected;
+    var sortSelected;
     
+    // update function for each variable
     function updatecols(){
         var checks = document.getElementsByName('result-option[]');
         colSelected.length = 0; //empty out the options, then push the new ones
@@ -79,12 +89,36 @@ $(document).ready(function(){
         }
     }
     
+    function updateOrder(){
+        var order = document.getElementsByName('order-option[]');
+        for (var i=0; i < order.length; i++) {
+            if (order[i].checked) {
+                return order[i].value;
+            }
+        }
+    }
+    
+    function updateSort(){
+        var sort = document.getElementsByName('sort-option[]');
+        for (var i=0; i < sort.length; i++) {
+            if (sort[i].checked) {
+                return sort[i].value;
+            }
+        }
+    }
+            
+    // update at start of page, and again if changes are made
     updatecols();
+    ordSelected = updateOrder();
+    sortSelected = updateSort();
 
-    $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit")
+    $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(function(){
         
         updatecols();
+        ordSelected = updateOrder();
+        sortSelected = updateSort();
+        
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
@@ -94,12 +128,48 @@ $(document).ready(function(){
             url: $SCRIPT_ROOT + '/update_results',
             data: { bSelected:bSelected, cSelected:cSelected, 
                    mSelected:mSelected, colSelected:colSelected,
-                   rowLimit:rowLimit },
+                   rowLimit:rowLimit, ordSelected:ordSelected,
+                   sortSelected:sortSelected },
             type: 'GET',
             success: function(data) {
                 //grabs whole div - replace inner html with new table?
                 results = $("#tableWrapper");
                 results.html(data.resultstable)
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    });
+
+    $("#batchSelector,#modelSelector,#cellSelector,#measureSelector,#analysisSelector")
+    .change(function(){
+        var empty = false;
+        $(".form-control").each(function() {
+            if (!($(this).val()) || ($(this).val().length == 0)) {
+                    empty = true;
+                }
+        });
+        
+        if (empty){
+            $(".plotsub").attr('disabled','disabled');
+            $("#form-warning").html("<p>Selection required for each option before submission</p>")
+        } else {
+            $(".plotsub").removeAttr('disabled');
+            $("#form-warning").html("")
+        }   
+    });
+
+    $("#analysisSelector").change(function(){
+        
+        var aSelected = $("#analysisSelector").val();
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/update_analysis_details',
+            data: { aSelected:aSelected },
+            type: 'GET',
+            success: function(data) {
+                $("#analysisDetails").html(data.details)
             },
             error: function(error) {
                 console.log(error);

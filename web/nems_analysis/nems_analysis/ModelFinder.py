@@ -24,6 +24,12 @@ class ModelFinder():
         # do other string cleanup
         # then interpret as nested list
         
+        
+        # TODO: May not be a complete list of fixes - have been playing
+        # whack-a-mole with syntax errors so far. ast.literal_eval is very picky
+        # about commas, brackets etc, but still seems more efficient than writing a
+        # new function for evaluating the string.
+        
         s = self.modelstring.replace('{', '[')
         s = s.replace('}', ']')
         s = s.replace(" ","")
@@ -33,12 +39,16 @@ class ModelFinder():
         #string
         r = re.compile(r"(?P<ONE>\w)''(?P<TWO>\w)")
         s = r.sub("\g<ONE>','\g<TWO>", s)
+        #insert comma between empty string and regular string (empty first)
+        r = re.compile(r"(?P<ONE>'')(?P<TWO>'\w)")
+        s = r.sub("\g<ONE>,\g<TWO>", s)
+        #insert comma between empty string and regular string (empty second)
+        r = re.compile(r"(?P<ONE>'\w)(?P<TWO>'')")
+        s = r.sub("\g<ONE>,\g<TWO>", s)
         s = s.replace("]'","],'")   #insert commas between lists & strings
         s = s.replace("][","],[")   #insert commas between lists
         
-        # TODO: Fixed all syntax errors i could find in the model strings, but this
-        #       function still has issues with some analyses. Will likely need to
-        #       implement a custom function in place of ast.literal_eval
+        
         try:
             nestedlist = ast.literal_eval(s)
         except (ValueError, SyntaxError):
@@ -74,11 +84,7 @@ class ModelFinder():
         return
     
     def array_to_list(self,array):
-        # parse array into a list of model names (strings)
-        # see: narf_analysis > rebuild_modeltree
-        models = []
-
-        # iterate through rows of combinations
-        for c in self.comboArray:
-            models += ['_'.join(c)]
+        #ignore blank strings when joining underscores
+        models = ['_'.join(filter(None,c)) for c in self.comboArray]
+        
         return models
