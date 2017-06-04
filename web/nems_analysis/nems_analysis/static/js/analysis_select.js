@@ -169,7 +169,8 @@ $(document).ready(function(){
             data: { aSelected:aSelected },
             type: 'GET',
             success: function(data) {
-                $("#analysisDetails").html(data.details)
+                $("#analysisDetails").attr("data-content",data.details)
+                $("#analysisDetails").attr("title",aSelected)
             },
             error: function(error) {
                 console.log(error);

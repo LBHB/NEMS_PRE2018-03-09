@@ -29,6 +29,14 @@ tables.dataframe, .dataframe th, .dataframe td {
   text-align: center;
 }
 
+.popover {
+  max-width: none;
+}
+
+#analysisDetails .popover{
+  width: 25vw !important;
+}
+
 #tableWrapper {
   margin-top: 10px;
   height: 80vh;

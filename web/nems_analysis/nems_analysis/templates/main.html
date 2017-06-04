@@ -68,9 +68,13 @@
                     {% endfor %}
                 </select>
                 
+                <!-- TODO: improve positioning of popover. may need to set up as
+                            separate container, fix so its contents update
+                            without having to click off and back on again -->
+                            
                 <button type="button" class="btn btn-secondary" data-toggle=
-                    "popover" id="analysisDetails" data-placement="bottom">
-                    Details </button>
+                    "popover" id="analysisDetails" data-placement="bottom"
+                    data-content="testing" data-html="true"> Details </button>
                 </div>
                 
                 <div class="form-group">

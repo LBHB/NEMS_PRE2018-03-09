@@ -4,12 +4,6 @@ import db_connection
 db = db_connection.db
 SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://%s:%s@%s/%s'%(db['user'],db['passwd'],db['host'],\
                                                  db['database'])
-PYMEMCACHE = {
-    'server': ('localhost',11211),
-    'connect_timeout': 1.0,
-    'timeout': 0.5,
-    'no_delay': True,
-}
 
 THREADS_PER_PAGE = 2
 
