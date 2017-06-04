@@ -57,15 +57,15 @@ class Scatter_Plot(PlotGenerator):
     def create_hover(self):
         hover_html = """
             <div>
-                <span class="hover-tooltip">x: $x</span>
+                <span class="hover-tooltip">%s x: $x</span>
             </div>
             <div>
-                <span class="hover-tooltip">y: $y</span>
+                <span class="hover-tooltip">%s y: $y</span>
             </div>
             <div>
                 <span class="hover-tooltip">cell: @cellid</span>
             </div>
-            """
+            """%(self.measure,self.measure)
         return HoverTool(tooltips=hover_html)
             
     def generate_plot(self):
