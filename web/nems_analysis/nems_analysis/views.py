@@ -1,7 +1,8 @@
 from flask import render_template, jsonify, request
 from nems_analysis import app, Session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
-from nems_analysis.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
+#moved views for these to separate plot_functions.views
+#from nems_analysis.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc
@@ -166,14 +167,15 @@ def update_analysis_details():
     
     return jsonify(details=detailsHTML)
 
+"""
+
+Moved these to plot_functions.views file for compartmentalization/organization.
+Leaving commented out here for now incase it becomes necessary to switch back.
 
 ####################################################################
 ####################    PLOT FUNCTIONS    ##########################
 ####################################################################
 
-
-# TODO: May want to split these up into a separate 'plot' package with
-#       its own folder and views file as options grow
 
 # TODO: Is POST the correct method to use here? Couldn't get GET to work,
 #       but might be a better way than HTML forms via JS etc.
@@ -248,6 +250,7 @@ def pareto_plot():
     session.close()
     
     return render_template("plot.html",script=plot.script,div=plot.div)
+"""
 ####################################################################
 ###################     MISCELLANEOUS  #############################
 ####################################################################
