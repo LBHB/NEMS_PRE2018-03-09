@@ -18,7 +18,8 @@ NarfResults = Base.classes.NarfResults
 
 Session = sessionmaker(bind=engine)
 
-#this doesn't get used for anything, just has to be loaded when
+#these don't get used for anything, just have to be loaded when
 #app is initiated
 import nems_analysis.views
 import plot_functions.views
+import nems_modelpane.views

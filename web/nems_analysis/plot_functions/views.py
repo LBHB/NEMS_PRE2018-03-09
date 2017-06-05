@@ -28,7 +28,7 @@ def scatter_plot():
     
     session.close()
     
-    return render_template("plot.html", script=plot.script, div=plot.div)
+    return render_template("/plot/plot.html", script=plot.script, div=plot.div)
 
 
 @app.route('/bar_plot',methods=['POST'])
@@ -54,7 +54,7 @@ def bar_plot():
     
     session.close()
     
-    return render_template("plot.html",script=plot.script,div=plot.div)
+    return render_template("/plot/plot.html",script=plot.script,div=plot.div)
 
 
 @app.route('/pareto_plot',methods=['POST'])
@@ -78,4 +78,4 @@ def pareto_plot():
     
     session.close()
     
-    return render_template("plot.html",script=plot.script,div=plot.div)
+    return render_template("/plot/plot.html",script=plot.script,div=plot.div)

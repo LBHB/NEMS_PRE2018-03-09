@@ -1,14 +1,19 @@
 $(document).ready(function(){
     //initializes bootstrap popover elements
-
     $('[data-toggle="popover"]').popover({
         trigger: 'click',
     });
     
-    $("#analysisSelector").change(function(){
+    var analysisCheck = $("#analysisSelector").val()
+    if ((analysisCheck !== "") && (analysisCheck !== undefined) && (analysisCheck !== null)){
+        updateAnalysis();
+    }
+        
+    $("#analysisSelector").change(updateAnalysis);
+
+    function updateAnalysis(){
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
-                         
         // pass the value to '/update_batch' in nemsweb.py
         // get back associated batchnum and change batch selector to match
         $.ajax({
@@ -16,7 +21,6 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                console.log("batch retrieved?: " + data.batch);
                 $("#batchSelector").val(data.batch).change();
             },
             error: function(error) {
@@ -29,12 +33,10 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                console.log("modellist = " + data.modellist);
                 var $models = $("#modelSelector");
                 $models.empty();
                              
                 $.each(data.modellist, function(modelname) {
-                    console.log("modelname = " + data.modellist[modelname]);
                     $models.append($("<option></option>")
                         .attr("value", data.modellist[modelname]).text
                         (data.modellist[modelname]));
@@ -44,9 +46,11 @@ $(document).ready(function(){
                 console.log(error);
             }     
         });
-    });
+    };
 
-    $("#batchSelector").change(function(){
+    $("#batchSelector").change(updateBatch);
+            
+    function updateBatch(){
         // TODO: update cell list when batch changes
         //       should cascade from change to analysis selection
         // if batch selection changes, get the value of the new selection
@@ -59,7 +63,6 @@ $(document).ready(function(){
             success: function(data) {
                 cells = $("#cellSelector");
                 cells.empty();
-                console.log("new cell list = " + data.celllist)
 
                 $.each(data.celllist, function(cell) {
                     cells.append($("<option></option>")
@@ -71,7 +74,7 @@ $(document).ready(function(){
                 console.log(error);
             }    
         });
-    });
+    };
      
     // initialize display option variables
     var colSelected = [];
@@ -175,6 +178,57 @@ $(document).ready(function(){
             error: function(error) {
                 console.log(error);
             }
+        });
+    });
+
+    $(document).on('click','.dataframe tr',function(){
+        if ($(this).hasClass('selectedRow')){
+            $(this).removeClass('selectedRow');
+        } else{
+            $(this).addClass('selectedRow');
+        }
+    });
+
+    $(document).on('click','#preview',function(e){
+        var cSelected = [];
+        var mSelected = [];
+        var bSelected = $("#batchSelector").val();
+        
+        $(".dataframe tr.selectedRow").each(function(){
+            cSelected.push($(this).children().eq(1).html());
+        });
+        $(".dataframe tr.selectedRow").each(function(){
+            mSelected.push($(this).children().eq(2).html());
+        });
+
+        // only proceed if selections have been made
+        if ((cSelected.length == 0) || (mSelected.length == 0)){
+            alert('Must select at least one result from table')
+            return false;
+        }
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/get_preview',
+            data: { cSelected:cSelected, mSelected:mSelected,
+                   bSelected:bSelected },
+            type: 'GET',
+            success: function(data){
+                // TODO: get this to open multiple windows. currently just
+                // opens the first one then stops.
+                for (var i=0;i<data.filepaths.length;i++){
+                    window.open('preview' + data.filepaths[i],
+                                'width=520','height=910');
+                }
+            },
+            error: function(error){
+                console.log(error);        
+            }
+        });
+    });
+                
+    $("#clearSelected").on('click',function(){
+        $(".dataframe tr.selectedRow").each(function(){
+            $(this).removeClass('selectedRow');
         });
     });
 });
