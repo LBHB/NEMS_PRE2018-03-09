@@ -1,11 +1,12 @@
 from flask import render_template, jsonify, request
 from nems_analysis import app, Session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
-from nems_analysis.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
+#moved views for these to separate plot_functions.views
+#from nems_analysis.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc
-
+from flask import Response
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
@@ -26,12 +27,14 @@ def main_view():
     
     # .all() returns a list of tuples, list comprehension to pull tuple
     # elements out into list
-    analysislist = [i[0] for i in session.query(NarfAnalysis.name).all()]
+    analysislist = [i[0] for i in session.query(NarfAnalysis.name).order_by\
+                    (desc(NarfAnalysis.lastmod)).all()]
     batchlist = [i[0] for i in session.query(NarfAnalysis.batch).distinct().all()]
     
     ######  DEFAULT SETTINGS FOR RESULTS DISPLAY  ################
     # TODO: let user choose their defaults and save for later sessions
-    defaultcols = ['id','cellid','batch','modelname','r_test','r_fit','n_parms']
+    #cols are in addition to cellid, modelname and batch which are set up to be required
+    defaultcols = ['r_test','r_fit','n_parms','batch']
     defaultrowlimit = 500
     defaultsort = 'cellid'
     ##############################################################
@@ -44,6 +47,10 @@ def main_view():
     # then removes the leading 'NarfResults.' from each string
     collist = ['%s'%(s) for s in NarfResults.__table__.columns]
     collist = [s.replace('NarfResults.','') for s in collist]
+    
+    # remove cellid and modelname from options, make them required
+    collist.remove('cellid')
+    collist.remove('modelname')
 
     session.close()
     
@@ -102,18 +109,21 @@ def update_results():
     session = Session()
     
     nullselection = 'MUST SELECT A BATCH AND ONE OR MORE CELLS AND ONE OR MORE\
-                    MODELS AND ONE OR MORE COLUMNS BEFORE RESULTS WILL UPDATE'
+                    MODELS BEFORE RESULTS WILL UPDATE'
     
     bSelected = request.args.get('bSelected')
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
     colSelected = request.args.getlist('colSelected[]')
-    if (len(bSelected) == 0) or (len(cSelected) == 0) or (len(mSelected) == 0)\
-                                                    or (len(colSelected) == 0):
+    if (len(bSelected) == 0) or (len(cSelected) == 0) or (len(mSelected) == 0):
         return jsonify(resultstable=nullselection)
     bSelected = bSelected[:3]
     
-    cols = [getattr(NarfResults,c) for c in colSelected if hasattr(NarfResults,c)]
+    #always add cellid, batch and modelname to column lists - required for
+    #selection behavior.
+    cols = [getattr(NarfResults,'cellid'),getattr(NarfResults,'modelname')]
+    cols += [getattr(NarfResults,c) for c in colSelected if hasattr(NarfResults,c)]
+    
     rowlimit = request.args.get('rowLimit',500)
     ordSelected = request.args.get('ordSelected')
     if ordSelected == 'asc':
@@ -168,86 +178,41 @@ def update_analysis_details():
 
 
 ####################################################################
-####################    PLOT FUNCTIONS    ##########################
+###############     TABLE SELECTION FUNCTIONS     ##################
 ####################################################################
 
-
-# TODO: May want to split these up into a separate 'plot' package with
-#       its own folder and views file as options grow
-
-# TODO: Is POST the correct method to use here? Couldn't get GET to work,
-#       but might be a better way than HTML forms via JS etc.
-@app.route('/scatter_plot', methods=['POST'])
-def scatter_plot():
+@app.route('/get_preview')
+def get_preview():
     session = Session()
     
-    bSelected = request.form.get('batch')[:3]
-    mSelected = request.form.getlist('modelnames')
-    cSelected = request.form.getlist('celllist')
-    measure = request.form['measure']
-    
-    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
-              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
-              (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
-              
-    plot = Scatter_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
-                        measure=measure, batch=bSelected)
-    plot.generate_plot()
-    
-    session.close()
-    
-    return render_template("plot.html", script=plot.script, div=plot.div)
+    bSelected = request.args.get('bSelected',type=str)[:3]
+    cSelected = request.args.getlist('cSelected[]')
+    mSelected = request.args.getlist('mSelected[]')
 
-
-@app.route('/bar_plot',methods=['POST'])
-def bar_plot():
-    session = Session()
-    # TODO: this is exactly the same as scatter_plot other than the function call
-    # to Bar_Plot instead of Scatter_Plot - should these be combined into a
-    # single function or left separate for clarity?
+    paths = psql.read_sql_query(session.query(NarfResults.figurefile).filter\
+                               (NarfResults.batch == bSelected).filter\
+                               (NarfResults.cellid.in_(cSelected)).filter\
+                               (NarfResults.modelname.in_(mSelected)).statement,\
+                               session.bind)
     
-    bSelected = request.form.get('batch')[:3]
-    mSelected = request.form.getlist('modelnames')
-    cSelected = request.form.getlist('celllist')
-    measure = request.form['measure']
+    filepaths = paths['figurefile'].tolist()
     
-    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
-              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
-              (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
+    if len(filepaths) == 0:
+        return jsonify(filepaths='/missing_preview')
+    return jsonify(filepaths=filepaths)
         
-    plot = Bar_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
-                    measure=measure,batch=bSelected)
-    plot.generate_plot()
-    
-    session.close()
-    
-    return render_template("plot.html",script=plot.script,div=plot.div)
+@app.route('/missing_preview')
+def missing_preview():
+    return Response('No preview image exists for this result')
 
+@app.route('/preview/<path:filepath>')
+def preview(filepath):
 
-@app.route('/pareto_plot',methods=['POST'])
-def pareto_plot():
-    session = Session()
+    with open('/' + filepath, 'r+b') as img:
+        image = img.read()
+
+    return Response(image,mimetype="image/png")
     
-    bSelected = request.form.get('batch')[:3]
-    mSelected = request.form.getlist('modelnames')
-    cSelected = request.form.getlist('celllist')
-    measure = request.form['measure']
-    
-    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),\
-              NarfResults.cellid,NarfResults.n_parms,\
-              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
-              (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
-        
-    plot = Pareto_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
-                    measure=measure,batch=bSelected)
-    plot.generate_plot()
-    
-    session.close()
-    
-    return render_template("plot.html",script=plot.script,div=plot.div)
 ####################################################################
 ###################     MISCELLANEOUS  #############################
 ####################################################################

@@ -1,18 +1,8 @@
-1a) losing database connection when hosting from amazon server. usually stays on for several hours
-    then loses the connection at some point. Some times get a "broken pipeline" error, other times this:
-        
-    DatabaseError: Execution failed on sql: SELECT name FROM NarfAnalysis LIMIT 1000
-    (2013, 'Lost connection to MySQL server during query') unable to rollback
-    
-1b) another database error:
-    "StatementError: (sqlalchemy.exc.InvalidRequestError) 
-    Can't reconnect until invalid transaction is rolled back"
-    
-    Need to look at proper procedures for opening and closing sessions, rolling back
-    queries, etc with SQL alchemy.
+- preview button currently will only load the figurefile for the topmost selected row, instead of
+     opening one window per selection like narf_analysis. seems to be some issue with using
+     window.open() inside of a loop with javascript.
+     
+- database errors for remote server appear to be cleared up now.
 
-    Not seeing these errors when hosting locally, but may be due to restarting the
-    application every time a file changes via debugger.
-    
-2) ast.literal_eval should now be working for all analyses with a model string - will still
+- ast.literal_eval should now be working for all analyses with a model string - will still
     pop up error message in model selector if no modelstring exists for the selected analysis.
