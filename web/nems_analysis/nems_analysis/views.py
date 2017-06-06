@@ -198,7 +198,7 @@ def get_preview():
     filepaths = paths['figurefile'].tolist()
     
     if len(filepaths) == 0:
-        return jsonify(filepaths='/missing_preview')
+        return jsonify(filepaths=['/missing_preview'])
     return jsonify(filepaths=filepaths)
         
 @app.route('/missing_preview')
@@ -208,10 +208,13 @@ def missing_preview():
 @app.route('/preview/<path:filepath>')
 def preview(filepath):
 
-    with open('/' + filepath, 'r+b') as img:
-        image = img.read()
+    try:
+        with open('/' + filepath, 'r+b') as img:
+            image = img.read()
 
-    return Response(image,mimetype="image/png")
+        return Response(image,mimetype="image/png")
+    except:
+        return Response('Image path exists in DB but image not in local storage')
     
 ####################################################################
 ###################     MISCELLANEOUS  #############################
