@@ -1,4 +1,8 @@
 $(document).ready(function(){
+        
+    // TODO: Split this up into multile .js files? getting a bit crowded in here,
+    // could group by functionality at this point.    
+        
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
         trigger: 'click',
@@ -273,8 +277,44 @@ $(document).ready(function(){
     });
     // TODO:
     
-    $("#singleFit").on('click',function(){
-        alert("Function not yet implemented");
+    $("#fitSingle").on('click',function(){
+        alert("just a test right now");
+        
+        var bSelected = $("#batchSelector").val();
+        var cSelected = $("#cellSelector").val();
+        var mSelected = $("#modelSelector").val();
+        
+        if ((bSelected === null) || (bSelected === undefined) || 
+                (bSelected.length == 0)){
+            alert('Must select a batch')
+            return false;
+        }
+        if ((cSelected.length > 1) || (mSelected.length > 1) || (cSelected.length
+            == 0) || (mSelected.length == 0)){
+            alert('Must select one model and one cell')
+            return false;
+        }
+        
+        // TODO: insert confirmation box here, with warning about waiting for
+        //          fit job to finish
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/fit_single_model',
+            data: { bSelected:bSelected, cSelected:cSelected,
+                       mSelected:mSelected },
+            // TODO: should use POST maybe in this case?
+            type: 'GET',
+            success: function(data){
+                alert(data.data)
+                alert(data.preview)
+                //open preview in new window like the preview button?
+                //then would only have to pass file path
+                //window.open('preview/' + data.preview,'width=520','height=910')
+            },
+            error: function(error){
+                console.log(error)        
+            }
+        });
         //model fit cascade starts here
         //ajax call to flask app with selected cell, batch and model
         //flask instantiates ferret object (or whatever model fitter ends up as)
@@ -285,12 +325,43 @@ $(document).ready(function(){
     });
                 
     $("#enqueue").on('click',function(){
-        alert("Function not yet implemented");
+        alert("just a test right now");
+        
+        var bSelected = $("#batchSelector").val();
+        var cSelected = $("#cellSelector").val();
+        var mSelected = $("#modelSelector").val();
+        
+        if ((bSelected === null) || (bSelected === undefined) || 
+                (bSelected.length == 0)){
+            alert('Must select a batch')
+            return false;
+        }
+        if ((cSelected.length == 0) || (mSelected.length == 0)){
+            alert('Must select at least one model and at least one cell')
+            return false;
+        }
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/enqueue_models',
+            data: { bSelected:bSelected, cSelected:cSelected,
+                   mSelected:mSelected },
+            // TODO: should POST be used in this case?
+            type: 'GET',
+            success: function(data){
+                alert(data.data);
+                alert(data.testb);
+                alert(data.testc);
+                alert(data.testm);
+            },
+            error: function(error){
+                console.log(error)        
+            }
+        });
         //communicates with daemon to queue model fitting for each selection on cluster,
         //using similar process as above but for multiple models and no
         //dialogue displayed afterward
         
-        //open separate window/tab for additional specifications?
+        //open separate window/tab for additional specifications like priority?
     });
                 
 });

@@ -1,51 +1,51 @@
-from flask import render_template, jsonify, request, Response
-from nems_analysis import app, Session, NarfAnalysis, NarfBatches, NarfResults
-import pandas.io.sql as psql
+from flask import render_template, jsonify, request
+from nems_analysis import app
 import pandas as pd
+from model_functions.modelfit import fit_single_model, enqueue_models
 
 @app.route('/modelpane')
 def modelpane_view():
     return render_template('/modelpane/modelpane.html')
 
-@app.route('/single_fit')
-def single_fit():
+@app.route('/fit_single_model')
+def fit_single_model_view():
     #TODO: link up to model package
-    
-    session = Session()
-    
-    cSelected = request.args.get('cSelected')
+    cSelected = request.args.getlist('cSelected[]')
     bSelected = request.args.get('bSelected')
-    mSelected = request.args.get('mSelected')
+    mSelected = request.args.getlist('mSelected[]')
     
-    #import model fitter object from model package at top
-    #ModelObject = ModelFitterObjectName\
-                    #(cellid=cSelected,batch=bSelected,model=mSelected)
+    if (len(cSelected) > 1) or (len(mSelected) > 1):
+        return jsonify(data ='error',preview='more than 1 cell and/or model')
     
-    #data_from_modules = ModelObject.methodForRetrievingData()
+    # get cellid and modelname from results table selection,
+    # batch from batch selector
     
-    #will be 3-d arrays? may need to convert objects in frame to series, or use panel
+    # TODO: what do I want to have returned from this?
+    #       model queue should only have to run this one line, so only need to 
+    #       return things that will be displayed to user on single fit
+    #       --figurefile/preview image and what else?
+    #       --nothing displayed for enqueue since they don't run right away?
+    data = fit_single_model(cellid=cSelected[0],batch=bSelected,modelname=mSelected[0])
+
+    #figure_file = data['figure_file']
+    figure_file = 'preview for %s, %s, %s'%(cSelected[0],bSelected,mSelected[0])
     
-    #dataframe = pd.Dataframe(data_from_modules,index=someIndex)
-    #or put each array into separate dataframe, whatever works better
-    
-    """
-    session.add_all([
-            Table(column1=data_from_modules['column1'], column2=data_from_modules['column2']),
-            --repeat for each entry
-            //construct list outside of this first for multiple entries
-            ])
-    
-    session.commit()
-    """
-    
-    # copy code from nems_analysis/views for @get_preview
-    # or call function from ajax function after retrieving data
-    figure_file = 'summary image .png'
-    
-    session.close()
-    return jsonify(data = data_from_modules)
+    #use data after ajax call to display some type of results summary or success message?
+    return jsonify(data = data,preview = figure_file)
 
 @app.route('/enqueue_models')
-def enqueue_models():
+def enqueue_models_view():
     
-    return Response('Placeholder for model queueing function')
+    #TODO: is batch necessary? cell list has already been retrieved, but
+    #       might still need to record batch # in NarfResults at the  end.
+    bSelected = request.args.get('bSelected')[:3]
+    cSelected = request.args.getlist('cSelected[]')
+    mSelected = request.args.getlist('mSelected[]')
+    
+    # get batch, cell and model selections from their respective selectors.
+    # only queue models for selections, not entire analysis
+    data = enqueue_models(celllist=cSelected,batch=bSelected,modellist=mSelected)
+    
+    # only need to return some kind of success/failure message or summary
+    # fitting doesn't happen right away so no image or statistics to return
+    return jsonify(data = data, testb=bSelected,testc=cSelected,testm=mSelected)

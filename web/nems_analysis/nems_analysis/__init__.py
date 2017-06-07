@@ -15,6 +15,7 @@ Base.prepare(engine, reflect=True)
 NarfAnalysis = Base.classes.NarfAnalysis
 NarfBatches = Base.classes.NarfBatches
 NarfResults = Base.classes.NarfResults
+tQueue = Base.classes.tQueue
 
 Session = sessionmaker(bind=engine)
 
