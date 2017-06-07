@@ -32,7 +32,10 @@ import datetime
 def fit_single_model(cellid,batch,modelname):
     
     #TODO: need to split modelname into keywords? or is that handled by ModelObject?
+    #TODO: yes split up and pass as list
     #ModelObject = ModelObject(cellid=cSelected,batch=bSelected,model=mSelected)
+    #.run_fit() --> tell object to run its queue of modules
+    #.assemble_for_plotting() --> return numpy arrays for plotting (more for modelpane view?)
     
     #need some kind of timeout warning? does model fitting cascade on instantiation,
     #or need to invoke some method first?

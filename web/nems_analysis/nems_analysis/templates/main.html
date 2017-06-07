@@ -60,7 +60,7 @@
 
             <div class="col-xs-4">
             <form class="form" id="selections" method="POST" target="_blank">
-                <div class="form-group">
+                <div class="form-group" id="analysisGroup">
                 <label for="analysisSelector"> Select Analysis </label>
                 <select class="form-control" id="analysisSelector">
                     <option selected disabled value=""> Analysis </option>
@@ -68,17 +68,61 @@
                         <option value="{{ analysis }}"> {{ analysis }} </option>
                     {% endfor %}
                 </select>
+                </div>
+
+                <div class="form-group" id="analysisButtons">
                 
-                <!-- TODO: improve positioning of popover. may need to set up as
-                            separate container, fix so its contents update
-                            without having to click off and back on again -->
-                            
-                <button type="button" class="btn btn-secondary" data-toggle=
+                <div class="btn-group">
+                <button type="button" class="btn btn-default" data-toggle=
                     "popover" id="analysisDetails" data-placement="bottom"
-                    data-content="testing" data-html="true"> Details </button>
+                    data-content="No Selection" data-html="true"> Details </button>
                 </div>
                 
-                <div class="form-group">
+                <div class="btn-group">
+                <button type="button" class="btn btn-default" id="newAnalysis">
+                    New Analysis </button>
+                </div>
+                
+                <div class="dropdown">
+                <button type="button" tabindex="-1" class="btn btn-default dropdown-toggle"
+                    data-toggle="dropdown" id="filerStatus"> Status </button>
+                    <div id="statusFilters" class="dropdown-menu">
+                        <li>
+                        <input class="statusOption" name="statusOption[]" type=
+                        "radio" value="__any" checked>
+                        <span class="lbl"> Any </span>
+                        </li>
+                        {% for status in statuslist %}
+                            <li>
+                            <input class="statusOption" name="statusOption[]" 
+                            type="radio" value="{{ status }}">
+                            <span class="lbl">{{ status }}</span>
+                            </li>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="dropdown">
+                <button type="button" tabindex="-1" class="btn btn-default dropdown-toggle" 
+                id="filterTags" data-toggle="dropdown"> Tags </button>
+                    <div id="tagFilters" class="dropdown-menu">
+                        <li>
+                        <input class="tagOption" name="tagOption[]" type="radio"
+                        value="__any" checked>
+                        <span class="lbl"> Any </span>
+                        </li>
+                        {% for tag in taglist %}
+                            <li>
+                            <input class="tagOption"
+                            name="tagOption[]" type="radio" value="{{ tag }}">
+                            <span class="lbl">{{ tag }}</span>
+                            </li>
+                        {% endfor %}
+                    </div>
+                </div>
+                </div><!-- button form-group end -->
+                
+                <div class="form-group" id="batchDiv">
                 <label for="batchSelector"> Batch </label>
                 <select class="form-control" id="batchSelector" name="batch">
                     <option selected disabled value=""> Batch </option>
