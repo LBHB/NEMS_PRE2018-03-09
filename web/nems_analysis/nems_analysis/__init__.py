@@ -22,4 +22,4 @@ Session = sessionmaker(bind=engine)
 #app is initiated
 import nems_analysis.views
 import plot_functions.views
-import nems_modelpane.views
+import model_functions.views

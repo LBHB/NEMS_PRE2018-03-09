@@ -8,7 +8,37 @@ $(document).ready(function(){
     if ((analysisCheck !== "") && (analysisCheck !== undefined) && (analysisCheck !== null)){
         updateAnalysis();
     }
-        
+    
+    //not working
+    /*
+    $("#selectAllCells").change(selectCellsCheck);
+    
+    function selectCellsCheck(){
+        var cellOptions = document.getElementsByName("cellOption[]");
+        for (var i=0;i<cellOptions.length;i++){
+            if (document.getElementById("selectAllCells").checked){
+                cellOptions[i].setAttribute("selected",true);
+            } else{
+                cellOptions[i].removeAttribute("selected");
+            }
+        }                                
+    }
+    
+    $("#selectAllModels").change(selectModelsCheck);
+    
+    
+    function selectModelsCheck(){
+        var modelOptions = document.getElementsByName("modelOption[]");
+        for (var i=0;i<modelOptions.length;i++){
+            if (document.getElementById("selectAllModels").checked){
+                modelOptions[i].setAttribute("selected",true);
+            } else{
+                modelOptions[i].removeAttribute("selected");
+            }
+        }
+    }
+    */
+    
     $("#analysisSelector").change(updateAnalysis);
 
     function updateAnalysis(){
@@ -38,8 +68,9 @@ $(document).ready(function(){
                              
                 $.each(data.modellist, function(modelname) {
                     $models.append($("<option></option>")
-                        .attr("value", data.modellist[modelname]).text
-                        (data.modellist[modelname]));
+                        .attr("value", data.modellist[modelname])
+                        //.attr("name","modelOption[]")
+                        .text(data.modellist[modelname]));
                 });
             },
             error: function(error) {
@@ -48,9 +79,9 @@ $(document).ready(function(){
         });
     };
 
-    $("#batchSelector").change(updateBatch);
-            
-    function updateBatch(){
+    $("#batchSelector").change(updateCells);
+
+    function updateCells(){
         // TODO: update cell list when batch changes
         //       should cascade from change to analysis selection
         // if batch selection changes, get the value of the new selection
@@ -63,11 +94,12 @@ $(document).ready(function(){
             success: function(data) {
                 cells = $("#cellSelector");
                 cells.empty();
-
+                
                 $.each(data.celllist, function(cell) {
                     cells.append($("<option></option>")
-                        .attr("value", data.celllist[cell]).text
-                        (data.celllist[cell]));                    
+                        .attr("value", data.celllist[cell])
+                        //.attr("name","cellOption[]")
+                        .text(data.celllist[cell]));                    
                 });
             },
             error: function(error) {
@@ -116,7 +148,9 @@ $(document).ready(function(){
     sortSelected = updateSort();
 
     $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
-    .change(function(){
+    .change(updateResults);
+            
+    function updateResults(){
         
         updatecols();
         ordSelected = updateOrder();
@@ -143,7 +177,7 @@ $(document).ready(function(){
                 console.log(error);
             }
         });
-    });
+    }
 
     $("#batchSelector,#modelSelector,#cellSelector,#measureSelector,#analysisSelector")
     .change(function(){
@@ -231,5 +265,33 @@ $(document).ready(function(){
             $(this).removeClass('selectedRow');
         });
     });
+                
+    $("#strf").on('click',function(){
+        alert("Function not yet implemented");
+        //return strf plots ala narf_analysis
+        //low priority
+    });
+    // TODO:
+    
+    $("#singleFit").on('click',function(){
+        alert("Function not yet implemented");
+        //model fit cascade starts here
+        //ajax call to flask app with selected cell, batch and model
+        //flask instantiates ferret object (or whatever model fitter ends up as)
+        //with attributes based on ajax data
+        //gets back data package
+        //updates database entries with new data
+        //returns figure file image and some dialogue indicating results
+    });
+                
+    $("#enqueue").on('click',function(){
+        alert("Function not yet implemented");
+        //communicates with daemon to queue model fitting for each selection on cluster,
+        //using similar process as above but for multiple models and no
+        //dialogue displayed afterward
+        
+        //open separate window/tab for additional specifications?
+    });
+                
 });
         

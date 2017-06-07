@@ -9,8 +9,9 @@ from bokeh.plotting import figure
 from bokeh.io import gridplot
 from bokeh.embed import components
 from bokeh.models import ColumnDataSource,HoverTool,ResizeTool,SaveTool,\
-                            WheelZoomTool,PanTool,ResetTool
+                            WheelZoomTool,PanTool,ResetTool,Range1d,FactorRange
 from bokeh.charts import Bar, BoxPlot
+from bokeh.models.glyphs import VBar
 import pandas as pd
 import numpy as np
 import itertools
@@ -114,6 +115,7 @@ class Scatter_Plot(PlotGenerator):
                 p = figure(x_range = [0,1], y_range = [0,1],x_axis_label=pair[0],\
                            y_axis_label=pair[1], title=self.measure, tools=tools)
                     
+                
                 p.circle('x','y',size=5,color='navy',alpha=0.5,source=dat_source)
                 p.line([0,1],[0,1],line_width=1,color='black')
 
@@ -177,7 +179,7 @@ class Bar_Plot(PlotGenerator):
             #       in one spot (i.e. specify 'tick' spacing)
             
             #build new pandas series of stdev values to be added to dataframe
-            """
+
             stdev_col = pd.Series(index=self.data.index)
             mean_col = pd.Series(index=self.data.index)
             
@@ -187,37 +189,42 @@ class Bar_Plot(PlotGenerator):
                 values = self.data.loc[self.data['modelname'] == model]\
                                        [self.measure].values
                 stdev = np.std(values,axis=0)
-                mean = np.mean(values,axis=0)
+                #=mean = np.mean(values,axis=0)
                 indices = self.data.loc[self.data['modelname'] == model]\
                                         .index.tolist()
                 for i in indices:
                     stdev_col.iat[i] = stdev
-                    mean_col.iat[i] = mean
+                    #=mean_col.iat[i] = mean
                     
             self.data = self.data.assign(stdev=stdev_col,mean=mean_col)
             
+            tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
+                     HoverTool()]
+            
+            """
             #build data source from dataframe for use with hover tool
             dat_source = ColumnDataSource(self.data)
-            """
             
-            tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
-                     self.create_hover()]
             
-            """
-            label = self.data['modelname'].values.tolist()
             
-            p = figure(x_range=label,x_axis_label='Model', y_axis_label=\
+            xrange = FactorRange(factors=self.data['modelname'].tolist())
+            yrange = Range1d(start=0,end=max(self.data[self.measure])*1.5)
+            
+            p = figure(x_range=xrange,x_axis_label='Model',y_range=yrange, y_axis_label=\
                        'Mean %s'%self.measure,title="Mean %s Performance By Model"\
                        %self.measure,tools=tools)
+            
             p.xaxis.major_label_orientation=(np.pi/4)
             
-            p.vbar(x=label,width=4,top='mean',color='navy',source=dat_source)
+            glyph = VBar(x='modelname',top=self.measure,bottom=0,width=1,fill_color='navy')
+            
+            p.add_glyph(dat_source,glyph)
             """
             
-            p = Bar(self.data,label='modelname',values=self.measure,agg='mean',
-                    title='Mean %s Performance By Model'%self.measure,legend=None,
-                    tools=tools, color='modelname')
             
+            p = Bar(self.data,label='modelname',values=self.measure,agg='mean',\
+                    title='Mean %s Performance By Model'%self.measure,legend=None,\
+                    tools=tools, color='modelname')
             
             self.script,self.div = components(p)
             

@@ -28,7 +28,9 @@ class ModelFinder():
         # TODO: May not be a complete list of fixes - have been playing
         # whack-a-mole with syntax errors so far. ast.literal_eval is very picky
         # about commas, brackets etc, but still seems more efficient than writing a
-        # new function for evaluating the string.
+        # new function for evaluating the string. If a modelstring is found that
+        # won't work with this, chances are another s.replace(...) is needed to fix
+        # some syntax error.
         
         s = self.modelstring.replace('{', '[')
         s = s.replace('}', ']')
@@ -47,14 +49,16 @@ class ModelFinder():
         s = r.sub("\g<ONE>,\g<TWO>", s)
         s = s.replace("]'","],'")   #insert commas between lists & strings
         s = s.replace("][","],[")   #insert commas between lists
-        
+        s = s.replace("'[","',[")   #insert comma between end string and start list
         
         try:
             nestedlist = ast.literal_eval(s)
         except (ValueError, SyntaxError):
             print("\n\n ast.literal_eval has issue with string format for this modeltree: \n\n"\
                   + self.modelstring + "\n\n")
-            return (['ast','eval','did','not','work','for','this','analysis'])
+            print("or modelstring was not present in NarfAnalysis")
+            return (['ast','eval','did','not','work','for','this','analysis',\
+                     'or','model','string','not','present'])
             
         return nestedlist
         

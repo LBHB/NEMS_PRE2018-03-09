@@ -1,8 +1,6 @@
 from flask import render_template, jsonify, request
 from nems_analysis import app, Session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
-#moved views for these to separate plot_functions.views
-#from nems_analysis.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc
@@ -215,7 +213,8 @@ def preview(filepath):
         return Response(image,mimetype="image/png")
     except:
         return Response('Image path exists in DB but image not in local storage')
-    
+
+
 ####################################################################
 ###################     MISCELLANEOUS  #############################
 ####################################################################

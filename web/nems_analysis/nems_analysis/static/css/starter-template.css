@@ -38,7 +38,7 @@ tables.dataframe, .dataframe th, .dataframe td {
 
 #tableWrapper {
   margin-top: 10px;
-  height: 80vh;
+  height: 70vh;
   display: block;
   overflow: auto;
   border: none;
