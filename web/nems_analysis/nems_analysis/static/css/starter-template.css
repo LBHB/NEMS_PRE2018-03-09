@@ -32,8 +32,30 @@ tables.dataframe, .dataframe th, .dataframe td {
   max-width: none;
 }
 
-#analysisDetails .popover{
+#analysisGroup {
+  margin: 0px !important;
+       
+}
+
+#analysisButtons .popover{
   width: 25vw !important;
+}
+
+#analysisButtons {
+  padding: 0px !important;  
+}
+
+#analysisButtons .btn-group {
+  float: left;
+}   
+
+#analysisButtons .dropdown {
+  float: right;        
+}
+
+#batchDiv {
+  clear: both;
+  margin-top: 45px !important;    
 }
 
 #tableWrapper {

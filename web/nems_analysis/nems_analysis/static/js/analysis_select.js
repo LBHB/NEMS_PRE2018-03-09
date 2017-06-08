@@ -8,9 +8,10 @@ $(document).ready(function(){
         trigger: 'click',
     });
     
-    var analysisCheck = $("#analysisSelector").val()
+    var analysisCheck = document.getElementById("analysisSelector").value;
     if ((analysisCheck !== "") && (analysisCheck !== undefined) && (analysisCheck !== null)){
-        updateAnalysis();
+        updateBatchModel();
+        updateAnalysisDetails();
     }
     
     //not working
@@ -41,11 +42,12 @@ $(document).ready(function(){
             }
         }
     }
+    }
     */
     
-    $("#analysisSelector").change(updateAnalysis);
+    $("#analysisSelector").change(updateBatchModel);
 
-    function updateAnalysis(){
+    function updateBatchModel(){
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
         // pass the value to '/update_batch' in nemsweb.py
@@ -114,8 +116,8 @@ $(document).ready(function(){
      
     // initialize display option variables
     var colSelected = [];
-    var ordSelected;
-    var sortSelected;
+    //var ordSelected;
+    //var sortSelected;
     
     // update function for each variable
     function updatecols(){
@@ -148,8 +150,8 @@ $(document).ready(function(){
             
     // update at start of page, and again if changes are made
     updatecols();
-    ordSelected = updateOrder();
-    sortSelected = updateSort();
+    //ordSelected = updateOrder();
+    //sortSelected = updateSort();
 
     $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(updateResults);
@@ -201,8 +203,9 @@ $(document).ready(function(){
         }   
     });
 
-    $("#analysisSelector").change(function(){
-        
+    $("#analysisSelector").change(updateAnalysisDetails);
+            
+    function updateAnalysisDetails(){
         var aSelected = $("#analysisSelector").val();
         
         $.ajax({
@@ -217,7 +220,53 @@ $(document).ready(function(){
                 console.log(error);
             }
         });
-    });
+    }
+    
+    function updateTag(){
+        var tags = document.getElementsByName('tag-option[]');
+        for (var i=0; i < tags.length; i++) {
+            if (tags[i].checked) {
+                return tags[i].value;
+            }
+        }
+    }
+    
+    function updateStatus(){
+        var status = document.getElementsByName('status-option[]');
+        for (var i=0; i < status.length; i++) {
+            if (status[i].checked) {
+                return status[i].value;
+            }
+        }
+    }
+    
+    $("#analysisSelector").change(updateTag);
+    $("#analysisSelector").change(updateStatus);
+    $("#analysisSelector .tag-option .status-option").change(updateAnalysis);
+    
+    function updateAnalysis(){
+        var tSelected = updateTag();
+        var sSelected = updateStatus();
+        
+        $.ajax({
+           url: $SCRIPT_ROOT + '/update_analysis',
+           data: { tSelected:tSelected, sSelected:sSelected },
+           type: 'GET',
+           success: function(data){
+                analysis = $("#analysisSelector");
+                analysis.empty();
+                
+                $.each(data.analysislist, function(analysis) {
+                    cells.append($("<option></option>")
+                        .attr("value", data.analysislist[analysis])
+                        .text(data.analysislist[analysis]));
+                });
+           },
+           error: function(error){
+                console.log(error)
+           }
+        });
+    }
 
     $(document).on('click','.dataframe tr',function(){
         if ($(this).hasClass('selectedRow')){

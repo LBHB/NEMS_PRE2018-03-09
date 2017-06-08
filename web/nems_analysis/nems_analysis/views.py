@@ -37,9 +37,20 @@ def main_view():
     defaultsort = 'cellid'
     ##############################################################
     
+    # hard coded for now, but maybe a better way to get these
+    # can't simply pull cols from NarfResults b/c includes other cols as well.
+    # could remove them afterward (like cellid) but then have to add removals if
+    # other cols added in the future, which defeats the point of pulling them
+    # dynamically from database
     measurelist = ['r_ceiling','r_test','r_fit','r_active','mse_test','mse_fit',\
                    'mi_test','mi_fit','nlogl_test','nlogl_fit','cohere_test',\
                    'cohere_fit']
+    
+    statuslist = [i[0] for i in session.query(NarfAnalysis.status).distinct().all()]
+    tags = [i[0].split(",") for i in session.query(NarfAnalysis.tags).distinct().all()]
+    taglistdups = [i for sublist in tags for i in sublist]
+    taglist = list(set(taglistdups))
+    taglist.sort()
     
     # returns all columns in the format 'NarfResults.columnName'
     # then removes the leading 'NarfResults.' from each string
@@ -56,7 +67,8 @@ def main_view():
                            batchlist = batchlist, collist=collist,\
                            defaultcols = defaultcols,measurelist=measurelist,\
                            defaultrowlimit = defaultrowlimit,sortlist=collist,\
-                           defaultsort=defaultsort,\
+                           defaultsort=defaultsort,statuslist=statuslist,\
+                           taglist=taglist\
                            )
     
 @app.route('/update_batch')
@@ -143,6 +155,32 @@ def update_results():
     return jsonify(resultstable=results.to_html(classes='table-hover\
                                                 table-condensed'))
 
+
+@app.route('/update_analysis')
+def update_analysis():
+    session = Session()
+    
+    tSelected = request.args.get('tSelected')
+    sSelected = request.args.get('sSelected')
+    
+    if tSelected == '__any':
+        tString = '%'
+    else:
+        tString = '%' + tSelected + '%'
+    
+    if sSelected == '__any':
+        sString = '%'
+    else:
+        sString = sSelected
+    
+    analysislist = psql.read_sql_query(session.query(NarfAnalysis).filter\
+                                   (NarfAnalysis.tags.ilike(tString)).filter\
+                                   (NarfAnalysis.status.ilike(sString)).statement,\
+                                   session.bind)
+    
+    session.close()
+    
+    return jsonify(analysislist = analysislist)
 
 @app.route('/update_analysis_details')
 def update_analysis_details():
