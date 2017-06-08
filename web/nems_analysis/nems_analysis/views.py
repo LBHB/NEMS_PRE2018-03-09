@@ -245,11 +245,6 @@ def edit_analysis():
     #TODO: add checks to require input inside form fields
     #       or allow blank so that people can erase stuff?
     
-    print('Checking if values came through')
-    print(eName)
-    print(eStatus)
-    print(eTags)
-    
     modTime = str(datetime.datetime.now().replace(microsecond=0))
     
     #TODO: this requires that all analyses have to have a unique name.
@@ -281,14 +276,17 @@ def edit_analysis():
                 tags=eTags,batch=eBatch,lastmod=modTime,modeltree=eTree)
         session.add(a)
     
-    #session.commit()
-    
     print("checking if attributes added correctly")
     print(a.name)
     print(a.question)
     print(a.answer)
+    print(a.status)
+    print(a.tags)
+    print(a.batch)
+    print(a.lastmod)
+    print(a.modeltree)
     
-    session.rollback()
+    session.commit()
     session.close()
     
     #after handling submissions, return user to main page so that it

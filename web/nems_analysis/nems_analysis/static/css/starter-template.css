@@ -33,8 +33,7 @@ tables.dataframe, .dataframe th, .dataframe td {
 }
 
 #analysisGroup {
-  margin: 0px !important;
-       
+  margin: 0px;
 }
 
 #analysisButtons .popover{
@@ -47,10 +46,16 @@ tables.dataframe, .dataframe th, .dataframe td {
 
 #analysisButtons .btn-group {
   float: left;
+  padding-right: 30px;
 }   
 
+#analysisButtons .editorGroup {
+  float: left;
+  padding: 0px;        
+}
+
 #analysisButtons .dropdown {
-  float: right;        
+  float: right;       
 }
 
 #batchDiv {
