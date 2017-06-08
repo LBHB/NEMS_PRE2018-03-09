@@ -20,7 +20,7 @@ tables.dataframe, .dataframe th, .dataframe td {
 }
 
 .input-group {
-  margin:10px !important;
+  margin:10px;
 }
 
 #rowLimit {
@@ -32,13 +32,48 @@ tables.dataframe, .dataframe th, .dataframe td {
   max-width: none;
 }
 
-#analysisDetails .popover{
+#analysisGroup {
+  margin: 0px !important;
+       
+}
+
+#analysisButtons .popover{
   width: 25vw !important;
+}
+
+#analysisButtons {
+  padding: 0px !important;  
+}
+
+#analysisButtons .btn-group {
+  float: left;
+}   
+
+#analysisButtons .dropdown {
+  float: right;        
+}
+
+#batchDiv {
+  clear: both;
+  margin-top: 45px !important;    
+}
+
+.dropdown-menu {
+  width: 15vw !important;     
+}
+
+textarea {
+  width: 100% !important;
+  height: 25% !important;
+}
+
+#editTree {
+  width: 100% !important;      
 }
 
 #tableWrapper {
   margin-top: 10px;
-  height: 80vh;
+  height: 70vh;
   display: block;
   overflow: auto;
   border: none;

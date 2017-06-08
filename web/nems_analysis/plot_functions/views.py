@@ -1,14 +1,11 @@
 """ additional views for calling plot functions """
 
-from flask import render_template, jsonify, request
-from nems_analysis import app, Session, NarfAnalysis, NarfBatches, NarfResults
-from nems_analysis.ModelFinder import ModelFinder
+from flask import render_template, jsonify, request, Response
+from nems_analysis import app, Session, NarfResults
 from plot_functions.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
 import pandas.io.sql as psql
-from sqlalchemy.orm import Query
-from sqlalchemy import desc, asc
 
-@app.route('/scatter_plot', methods=['POST'])
+@app.route('/scatter_plot', methods=['GET','POST'])
 def scatter_plot():
     session = Session()
     
@@ -31,7 +28,7 @@ def scatter_plot():
     return render_template("/plot/plot.html", script=plot.script, div=plot.div)
 
 
-@app.route('/bar_plot',methods=['POST'])
+@app.route('/bar_plot',methods=['GET','POST'])
 def bar_plot():
     session = Session()
     # TODO: this is exactly the same as scatter_plot other than the function call
@@ -57,7 +54,7 @@ def bar_plot():
     return render_template("/plot/plot.html",script=plot.script,div=plot.div)
 
 
-@app.route('/pareto_plot',methods=['POST'])
+@app.route('/pareto_plot',methods=['GET','POST'])
 def pareto_plot():
     session = Session()
     
@@ -79,3 +76,12 @@ def pareto_plot():
     session.close()
     
     return render_template("/plot/plot.html",script=plot.script,div=plot.div)
+
+
+@app.route('/plot_strf')
+def plot_strf():
+    session = Session()
+    # will need to get selections from results table using ajax, instead of
+    # using a form submission like the above plots.
+    session.close()
+    return Response('STRF view function placeholder')

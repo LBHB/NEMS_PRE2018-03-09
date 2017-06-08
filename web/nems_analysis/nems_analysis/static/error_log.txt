@@ -2,7 +2,8 @@
      opening one window per selection like narf_analysis. seems to be some issue with using
      window.open() inside of a loop with javascript.
      
-- database errors for remote server appear to be cleared up now.
+- database errors for remote server appear to be mostly fixed. still get an occasional
+    'broken pipeline' error but goes away on second attempt to connect.
 
 - ast.literal_eval should now be working for all analyses with a model string - will still
     pop up error message in model selector if no modelstring exists for the selected analysis.

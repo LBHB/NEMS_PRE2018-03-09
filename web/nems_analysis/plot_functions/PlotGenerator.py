@@ -9,8 +9,9 @@ from bokeh.plotting import figure
 from bokeh.io import gridplot
 from bokeh.embed import components
 from bokeh.models import ColumnDataSource,HoverTool,ResizeTool,SaveTool,\
-                            WheelZoomTool,PanTool,ResetTool
+                            WheelZoomTool,PanTool,ResetTool,Range1d,FactorRange
 from bokeh.charts import Bar, BoxPlot
+from bokeh.models.glyphs import VBar
 import pandas as pd
 import numpy as np
 import itertools
@@ -114,6 +115,7 @@ class Scatter_Plot(PlotGenerator):
                 p = figure(x_range = [0,1], y_range = [0,1],x_axis_label=pair[0],\
                            y_axis_label=pair[1], title=self.measure, tools=tools)
                     
+                
                 p.circle('x','y',size=5,color='navy',alpha=0.5,source=dat_source)
                 p.line([0,1],[0,1],line_width=1,color='black')
 
@@ -167,57 +169,63 @@ class Bar_Plot(PlotGenerator):
             
         def generate_plot(self):
             
-            # TODO: build custom bar chart instead of using bokeh's built-in
-            #       chart, since it doesn't support a data source for use with
-            #       hover tooltip.
-            # OR:   render stdev information some other way
-            # NOTE: """ commented areas are for using column data source,
-            #       still has bugs to work out. need to figure out how to
-            #       space categories along x axis instead of clumping them all
-            #       in one spot (i.e. specify 'tick' spacing)
-            
             #build new pandas series of stdev values to be added to dataframe
-            """
-            stdev_col = pd.Series(index=self.data.index)
-            mean_col = pd.Series(index=self.data.index)
             
-            #for each model, find the stdev over the measure values, then
-            #assign that value at every index that matches its modelname
+            #if want to show more info on tooltip in the future, just need
+            #to build an appropriate series to add and then build its tooltip
+            #in the create_hover function
+            
+            index = range(len(self.modelnames))
+            stdev_col = pd.Series(index=index)
+            mean_col = pd.Series(index=index)
+            model_col = pd.Series(index=index,dtype=str)
+            
+            #for each model, find the stdev and mean over the measure values, then
+            #assign those values to new Series objects to use for the plot
+            i = 0
             for model in self.modelnames:
                 values = self.data.loc[self.data['modelname'] == model]\
                                        [self.measure].values
+                                       
                 stdev = np.std(values,axis=0)
                 mean = np.mean(values,axis=0)
-                indices = self.data.loc[self.data['modelname'] == model]\
-                                        .index.tolist()
-                for i in indices:
-                    stdev_col.iat[i] = stdev
-                    mean_col.iat[i] = mean
+                
+                stdev_col.iat[i] = stdev
+                mean_col.iat[i] = mean
+                model_col.iat[i] = model
+                i += 1
                     
-            self.data = self.data.assign(stdev=stdev_col,mean=mean_col)
-            
-            #build data source from dataframe for use with hover tool
-            dat_source = ColumnDataSource(self.data)
-            """
+            newData = pd.DataFrame.from_dict({'stdev':stdev_col,'mean':mean_col,\
+                                              'modelname':model_col})
             
             tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
                      self.create_hover()]
             
-            """
-            label = self.data['modelname'].values.tolist()
+            #build data source from new dataframe for use with hover tool
+            dat_source = ColumnDataSource(newData)
             
-            p = figure(x_range=label,x_axis_label='Model', y_axis_label=\
+            xrange = FactorRange(factors=newData['modelname'].tolist())
+            yrange = Range1d(start=0,end=max(newData['mean'])*1.5)
+            
+            p = figure(x_range=xrange,x_axis_label='Model',y_range=yrange, y_axis_label=\
                        'Mean %s'%self.measure,title="Mean %s Performance By Model"\
                        %self.measure,tools=tools)
+            
             p.xaxis.major_label_orientation=(np.pi/4)
             
-            p.vbar(x=label,width=4,top='mean',color='navy',source=dat_source)
-            """
+            glyph = VBar(x='modelname',top='mean',bottom=0,width=0.5,fill_color='#FF5740',\
+                         line_color='modelname')
             
-            p = Bar(self.data,label='modelname',values=self.measure,agg='mean',
-                    title='Mean %s Performance By Model'%self.measure,legend=None,
+            p.add_glyph(dat_source,glyph)
+
+            
+            #use this for basic bar plot instead, but doesn't work well with custom
+            #hover tool
+            """            
+            p = Bar(self.data,label='modelname',values=self.measure,agg='mean',\
+                    title='Mean %s Performance By Model'%self.measure,legend=None,\
                     tools=tools, color='modelname')
-            
+            """
             
             self.script,self.div = components(p)
             
@@ -235,9 +243,9 @@ class Pareto_Plot(PlotGenerator):
             <span class="hover-tooltip">parameters: $x</span>
         </div>
         <div>
-            <span class="hover-tooltip">mean: $y</span>
+            <span class="hover-tooltip">%s value: $y</span>
         </div>
-        """
+        """%self.measure
         return HoverTool(tooltips=hover_html)
             
     def generate_plot(self):
@@ -255,6 +263,9 @@ class Pareto_Plot(PlotGenerator):
         #       -line within box represents mean value
         #       -markers outside of whiskers represent outlier values
         
+        #       narf version plots line covering mean +/- stdev
+        #       could implement simlar to custom bar above and use either lines
+        #       or narrow rectangles (for better visibility)
         p = BoxPlot(self.data,values=self.measure,label='n_parms',\
                         title="Mean Performance (%s) versus Complexity"%self.measure,\
                         tools=tools, color='n_parms')
