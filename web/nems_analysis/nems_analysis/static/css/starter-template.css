@@ -20,7 +20,7 @@ tables.dataframe, .dataframe th, .dataframe td {
 }
 
 .input-group {
-  margin:10px !important;
+  margin:10px;
 }
 
 #rowLimit {
@@ -56,6 +56,19 @@ tables.dataframe, .dataframe th, .dataframe td {
 #batchDiv {
   clear: both;
   margin-top: 45px !important;    
+}
+
+.dropdown-menu {
+  width: 15vw !important;     
+}
+
+textarea {
+  width: 100% !important;
+  height: 25% !important;
+}
+
+#editTree {
+  width: 100% !important;      
 }
 
 #tableWrapper {

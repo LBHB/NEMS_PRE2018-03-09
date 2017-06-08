@@ -69,13 +69,12 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                var $models = $("#modelSelector");
-                $models.empty();
+                var models = $("#modelSelector");
+                models.empty();
                              
                 $.each(data.modellist, function(modelname) {
-                    $models.append($("<option></option>")
+                    models.append($("<option></option>")
                         .attr("value", data.modellist[modelname])
-                        //.attr("name","modelOption[]")
                         .text(data.modellist[modelname]));
                 });
             },
@@ -104,7 +103,6 @@ $(document).ready(function(){
                 $.each(data.celllist, function(cell) {
                     cells.append($("<option></option>")
                         .attr("value", data.celllist[cell])
-                        //.attr("name","cellOption[]")
                         .text(data.celllist[cell]));                    
                 });
             },
@@ -116,8 +114,8 @@ $(document).ready(function(){
      
     // initialize display option variables
     var colSelected = [];
-    //var ordSelected;
-    //var sortSelected;
+    var ordSelected;
+    var sortSelected;
     
     // update function for each variable
     function updatecols(){
@@ -134,7 +132,8 @@ $(document).ready(function(){
         var order = document.getElementsByName('order-option[]');
         for (var i=0; i < order.length; i++) {
             if (order[i].checked) {
-                return order[i].value;
+                ordSelected = order[i].value;
+                return false;
             }
         }
     }
@@ -143,15 +142,16 @@ $(document).ready(function(){
         var sort = document.getElementsByName('sort-option[]');
         for (var i=0; i < sort.length; i++) {
             if (sort[i].checked) {
-                return sort[i].value;
+                sortSelected = sort[i].value;
+                return false;
             }
         }
     }
             
     // update at start of page, and again if changes are made
     updatecols();
-    //ordSelected = updateOrder();
-    //sortSelected = updateSort();
+    ordSelected = updateOrder();
+    sortSelected = updateSort();
 
     $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(updateResults);
@@ -159,8 +159,8 @@ $(document).ready(function(){
     function updateResults(){
         
         updatecols();
-        ordSelected = updateOrder();
-        sortSelected = updateSort();
+        updateOrder();
+        updateSort();
         
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
@@ -222,42 +222,47 @@ $(document).ready(function(){
         });
     }
     
+    var tagSelected;
+    var statSelected;
+    
     function updateTag(){
-        var tags = document.getElementsByName('tag-option[]');
+        var tags = document.getElementsByName('tagOption[]');
         for (var i=0; i < tags.length; i++) {
             if (tags[i].checked) {
-                return tags[i].value;
+                tagSelected = tags[i].value;
+                return false;
             }
         }
     }
     
     function updateStatus(){
-        var status = document.getElementsByName('status-option[]');
+        var status = document.getElementsByName('statusOption[]');
         for (var i=0; i < status.length; i++) {
             if (status[i].checked) {
-                return status[i].value;
+                statSelected = status[i].value;
+                return false;
             }
         }
     }
     
-    $("#analysisSelector").change(updateTag);
-    $("#analysisSelector").change(updateStatus);
-    $("#analysisSelector .tag-option .status-option").change(updateAnalysis);
+    updateTag();
+    updateStatus();
+    $(".tagOption, .statusOption").change(updateAnalysis);
     
     function updateAnalysis(){
-        var tSelected = updateTag();
-        var sSelected = updateStatus();
-        
+        updateTag();
+        updateStatus();
+
         $.ajax({
            url: $SCRIPT_ROOT + '/update_analysis',
-           data: { tSelected:tSelected, sSelected:sSelected },
+           data: { tagSelected:tagSelected, statSelected:statSelected },
            type: 'GET',
            success: function(data){
-                analysis = $("#analysisSelector");
-                analysis.empty();
+                analyses = $("#analysisSelector");
+                analyses.empty();
                 
                 $.each(data.analysislist, function(analysis) {
-                    cells.append($("<option></option>")
+                    analyses.append($("<option></option>")
                         .attr("value", data.analysislist[analysis])
                         .text(data.analysislist[analysis]));
                 });

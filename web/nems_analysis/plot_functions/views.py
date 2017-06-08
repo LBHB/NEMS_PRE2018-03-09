@@ -5,7 +5,7 @@ from nems_analysis import app, Session, NarfResults
 from plot_functions.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
 import pandas.io.sql as psql
 
-@app.route('/scatter_plot', methods=['POST'])
+@app.route('/scatter_plot', methods=['GET','POST'])
 def scatter_plot():
     session = Session()
     
@@ -28,7 +28,7 @@ def scatter_plot():
     return render_template("/plot/plot.html", script=plot.script, div=plot.div)
 
 
-@app.route('/bar_plot',methods=['POST'])
+@app.route('/bar_plot',methods=['GET','POST'])
 def bar_plot():
     session = Session()
     # TODO: this is exactly the same as scatter_plot other than the function call
@@ -54,7 +54,7 @@ def bar_plot():
     return render_template("/plot/plot.html",script=plot.script,div=plot.div)
 
 
-@app.route('/pareto_plot',methods=['POST'])
+@app.route('/pareto_plot',methods=['GET','POST'])
 def pareto_plot():
     session = Session()
     
