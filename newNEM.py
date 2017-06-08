@@ -434,7 +434,7 @@ class FERReT:
             plt.xlabel('Time')
             plt.title('Stimulus #'+str(i))
     
-    #Needs work 
+
     def plot_pred_resp(self,data,stims='all',trials=False):
         preds=data['predicted']
         resps=data['resp']
@@ -525,7 +525,7 @@ class FERReT:
                 #self.basic_min('pupil_gain',['pupil'],routine='BFGS')
             print(self.mse)
  
-    def assemble_for_plotting(self,avgresp=False,useval=True,save=False,filepath=None):
+    def assemble(self,queue=('FIR','pupil_gain'),avgresp=False,useval=True,save=False,filepath=None):
         def shape_back(ins,origdim):
             s=ins.shape
             outs=np.reshape(ins,(origdim[0],origdim[1],s[1]),order='F')
@@ -543,14 +543,22 @@ class FERReT:
                     dats[i]=shape_back(j,origdim=self.shapes)
                 else:
                     dats[i]=j
-        self.FIR(dats['stim'])
-        if avgresp==True:
-            dats['resp']=np.nanmean(dats['resp'],axis=1)
-            dats['predicted']=self.pred
-        else:
-            sp=dats['pup'].shape
-            tiled=np.transpose(np.tile(self.pred,(1,1,sp[1])),axes=(1,2,0))
-            dats['predicted']=self.pupil_gain(data=tiled,pupdata=dats['pup'])
+        getattr(self,queue[0])(dats['stim'])
+        for k in queue[1:len(queue)]:
+            if k=='pupil_gain':
+                sp=dats['pup'].shape
+                tiled=np.transpose(np.tile(self.pred,(1,1,sp[1])),axes=(1,2,0))
+                dats['predicted']=self.pupil_gain(data=tiled,pupdata=dats['pup'])
+            else:
+                dats['predicted']=getattr(self,k)(data=self.pred)
+        #getattr(self,k)(dats['stim'])
+        #if avgresp==True:
+            #dats['resp']=np.nanmean(dats['resp'],axis=1)
+            #dats['predicted']=self.pred
+        #else:
+            #sp=dats['pup'].shape
+            #tiled=np.transpose(np.tile(self.pred,(1,1,sp[1])),axes=(1,2,0))
+            #dats['predicted']=self.pupil_gain(data=tiled,pupdata=dats['pup'])
         if save==True:
             np.save(filepath,dats)
         return(dats)

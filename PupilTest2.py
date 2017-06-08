@@ -40,11 +40,11 @@ queue=('FIR','pupil_gain','pupil_gain')
 #the input stimulus data into a "prediction". The subsequent order of the modules
 #does not matter as far as program functionality, but may effect fitting performance
 
-
-test2.run_fit(functions=queue,validation=0.5,reps=10)
-assem=test2.assemble_for_plotting(avgresp=False,useval=True,
+print(getattr(test2,'mse'))
+test2.run_fit(queue=queue,validation=0.5,reps=2)
+assem=test2.assemble(avgresp=False,useval=True,
                                   save=False,filepath='/auto/users/shofer/code/nems/Saved_Data/test2.npy')
-#assem=np.load('/auto/users/shofer/code/nems/Saved_Data/test2.npy')[()]
+#assem=np.load('/auto/users/shofer/Saved_Data/test2.npy')[()]
 test2.plot_pred_resp(assem,stims='all',trials=(20,30))
 
 
