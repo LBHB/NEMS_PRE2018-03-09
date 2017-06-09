@@ -1,16 +1,19 @@
-from flask import render_template, jsonify, request
+from flask import render_template, jsonify, request, redirect, url_for, Response
 from nems_analysis import app, Session, NarfAnalysis, NarfBatches, NarfResults
 from nems_analysis.ModelFinder import ModelFinder
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc
-from flask import Response
+import datetime
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
-#       request context.
-# NOTE: Also need more long-term testing to see if this fixes the database
-#       error issues with remote hosting.
+#       request context?? Or just leave it manual for clarity?
+
+# TODO: Currently, analysis edit/delete/etc are handled by name, which requires
+#       enforcing a unique name for each analysis. Should re-work selector to include
+#       id with each name so that it can be used instead, since it's the primary key.
+#       But each analysis should probably have a unique name anyway, so low priority change.
 
 
 ##################################################################
@@ -26,7 +29,7 @@ def main_view():
     # .all() returns a list of tuples, list comprehension to pull tuple
     # elements out into list
     analysislist = [i[0] for i in session.query(NarfAnalysis.name).order_by\
-                    (desc(NarfAnalysis.lastmod)).all()]
+                    (asc(NarfAnalysis.id)).all()]
     batchlist = [i[0] for i in session.query(NarfAnalysis.batch).distinct().all()]
     
     ######  DEFAULT SETTINGS FOR RESULTS DISPLAY  ################
@@ -47,9 +50,17 @@ def main_view():
                    'cohere_fit']
     
     statuslist = [i[0] for i in session.query(NarfAnalysis.status).distinct().all()]
+    #separate tags into list of list of strings
     tags = [i[0].split(",") for i in session.query(NarfAnalysis.tags).distinct().all()]
-    taglistdups = [i for sublist in tags for i in sublist]
-    taglist = list(set(taglistdups))
+    #flatten list of lists into a single list of all tag strings
+    taglistbldupspc = [i for sublist in tags for i in sublist]
+    #remove leading or trailing spaces
+    taglistbldup = [t.strip() for t in taglistbldupspc]
+    #reform list with only unique tags
+    taglistbl = list(set(taglistbldup))
+    #remove blank tags
+    taglist = [t for t in taglistbl if t != '']
+    #then sort alphabetically
     taglist.sort()
     
     # returns all columns in the format 'NarfResults.columnName'
@@ -70,7 +81,8 @@ def main_view():
                            defaultsort=defaultsort,statuslist=statuslist,\
                            taglist=taglist\
                            )
-    
+
+# update current batch selection after analysis selected    
 @app.route('/update_batch')
 def update_batch():
     session = Session()
@@ -85,6 +97,7 @@ def update_batch():
     return jsonify(batch = batch)
     
 
+# update list of modelnames after analysis selected
 @app.route('/update_models')
 def update_models():
     session = Session()
@@ -101,6 +114,8 @@ def update_models():
     
     return jsonify(modellist=modellist)
 
+
+# update list of cells after batch selected (cascades from analysis selection)
 @app.route('/update_cells')
 def update_cells():
     session = Session()
@@ -114,6 +129,8 @@ def update_cells():
     
     return jsonify(celllist=celllist)
 
+
+# update table of results after batch, cell(s) and model(s) selected
 @app.route('/update_results')
 def update_results():
     session = Session()
@@ -156,32 +173,35 @@ def update_results():
                                                 table-condensed'))
 
 
+# update list of analyses after tag and/or status filter(s) selected
 @app.route('/update_analysis')
 def update_analysis():
     session = Session()
     
-    tSelected = request.args.get('tSelected')
-    sSelected = request.args.get('sSelected')
+    tagSelected = request.args.get('tagSelected')
+    statSelected = request.args.get('statSelected')
     
-    if tSelected == '__any':
-        tString = '%'
+    if tagSelected == '__any':
+        tString = '%%'
     else:
-        tString = '%' + tSelected + '%'
+        tString = '%' + tagSelected + '%'
     
-    if sSelected == '__any':
-        sString = '%'
+    if statSelected == '__any':
+        sString = '%%'
     else:
-        sString = sSelected
-    
-    analysislist = psql.read_sql_query(session.query(NarfAnalysis).filter\
-                                   (NarfAnalysis.tags.ilike(tString)).filter\
-                                   (NarfAnalysis.status.ilike(sString)).statement,\
-                                   session.bind)
+        sString = statSelected
+
+    analysislist = [i[0] for i in session.query(NarfAnalysis.name).filter\
+                    (NarfAnalysis.tags.ilike(tString)).filter\
+                    (NarfAnalysis.status.ilike(sString)).order_by(\
+                    asc(NarfAnalysis.id)).all()]
     
     session.close()
     
     return jsonify(analysislist = analysislist)
 
+
+# update content of analysis details popover after analysis selected
 @app.route('/update_analysis_details')
 def update_analysis_details():
     session = Session()
@@ -211,6 +231,155 @@ def update_analysis_details():
     session.close()
     
     return jsonify(details=detailsHTML)
+
+
+
+##############################################################################
+################      edit/delete/new  functions for Analysis Editor #########
+##############################################################################
+
+
+
+# takes input from analysis modal popupand saves submission to database
+@app.route('/edit_analysis', methods=['GET','POST'])
+def edit_analysis():
+    session = Session()
+    
+    eName = request.form.get('editName')
+    eStatus = request.form.get('editStatus')
+    eTags = request.form.get('editTags')
+    eQuestion = request.form.get('editQuestion')
+    eAnswer = request.form.get('editAnswer')
+    eTree = request.form.get('editTree')
+    eBatch = request.form.get('editBatch')
+    #TODO: add checks to require input inside form fields
+    #       or allow blank so that people can erase stuff?
+    
+    modTime = str(datetime.datetime.now().replace(microsecond=0))
+    
+    #TODO: this requires that all analyses have to have a unique name.
+    #       better way to do this or just enforce the rule?
+    
+    #find out if analysis with same name already exists. if it does, grab its
+    #sql alchemy object and update with new values, so that same id is overwritten
+    checkExists = session.query(NarfAnalysis).filter(NarfAnalysis.name == eName).all()
+    if len(checkExists) > 1:
+        session.close()
+        return Response("Oops! More than one analysis with the same name already exists,\
+                        something is wrong!")
+    elif len(checkExists) == 1:
+        a = checkExists[0]
+        a.name = eName
+        a.status = eStatus
+        a.question = eQuestion
+        a.answer = eAnswer
+        a.tags = eTags
+        a.batch = eBatch
+        a.lastmod = modTime
+        a.modeltree = eTree
+        
+    #if doesn't exist, add new sql alchemy object with appropriate attributes,
+    #which should store in new row
+    else:
+        a = NarfAnalysis(\
+                name=eName,status=eStatus,question=eQuestion,answer=eAnswer,\
+                tags=eTags,batch=eBatch,lastmod=modTime,modeltree=eTree)
+        session.add(a)
+    
+    #for verifying correct logging - can delete/comment these out when no longer
+    #needed for testing.
+    print("checking if attributes added correctly")
+    print(a.name)
+    print(a.question)
+    print(a.answer)
+    print(a.status)
+    print(a.tags)
+    print(a.batch)
+    print(a.lastmod)
+    print(a.modeltree)
+    
+    session.commit()
+    session.close()
+    
+    #after handling submissions, return user to main page so that it
+    #refreshes with new analysis included in list    
+    return redirect(url_for('main_view'))
+
+
+# populates editor form with fields for selected analysis
+@app.route('/get_current_analysis')
+def get_current_analysis():
+    session = Session()
+    
+    aSelected = request.args.get('aSelected')
+    
+    if len(aSelected) == 0:
+        return jsonify(name='',status='',tags='',batch='',question='',answer='',\
+                       tree='')
+        
+    a = session.query(NarfAnalysis).filter(NarfAnalysis.name == aSelected).first()
+    
+    session.close()
+    
+    return jsonify(name=a.name,status=a.status,tags=a.tags,batch=a.batch,\
+                   question=a.question,answer=a.answer,tree=a.modeltree)
+        
+    
+# checks for duplicate analysis name on form submission,
+# triggers warning via JS if analysis with same name already exists
+@app.route('/check_analysis_exists')
+def check_analysis_exists():
+    session = Session()
+    
+    nameEntered = request.args.get('nameEntered')
+    
+    result = session.query(NarfAnalysis).filter(NarfAnalysis.name == nameEntered).first()
+    
+    exists = True
+    if result is None:
+        exists = False
+        
+    session.close()
+    
+    return jsonify(exists=exists)
+
+
+# deletes selected analysis from DB
+@app.route('/delete_analysis')
+def delete_analysis():
+    session = Session()
+    
+    success = True
+    aSelected = request.args.get('aSelected')
+
+    if len(aSelected) == 0:
+        success = False
+        return jsonify(success=success)
+    
+    result = session.query(NarfAnalysis).filter(NarfAnalysis.name == aSelected).first()
+    
+    if result is None:
+        success = False
+        return jsonify(success=success)
+
+    #leaving these here incase accidental deletion or some other issue occurs.
+    #that way can be copy pasted back into new analysis form to restore
+    print("checking for correct deletion. Deleting:")
+    print(result.name)
+    print(result.tags)
+    print(result.status)
+    print(result.batch)
+    print(result.question)
+    print(result.answer)
+    print(result.modeltree)
+    print(result.summaryfig)
+
+    session.delete(result)
+    session.commit()
+    session.close()
+
+    return jsonify(success=success)
+
 
 
 ####################################################################

@@ -3,6 +3,9 @@ $(document).ready(function(){
     // TODO: Split this up into multile .js files? getting a bit crowded in here,
     // could group by functionality at this point.    
         
+    
+    
+    
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
         trigger: 'click',
@@ -14,8 +17,8 @@ $(document).ready(function(){
         updateAnalysisDetails();
     }
     
-    //not working
-    /*
+    //TODO: not working, select all cells/models with checkbox
+    
     $("#selectAllCells").change(selectCellsCheck);
     
     function selectCellsCheck(){
@@ -26,7 +29,8 @@ $(document).ready(function(){
             } else{
                 cellOptions[i].removeAttribute("selected");
             }
-        }                                
+        }
+        updateResults();                           
     }
     
     $("#selectAllModels").change(selectModelsCheck);
@@ -41,9 +45,9 @@ $(document).ready(function(){
                 modelOptions[i].removeAttribute("selected");
             }
         }
+        updateResults();
     }
-    }
-    */
+    
     
     $("#analysisSelector").change(updateBatchModel);
 
@@ -69,15 +73,17 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                var $models = $("#modelSelector");
-                $models.empty();
+                var models = $("#modelSelector");
+                models.empty();
                              
                 $.each(data.modellist, function(modelname) {
-                    $models.append($("<option></option>")
+                    models.append($("<option></option>")
                         .attr("value", data.modellist[modelname])
-                        //.attr("name","modelOption[]")
+                        .attr("name","modelOption[]")
                         .text(data.modellist[modelname]));
                 });
+                    
+                selectModelsCheck();
             },
             error: function(error) {
                 console.log(error);
@@ -104,9 +110,11 @@ $(document).ready(function(){
                 $.each(data.celllist, function(cell) {
                     cells.append($("<option></option>")
                         .attr("value", data.celllist[cell])
-                        //.attr("name","cellOption[]")
+                        .attr("name","cellOption[]")
                         .text(data.celllist[cell]));                    
                 });
+                    
+                selectCellsCheck();
             },
             error: function(error) {
                 console.log(error);
@@ -116,8 +124,8 @@ $(document).ready(function(){
      
     // initialize display option variables
     var colSelected = [];
-    //var ordSelected;
-    //var sortSelected;
+    var ordSelected;
+    var sortSelected;
     
     // update function for each variable
     function updatecols(){
@@ -134,7 +142,8 @@ $(document).ready(function(){
         var order = document.getElementsByName('order-option[]');
         for (var i=0; i < order.length; i++) {
             if (order[i].checked) {
-                return order[i].value;
+                ordSelected = order[i].value;
+                return false;
             }
         }
     }
@@ -143,15 +152,16 @@ $(document).ready(function(){
         var sort = document.getElementsByName('sort-option[]');
         for (var i=0; i < sort.length; i++) {
             if (sort[i].checked) {
-                return sort[i].value;
+                sortSelected = sort[i].value;
+                return false;
             }
         }
     }
             
     // update at start of page, and again if changes are made
     updatecols();
-    //ordSelected = updateOrder();
-    //sortSelected = updateSort();
+    ordSelected = updateOrder();
+    sortSelected = updateSort();
 
     $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(updateResults);
@@ -159,8 +169,8 @@ $(document).ready(function(){
     function updateResults(){
         
         updatecols();
-        ordSelected = updateOrder();
-        sortSelected = updateSort();
+        updateOrder();
+        updateSort();
         
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
@@ -188,7 +198,7 @@ $(document).ready(function(){
     $("#batchSelector,#modelSelector,#cellSelector,#measureSelector,#analysisSelector")
     .change(function(){
         var empty = false;
-        $(".form-control").each(function() {
+        $(".plot-form").each(function() {
             if (!($(this).val()) || ($(this).val().length == 0)) {
                     empty = true;
                 }
@@ -202,6 +212,10 @@ $(document).ready(function(){
             $("#form-warning").html("")
         }   
     });
+
+    ////////////////////////////////////////////////////////////////////////
+    //         Analysis details, tags/status, edit/delete/new             //
+    ////////////////////////////////////////////////////////////////////////
 
     $("#analysisSelector").change(updateAnalysisDetails);
             
@@ -222,52 +236,166 @@ $(document).ready(function(){
         });
     }
     
+    var tagSelected;
+    var statSelected;
+    
     function updateTag(){
-        var tags = document.getElementsByName('tag-option[]');
+        var tags = document.getElementsByName('tagOption[]');
         for (var i=0; i < tags.length; i++) {
             if (tags[i].checked) {
-                return tags[i].value;
+                tagSelected = tags[i].value;
+                return false;
             }
         }
     }
     
     function updateStatus(){
-        var status = document.getElementsByName('status-option[]');
+        var status = document.getElementsByName('statusOption[]');
         for (var i=0; i < status.length; i++) {
             if (status[i].checked) {
-                return status[i].value;
+                statSelected = status[i].value;
+                return false;
             }
         }
     }
     
-    $("#analysisSelector").change(updateTag);
-    $("#analysisSelector").change(updateStatus);
-    $("#analysisSelector .tag-option .status-option").change(updateAnalysis);
+    updateTag();
+    updateStatus();
+    updateAnalysis();
+    $(".tagOption, .statusOption").change(updateAnalysis);
     
     function updateAnalysis(){
-        var tSelected = updateTag();
-        var sSelected = updateStatus();
-        
+        updateTag();
+        updateStatus();
+
         $.ajax({
            url: $SCRIPT_ROOT + '/update_analysis',
-           data: { tSelected:tSelected, sSelected:sSelected },
+           data: { tagSelected:tagSelected, statSelected:statSelected },
            type: 'GET',
            success: function(data){
-                analysis = $("#analysisSelector");
-                analysis.empty();
+                analyses = $("#analysisSelector");
+                analyses.empty();
                 
                 $.each(data.analysislist, function(analysis) {
-                    cells.append($("<option></option>")
+                    analyses.append($("<option></option>")
                         .attr("value", data.analysislist[analysis])
                         .text(data.analysislist[analysis]));
                 });
+                    
+                $("#analysisSelector").val($("#analysisSelector option:first").val()).change();
            },
            error: function(error){
-                console.log(error)
+                console.log(error);
            }
         });
     }
 
+    $("#editAnalysis").on('click',editAnalysis);
+    
+    function editAnalysis(){
+        // get current analysis selection
+        // ajax call to get back name, tags, question, etc
+        // fill in content of editor modal with response
+        
+        var aSelected = $("#analysisSelector").val();
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/get_current_analysis',
+            data: { aSelected:aSelected },
+            type: 'GET',
+            success: function(data){
+                $("[name='editName']").val(data.name);
+                $("[name='editStatus']").val(data.status);
+                $("[name='editTags']").val(data.tags);
+                $("[name='editBatch']").val(data.batch);
+                $("[name='editQuestion']").html(data.question);
+                $("[name='editAnswer']").html(data.answer);
+                $("[name='editTree']").val(data.tree);
+            },
+            error: function(error){
+                console.log(error);        
+            }                
+        });
+    }
+            
+    $("#submitEditForm").on('click',verifySubmit);
+    
+    
+    // TODO: change this to run nested ajax call instead of .submit()
+    // so that entire page doesn't have to refresh afterward. should only have
+    // to call updateAnalysis() to refresh the list for analysis selector.
+    
+    function verifySubmit(){
+        var nameEntered = $("[name='editName']").val();
+        
+        $.ajax({
+           url: $SCRIPT_ROOT + '/check_analysis_exists',
+           data: { nameEntered:nameEntered },
+           type: 'GET',
+           success: function(data){
+                if (data.exists){
+                    alert("WARNING: An analysis by the same name already exists.\n" +
+                          "Submitting this form without changing the name will\n" +
+                          "overwrite the existing analysis entry!");
+                }
+                
+                if(confirm("ATTENTION: This will save the entered information to the\n" +
+                            "database, potentially overwriting previous settings.\n" +
+                            "Are you sure you want to continue?")){
+                    $("#analysisEditor").submit();
+                } else{
+                    return false;
+                }
+            },
+           error: function(error){
+                   
+            }
+        });
+    }
+
+    $("#deleteAnalysis").on('click',deleteAnalysis);
+    
+    function deleteAnalysis(){
+            
+        var aSelected = $("#analysisSelector").val();
+        reply = confirm("WARNING: This will delete the database entry for the selected " +
+                "analysis. \n\n!!   THIS CANNOT BE UNDONE   !!\n\n" +
+                "Are you sure you wish to delete this analysis:\n" +
+                aSelected);
+        
+        if (reply){
+            $.ajax({
+                url: $SCRIPT_ROOT + '/delete_analysis',
+                data: { aSelected:aSelected },
+                
+                // TODO: should use POST here? but was causing issues
+                
+                type: 'GET',
+                success: function(data){
+                    if (data.success){
+                        alert(aSelected = "successfully deleted.");
+                        updateAnalysis();
+                    } else{
+                        alert("Something went wrong - unable to delete:\n" + aSelected);
+                        return false;
+                    }
+                },
+                error: function(error){
+                    console.log(error);
+                }
+            });
+        } else{
+            return false;        
+        }
+    }
+    
+    ///////////////////////////////////////////////////////////////////////
+    //     table selection, preview, strf, inspect                       //
+    ///////////////////////////////////////////////////////////////////////
+    
+    
+    
+    
     $(document).on('click','.dataframe tr',function(){
         if ($(this).hasClass('selectedRow')){
             $(this).removeClass('selectedRow');
@@ -324,7 +452,16 @@ $(document).ready(function(){
         //return strf plots ala narf_analysis
         //low priority
     });
-    // TODO:
+                
+                
+                
+                
+    //////////////////////////////////////////////////////////////////////            
+    //               Model fitting, inspect                             //
+    //////////////////////////////////////////////////////////////////////
+    
+    
+    
     
     $("#fitSingle").on('click',function(){
         alert("just a test right now");

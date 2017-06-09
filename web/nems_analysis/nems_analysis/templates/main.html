@@ -39,13 +39,16 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">NEMS Analysis</a>
+          <a class="navbar-brand" href="{{ url_for('main_view') }}">NEMS Analysis</a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="{{ url_for('main_view') }}">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="{{ url_for('error_log') }}" target="_blank">Error Log</a></li>
+            <li><a href="https://bitbucket.org/lbhb/nems" target="_blank">
+            Source & Info</a></li>
+            <li><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
+            CellDB</a></li>
+            <li><a href="{{ url_for('error_log') }}" target="_blank">
+            Error Log</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -62,8 +65,8 @@
             <form class="form" id="selections" method="POST" target="_blank">
                 <div class="form-group" id="analysisGroup">
                 <label for="analysisSelector"> Select Analysis </label>
-                <select class="form-control" id="analysisSelector">
-                    <option selected disabled value=""> Analysis </option>
+                <select class="form-control plot-form" id="analysisSelector">
+                    <option selected disabled value="">Analysis</option>
                     {% for analysis in analysislist %}
                         <option value="{{ analysis }}"> {{ analysis }} </option>
                     {% endfor %}
@@ -78,9 +81,20 @@
                     data-content="No Selection" data-html="true"> Details </button>
                 </div>
                 
-                <div class="btn-group">
-                <button type="button" class="btn btn-default" id="newAnalysis">
-                    New Analysis </button>
+                <div class="btn-group editorGroup">
+                <button type="button" class="btn btn-default" data-toggle="modal"
+                id="newAnalysis" data-target="#analysisEditorModal"> New Analysis </button>
+                </div>
+                
+                <div class="btn-group editorGroup">
+                <button type="button" class="btn btn-default" data-toggle="modal"
+                id="editAnalysis" data-target="#analysisEditorModal"> Edit Analysis </button>
+                </div>
+                <!-- modal div at bottom of page -->
+                
+                <div class="btn-group editorGroup">
+                <button type="button" class="btn btn-default" id="deleteAnalysis"> 
+                Delete Analysis </button>
                 </div>
                 
                 <div class="dropdown">
@@ -106,6 +120,10 @@
                 <button type="button" tabindex="-1" class="btn btn-default dropdown-toggle" 
                 id="filterTags" data-toggle="dropdown"> Tags </button>
                     <div id="tagFilters" class="dropdown-menu">
+                    <!-- if 3 columns (or more) become necessary later, will have to change
+                    sm-6 to sm-(12/number of columns needed) and change width of
+                    .dropdown-menu in CSS appropriately -->
+                        <ul class="list-unstyled col-sm-6">
                         <li>
                         <input class="tagOption" name="tagOption[]" type="radio"
                         value="__any" checked>
@@ -117,14 +135,20 @@
                             name="tagOption[]" type="radio" value="{{ tag }}">
                             <span class="lbl">{{ tag }}</span>
                             </li>
+                        <!-- slit options to new column at every n options -->
+                            {% if loop.index is divisibleby 13 %}
+                                </ul>
+                                <ul class="list-unstyled col-sm-6">
+                            {% endif %}
                         {% endfor %}
+                        </ul>
                     </div>
                 </div>
                 </div><!-- button form-group end -->
                 
                 <div class="form-group" id="batchDiv">
                 <label for="batchSelector"> Batch </label>
-                <select class="form-control" id="batchSelector" name="batch">
+                <select class="form-control plot-form" id="batchSelector" name="batch">
                     <option selected disabled value=""> Batch </option>
                     {% for batch in batchlist %}
                         <option value="{{ batch }}"> {{ batch }} </option>
@@ -134,25 +158,25 @@
 
                 <div class="form-group">
                 <label for="cellSelector"> Cell(s) </label>
-                <select multiple="multiple" class="form-control" name="celllist" size="10"
+                <select multiple="multiple" class="form-control plot-form" name="celllist" size="10"
                     id="cellSelector">
                     <option disabled value=""> Select a batch to populate cells. </option>
                 </select>
-       <!--     <input type="checkbox" id="selectAllCells" checked> Toggle Select All Cells </input> -->
+                <input type="checkbox" id="selectAllCells" checked> Select All</input>
                 </div>
 
                 <div class="form-group">
                 <label for="modelSelector"> Model(s) </label>
-                <select multiple="multiple" class="form-control" name="modelnames" size="10"
+                <select multiple="multiple" class="form-control plot-form" name="modelnames" size="10"
                     id="modelSelector">
                     <option disabled value=""> Select an analysis to populate models. </option>
                 </select>
-       <!--     <input type="checkbox" id="selectAllModels"> Toggle Select All Models </input> -->
+                <input type="checkbox" id="selectAllModels" checked> Select All</input> 
                 </div>
                 
                 <div class="form-group">
                 <label for="measureSelector"> Performance Measure </label>
-                <select class="form-control" id="measureSelector" name="measure">
+                <select class="form-control plot-form" id="measureSelector" name="measure">
                     <option selected disabled value=""> Performance Measure </option>
                     {% for measure in measurelist %}
                         <option value="{{ measure }}"> {{ measure }} </option>
@@ -293,7 +317,115 @@
 
     </div><!-- starter template-->
     </div><!-- container -->
+    
+    <form id="analysisEditor" method="POST" action="{{ url_for('edit_analysis') }}">
+    
+    <div class="modal" id="analysisEditorModal" tabindex="-1" role="dialog"
+    aria-labelledby="analysisEditorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="analysisEditorModalLabel"> Analysis Editor </h3>
+                    <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div><!-- header -->
+                <div class="modal-body">
+                    
+                        <div class="container-fluid">
+                        <div class="form-group">
 
+                        <div class="row">
+                            <div class="col-xs-6">
+                            <div class="input-group span3">
+                            <span class="input-group-addon" id="editNameLabel" required>
+                                    Name </span>
+                            <input type="text" name="editName" placeholder="Name of Analysis"
+                            class="form-control">
+                            </div>
+                            </div>
+                            
+                            <div class="col-xs-6">
+                            <div class="input-group span3">
+                            <span class="input-group-addon" id="editStatusLabel">
+                                    Status </span>
+                            <input type="text" name="editStatus" placeholder="Status"
+                            class="form-control">
+                            </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-xs-6">
+                            <div class="input-group span3">
+                            <span class="input-group-addon" id="editBatchLabel">
+                                    Batch </span>
+                            <input type="text" name="editBatch" placeholder="Batch Number"
+                            class="form-control">
+                            </div>
+                            </div>
+                            
+                            <div class="col-xs-6">
+                            <div class="input-group span3">
+                            <span class="input-group-addon" id="editTagsLabel">
+                                    Tags </span>
+                            <input type="text" name="editTags" placeholder="Tags, if any"
+                            class="form-control">
+                            </div>
+                            </div>
+                        </div> <!-- row -->
+                        
+                        <div class="row">
+                            <div class="col-xs-12">
+                            <div class="input-group">
+                            <span class="input-group-addon" id="editQuestionLabel">
+                                        Question </span>
+                            <textarea form="analysisEditor" name="editQuestion" placeholder=
+                            "Question Asked" class="form-control"></textarea>
+                            </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-xs-12">
+                            <div class="input-group">
+                            <span class="input-group-addon" id="editAnswerLabel">
+                                        Answer </span>
+                            <textarea form="analysisEditor" name="editAnswer" placeholder=
+                            "Answer(s) Found, If Any" class="form-control"></textarea>
+                            </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-xs-12">
+                            <div class="input-group">
+                            <span class="input-group-addon" id="editTreeLabel">
+                                        Model Tree </span>
+                            <input type="text" name="editTree" id="editTree" placeholder=
+                            "{'model','tree',{'specification'}}" class="form-control">
+                            </div>
+                            </div>
+                        </div>
+                        
+                        </div><!-- form-group -->
+                        </div><!--container-->
+
+                </div><!-- body -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    Cancel</button>
+                    
+                    <!-- assign this as form submission -->
+                    <button type="button" class="btn btn-primary" id="submitEditForm"
+                    > Save Analysis </button>
+                </div><!-- footer -->
+            </div><!--content -->
+        </div><!--dialog-->
+    </div><!--modal-->
+    </form>
+    
     <!-- load jquery -->
     <script type=text/javascript src=
         "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>

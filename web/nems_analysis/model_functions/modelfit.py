@@ -127,11 +127,11 @@ def enqueue_single_model(cellid,batch,modelname):
     #else (result must not have existed? or status value was greater than 2)
         # add new entry
         # sql = add_model_to_queue(commandPrompt,note)
-        # session.add(tQueue('rundataid'=sql['rundataid'],'progname'=sql['progname'],\
-        #                    'priority'=sql['priority'],'parmstring'=sql['parmstring'],\
-        #                    'queuedate'=sql['queuedate'],'allowqueuemaster'=\
-        #                    'sql['allowqueuemaster'],'user'=sql['user'],'note=\
-        #                    'sql['note'],'waitid'=sql['waitid']))
+        # session.add(tQueue(rundataid=sql['rundataid'],progname=sql['progname'],\
+        #                    priority=sql['priority'],parmstring=sql['parmstring'],\
+        #                    queuedate=sql['queuedate'],allowqueuemaster=\
+        #                    sql['allowqueuemaster'],user=sql['user'],note=\
+        #                    sql['note'],waitid=sql['waitid']))
     
     session.close()
     
