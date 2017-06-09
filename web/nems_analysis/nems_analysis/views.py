@@ -8,9 +8,12 @@ import datetime
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
-#       request context.
-# NOTE: Also need more long-term testing to see if this fixes the database
-#       error issues with remote hosting.
+#       request context?? Or just leave it manual for clarity?
+
+# TODO: Currently, analysis edit/delete/etc are handled by name, which requires
+#       enforcing a unique name for each analysis. Should re-work selector to include
+#       id with each name so that it can be used instead, since it's the primary key.
+#       But each analysis should probably have a unique name anyway, so low priority change.
 
 
 ##################################################################
@@ -230,6 +233,13 @@ def update_analysis_details():
     return jsonify(details=detailsHTML)
 
 
+
+##############################################################################
+################      edit/delete/new  functions for Analysis Editor #########
+##############################################################################
+
+
+
 # takes input from analysis modal popupand saves submission to database
 @app.route('/edit_analysis', methods=['GET','POST'])
 def edit_analysis():
@@ -276,6 +286,8 @@ def edit_analysis():
                 tags=eTags,batch=eBatch,lastmod=modTime,modeltree=eTree)
         session.add(a)
     
+    #for verifying correct logging - can delete/comment these out when no longer
+    #needed for testing.
     print("checking if attributes added correctly")
     print(a.name)
     print(a.question)
@@ -292,6 +304,81 @@ def edit_analysis():
     #after handling submissions, return user to main page so that it
     #refreshes with new analysis included in list    
     return redirect(url_for('main_view'))
+
+
+# populates editor form with fields for selected analysis
+@app.route('/get_current_analysis')
+def get_current_analysis():
+    session = Session()
+    
+    aSelected = request.args.get('aSelected')
+    
+    if len(aSelected) == 0:
+        return jsonify(name='',status='',tags='',batch='',question='',answer='',\
+                       tree='')
+        
+    a = session.query(NarfAnalysis).filter(NarfAnalysis.name == aSelected).first()
+    
+    session.close()
+    
+    return jsonify(name=a.name,status=a.status,tags=a.tags,batch=a.batch,\
+                   question=a.question,answer=a.answer,tree=a.modeltree)
+        
+    
+# checks for duplicate analysis name on form submission,
+# triggers warning via JS if analysis with same name already exists
+@app.route('/check_analysis_exists')
+def check_analysis_exists():
+    session = Session()
+    
+    nameEntered = request.args.get('nameEntered')
+    
+    result = session.query(NarfAnalysis).filter(NarfAnalysis.name == nameEntered).first()
+    
+    exists = True
+    if result is None:
+        exists = False
+        
+    session.close()
+    
+    return jsonify(exists=exists)
+
+
+# deletes selected analysis from DB
+@app.route('/delete_analysis')
+def delete_analysis():
+    session = Session()
+    
+    success = True
+    aSelected = request.args.get('aSelected')
+
+    if len(aSelected) == 0:
+        success = False
+        return jsonify(success=success)
+    
+    result = session.query(NarfAnalysis).filter(NarfAnalysis.name == aSelected).first()
+    
+    if result is None:
+        success = False
+        return jsonify(success=success)
+
+    #leaving these here incase accidental deletion or some other issue occurs.
+    #that way can be copy pasted back into new analysis form to restore
+    print("checking for correct deletion. Deleting:")
+    print(result.name)
+    print(result.tags)
+    print(result.status)
+    print(result.batch)
+    print(result.question)
+    print(result.answer)
+    print(result.modeltree)
+    print(result.summaryfig)
+
+    session.delete(result)
+    session.commit()
+    session.close()
+
+    return jsonify(success=success)
 
 
 

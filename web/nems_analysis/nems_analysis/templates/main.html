@@ -39,13 +39,16 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">NEMS Analysis</a>
+          <a class="navbar-brand" href="{{ url_for('main_view') }}">NEMS Analysis</a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="{{ url_for('main_view') }}">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="{{ url_for('error_log') }}" target="_blank">Error Log</a></li>
+            <li><a href="https://bitbucket.org/lbhb/nems" target="_blank">
+            Source & Info</a></li>
+            <li><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
+            CellDB</a></li>
+            <li><a href="{{ url_for('error_log') }}" target="_blank">
+            Error Log</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -62,8 +65,8 @@
             <form class="form" id="selections" method="POST" target="_blank">
                 <div class="form-group" id="analysisGroup">
                 <label for="analysisSelector"> Select Analysis </label>
-                <select class="form-control" id="analysisSelector">
-                    <option selected disabled value=""> Analysis </option>
+                <select class="form-control plot-form" id="analysisSelector">
+                    <option selected disabled value="">Analysis</option>
                     {% for analysis in analysislist %}
                         <option value="{{ analysis }}"> {{ analysis }} </option>
                     {% endfor %}
@@ -78,9 +81,6 @@
                     data-content="No Selection" data-html="true"> Details </button>
                 </div>
                 
-                <div class="btn-group" id="detailSpacer">
-                </div>
-                
                 <div class="btn-group editorGroup">
                 <button type="button" class="btn btn-default" data-toggle="modal"
                 id="newAnalysis" data-target="#analysisEditorModal"> New Analysis </button>
@@ -93,8 +93,8 @@
                 <!-- modal div at bottom of page -->
                 
                 <div class="btn-group editorGroup">
-                <button type="button" class="btn btn-default" data-toggle="modal"
-                id="deleteAnalysis" data-target="#analysisEditorModal"> Delete Analysis </button>
+                <button type="button" class="btn btn-default" id="deleteAnalysis"> 
+                Delete Analysis </button>
                 </div>
                 
                 <div class="dropdown">
@@ -148,7 +148,7 @@
                 
                 <div class="form-group" id="batchDiv">
                 <label for="batchSelector"> Batch </label>
-                <select class="form-control" id="batchSelector" name="batch">
+                <select class="form-control plot-form" id="batchSelector" name="batch">
                     <option selected disabled value=""> Batch </option>
                     {% for batch in batchlist %}
                         <option value="{{ batch }}"> {{ batch }} </option>
@@ -158,25 +158,25 @@
 
                 <div class="form-group">
                 <label for="cellSelector"> Cell(s) </label>
-                <select multiple="multiple" class="form-control" name="celllist" size="10"
+                <select multiple="multiple" class="form-control plot-form" name="celllist" size="10"
                     id="cellSelector">
                     <option disabled value=""> Select a batch to populate cells. </option>
                 </select>
-       <!--     <input type="checkbox" id="selectAllCells" checked> Toggle Select All Cells </input> -->
+                <input type="checkbox" id="selectAllCells" checked> Select All</input>
                 </div>
 
                 <div class="form-group">
                 <label for="modelSelector"> Model(s) </label>
-                <select multiple="multiple" class="form-control" name="modelnames" size="10"
+                <select multiple="multiple" class="form-control plot-form" name="modelnames" size="10"
                     id="modelSelector">
                     <option disabled value=""> Select an analysis to populate models. </option>
                 </select>
-       <!--     <input type="checkbox" id="selectAllModels"> Toggle Select All Models </input> -->
+                <input type="checkbox" id="selectAllModels" checked> Select All</input> 
                 </div>
                 
                 <div class="form-group">
                 <label for="measureSelector"> Performance Measure </label>
-                <select class="form-control" id="measureSelector" name="measure">
+                <select class="form-control plot-form" id="measureSelector" name="measure">
                     <option selected disabled value=""> Performance Measure </option>
                     {% for measure in measurelist %}
                         <option value="{{ measure }}"> {{ measure }} </option>
@@ -418,7 +418,8 @@
                     Cancel</button>
                     
                     <!-- assign this as form submission -->
-                    <button type="Submit" class="btn btn-primary"> Save Analysis </button>
+                    <button type="button" class="btn btn-primary" id="submitEditForm"
+                    > Save Analysis </button>
                 </div><!-- footer -->
             </div><!--content -->
         </div><!--dialog-->

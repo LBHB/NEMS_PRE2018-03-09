@@ -40,26 +40,23 @@ tables.dataframe, .dataframe th, .dataframe td {
   width: 25vw !important;
 }
 
-#analysisButtons {
-  padding: 0px !important;  
-}
-
 #analysisButtons .btn-group {
   float: left;
-  padding-right: 30px;
+  padding-right: 5px;
 }   
 
 #analysisButtons .editorGroup {
-  float: left;
-  padding: 0px;        
+  padding-right: 5px;
+  float: left;      
 }
 
 #analysisButtons .dropdown {
-  float: right;       
+  padding-right: 5px;
+  float:left;
 }
 
 #batchDiv {
-  clear: both;
+  clear:both;
   margin-top: 45px !important;    
 }
 
