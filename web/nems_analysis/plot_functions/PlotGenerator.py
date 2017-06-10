@@ -25,17 +25,21 @@ tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
                      self.create_hover()]
 
 """
-
+class DataPoint():
+    # blank slate python object for storing measure variables
+    def __init__(self):
+        pass
 
 class PlotGenerator():
-    def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
-                 measure = 'r_test', batch=''):
+    def __init__(self, data = 'dataframe', fair = True, outliers = False,\
+                 measure = 'r_test'):
         # list of models of interest
-        self.data = data
-        self.modelnames = modelnames
-        self.celllist = celllist
-        # measure of performance, i.e. r_test, r_ceiling etc
-        self.measure = measure
+        self.data = self.form_data_array(data)
+        self.fair = fair
+        self.outliers = outliers
+        #put a list around measure for now so that data array can be coded
+        #to accept more than one measure if desired
+        self.measure = [measure]
 
     # all plot classes should implement this method to return a script and a div
     # to be used by plot.html template
@@ -47,13 +51,64 @@ class PlotGenerator():
     def create_hover(self):
         hover_html = 'generated html code'
         return HoverTool(tooltips=hover_html)
-
+    
+    def form_data_array(self, data):
+        # See: narf_analysis --> compute_data_matrix
+        
+        #TODO: need to set up a view to test this with some actual data
+        if data.size == 0:
+            return data
+        
+        celllist = [cell for cell in data['cellid'].values.tolist()]
+        modellist = [model for model in data['modelname'].values.tolist()]
+        
+        # re-form NarfResults entries into dataframe of DataPoint objects,
+        # one for each cellid and modelname combination with an attribute for
+        # each measure (right now always 1, but could be more)
+        
+        # create a new dataframe of NaN values with size = to #cellids x #models
+        newData = pd.DataFrame(np.nan,index=celllist,columns=modellist,dtype=object)
+        
+        for c in celllist:
+            for m in modellist:
+                dat = DataPoint()
+                
+                for meas in self.measure:
+                    
+                    if not self.outliers:
+                        #if outliers is false, run a bunch of checks based on
+                        # measure and if a check fails, step out of loop
+                        break
+                    
+                    try:
+                        value = data[(data.modelname == m) & (data.cellid == c)]\
+                            [meas].values.tolist()[0]
+                        setattr(dat,self.measure,value)
+                    except IndexError:
+                        # index error means values.tolist() returned list w/ 0 elements,
+                        # so no measure was not recorded for this cell+model combo
+                        break
+                
+                # if number of attributes of dat is 0, break
+                # otherwise, position c,m in dataframe assigned to dat
+                if len([attr for attr in dat.__dict__.iteritems()]) == 0:
+                    break
+                else:
+                    newData.at[c,m] = dat
+            
+            if self.fair:
+                # if fair is true, drop all rows that contain at least one np.nan value
+                newData.dropna(inplace=True)
+        
+        return newData
+    
+        
         
 class Scatter_Plot(PlotGenerator):
     
-    def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
-                 measure = 'r_test', batch=''):
-        PlotGenerator.__init__(self,data,celllist,modelnames,measure,batch)
+    def __init__(self, data = 'dataframe', fair = True, outliers = False,\
+                 measure = 'r_test'):
+        PlotGenerator.__init__(self,data,fair,outliers,measure)
         
     def create_hover(self):
         hover_html = """
@@ -71,6 +126,10 @@ class Scatter_Plot(PlotGenerator):
             
     def generate_plot(self):
         # keep a list of the plots generated for each model combination
+        if self.data.size == 0:
+            self.script, self.div = ('empty','plot')
+            return
+            
         plots = []
 
         # returns a list of tuples representing all pairs of models
@@ -149,9 +208,9 @@ class Scatter_Plot(PlotGenerator):
 
 class Bar_Plot(PlotGenerator):
     
-        def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
-                 measure = 'r_test', batch=''):
-            PlotGenerator.__init__(self,data,celllist,modelnames,measure,batch)
+        def __init__(self, data = 'dataframe', fair = True, outliers = False,\
+                 measure = 'r_test'):
+            PlotGenerator.__init__(self,data,fair,outliers,measure)
             
         def create_hover(self):
             hover_html = """
@@ -169,6 +228,13 @@ class Bar_Plot(PlotGenerator):
             
         def generate_plot(self):
             
+            # TODO: add significance information (see plot_bar_pretty and randttest
+                                                  # in narf_analysis)
+            
+            if self.data.size == 0:
+                self.script, self.div = ('empty','plot')
+            return
+    
             #build new pandas series of stdev values to be added to dataframe
             
             #if want to show more info on tooltip in the future, just need
@@ -233,9 +299,9 @@ class Bar_Plot(PlotGenerator):
             
 class Pareto_Plot(PlotGenerator):
             
-    def __init__(self, data = 'dataframe', celllist = '', modelnames = '',\
-                 measure = 'r_test', batch=''):
-        PlotGenerator.__init__(self,data,celllist,modelnames,measure,batch)
+    def __init__(self, data = 'dataframe', fair = True, outliers = False,\
+                 measure = 'r_test'):
+        PlotGenerator.__init__(self,data,fair,outliers,measure)
             
     def create_hover(self):
         hover_html = """
@@ -250,6 +316,10 @@ class Pareto_Plot(PlotGenerator):
             
     def generate_plot(self):
             
+        if self.data.size == 0:
+            self.script, self.div = ('empty','plot')
+            return
+        
         tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
                      self.create_hover()]
             

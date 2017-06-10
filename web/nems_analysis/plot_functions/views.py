@@ -13,19 +13,35 @@ def scatter_plot():
     mSelected = request.form.getlist('modelnames')
     cSelected = request.form.getlist('celllist')
     measure = request.form['measure']
+    onlyFair = request.form.get('onlyFair')
+    includeOutliers = request.form.get('includeOutliers')
+    useSNRorIso = (request.form.get('plotOption[]'),request.form.get('plotOpVal'))
     
     results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
               NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
               (NarfResults.cellid.in_(cSelected)).filter\
               (NarfResults.modelname.in_(mSelected)).statement,session.bind)
               
-    plot = Scatter_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
-                        measure=measure, batch=bSelected)
-    plot.generate_plot()
+    # TODO: filter results based on useSNRorIso before passing data to plot generator
+    # note: doing this here instead of in plot generator since it requires db access
+    #       make a list of cellids that fail snr/iso criteria
+    #       then remove all rows of results where cellid is in that list
+    
+    plot = Scatter_Plot(data=results,fair=onlyFair,outliers=includeOutliers,\
+                        measure=measure)
+    
+    dataframe = plot.data
+    print(dataframe)
+    print(dataframe.values)
+    
+    return Response('outputting data to console')
+    
+    #temporarily disbale for testing data_array method
+    #plot.generate_plot()
     
     session.close()
     
-    return render_template("/plot/plot.html", script=plot.script, div=plot.div)
+    #return render_template("/plot/plot.html", script=plot.script, div=plot.div)
 
 
 @app.route('/bar_plot',methods=['GET','POST'])

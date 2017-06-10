@@ -66,7 +66,6 @@
                 <div class="form-group" id="analysisGroup">
                 <label for="analysisSelector"> Select Analysis </label>
                 <select class="form-control plot-form" id="analysisSelector">
-                    <option selected disabled value="">Analysis</option>
                     {% for analysis in analysislist %}
                         <option value="{{ analysis }}"> {{ analysis }} </option>
                     {% endfor %}
@@ -149,7 +148,6 @@
                 <div class="form-group" id="batchDiv">
                 <label for="batchSelector"> Batch </label>
                 <select class="form-control plot-form" id="batchSelector" name="batch">
-                    <option selected disabled value=""> Batch </option>
                     {% for batch in batchlist %}
                         <option value="{{ batch }}"> {{ batch }} </option>
                     {% endfor %}
@@ -158,7 +156,7 @@
 
                 <div class="form-group">
                 <label for="cellSelector"> Cell(s) </label>
-                <select multiple="multiple" class="form-control plot-form" name="celllist" size="10"
+                <select multiple="multiple" class="form-control plot-form" name="celllist" size="8"
                     id="cellSelector">
                     <option disabled value=""> Select a batch to populate cells. </option>
                 </select>
@@ -167,7 +165,7 @@
 
                 <div class="form-group">
                 <label for="modelSelector"> Model(s) </label>
-                <select multiple="multiple" class="form-control plot-form" name="modelnames" size="10"
+                <select multiple="multiple" class="form-control plot-form" name="modelnames" size="8"
                     id="modelSelector">
                     <option disabled value=""> Select an analysis to populate models. </option>
                 </select>
@@ -177,22 +175,65 @@
                 <div class="form-group">
                 <label for="measureSelector"> Performance Measure </label>
                 <select class="form-control plot-form" id="measureSelector" name="measure">
-                    <option selected disabled value=""> Performance Measure </option>
                     {% for measure in measurelist %}
-                        <option value="{{ measure }}"> {{ measure }} </option>
+                        <option value="{{ measure }}"
+                            {% if loop.index == 0 %}
+                                checked
+                            {% endif %}
+                        > {{ measure }} </option>
                     {% endfor %}
                 </select>
                 </div>
                 
+                <!--
                 <div id="form-warning">
                 <p> Selection required for each option before submission </p>
                 </div>
+                -->
+                
+                <div id="plotOpAll">
+                
+                <div id="plotOpButtons">
+                <input type="checkbox" id="onlyFair" name="onlyFair" 
+                checked> Fair? </input>
+                <input type="checkbox" id="includeOutliers" name="includeOutliers"> 
+                Outliers? </input>
+                </div>
+                
+                <div id="plotOpDropOuter">
+                <div class="dropdown" id="plotOpDrop">
+                    <button type="button" class="btn btn-default dropdown-toggle" 
+                    tabindex="-1" data-toggle="dropdown">Use</button>
+                    <div class="dropdown-menu">
+                        <li>
+                        <input type="radio" name="plotOption[]" value="snri">
+                        <span class="lbl">SNRi</span>
+                        </li>
+                        <li>
+                        <input type="radio" name="plotOption[]" value="iso">
+                        <span class="lbl">Iso</span>
+                        </li>
+                        <li>
+                        <input type="radio" name="plotOption[]" value="snr">
+                        <span class="lbl">SNR</span>
+                        </li>
+                    </div>
+                </div>
+                <span id="plotOpGT">&gt</span>
+                <input type="text" id="plotOpVal" name="plotOpVal" value="0">
+                </div>
+
+                
+                <div id="plotOpSubmits">
                 <button type="Submit" name="scatter" form="selections" formaction=
                         "{{ url_for('scatter_plot') }}" class="plotsub" disabled> Scatter
                 <button type="Submit" name="bar" form="selections" formaction=
                         "{{ url_for('bar_plot') }}" class="plotsub" disabled> Bar
                 <button type="Submit" name="pareto" form="selections" formaction=
                         "{{ url_for('pareto_plot') }}" class="plotsub" disabled> Pareto
+                </div>
+                
+                </div><!-- plotOpAll -->
             </form>
             </div><!-- col -->
             

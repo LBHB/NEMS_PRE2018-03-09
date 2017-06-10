@@ -30,24 +30,31 @@ import datetime
 #TODO: where does training set vs validation set come in?
 
 def fit_single_model(cellid,batch,modelname):
+    #session = Session()
     
-    #TODO: need to split modelname into keywords? or is that handled by ModelObject?
-    #TODO: yes split up and pass as list
-    #ModelObject = ModelObject(cellid=cSelected,batch=bSelected,model=mSelected)
+    #query narfbatches to get filepaths
+    
+    #TODO: split modelname by underscores into list of strings before passing
+    #TODO: pass in filepaths for est and val sets instead of batch and cellid
+    #TODO: pass in filecodes as well?
+    
+    #NOTE: goal of the above two changes is to abstract database-terminology
+    #       away from model fitter so that it only has to know where the data is
+        
+    #ModelObject = ModelObject(est_set_files, val_set_files, filecodes, module_keywords)
+    
     #.run_fit() --> tell object to run its queue of modules
-    #.assemble_for_plotting() --> return numpy arrays for plotting (more for modelpane view?)
+    
+    #.assemble_data_array() --> return numpy arrays for saving to file
+    # save file(s) appropriately and return filepath(s)
     
     #need some kind of timeout warning? does model fitting cascade on instantiation,
     #or need to invoke some method first?
     
-    #data_from_modules = ModelObject.methodOrAttributeForRetrievingData()
+    # form a pd.Series for NarfResults --> cellid=cellid, batch=batch,modelname=modelname,
+    #                       other fields pulled from ModelObject.fieldAttribute, filepaths
+    #                       fields retrieved above.
     
-    #will be 3-d arrays? may need to convert objects in frame to series, or use panel
-    
-    #dataframe = pd.Dataframe(data_from_modules,index=someIndex)
-    #or put each array into separate dataframe, whatever works better
-    
-    #session = Session()
     
     """
     query NarfResults with cellid, batch and modelname - if get a result, then
