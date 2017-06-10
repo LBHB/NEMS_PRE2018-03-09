@@ -8,10 +8,10 @@ Created on Fri Jun  9 14:27:05 2017
 import numpy as np
 
 def create_DEXP(obj,**kwargs):
-    obj.fit_param['DEXP']=['DEXP']
     obj.DEXP=np.ones([1,4]) 
     obj.DEXP[0][1]=0
     obj.DEXP[0][3]=0 
+    return(['DEXP'])
     print('DEXP parameters created')
 
 

@@ -22,7 +22,6 @@ class FERReT:
     #This initializes the FERReT object, as well as loads the data from the .mat datafile. 
     #Data can also be entered manually, if desired, but metadata must then be entered as well
     def __init__(self,data=None,metadata=None,batch=None,cellid=None,n_coeffs=20,base=0,queue=('input_log','FIR','pupil_gain'),
-                 fit_param={'input_log':['log'],'FIR':['coeffs','base'],'ON':['nonlin'],'pupil_gain':['pupil']},
                             thresh=0.5):
         self.batch=batch
         self.cellid=cellid
@@ -55,18 +54,9 @@ class FERReT:
         self.dims=self.data['stim'].shape[0]
         self.shapes=self.data['resp'].shape #(T,R,S)
         self.n_coeffs=n_coeffs
-        self.base=np.zeros([1,1])
-        self.fit_param=fit_param
         self.mse=float(1.0)
-        self.log=np.ones([1,1])
-        self.coeffs=np.zeros([self.dims,self.n_coeffs])
-        self.nonlin=np.ones([1,4]) #init conditions for DEXP nonlin, maybe change?
-        self.nonlin[0][1]=0 #init conditions for DEXP nonlin, maybe change?
-        self.nonlin[0][3]=0 #init conditions for DEXP nonlin, maybe change?
         self.pred=np.zeros(self.data['resp'].shape)
         self.current=np.zeros(self.data['resp'].shape)
-        self.pupil=np.zeros([1,4])
-        self.pupil[0][1]=1
         self.nopupil=np.array([[0,1]])
         self.thresh=thresh
         for i in range(0,self.data['pup'].shape[2]):
@@ -75,18 +65,14 @@ class FERReT:
             if arrmin<0:
                 arrmin=0
         self.cutoff=thresh*(arrmax+arrmin)
-        self.pupgain_coeffs=[1,1,0,0]
         #Importation module
         self.impdict=dict.fromkeys(queue)
+        self.fit_param=dict.fromkeys(queue)
         for j in queue:
            self.impdict[j]=il.import_module('testpack.'+j)
+           print(j+' module imported successfully.')
+           self.fit_param[j]=getattr(self.impdict[j],'create_'+j)(self)
         
-
-        
-    #Testing dynamic imports
-    def testtest(self):
-        getattr(self.impdict['import_test'],'fun_fn')(self)
-        getattr(self.impdict['astoria'],'astoria')(self)
 
 
 ##DATA SETUP##
@@ -123,8 +109,8 @@ class FERReT:
         for i,j in self.data.items():
             if i in ('resp','pup'):
                 self.data[i]=copy.deepcopy(np.reshape(j,(s[0]*s[1],s[2]),order='F'))
-            #if i=='stim':
-                #self.data[i]=np.tile(j,(1,s[1],1))
+            if i=='stim':
+                self.data[i]=np.tile(j,(1,s[1],1))
         print("Reshaping TxRxS arrays to T*RxS arrays")
 
                 
@@ -158,45 +144,6 @@ class FERReT:
     saved as function_name.py, where function_name is the name of the function.
 ##FUNCTIONS##
 ############################################################################### 
-    def input_log(obj,data):
-        #X=copy.deepcopy(self.train['stim'])
-        X=data
-        v1=obj.log[0,0]
-        output=np.log(X+v1)
-        obj.train['stim']=output
-        return(output)
-    
-   ##Modeling Functions
-   ############################################################################
-    def FIR(obj,data): 
-        #X=copy.deepcopy(self.train['stim'])
-        X=copy.deepcopy(data)
-        s=X.shape
-        X=np.reshape(X,[s[0],-1])
-        for i in range(0,s[0]):
-            y=np.convolve(X[i,:],obj.coeffs[i,:])
-            X[i,:]=y[0:X.shape[1]]
-        X=X.sum(0)+obj.base
-        obj.current=np.reshape(X,s[1:])
-        obj.pred=copy.deepcopy(obj.current)
-        return(obj.current)
-    
-    #def parametrized
-    
-    ###########################################################################
-    
-    def pupil_gain(obj,**kwargs):
-        #ins=copy.deepcopy(self.pred)
-        ins=kwargs['data'] #data should be self.pred
-        #pups=copy.deepcopy(self.train['pup'])
-        pups=kwargs['pupdata']
-        d0=obj.pupil[0,0]
-        g0=obj.pupil[0,1]
-        d=obj.pupil[0,2]
-        g=obj.pupil[0,3]
-        output=d0+(d*pups)+(g0*ins)+g*np.multiply(pups,ins)
-        obj.current=output
-        return(output)
     """
     #This function applies an offset and a scalar gain to the input "prediction"
     #This is for use in comparing pupil effect, and will most likely not be used
@@ -210,47 +157,24 @@ class FERReT:
         obj.current=output
         return(output)
     
- 
-    #Both of these nonlinearities are giving me issues with fitting. They both 
-    #tend to send the entire function to a single value, even with a constrained fit
-    def ON(obj,**kwargs):  #DEXP output nonlinearity. Working on best way to optimize.
-        #ins=copy.deepcopy(self.pred)
-        ins=kwargs['data'] #data should be self.pred
-        v1=obj.nonlin[0,0]
-        v2=obj.nonlin[0,1]
-        v3=obj.nonlin[0,2]
-        v4=obj.nonlin[0,3]
-        output=v1-v2*np.exp(-np.exp(v3*(ins-v4)))
-        obj.current=output
-        return(output)
-    
-    def tanhON(obj,**kwargs):
-        #ins=copy.deepcopy(self.pred)
-        ins=kwargs['data'] #data should be self.pred
-        v1=obj.nonlin[0,0]
-        v2=obj.nonlin[0,1]
-        v3=obj.nonlin[0,2]
-        output=v1*np.tanh(v2*ins-v3)+v1
-        obj.current=output
-        return(output)
     #Need to implement more general nonlinearity module:
     #define one module and several possible functions or just define several modules?
     
 ###############################################################################
 
         
-    def err(self,tile=False): #calculates Mean Square Error
+    def err(self): #calculates Mean Square Error
         E=0
         P=0
         mse=0
-        if tile==True:
-            reps=self.shapes[1]
-            tiled=np.tile(self.current,(1,reps,1))
-            E+=np.sum(np.square(tiled-self.train['resp']))
-            P=np.sum(np.square(self.train['resp']))
-        else:
-            E+=np.sum(np.square(self.current-self.train['resp']))
-            P=np.sum(np.square(self.train['resp']))
+        #if tile==True:
+            #reps=self.shapes[1]
+            #tiled=np.tile(self.current,(1,reps,1))
+            #E+=np.sum(np.square(tiled-self.train['resp']))
+            #P=np.sum(np.square(self.train['resp']))
+        #else:
+        E+=np.sum(np.square(self.current-self.train['resp']))
+        P=np.sum(np.square(self.train['resp']))
         mse=E/P
         self.mse=mse
         return(mse)
@@ -357,27 +281,30 @@ class FERReT:
         
 ##FITTERS##
 ###############################################################################
-    
-    def basic_min(self,function,params,routine='L-BFGS-B',maxit=50000,tiled=True):
+    #Fixing rn
+    def basic_min(self,functions,routine='L-BFGS-B',maxit=50000):
+        params=[]
+        for i in functions:
+            params=params+self.fit_param[i]
         def cost_fn(phi):
             self.phi_to_fit(phi,to_fit=params)
-            if function=='FIR': #Modeling fns should be fed ['stim']
-                getattr(self.impdict[function],function)(self,self.train['stim'])
-            else: #Other fns should be fed pred, the output from modeling functions
-                getattr(self.impdict[function],function)(self,data=self.pred,pupdata=self.train['pup'])
-            mse=self.err(tiled)
+            for f in functions:
+                getattr(self.impdict[f],f)(self,indata=self.train['stim'],
+                       data=self.current,pupdata=self.train['pup'])
+            mse=self.err()
             cost_fn.counter+=1
-            if cost_fn.counter % 10000==0:
+            if cost_fn.counter % 1000==0:
                 print('Eval #'+str(cost_fn.counter))
                 print('MSE='+str(mse))
             return(mse)
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(maxit)
-        if function=='tanhON':
-            cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
-            routine='COBYLA'
-        else:
-            cons=()
+        #if function=='tanhON':
+            #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
+            #routine='COBYLA'
+        #else:
+            #
+        cons=()
         phi0=self.fit_to_phi(to_fit=params) 
         cost_fn.counter=0
         phiout=sp.optimize.minimize(cost_fn,phi0,method=routine,
@@ -386,8 +313,9 @@ class FERReT:
         return(phiout['x'])
     
     #def basinhopping_min
-        
-    
+    """    
+    LOOK INTO scikit-learn FOR POSSIBLY BETTER REGRESSION FUNCTIONS
+    """
     
     
     
@@ -501,6 +429,8 @@ class FERReT:
 #This module compares the effects of a pupil gain module on a "perfect" model created
     #by averaging over all trials for a stimulus. This module uses pre-existing components,
     #and will effect the properties of the object, though not irreversibly
+    
+    ##~~~~~~~~~CURRENTLY DEPRECATED~~~~~~~~~~~~##
     def pupil_comparison(self):
         self.data_resample(newHz=50,noise_thresh=0.04)
         resps=copy.deepcopy(self.data['resp'])  #not sure if training or all data should be used here
@@ -520,33 +450,19 @@ class FERReT:
         rat=np.divide(nogainmse,gainmse)
         self.data=copy.deepcopy(self.ins) #Replace modified data with original data 
         return(rat)
+    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
         
-    #The first element in a queue should always be a modeling function, whether
-    #it's the FIR filter, factorized filter, parametrized filter, or some user 
-    #defined model. The first element in the queue is called first, and translates 
-    #the input stimulus data into a "prediction". The subsequent order of the modules
-    #does not matter as far as program functionality, but may effect fitting performance
+    
     def run_fit(self,validation=0.05,reps=1):
         self.data_resample(newHz=50,noise_thresh=0.04)
         self.reshape_repetitions()
         self.create_datasets(valsize=validation)
-        self.log[0][0]=10
-        self.impdict['input_log'].input_log(self,self.train['stim'])
+        ii=self.queue.index('FIR')
         for i in range(0,reps):
             print('Repetition #'+str(i+1))
-            for j in self.queue[1:len(self.queue)]:
-                if j=='pupil_gain':
-                    R=self.shapes[1]
-                    sp=copy.deepcopy(self.pred.shape)
-                    self.pred=np.tile(self.pred,(R,1))
-                    self.basic_min(function=j,params=self.fit_param[j],tiled=False)
-                    self.pred=self.pred[:sp[0],:]
-                else:
-                    self.basic_min(function=j,params=self.fit_param[j])
-                #self.basic_min('FIR',['base','coeffs'],tiled=True)
-                #R=self.shapes[1]
-                #self.pred=np.tile(self.pred,(1,R,1))
-                #self.basic_min('pupil_gain',['pupil'],routine='BFGS')
+            self.basic_min(functions=self.queue[:ii+1])
+            for j in self.queue[ii+1:]:
+                self.basic_min(functions=[j])
             print(self.mse)
  
     def assemble(self,queue=('FIR','pupil_gain'),avgresp=False,useval=True,save=False,filepath=None):

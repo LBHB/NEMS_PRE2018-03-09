@@ -7,10 +7,15 @@ Created on Thu Jun  8 17:20:13 2017
 """
 import numpy as np
 
-def input_log(obj,data):
-    #X=copy.deepcopy(self.train['stim'])
-    X=data
-    v1=obj.log[0,0]
+def create_input_log(obj,**kwargs):
+    obj.input_log=np.ones([1,1])
+    return(['input_log'])
+    print('input_log parameters created')
+     
+
+def input_log(obj,**kwargs):
+    X=kwargs['indata'] #Once gammatone filter is created, change to ['data']
+    v1=obj.input_log[0,0]
     output=np.log(X+v1)
-    obj.train['stim']=output
+    obj.current=output
     return(output)

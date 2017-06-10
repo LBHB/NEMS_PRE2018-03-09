@@ -8,9 +8,9 @@ Created on Fri Jun  9 14:40:55 2017
 import numpy as np
 
 def create_tanhsig(obj,**kwargs):
-    obj.fit_param['tanhsig']=['tanhsig']
     obj.tanhsig=np.ones([1,3])
     obj.tanhsig[0][2]=0
+    return(['tanhsig'])
     print('tanh_sig parameters created')
     
 
