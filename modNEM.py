@@ -21,7 +21,8 @@ class FERReT:
 
     #This initializes the FERReT object, as well as loads the data from the .mat datafile. 
     #Data can also be entered manually, if desired, but metadata must then be entered as well
-    def __init__(self,data=None,metadata=None,batch=None,cellid=None,n_coeffs=20,base=0,queue=('input_log','FIR','pupil_gain'),
+    def __init__(self,data=None,metadata=None,batch=None,cellid=None,n_coeffs=20,base=0,newHz=50,
+                 queue=('input_log','FIR','pupil_gain'),
                             thresh=0.5):
         self.batch=batch
         self.cellid=cellid
@@ -54,6 +55,7 @@ class FERReT:
         self.dims=self.data['stim'].shape[0]
         self.shapes=self.data['resp'].shape #(T,R,S)
         self.n_coeffs=n_coeffs
+        self.newHz=50
         self.mse=float(1.0)
         self.pred=np.zeros(self.data['resp'].shape)
         self.current=np.zeros(self.data['resp'].shape)
@@ -69,7 +71,7 @@ class FERReT:
         self.impdict=dict.fromkeys(queue)
         self.fit_param=dict.fromkeys(queue)
         for j in queue:
-           self.impdict[j]=il.import_module('testpack.'+j)
+           self.impdict[j]=il.import_module('function_pack.'+j)
            print(j+' module imported successfully.')
            self.fit_param[j]=getattr(self.impdict[j],'create_'+j)(self)
         
@@ -79,9 +81,10 @@ class FERReT:
 ###############################################################################
       
     #Resamples data to new frequency. Should be called before reshape_repetitions
-    def data_resample(self,newHz=50,noise_thresh=0.04):
+    def data_resample(self,noise_thresh=0.04):
         sHz=self.meta['stimf']
-        rHz=self.meta['respf']          
+        rHz=self.meta['respf']
+        newHz=self.newHz          
         for i,j in self.data.items():
             if i=='stim':
                 resamp_fact=int(sHz/newHz)
@@ -140,28 +143,8 @@ class FERReT:
                 self.val[k]=copy.deepcopy(vallist)
         print("Creating training and validation datasets.") 
         
-    """ THESE FUNCTIONS ARE NOW IN SEPARATE MODULES. External modules should be
-    saved as function_name.py, where function_name is the name of the function.
-##FUNCTIONS##
-############################################################################### 
-    """
-    #This function applies an offset and a scalar gain to the input "prediction"
-    #This is for use in comparing pupil effect, and will most likely not be used
-    #in the final model fitting
-    def pupil_no_gain(obj,**kwargs):
-        #ins=copy.deepcopy(self.pred)
-        ins=kwargs['data'] #data should be self.pred
-        d0=obj.nopupil[0,0]
-        g0=obj.nopupil[0,1]
-        output=d0+(g0*ins)
-        obj.current=output
-        return(output)
-    
-    #Need to implement more general nonlinearity module:
-    #define one module and several possible functions or just define several modules?
-    
+##LOGISTICS
 ###############################################################################
-
         
     def err(self): #calculates Mean Square Error
         E=0
@@ -290,7 +273,7 @@ class FERReT:
             self.phi_to_fit(phi,to_fit=params)
             for f in functions:
                 getattr(self.impdict[f],f)(self,indata=self.train['stim'],
-                       data=self.current,pupdata=self.train['pup'])
+                       data=self.current,pupdata=self.train['pup'],pred=self.pred)
             mse=self.err()
             cost_fn.counter+=1
             if cost_fn.counter % 1000==0:
@@ -309,7 +292,9 @@ class FERReT:
         cost_fn.counter=0
         phiout=sp.optimize.minimize(cost_fn,phi0,method=routine,
                                     constraints=cons,options=opt)
-        #self.pred=copy.deepcopy(self.current)
+        for f in functions:
+                self.pred=getattr(self.impdict[f],f)(self,indata=self.train['stim'],
+                       data=self.current,pupdata=self.train['pup'],pred=self.pred)
         return(phiout['x'])
     
     #def basinhopping_min
@@ -318,113 +303,8 @@ class FERReT:
     """
     
     
-    
-##PLOTTING## Want to make these function independent of FERReT class
-###############################################################################
-    #Generates a raster plot of the data for the specified stimuli
-    def raster_plot(self,stims='all'):
-        ins=self.ins['resp']
-        pre=self.meta['prestim']
-        dur=self.meta['duration']
-        post=self.meta['poststim']
-        freq=self.meta['respf']
-        prestim=float(pre)*freq
-        duration=float(dur)*freq
-        poststim=float(post)*freq
-        def raster_data(data,pres,dura,posts,fr):
-            s=data.shape
-            pres=int(pres)
-            dura=int(dura)
-            posts=int(posts)
-            xpre=np.zeros((s[2],pres*s[1]))
-            ypre=np.zeros((s[2],pres*s[1]))
-            xdur=np.zeros((s[2],dura*s[1]))
-            ydur=np.zeros((s[2],dura*s[1]))
-            xpost=np.zeros((s[2],posts*s[1]))
-            ypost=np.zeros((s[2],posts*s[1]))
-            for i in range(0,s[2]):
-                spre=0
-                sdur=0
-                spost=0
-                for j in range(0,s[1]):
-                    ypre[i,spre:(spre+pres)]=(j+1)*np.clip(data[:pres,j,i],0,1)
-                    xpre[i,spre:(spre+pres)]=np.divide(np.array(list(range(0,pres))),fr)
-                    ydur[i,sdur:(sdur+dura)]=(j+1)*np.clip(data[pres:(pres+dura),j,i],0,1)
-                    xdur[i,sdur:(sdur+dura)]=np.divide(np.array(list(range(pres,(pres+dura)))),fr)
-                    ypost[i,spost:(spost+posts)]=(j+1)*np.clip(data[(pres+dura):(pres+dura+posts),j,i],0,1)
-                    xpost[i,spost:(spost+posts)]=np.divide(
-                            np.array(list(range((pres+dura),(pres+dura+posts)))),fr)
-                    spre+=pres
-                    sdur+=dura
-                    spost+=posts
-            ypre[ypre==0]=None
-            ydur[ydur==0]=None
-            ypost[ypost==0]=None
-            return(xpre,ypre,xdur,ydur,xpost,ypost)
-        xpre,ypre,xdur,ydur,xpost,ypost=raster_data(ins,prestim,duration,poststim,freq)
-        ran=[]
-        rs=xpre.shape
-        if stims=='all':
-            ran=range(0,rs[0])
-        elif isinstance(stims,int):
-            ran=range(stims,stims+1)
-        else:
-            ran=range(stims[0],stims[1]+1)
-        for i in ran:
-            plt.figure(i,figsize=(12,6))
-            plt.scatter(xpre[i],ypre[i],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
-            plt.scatter(xdur[i],ydur[i],color='g',s=(0.5*np.pi)*2,alpha=0.6)
-            plt.scatter(xpost[i],ypost[i],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
-            plt.ylabel('Trial')
-            plt.xlabel('Time')
-            plt.title('Stimulus #'+str(i))
-    
-
-    def plot_pred_resp(self,data,stims='all',trials=False):
-        preds=data['predicted']
-        resps=data['resp']
-        sr=resps.shape
-        if stims=='all' and trials==False:
-            ran=range(0,sr[1])
-        elif stims=='all':
-            ran=range(0,sr[2])
-        elif isinstance(stims,int):
-            ran=range(stims,stims+1)
-        else:
-            ran=range(stims[0],stims[1]+1)
-        for i in ran:
-            if trials==False:
-                plt.figure(i,figsize=(12,4))
-                plt.plot(preds[:,i])
-                plt.plot(resps[:,i],'g')
-                plt.ylabel('Firing Rate')
-                plt.xlabel('Time Step')
-                plt.title('Stimulus #'+str(i))
-            elif isinstance(trials,int):
-                plt.figure((str(i)+str(trials)),figsize=(12,4))
-                plt.plot(preds[:,trials,i])
-                plt.plot(resps[:,trials,i],'g')
-                plt.ylabel('Firing Rate')
-                plt.xlabel('Time Step')
-                plt.title('Stimulus #'+str(i)+', Trial #'+str(trials))
-            else:
-                for j in range(trials[0],trials[1]+1):
-                    plt.figure((str(i)+str(j)),figsize=(12,4))
-                    plt.plot(preds[:,j,i])
-                    plt.plot(resps[:,j,i],'g')
-                    plt.ylabel('Firing Rate')
-                    plt.xlabel('Time Step')
-                    plt.title('Stimulus #'+str(i)+', Trial #'+str(j))
-                    
-    def heatmap(self,model='FIR'):
-        arr=getattr(self,self.fit_param[model][0])
-        plt.figure(figsize=(12,4))
-        plt.imshow(arr)
-        plt.colorbar()
         
-              
-        
-##FULL MODULES##
+##OUTPUT MODULES##
 ###############################################################################
 #This module compares the effects of a pupil gain module on a "perfect" model created
     #by averaging over all trials for a stimulus. This module uses pre-existing components,
@@ -453,8 +333,8 @@ class FERReT:
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
         
     
-    def run_fit(self,validation=0.05,reps=1):
-        self.data_resample(newHz=50,noise_thresh=0.04)
+    def run_fit(self,validation=0.05,reps=1,filepath=None):
+        self.data_resample(noise_thresh=0.04)
         self.reshape_repetitions()
         self.create_datasets(valsize=validation)
         ii=self.queue.index('FIR')
@@ -463,8 +343,16 @@ class FERReT:
             self.basic_min(functions=self.queue[:ii+1])
             for j in self.queue[ii+1:]:
                 self.basic_min(functions=[j])
-            print(self.mse)
- 
+            print(self.mse) 
+        params=dict()
+        for i,j in self.fit_param.items():
+            params[j[0]]=getattr(self,j[0])
+            
+        
+        
+        
+        
+    """
     def assemble(self,queue=('FIR','pupil_gain'),avgresp=False,useval=True,save=False,filepath=None):
         def shape_back(ins,origdim):
             s=ins.shape
@@ -502,7 +390,27 @@ class FERReT:
         if save==True:
             np.save(filepath,dats)
         return(dats)
-        
+    """
+    
+    def apply_to_val(self,save=False,filepath=None):
+        def shape_back(ins,origdim):
+            s=ins.shape
+            outs=np.reshape(ins,(origdim[0],origdim[1],s[1]),order='F')
+            return(outs)
+        dats=dict.fromkeys(['stim','resp','pup','predicted'])
+        for f in self.queue:
+            pred=getattr(self.impdict[f],f)(self,indata=self.val['stim'],
+                        data=self.current,pupdata=self.val['pup'],pred=self.current)
+        dats['predicted']=shape_back(pred,origdim=self.shapes)
+        for i,j in self.val.items():
+            if i in ('pup','resp'):   
+                dats[i]=shape_back(j,origdim=self.shapes)
+            else:
+                s=self.shapes
+                dats[i]=j[:,:s[0],:]
+        if save is True:
+            np.save(filepath,dats)
+        return(dats)
     
     
     
