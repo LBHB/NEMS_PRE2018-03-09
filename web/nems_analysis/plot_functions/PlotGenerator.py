@@ -25,21 +25,26 @@ tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
                      self.create_hover()]
 
 """
+
+""" #for attribute approach - may not use this anymore.
 class DataPoint():
     # blank slate python object for storing measure variables
     def __init__(self):
-        pass
+        self.attr_list = []
+    def __dir__(self):
+        return self.attr_list
+"""
 
 class PlotGenerator():
-    def __init__(self, data = 'dataframe', fair = True, outliers = False,\
-                 measure = 'r_test'):
+    def __init__(self,data='dataframe',fair=True,outliers=False,measure='r_test'):
         # list of models of interest
-        self.data = self.form_data_array(data)
+        self.measure = [measure]
         self.fair = fair
         self.outliers = outliers
+        self.data = self.form_data_array(data)
         #put a list around measure for now so that data array can be coded
         #to accept more than one measure if desired
-        self.measure = [measure]
+
 
     # all plot classes should implement this method to return a script and a div
     # to be used by plot.html template
@@ -55,59 +60,59 @@ class PlotGenerator():
     def form_data_array(self, data):
         # See: narf_analysis --> compute_data_matrix
         
-        #TODO: need to set up a view to test this with some actual data
-        if data.size == 0:
-            return data
+        celllist = [cell for cell in list(set(data['cellid'].values.tolist()))]
+        modellist = [model for model in list(set(data['modelname'].values.tolist()))]
         
-        celllist = [cell for cell in data['cellid'].values.tolist()]
-        modellist = [model for model in data['modelname'].values.tolist()]
-        
-        # re-form NarfResults entries into dataframe of DataPoint objects,
-        # one for each cellid and modelname combination with an attribute for
-        # each measure (right now always 1, but could be more)
-        
-        # create a new dataframe of NaN values with size = to #cellids x #models
-        newData = pd.DataFrame(np.nan,index=celllist,columns=modellist,dtype=object)
+        # use lists of unique cell and model names to form a multiindex for dataframe
+        multiIndex = pd.MultiIndex.from_product([celllist,modellist],names=['cellid','modelname'])
+        newData = pd.DataFrame(index=multiIndex,columns=self.measure)
+        newData.sort_index()
+        # create a new dataframe of empty values with multi index and a column
+        # for each measure type
         
         for c in celllist:
             for m in modellist:
-                dat = DataPoint()
-                
+
                 for meas in self.measure:
+                    value = -1.0
+                    try:
+                        # if measure recorded for c/m combo, assign to value
+                        value = data.loc[(data.cellid == c) & (data.modelname == m)]\
+                                         [meas].values.tolist()[0]
+                    except:
+                        # error means no value recorded
+                        break
                     
                     if not self.outliers:
                         #if outliers is false, run a bunch of checks based on
-                        # measure and if a check fails, step out of loop
+                        #measure and if a check fails, step out of loop
+                        break
+                    else:
+                        #TODO: is this a good check, or is -1.0 a potential valid value?
+                        #if outliers was checked, double check that value isn't still
+                        #equal to 0.0.
+                        if value == -1.0:
+                            break
+                    
+                    # if value existed and passed outlier checks
+                    newData[meas].loc[c,m] = value
+
+        if self.fair:
+            # if fair is true, drop all rows that contain a -1.0 value for any
+            # measure column
+            for c in celllist:
+                for m in modellist:
+                    if -1.0 in newData.loc[c,m]:
+                        newData.drop(c,level='cellid',inplace=True)
                         break
                     
-                    try:
-                        value = data[(data.modelname == m) & (data.cellid == c)]\
-                            [meas].values.tolist()[0]
-                        setattr(dat,self.measure,value)
-                    except IndexError:
-                        # index error means values.tolist() returned list w/ 0 elements,
-                        # so no measure was not recorded for this cell+model combo
-                        break
-                
-                # if number of attributes of dat is 0, break
-                # otherwise, position c,m in dataframe assigned to dat
-                if len([attr for attr in dat.__dict__.iteritems()]) == 0:
-                    break
-                else:
-                    newData.at[c,m] = dat
-            
-            if self.fair:
-                # if fair is true, drop all rows that contain at least one np.nan value
-                newData.dropna(inplace=True)
-        
         return newData
     
         
         
 class Scatter_Plot(PlotGenerator):
     
-    def __init__(self, data = 'dataframe', fair = True, outliers = False,\
-                 measure = 'r_test'):
+    def __init__(self,data='dataframe',fair=True,outliers=False,measure='r_test'):
         PlotGenerator.__init__(self,data,fair,outliers,measure)
         
     def create_hover(self):
@@ -126,10 +131,6 @@ class Scatter_Plot(PlotGenerator):
             
     def generate_plot(self):
         # keep a list of the plots generated for each model combination
-        if self.data.size == 0:
-            self.script, self.div = ('empty','plot')
-            return
-            
         plots = []
 
         # returns a list of tuples representing all pairs of models
@@ -227,21 +228,21 @@ class Bar_Plot(PlotGenerator):
             return HoverTool(tooltips=hover_html)
             
         def generate_plot(self):
+            # TODO: hardcoded self.measure[0] for now, but should incorporate
+            #       a for loop somewhere to subplot for each selected measure
             
             # TODO: add significance information (see plot_bar_pretty and randttest
-                                                  # in narf_analysis)
-            
-            if self.data.size == 0:
-                self.script, self.div = ('empty','plot')
-            return
+                                                  # in narf_analysis)      
     
             #build new pandas series of stdev values to be added to dataframe
             
             #if want to show more info on tooltip in the future, just need
             #to build an appropriate series to add and then build its tooltip
             #in the create_hover function
+
+            modelnames = self.data.index.levels[1]
             
-            index = range(len(self.modelnames))
+            index = range(len(modelnames))
             stdev_col = pd.Series(index=index)
             mean_col = pd.Series(index=index)
             model_col = pd.Series(index=index,dtype=str)
@@ -249,9 +250,8 @@ class Bar_Plot(PlotGenerator):
             #for each model, find the stdev and mean over the measure values, then
             #assign those values to new Series objects to use for the plot
             i = 0
-            for model in self.modelnames:
-                values = self.data.loc[self.data['modelname'] == model]\
-                                       [self.measure].values
+            for model in modelnames:
+                values = self.data[self.measure[0]].loc[model].values
                                        
                 stdev = np.std(values,axis=0)
                 mean = np.mean(values,axis=0)
@@ -274,8 +274,8 @@ class Bar_Plot(PlotGenerator):
             yrange = Range1d(start=0,end=max(newData['mean'])*1.5)
             
             p = figure(x_range=xrange,x_axis_label='Model',y_range=yrange, y_axis_label=\
-                       'Mean %s'%self.measure,title="Mean %s Performance By Model"\
-                       %self.measure,tools=tools)
+                       'Mean %s'%self.measure[0],title="Mean %s Performance By Model"\
+                       %self.measure[0],tools=tools)
             
             p.xaxis.major_label_orientation=(np.pi/4)
             
@@ -311,14 +311,10 @@ class Pareto_Plot(PlotGenerator):
         <div>
             <span class="hover-tooltip">%s value: $y</span>
         </div>
-        """%self.measure
+        """%self.measure[0]
         return HoverTool(tooltips=hover_html)
             
     def generate_plot(self):
-            
-        if self.data.size == 0:
-            self.script, self.div = ('empty','plot')
-            return
         
         tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
                      self.create_hover()]
