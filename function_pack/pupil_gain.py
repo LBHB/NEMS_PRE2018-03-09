@@ -16,7 +16,7 @@ def create_pupil_gain(obj,**kwargs):
     print('pupil_gain parameters created')
 
 def pupil_gain(obj,**kwargs):
-    ins=kwargs['data'] 
+    ins=kwargs['pred'] 
     pups=kwargs['pupdata']
     d0=obj.pupil[0,0]
     g0=obj.pupil[0,1]

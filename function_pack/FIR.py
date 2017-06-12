@@ -7,6 +7,7 @@ Created on Thu Jun  8 17:16:31 2017
 """
 
 import numpy as np
+import scipy.signal as sps
 #import copy
 
 def create_FIR(obj,**kwargs):
@@ -22,7 +23,9 @@ def FIR(obj,**kwargs):
     X=np.reshape(X,[s[0],-1])
     for i in range(0,s[0]):
         y=np.convolve(X[i,:],obj.coeffs[i,:])
+        #y=sps.fftconvolve(X[i,:],obj.coeffs[i,:]) #possibly faster for large arrays
         X[i,:]=y[0:X.shape[1]]
     X=X.sum(0)#+obj.base
-    obj.current=np.reshape(X,s[1:])
-    return(obj.current)
+    output=np.reshape(X,s[1:])
+    obj.current=output
+    return(output)
