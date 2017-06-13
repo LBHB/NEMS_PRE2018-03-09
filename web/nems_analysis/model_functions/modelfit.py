@@ -9,17 +9,16 @@ from the command prompt for each cell+model combination for a given analysis,
 then writes each entry to tQueue to be run via model queue.
 
 TODO:
-class/object approach appropriate here? really just carrying out the same
+class/object approach necessary here? really just carrying out the same
 procedure each time. Going with simple functions for now.
 """
 
-from nems_analysis import Session, tQueue, NarfResults
+from nems_analysis import Session, tQueue, NarfResults, NarfBatches, sCellFile
 import pandas as pd
 import pandas.io.sql as psql
 import datetime
 
-#TODO:
-#from Noah's_model_fitting_stuff.ModelObjectFile import ModelObject
+from modNEM import FERReT
 
 #TODO: will need to put a similar version of fit_single in a separate .py
 #       for use with enqueue models. Needs to not import anything from the app
@@ -27,29 +26,33 @@ import datetime
 #       of the package. Can just copy paste code except will need to make its own
 #       db connection instead of importing Session from nems_analysis
 
-#TODO: where does training set vs validation set come in?
-
 def fit_single_model(cellid,batch,modelname):
-    #session = Session()
-    
-    #query narfbatches to get filepaths
-    
-    #TODO: split modelname by underscores into list of strings before passing
-    #TODO: pass in filepaths for est and val sets instead of batch and cellid
-    #TODO: pass in filecodes as well?
-    
-    #NOTE: goal of the above two changes is to abstract database-terminology
-    #       away from model fitter so that it only has to know where the data is
+    session = Session()
         
-    #ModelObject = ModelObject(est_set_files, val_set_files, filecodes, module_keywords)
+    keywords = modelname.split('_')
     
-    #.run_fit() --> tell object to run its queue of modules
+    # assigned like a list comprehension for syntax but should only be one result from DB
+    filecodes = [code[0] for code in session.query(NarfBatches.filecodes).filter\
+                (NarfBatches.cellid == cellid).filter\
+                (NarfBatches.batch == batch).all()]
     
-    #.assemble_data_array() --> return numpy arrays for saving to file
-    # save file(s) appropriately and return filepath(s)
+    # get filepaths for both est and val data sets
+    # TODO: currently these return the filenames, but not the path leading to them
+    est_set_files,val_set_files = db_get_scellfiles(session,cellid,batch)
     
-    #need some kind of timeout warning? does model fitting cascade on instantiation,
-    #or need to invoke some method first?
+    # pass file paths, behavior codes
+    ModelFitter = FERReT(est_files=est_set_files,val_files=val_set_files,\
+                         behavior=filecodes,queue=keywords)
+    
+    # tell model fitter to run the queue of modules
+    ModelFitter.run_fit()
+    
+    # get 3d numpy array from Model Fitter after modules run
+    ModelFitter.assemble_data_array()
+
+    # TODO: save array(s) to file(s) appropriately and return filepath(s)
+    
+    # TODO: need some kind of timeout warning for user?
     
     # form a pd.Series for NarfResults --> cellid=cellid, batch=batch,modelname=modelname,
     #                       other fields pulled from ModelObject.fieldAttribute, filepaths
@@ -81,7 +84,7 @@ def fit_single_model(cellid,batch,modelname):
         (NarfResults,session.bind)
     """
     
-    #session.close()
+    session.close()
     
     data = 'really cool model fitting data stuff'
     
@@ -91,6 +94,40 @@ def fit_single_model(cellid,batch,modelname):
     # or something to that effect
     return data
 
+def db_get_scellfiles(session,cellid,batch):
+    
+    idents = session.query(NarfBatches.est_set,NarfBatches.val_set).filter\
+                            (NarfBatches.cellid == cellid).filter\
+                            (NarfBatches.batch == batch).all()
+    # result should be a list of 2 items - one est_set and one val_set
+    if len(idents) > 2:
+        return ('error: more than one','set of idents for cell + batch')
+    
+    if type(idents[0]) is list:
+        est_idents = [ident.replace('_est','') for ident in idents[0]]
+    else:
+        est_idents = [idents[0].replace('_est','')]
+    if type(idents[1]) is list:
+        val_idents = [ident.replace('_val','') for ident in idents[1]]
+    else:
+        val_idents = [idents[1].replace('_val','')]
+
+    est_paths = []
+    for est in est_idents:
+        est_paths += session.query(sCellFile.stimfile,sCellFile.respfile).filter\
+                                (sCellFile.cellid.ilike(cellid)).filter\
+                                (sCellFile.stimfile.ilike(est)).filter\
+                                (sCellFile.respfile.ilike(est)).all()
+
+    val_paths = []
+    for val in val_idents:
+        val_paths += session.query(sCellFile.stimefile,sCellFile.respfile).filter\
+                                (sCellFile.cellid.ilike(cellid)).filter\
+                                (sCellFile.stimfile.ilike(val)).filter\
+                                (sCellFile.respfile.ilike(val)).all()
+
+    return (est_paths,val_paths)
+    
 def enqueue_models(celllist,batch,modellist):
     # See narf_analysis --> enqueue models callback
     #for model in modellist:

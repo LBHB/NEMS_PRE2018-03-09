@@ -11,7 +11,7 @@ def modelpane_view():
 def fit_single_model_view():
     #TODO: link up to model package
     cSelected = request.args.getlist('cSelected[]')
-    bSelected = request.args.get('bSelected')
+    bSelected = request.args.get('bSelected')[:3]
     mSelected = request.args.getlist('mSelected[]')
     
     if (len(cSelected) > 1) or (len(mSelected) > 1):

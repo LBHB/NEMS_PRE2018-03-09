@@ -20,6 +20,7 @@ NarfAnalysis = Base.classes.NarfAnalysis
 NarfBatches = Base.classes.NarfBatches
 NarfResults = Base.classes.NarfResults
 tQueue = Base.classes.tQueue
+sCellFile = Base.classes.sCellFile
 
 Session = sessionmaker(bind=engine)
 
