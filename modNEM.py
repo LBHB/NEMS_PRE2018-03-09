@@ -264,7 +264,8 @@ class FERReT:
         
 ##FITTERS##
 ###############################################################################
-    #Fixing rn
+
+
     def basic_min(self,functions,routine='L-BFGS-B',maxit=50000):
         params=[]
         for i in functions:
@@ -295,6 +296,7 @@ class FERReT:
         for f in functions:
                 self.pred=getattr(self.impdict[f],f)(self,indata=self.train['stim'],
                        data=self.current,pupdata=self.train['pup'],pred=self.pred)
+        print(self.mse)
         return(phiout['x'])
     
     #def basinhopping_min
@@ -412,6 +414,26 @@ class FERReT:
             np.save(filepath,dats)
         return(dats)
     
+    
+    def apply_to_train(self,save=False,filepath=None):
+        def shape_back(ins,origdim):
+            s=ins.shape
+            outs=np.reshape(ins,(origdim[0],origdim[1],s[1]),order='F')
+            return(outs)
+        dats=dict.fromkeys(['stim','resp','pup','predicted'])
+        for f in self.queue:
+            pred=getattr(self.impdict[f],f)(self,indata=self.train['stim'],
+                        data=self.current,pupdata=self.train['pup'],pred=self.current)
+        dats['predicted']=shape_back(pred,origdim=self.shapes)
+        for i,j in self.train.items():
+            if i in ('pup','resp'):   
+                dats[i]=shape_back(j,origdim=self.shapes)
+            else:
+                s=self.shapes
+                dats[i]=j[:,:s[0],:]
+        if save is True:
+            np.save(filepath,dats)
+        return(dats)
     
     
     

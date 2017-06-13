@@ -16,7 +16,7 @@ def create_DEXP(obj,**kwargs):
 
 
 def DEXP(obj,**kwargs):
-    ins=kwargs['data'] #data should be obj.current
+    ins=kwargs['pred'] #data should be obj.current
     v1=obj.DEXP[0,0]
     v2=obj.DEXP[0,1]
     v3=obj.DEXP[0,2]

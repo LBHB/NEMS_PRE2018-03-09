@@ -15,7 +15,7 @@ def create_tanhsig(obj,**kwargs):
     
 
 def tanhsig(obj,**kwargs):
-    ins=kwargs['data'] #data should be self.pred
+    ins=kwargs['pred'] #data should be self.pred
     v1=obj.tanhsig[0,0]
     v2=obj.tanhsig[0,1]
     v3=obj.tanhsig[0,2]
