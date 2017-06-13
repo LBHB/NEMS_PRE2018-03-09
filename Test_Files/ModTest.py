@@ -20,11 +20,9 @@ import Plotting.raster_plot as rp
 import Plotting.coeff_heatmap as ch
 import Plotting.comparison as pc
 
-#test3=FERReT(batch=294,cellid='eno048f-a1_nat_export.mat',n_coeffs=15,queue=('input_log','FIR','pupil_gain','tanhsig'),thresh=0.4)
-print(test3.input_log)
-print(test3.coeffs.shape)
-print(test3.pupil)
-print(test3.tanhsig)
+#test3=FERReT(batch=294,cellid='eno048f-a1_nat_export.mat',n_coeffs=10,
+             #queue=('input_log','FIR','pupil_gain','DEXP'),thresh=0.4)
+
 '''
 data3=test3.ins['resp']
 pre_time3=test3.meta['prestim']
@@ -36,7 +34,7 @@ frequency3=test3.meta['respf']
 rp.raster_plot(stims='all',size=(6,9),data=data3,pre_time=pre_time3,dur_time=dur_time3,
                post_time=post_time3,frequency=frequency3)
 '''
-#test3.run_fit(validation=0.5,reps=1)
+#test3.run_fit(validation=0.5,reps=3)
 
 #test3.data_resample(noise_thresh=0.04)
 #test3.reshape_repetitions()
@@ -48,11 +46,11 @@ rp.raster_plot(stims='all',size=(6,9),data=data3,pre_time=pre_time3,dur_time=dur
 #plt.figure(num=10,figsize=(12,4))
 #plt.plot(test3.current[:275])
 #plt.plot(test3.train['resp'][:275])
-valid=test3.apply_to_val(save=False,filepath='/auto/users/shofer/Saved_Data/valtest31.npy')
-trains=test3.apply_to_train(save=False)
-pc.pred_vs_avgresp(obj=test3,data=trains,stims='all')
-pc.pred_vs_avgresp(obj=test3,data=valid,stims='all')
-
+#valid=test3.apply_to_val(save=True,filepath='/auto/users/shofer/Saved_Data/valtestDEXP2.npy')
+#trains=test3.apply_to_train(save=True,filepath='/auto/users/shofer/Saved_Data/trtestDEXP2.npy')
+#pc.pred_vs_avgresp(obj=test3,data=trains,stims='all')
+#pc.pred_vs_resp(obj=test3,data=valid,stims='all',trials=(10,20))
+print(test3.DEXP)
 
 
 
