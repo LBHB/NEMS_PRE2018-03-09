@@ -14,6 +14,7 @@ General approach to creating and fitting a model
 3.  Call the FERReT object attributes apply_to_val and apply_to_train to calculate the predicted responses to various stimuli using the fitted parameters.
 4.  Various features of the data can be plotted, such as a raster of the raw data, the predicted response vs. the actual response to a stimulus (both for
     individual trials and averaged across all trials), and the stimulus intensity across each channel (working to create a sepctrogram)
+
 Ongoing: expand this information in [NEMS Wiki](https://bitbucket.org/lbhb/nems/wiki/Home)
 
 ### Core components ###
@@ -35,7 +36,7 @@ Ongoing: expand this information in [NEMS Wiki](https://bitbucket.org/lbhb/nems/
 
 ### How do I get set up? ###
 
-* Dependencies: numpy, scipy. Eventually pandas, sqlalchemy, some GUI support
+* Dependencies: numpy, scipy, scipy.signal, scipy.io, math, matplotlib.pyplot, importlib, copy. Eventually pandas, sqlalchemy, some GUI support
 
 ### Who do I talk to? ###
 

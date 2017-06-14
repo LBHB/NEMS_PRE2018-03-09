@@ -21,7 +21,8 @@ dur_time=obj.meta['duration']
 post_time=obj.meta['poststim']
 frequency=obj.meta['respf']
 """
-
+#Want to add "sorted-raster" function that produces a raster plot where the
+#the trials are sorted by pupil_diameter
    
 def raster_plot(obj=None,stims='all',size=(12,6),**kwargs):
     if obj is not None:

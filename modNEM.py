@@ -10,9 +10,6 @@ import copy
 import math as mt
 import scipy as sp
 import scipy.signal as sps
-import scipy.io as si
-import matplotlib as mp
-import matplotlib.pyplot as plt
 import importlib as il
 
 
@@ -21,29 +18,16 @@ class FERReT:
 
     #This initializes the FERReT object, as well as loads the data from the .mat datafile. 
     #Data can also be entered manually, if desired, but metadata must then be entered as well
-    def __init__(self,data=None,metadata=None,batch=None,cellid=None,n_coeffs=20,base=0,newHz=50,
+    def __init__(self,filepath=None,imp_type=None,data=None,metadata=None,n_coeffs=20,newHz=50,
                  queue=('input_log','FIR','pupil_gain'),
                             thresh=0.5):
-        self.batch=batch
-        self.cellid=cellid
+        self.file=filepath
         self.queue=queue
         ##LOAD DATA FROM .mat FILE
-        if data==None:
-            self.data=dict.fromkeys(['stim','resp','pup'])
-            self.meta=dict.fromkeys(['stimf','respf','iso','prestim','duration','poststim'])
-            datapath='/auto/users/shofer/data/'
-            file=datapath+'/batch'+str(self.batch)+'/'+self.cellid#+'.mat'
-            matdata = si.loadmat(file,chars_as_strings=True)
-            m=matdata['data'][0][0]
-            self.data['resp']=m['resp_raster']
-            self.data['stim']=m['stim']
-            self.data['pup']=m['pupil']
-            self.meta['stimf']=m['stimfs'][0][0]
-            self.meta['respf']=m['respfs'][0][0]
-            self.meta['iso']=m['isolation'][0][0]
-            self.meta['prestim']=m['tags'][0]['PreStimSilence'][0][0][0]
-            self.meta['poststim']=m['tags'][0]['PostStimSilence'][0][0][0]
-            self.meta['duration']=m['tags'][0]['Duration'][0][0][0]
+        if data is None:
+            imp=il.import_module('imports_pack.'+imp_type)
+            self.data,self.meta=getattr(imp,imp_type+'_import')(self.file)
+            print('Data imported successfully')
         else:
             self.data=data
             self.meta=metadata
@@ -59,15 +43,15 @@ class FERReT:
         self.mse=float(1.0)
         self.pred=np.zeros(self.data['resp'].shape)
         self.current=np.zeros(self.data['resp'].shape)
-        self.nopupil=np.array([[0,1]])
         self.thresh=thresh
-        for i in range(0,self.data['pup'].shape[2]):
-            arrmin=np.nanmin(self.data['pup'])
-            arrmax=np.nanmax(self.data['pup'])
-            if arrmin<0:
-                arrmin=0
-        self.cutoff=thresh*(arrmax+arrmin)
-        #Importation module
+        if self.data['pup'] is not None:
+            for i in range(0,self.data['pup'].shape[2]):
+                arrmin=np.nanmin(self.data['pup'])
+                arrmax=np.nanmax(self.data['pup'])
+                if arrmin<0:
+                    arrmin=0
+            self.cutoff=thresh*(arrmax+arrmin)
+        #Import functions from queue:
         self.impdict=dict.fromkeys(queue)
         self.fit_param=dict.fromkeys(queue)
         for j in queue:
@@ -85,6 +69,10 @@ class FERReT:
         sHz=self.meta['stimf']
         rHz=self.meta['respf']
         newHz=self.newHz          
+        if self.data['pup'] is not None:
+            test=('pup','resp')
+        else:
+            test=('resp')
         for i,j in self.data.items():
             if i=='stim':
                 resamp_fact=int(sHz/newHz)
@@ -93,7 +81,7 @@ class FERReT:
                 resamp[s_indices]=0
                 self.data[i]=resamp
                 self.preserve[i]=resamp
-            else:
+            elif i in test:
                 resamp_fact=int(rHz/newHz)
                 resamp=sps.decimate(j,resamp_fact,ftype='fir',axis=0,zero_phase=True)
                 s_indices=resamp<noise_thresh
@@ -106,6 +94,7 @@ class FERReT:
         
     #Reshapes response and, if called in pupil subclass, pupil arrays to T*R x S matrix.
     #CALL AFTER CALLING DATA RESAMPLE
+    #Only call if there is pupil data. If not, call resp_avg
     #If the data is to be resampled, should call data_resample first
     def reshape_repetitions(self):
         s=copy.deepcopy(self.data['resp'].shape)
@@ -115,9 +104,16 @@ class FERReT:
             if i=='stim':
                 self.data[i]=np.tile(j,(1,s[1],1))
         print("Reshaping TxRxS arrays to T*RxS arrays")
+    
+    #Averages response to stimuli across all trials of that stimulus. Use when 
+    #there is not state variable data, as it will allow for fitting with much
+    #smaller data sets, resulting in a faster (and potentially more accurate)
+    #fit
+    #CALL AFTER CALLING DATA RESAMPLE
+    def resp_avg(self):
+        self.data['resp']=np.nanmean(self.data['resp'],axis=1)
+        
 
-                
-                
     #SHOULD  BE CALLED AFTER RESHAPE REPETITIONS
     #This function creates training and validation datasets simply by taking the 
     #fraction "valsize" of stimuli of the end of the data. Could randomize the section 
@@ -125,7 +121,11 @@ class FERReT:
     #To be replaced later with a jackknifing routine
     def create_datasets(self,valsize=0.05):
         trainlist=[]
-        vallist=[]
+        vallist=[] 
+        if self.data['pup'] is not None:
+            test=('pup','resp')
+        else:
+            test=('resp')
         for k,j in self.data.items():
             if k=='stim':
                 s=j.shape
@@ -134,7 +134,7 @@ class FERReT:
                 vallist=j[:,:,spl:]
                 self.train[k]=copy.deepcopy(trainlist)
                 self.val[k]=copy.deepcopy(vallist)
-            else:
+            elif k in test:
                 s=j.shape
                 spl=mt.ceil(s[1]*(1-valsize))
                 trainlist=j[:,:spl]
@@ -194,74 +194,7 @@ class FERReT:
             output[:][:][i]=scale*(data-arrmin)
         return(output)
            
-            
-    #Converts continuous pupil data to a discrete state variable array of 1 & 0 ~~leaves NaNs in place~~
-    #Essentially a worse version of pupil_sort and state_PSTH_data taken in combo, but maybe useful?
-    def state_variable_set(self):
-        state=copy.deepcopy(self.data['pup'])
-        s=state.shape
-        for i in range(0,s[0]):
-            for j in range(0,s[1]):
-                for k in range(0,s[2]):
-                    if state[i,j,k]<self.cutoff[k]:
-                        state[i][j][k]=0
-                    elif state[i,j,k]>=self.cutoff[k]:
-                        state[i][j][k]=1
-        self.state=state
-        return(state)
     
-    #Apply a Gaussian(?) nonlinearity to continuous pupil data:
-    #def Gauss_pupil_gain(self,gain=1):
-        #ins=copy.deepcopy(self.pred)
-        #mu=self.pupil[0,0]
-        #sigma=self.pupil[0,1]
-        #offset=self.pupil[0,2]
-        #outs=(1/(sigma*mt.sqrt(2*mt.pi)))*np.exp(-(np.square(ins-mu)/(2*(sigma^2))))+offset
-    ##NOT DONE, FOCUS ON LINEAR GAIN, ALSO THIS DOESN'T MAKE MUCH SENSE
-    
-        
-   #This section chops the response data into chunks based on pupil diameter using
-   # a simple threshold so that the difference in large and small pupil firing rate
-   #can be seen
-   #This is not necessary for fitting but is good for data visualization
-   ############################################################################
-   
-   #This extracts the trial number for trials where the pupil diameter was greater than some
-   #fraction of the maximum pupil diameter.
-    def pupil_sort(self,stimnum=0):
-        s=self.data['pup'][:,:,stimnum].shape
-        cutoff=self.cutoff
-        above=[]
-        below=[]
-        for j in range(0,s[1]):
-            if np.nanmin(self.data['pup'][:,j,stimnum])>=cutoff:
-                above.append(j)
-            else:
-                below.append(j)          
-        return(above,below)
-        
-        
-        
-    def state_PSTH_data(self,above,below,stimnum=0):
-        resp=self.data['resp'][:,:,0]
-        high=[]
-        low=[]
-        la=len(above)
-        lb=len(below)
-        for i in range(0,la):
-            j=above[i]
-            high.append(resp[:,j])
-        for i in range(0,lb):
-            j=below[i]
-            low.append(resp[:,j])
-        high=np.array(high)
-        high=np.transpose(high)
-        low=np.array(low)
-        low=np.transpose(low)
-        return(high,low)
-        
-        
-        
 ##FITTERS##
 ###############################################################################
 
@@ -335,9 +268,12 @@ class FERReT:
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
         
     
-    def run_fit(self,validation=0.05,reps=1,filepath=None):
+    def run_fit(self,validation=0.05,reps=1,save=False,filepath=None):
         self.data_resample(noise_thresh=0.04)
-        self.reshape_repetitions()
+        if self.data['pup'] is not None:
+            self.reshape_repetitions()
+        else:
+            self.resp_avg()
         self.create_datasets(valsize=validation)
         ii=self.queue.index('FIR')
         for i in range(0,reps):
@@ -349,50 +285,10 @@ class FERReT:
         params=dict()
         for i,j in self.fit_param.items():
             params[j[0]]=getattr(self,j[0])
+        if save is True:
+            np.save(filepath,params)
             
         
-        
-        
-        
-    """
-    def assemble(self,queue=('FIR','pupil_gain'),avgresp=False,useval=True,save=False,filepath=None):
-        def shape_back(ins,origdim):
-            s=ins.shape
-            outs=np.reshape(ins,(origdim[0],origdim[1],s[1]),order='F')
-            return(outs)
-        dats=dict.fromkeys(['stim','resp','pup','predicted'])
-        if useval==True:
-            for i,j in self.val.items():
-                if i in ('resp','pup'):
-                    dats[i]=shape_back(j,origdim=self.shapes)
-                elif i=='stim':
-                    dats[i]=self.input_log(j)
-        else:
-            for i,j in self.train.items():
-                if i in ('resp','pup'):
-                    dats[i]=shape_back(j,origdim=self.shapes)
-                else:
-                    dats[i]=j
-        getattr(self,queue[0])(dats['stim'])
-        for k in queue[1:len(queue)]:
-            if k=='pupil_gain':
-                sp=dats['pup'].shape
-                tiled=np.transpose(np.tile(self.pred,(1,1,sp[1])),axes=(1,2,0))
-                dats['predicted']=self.pupil_gain(data=tiled,pupdata=dats['pup'])
-            else:
-                dats['predicted']=getattr(self,k)(data=self.pred)
-        #getattr(self,k)(dats['stim'])
-        #if avgresp==True:
-            #dats['resp']=np.nanmean(dats['resp'],axis=1)
-            #dats['predicted']=self.pred
-        #else:
-            #sp=dats['pup'].shape
-            #tiled=np.transpose(np.tile(self.pred,(1,1,sp[1])),axes=(1,2,0))
-            #dats['predicted']=self.pupil_gain(data=tiled,pupdata=dats['pup'])
-        if save==True:
-            np.save(filepath,dats)
-        return(dats)
-    """
     
     def apply_to_val(self,save=False,filepath=None):
         def shape_back(ins,origdim):
@@ -403,13 +299,19 @@ class FERReT:
         for f in self.queue:
             pred=getattr(self.impdict[f],f)(self,indata=self.val['stim'],
                         data=self.current,pupdata=self.val['pup'],pred=self.current)
-        dats['predicted']=shape_back(pred,origdim=self.shapes)
-        for i,j in self.val.items():
-            if i in ('pup','resp'):   
-                dats[i]=shape_back(j,origdim=self.shapes)
-            else:
-                s=self.shapes
-                dats[i]=j[:,:s[0],:]
+        if self.data['pup'] is not None:
+            dats['predicted']=shape_back(pred,origdim=self.shapes)
+            for i,j in self.val.items():
+                if i in ('pup','resp'):   
+                    dats[i]=shape_back(j,origdim=self.shapes)
+                else:
+                    s=self.shapes
+                    dats[i]=j[:,:s[0],:]
+        else:
+            dats['predicted']=pred
+            for i,j in self.val.items():
+                if i in('resp','stim'):
+                    dats[i]=j
         if save is True:
             np.save(filepath,dats)
         return(dats)
@@ -424,13 +326,19 @@ class FERReT:
         for f in self.queue:
             pred=getattr(self.impdict[f],f)(self,indata=self.train['stim'],
                         data=self.current,pupdata=self.train['pup'],pred=self.current)
-        dats['predicted']=shape_back(pred,origdim=self.shapes)
-        for i,j in self.train.items():
-            if i in ('pup','resp'):   
-                dats[i]=shape_back(j,origdim=self.shapes)
-            else:
-                s=self.shapes
-                dats[i]=j[:,:s[0],:]
+        if self.data['pup'] is not None:
+            dats['predicted']=shape_back(pred,origdim=self.shapes)
+            for i,j in self.train.items():
+                if i in ('pup','resp'):   
+                    dats[i]=shape_back(j,origdim=self.shapes)
+                else:
+                    s=self.shapes
+                    dats[i]=j[:,:s[0],:]
+        else:
+            dats['predicted']=pred
+            for i,j in self.train.items():
+                if i in('resp','stim'):
+                    dats[i]=j
         if save is True:
             np.save(filepath,dats)
         return(dats)
