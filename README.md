@@ -20,11 +20,18 @@ Ongoing: expand this information in [NEMS Wiki](https://bitbucket.org/lbhb/nems/
 ### Core components ###
 
 * Model engine
-    * Modules for each step of stimulus-response transformation
-    * Data loader modules
-    * Split/join state modules
-    * Cost function/error modules
-* Fitter - generic framework for updating model parameters based on cost function
+    * modNEM.py: Contains the FERReT object class. Currently has all the "logistics" aspects of model fitting, including cost function and error, as well as
+      attributes that run a fit, apply the fitted parameters to data, and the actual fitting modules (though these may be modularized later).
+    * function_pack: Package containing modules for each step of stimulus-response transformation
+    * imports_pack: Package containing data loader modules
+    * Plotting: Package containing modules for making plots. These should be functional both as stand-alone modules and as modules for the FERReT object.
+        - raster_plot.py: generates raster plots of the reponse raster data. Highlights when stimulus was playing during the trial.
+        - coeff_heatmap.py: generates a heatmap of module coefficients. This is particularly useful for visualizing FIR filters. 
+        - comparison.py: generates plots that compare the predicted response to the actual response. There are two functions, one to show the response
+          for individual trials and one to show the average response for all trials of a stimulus.
+    * Split/join state modules (??)
+    * Cost function/error modules (currently in the FERReT object class)
+* Fitter - generic framework for updating model parameters based on cost function 
     * Boosting/coordinate descent
     * Nested fitter (per module)
     * Jackknife fits (20 X 95% fit, 5% val)
