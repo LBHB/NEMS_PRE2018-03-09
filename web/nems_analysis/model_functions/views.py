@@ -11,7 +11,7 @@ def modelpane_view():
 def fit_single_model_view():
     #TODO: link up to model package
     cSelected = request.args.getlist('cSelected[]')
-    bSelected = request.args.get('bSelected')
+    bSelected = request.args.get('bSelected')[:3]
     mSelected = request.args.getlist('mSelected[]')
     
     if (len(cSelected) > 1) or (len(mSelected) > 1):
@@ -31,7 +31,7 @@ def fit_single_model_view():
     figure_file = 'preview for %s, %s, %s'%(cSelected[0],bSelected,mSelected[0])
     
     #use data after ajax call to display some type of results summary or success message?
-    return jsonify(data = data,preview = figure_file)
+    return jsonify(data = data.data,preview = figure_file)
 
 @app.route('/enqueue_models')
 def enqueue_models_view():

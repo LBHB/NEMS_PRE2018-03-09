@@ -9,11 +9,14 @@ Created on Thu Jun  8 17:16:32 2017
 
 import numpy as np
 
+def create_pupil_gain(obj,**kwargs):
+    obj.pupil=np.zeros([1,4])
+    obj.pupil[0][1]=1
+    return(['pupil'])
+    print('pupil_gain parameters created')
 
 def pupil_gain(obj,**kwargs):
-    #ins=copy.deepcopy(self.pred)
-    ins=kwargs['data'] #data should be self.pred
-    #pups=copy.deepcopy(self.train['pup'])
+    ins=kwargs['pred'] 
     pups=kwargs['pupdata']
     d0=obj.pupil[0,0]
     g0=obj.pupil[0,1]

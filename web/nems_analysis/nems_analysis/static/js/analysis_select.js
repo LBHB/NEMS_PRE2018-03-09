@@ -206,10 +206,10 @@ $(document).ready(function(){
         
         if (empty){
             $(".plotsub").attr('disabled','disabled');
-            $("#form-warning").html("<p>Selection required for each option before submission</p>")
+            //$("#form-warning").html("<p>Selection required for each option before submission</p>")
         } else {
             $(".plotsub").removeAttr('disabled');
-            $("#form-warning").html("")
+            //$("#form-warning").html("")
         }   
     });
 

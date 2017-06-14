@@ -73,6 +73,31 @@ textarea {
   width: 100% !important;      
 }
 
+#plotOpButtons {
+  float:left;        
+}
+
+#plotOpDropOuter {
+  float:left;        
+}
+
+#plotOpDrop {
+  float:left;        
+}
+
+#plotOpSubmits {
+  float:left;        
+}
+
+#plotOpGT {
+  padding:10px;        
+}
+
+#plotOpVal {
+  float:right;
+  width: 50px;        
+}
+
 #tableWrapper {
   margin-top: 10px;
   height: 70vh;

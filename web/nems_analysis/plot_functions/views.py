@@ -4,24 +4,25 @@ from flask import render_template, jsonify, request, Response
 from nems_analysis import app, Session, NarfResults
 from plot_functions.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
 import pandas.io.sql as psql
-
+import numpy as np
+        
 @app.route('/scatter_plot', methods=['GET','POST'])
 def scatter_plot():
     session = Session()
     
-    bSelected = request.form.get('batch')[:3]
-    mSelected = request.form.getlist('modelnames')
-    cSelected = request.form.getlist('celllist')
-    measure = request.form['measure']
+    #call script to get plot arguments from html form and db
+    args = load_plot_args(request,session)
+    #check if db results actually contain anything
+    if args['data'].size == 0:
+        return Response("empty plot")
     
-    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
-              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
-              (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
-              
-    plot = Scatter_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
-                        measure=measure, batch=bSelected)
-    plot.generate_plot()
+    plot = Scatter_Plot(**args)
+    
+    #check plot data to see if everything got filtered out
+    if plot.emptycheck:
+        return Response("empty plot")
+    else:
+        plot.generate_plot()
     
     session.close()
     
@@ -31,23 +32,18 @@ def scatter_plot():
 @app.route('/bar_plot',methods=['GET','POST'])
 def bar_plot():
     session = Session()
-    # TODO: this is exactly the same as scatter_plot other than the function call
-    # to Bar_Plot instead of Scatter_Plot - should these be combined into a
-    # single function or left separate for clarity?
     
-    bSelected = request.form.get('batch')[:3]
-    mSelected = request.form.getlist('modelnames')
-    cSelected = request.form.getlist('celllist')
-    measure = request.form['measure']
+    args = load_plot_args(request,session)
+
+    if args['data'].size == 0:
+        return Response("empty plot")
     
-    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),NarfResults.cellid,\
-              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
-              (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
-        
-    plot = Bar_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
-                    measure=measure,batch=bSelected)
-    plot.generate_plot()
+    plot = Bar_Plot(**args)
+    
+    if plot.emptycheck:
+        return Response("empty plot")
+    else:
+        plot.generate_plot()
     
     session.close()
     
@@ -58,20 +54,18 @@ def bar_plot():
 def pareto_plot():
     session = Session()
     
-    bSelected = request.form.get('batch')[:3]
-    mSelected = request.form.getlist('modelnames')
-    cSelected = request.form.getlist('celllist')
-    measure = request.form['measure']
+    #call script to get plot arguments from html form and db
+    args = load_plot_args(request,session)
+    #check if db results actually contain anything
+    if args['data'].size == 0:
+        return Response("empty plot")
     
-    results = psql.read_sql_query(session.query(getattr(NarfResults,measure),\
-              NarfResults.cellid,NarfResults.n_parms,\
-              NarfResults.modelname).filter(NarfResults.batch == bSelected).filter\
-              (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
-        
-    plot = Pareto_Plot(data=results,celllist=cSelected,modelnames=mSelected,\
-                    measure=measure,batch=bSelected)
-    plot.generate_plot()
+    plot = Pareto_Plot(**args)
+    
+    if plot.emptycheck:
+        return Response("empty plot")
+    else:
+        plot.generate_plot()
     
     session.close()
     
@@ -85,3 +79,41 @@ def plot_strf():
     # using a form submission like the above plots.
     session.close()
     return Response('STRF view function placeholder')
+
+
+### Not a view - script used by views to load form data and query DB ###
+
+def load_plot_args(request,session):
+    
+    bSelected = request.form.get('batch')[:3]
+    mSelected = request.form.getlist('modelnames')
+    cSelected = request.form.getlist('celllist')
+    measure = request.form['measure']
+    onlyFair = request.form.get('onlyFair')
+    if onlyFair == "fair":
+        onlyFair = True
+    else:
+        onlyFair = False
+    includeOutliers = request.form.get('includeOutliers')
+    if includeOutliers == "outliers":
+        includeOutliers = True
+    else:
+        includeOutliers = False
+    
+    useSNRorIso = (request.form.get('plotOption[]'),request.form.get('plotOpVal'))
+    
+    # TODO: filter results based on useSNRorIso before passing data to plot generator
+    # note: doing this here instead of in plot generator since it requires db access
+    #       make a list of cellids that fail snr/iso criteria
+    #       then remove all rows of results where cellid is in that list
+    
+    results = psql.read_sql_query(session.query(NarfResults).filter\
+              (NarfResults.batch == bSelected).filter\
+              (NarfResults.cellid.in_(cSelected)).filter\
+              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
+    
+    return {'data':results,'fair':onlyFair,'outliers':includeOutliers,\
+                   'measure':measure}
+    
+    
+    
