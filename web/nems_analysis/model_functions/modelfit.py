@@ -12,13 +12,21 @@ TODO:
 class/object approach necessary here? really just carrying out the same
 procedure each time. Going with simple functions for now.
 """
+import datetime
+import sys
 
-from nems_analysis import Session, tQueue, NarfResults, NarfBatches, sCellFile
+from sqlalchemy import inspect
 import pandas as pd
 import pandas.io.sql as psql
-import datetime
 
+from nems_analysis import Session, tQueue, NarfResults, NarfBatches
+from .fit_single_utils import cleanup_file_string, fetch_meta_data, MultiResultError
+sys.path.insert(0,'/auto/users/jacob/nems')
 from modNEM import FERReT
+
+
+#TODO: restructure nems package to avoid this issue
+
 
 #TODO: will need to put a similar version of fit_single in a separate .py
 #       for use with enqueue models. Needs to not import anything from the app
@@ -26,67 +34,122 @@ from modNEM import FERReT
 #       of the package. Can just copy paste code except will need to make its own
 #       db connection instead of importing Session from nems_analysis
 
+
+class dat_object():
+    """ placeholder for data array until model fitter linked up,
+    for testing only 
+    
+    """
+    def __init__(self):
+        pass
+
+
 def fit_single_model(cellid,batch,modelname):
+    
     session = Session()
-        
-    keywords = modelname.split('_')
     
-    # assigned like a list comprehension for syntax but should only be one result from DB
-    filecodes = [code[0] for code in session.query(NarfBatches.filecodes).filter\
-                (NarfBatches.cellid == cellid).filter\
-                (NarfBatches.batch == batch).all()]
+    """
+    # TODO: don't worry about these for now, may change
+    # assigned like a list comprehension for syntax
+    # but should only be one result from DB
+    filecodes = [
+                code[0] for code in \
+                session.query(NarfBatches.filecodes)\
+                .filter(NarfBatches.cellid == cellid)\
+                .filter(NarfBatches.batch == batch).all()
+                ]
+    """
     
+    """
+    # DEPRECATED
     # get filepaths for both est and val data sets
-    # TODO: currently these return the filenames, but not the path leading to them
     est_set_files,val_set_files = db_get_scellfiles(session,cellid,batch)
+    """
     
-    # pass file paths, behavior codes
-    ModelFitter = FERReT(est_files=est_set_files,val_files=val_set_files,\
-                         behavior=filecodes,queue=keywords)
+    idents = session.query(NarfBatches.est_set,NarfBatches.val_set)\
+                          .filter(NarfBatches.cellid == cellid)\
+                          .filter(NarfBatches.batch == batch).all()
+    
+    if len(idents) == 0:
+        # no file identifiers exist for cell/batch combo in NarfBatches
+        # TODO: should this throw an error? or do something else?
+        pass
+    
+    est_ident = idents[0][0]
+    val_ident = idents[0][1]
+    
+    #TODO: should do string cleanup here or pass as-is to model fitter?
+    est_ident = cleanup_file_string(est_ident)
+    val_ident = cleanup_file_string(val_ident)
+    
+    print("estimation file identifer(s) and validation file identifier(s):")
+    print(est_ident)
+    print(val_ident)
+    
+    # pass cellid, batch, modelname, est_file_ident and val_file_ident to
+    # model fitter object
+    # TODO: supposed to have the option of directly passing a file instead?
+    
+    #ModelFitter = FERReT(cellid, batch, modelname, est_ident, val_ident)
     
     # tell model fitter to run the queue of modules
-    ModelFitter.run_fit()
+    #ModelFitter.run_fit()
     
     # get 3d numpy array from Model Fitter after modules run
-    ModelFitter.assemble_data_array()
+    # TODO: looks like this has changed? what do we need to call now?
+    #       ~apply to fit
+    #       and ~apply to est?
+    #ModelFitter.assemble_data_array()
 
     # TODO: save array(s) to file(s) appropriately and return filepath(s)
     
     # TODO: need some kind of timeout warning for user?
     
-    # form a pd.Series for NarfResults --> cellid=cellid, batch=batch,modelname=modelname,
-    #                       other fields pulled from ModelObject.fieldAttribute, filepaths
-    #                       fields retrieved above.
+    # dat_object() for testing only
+    data_array = dat_object()
+    data_array.r_test = 0.5
+    data_array.n_parms = 1
+    data_array.data = "placeholder for model fitter until model fitter linked up"
     
+    check_exists = session.query(NarfResults).filter\
+                    (NarfResults.cellid == cellid).filter\
+                    (NarfResults.batch == batch).filter\
+                    (NarfResults.modelname == modelname).all()
     
-    """
-    query NarfResults with cellid, batch and modelname - if get a result, then
-    an entry for this cell + batch + model combination already exists, so need
-    to delete it before adding new entry
-    """
+    if len(check_exists) == 0:
+        # if no entry in narf results for cell/model/batch combo, write in new entry
+        r = NarfResults()
+        r = fetch_meta_data(data_array,cellid,batch,modelname,r)
+        session.add(r)
+        
+    elif len(check_exists) == 1:
+        # if one entry in narf results, overwrite it
+        r = check_exists[0]
+        r = fetch_meta_data(data_array,cellid,batch,modelname,r)
+        
+    else:
+        # if more than one entry exists, something went wrong
+        raise MultiResultError("Multiple entries in Narf Results for cell: %s,\
+                               batch: %s, modelname: %s"%(cellid,batch,modelname))
+
+
+    # leave session.commit() commented out until ready to test with database
+    # IF LEFT IN, THIS WILL SAVE TO / OVERWRITE DATA IN DB
     
-    """
-    then add via sql alchemy explicitly
+    #session.commit()
     
-    session.add_all([
-            Table(column1=data_from_modules['column1'], column2=data_from_modules['column2']),
-            --repeat for each entry
-            //construct list outside of this first for multiple entries
-            ])
+    # test to make sure attributes are being correctly assigned from
+    # metadata in array
+    print("Printing attributes assigned to results entry:")
+    mapper = inspect(r)
+    for c in mapper.attrs:
+        print(c.key)
+        print(getattr(r,c.key))
     
-    session.commit()
-    """
-    
-    """
-    OR format entry within dataframe (since we're ultimately just adding 1 row)
-    
-    dataframe['name of series corresponding to desired values'].to_sql\
-        (NarfResults,session.bind)
-    """
     
     session.close()
     
-    data = 'really cool model fitting data stuff'
+    data = data_array
     
     # only need to return data that will be displayed to user, i.e. figurefile
     # or path and a results summary. Pass as dict?
@@ -94,39 +157,6 @@ def fit_single_model(cellid,batch,modelname):
     # or something to that effect
     return data
 
-def db_get_scellfiles(session,cellid,batch):
-    
-    idents = session.query(NarfBatches.est_set,NarfBatches.val_set).filter\
-                            (NarfBatches.cellid == cellid).filter\
-                            (NarfBatches.batch == batch).all()
-    # result should be a list of 2 items - one est_set and one val_set
-    if len(idents) > 2:
-        return ('error: more than one','set of idents for cell + batch')
-    
-    if type(idents[0]) is list:
-        est_idents = [ident.replace('_est','') for ident in idents[0]]
-    else:
-        est_idents = [idents[0].replace('_est','')]
-    if type(idents[1]) is list:
-        val_idents = [ident.replace('_val','') for ident in idents[1]]
-    else:
-        val_idents = [idents[1].replace('_val','')]
-
-    est_paths = []
-    for est in est_idents:
-        est_paths += session.query(sCellFile.stimfile,sCellFile.respfile).filter\
-                                (sCellFile.cellid.ilike(cellid)).filter\
-                                (sCellFile.stimfile.ilike(est)).filter\
-                                (sCellFile.respfile.ilike(est)).all()
-
-    val_paths = []
-    for val in val_idents:
-        val_paths += session.query(sCellFile.stimefile,sCellFile.respfile).filter\
-                                (sCellFile.cellid.ilike(cellid)).filter\
-                                (sCellFile.stimfile.ilike(val)).filter\
-                                (sCellFile.respfile.ilike(val)).all()
-
-    return (est_paths,val_paths)
     
 def enqueue_models(celllist,batch,modellist):
     # See narf_analysis --> enqueue models callback
@@ -136,6 +166,7 @@ def enqueue_models(celllist,batch,modellist):
     
     data = 'some kind of success/failure messsage for user'
     return data
+
 
 def enqueue_single_model(cellid,batch,modelname):
     # See narf_analysis --> enqueue_single_model
