@@ -6,25 +6,28 @@ Created on Mon Jun 12 14:06:46 2017
 @author: shofer
 
 
-This function generates a raster plot of the data for the specified stimuli.
-It shows the spikes that occur during the actual trial in green, and the background
-spikes in grey.
+
 """
 import numpy as np
 import matplotlib.pyplot as plt
 
-"""
-Key if data is to be input manually:
-data=obj.ins['resp']
-pre_time=obj.meta['prestim']
-dur_time=obj.meta['duration']
-post_time=obj.meta['poststim']
-frequency=obj.meta['respf']
-"""
-#Want to add "sorted-raster" function that produces a raster plot where the
+
+#TODO: Want to add "sorted-raster" function that produces a raster plot where the
 #the trials are sorted by pupil_diameter
    
 def raster_plot(obj=None,stims='all',size=(12,6),**kwargs):
+    """
+    This function generates a raster plot of the data for the specified stimuli.
+    It shows the spikes that occur during the actual trial in green, and the background
+    spikes in grey. 
+    
+    Can be called either using a FERReT object, or by manually inputing keyworded data:
+        data=obj.ins['resp'] (response raster)
+        pre_time=obj.meta['prestim'] (prestim silence time)
+        dur_time=obj.meta['duration'] (stimulus duration)
+        post_time=obj.meta['poststim'] (poststim silence)
+        frequency=obj.meta['respf'] (sampling frequency)
+    """
     if obj is not None:
         ins=obj.ins['resp']
         pre=obj.meta['prestim']
