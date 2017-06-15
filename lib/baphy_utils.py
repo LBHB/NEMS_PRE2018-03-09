@@ -10,18 +10,6 @@ import scipy.io as si
 import numpy as np
 
 def load_baphy_file(filepath):
-    """
-    This function loads data from a BAPHY .mat file located at 'filepath'. 
-    It returns two dictionaries contining the file data and metadata,
-    'data' and 'meta', respectively. 'data' contains:
-        {'stim':stimulus,'resp':response raster,'pup':pupil diameters}
-    Note that if there is no pupil data in the BAPHY file, 'pup' will return 
-    None. 'meta' contains:
-        {'stimf':stimulus frequency,'respf':response frequency,'iso':isolation,
-             'tags':stimulus tags,'tagidx':tag idx, 'ff':frequency channel bins,
-             'prestim':prestim silence,'duration':stimulus duration,'poststim':
-             poststim silence}
-    """
     data=dict.fromkeys(['stim','resp','pup'])
     meta=dict.fromkeys(['stimf','respf','iso','prestim','duration','poststim',
                         'tags','tagidx','ff'])
