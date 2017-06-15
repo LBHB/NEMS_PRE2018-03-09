@@ -162,7 +162,7 @@ class PlotGenerator():
                             newData[col].loc[c,m] = colval
                 
                 for meas in self.measure:
-                    value = math.nan
+                    value = math.nan 
                     newData[meas].loc[c,m] = value
                     # If loop hits a continue, value will be left as NaN.
                     # Otherwise, will be assigned a value from data 
@@ -246,9 +246,15 @@ class PlotGenerator():
                         newData.drop(c, level='cellid', inplace=True)
                         break
         
+
         # Swap the 0th and 1st levels so that modelname is the primary index,
         # since most plots group by model.
         newData = newData.swaplevel(i=0, j=1, axis=0)
+
+
+
+
+
 
         # Leaving these in for testing to make sure dropping NaN values
         # is working correctly
