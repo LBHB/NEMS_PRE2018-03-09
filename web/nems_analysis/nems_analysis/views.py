@@ -147,9 +147,11 @@ def update_batch():
     
     aSelected = request.args.get('aSelected', type=str)
     
-    batch = session.query(NarfAnalysis.batch)\
-            .filter(NarfAnalysis.name == aSelected)\
+    batch = (
+            session.query(NarfAnalysis.batch)
+            .filter(NarfAnalysis.name == aSelected)
             .first()[0]
+            )
     
     session.close()
     
@@ -167,9 +169,11 @@ def update_models():
     
     aSelected = request.args.get('aSelected', type=str)
     
-    modeltree = session.query(NarfAnalysis.modeltree)\
-                .filter(NarfAnalysis.name == aSelected)\
-                .first()[0]
+    modeltree = (
+            session.query(NarfAnalysis.modeltree)
+            .filter(NarfAnalysis.name == aSelected)
+            .first()[0]
+            )
     # Pass modeltree string from NarfAnalysis to a ModelFinder constructor,
     # which will use a series of internal methods to convert the tree string 
     # to a list of model names.
@@ -256,14 +260,11 @@ def update_results():
             .limit(rowlimit).statement,
             session.bind
             )
+    resultstable = results.to_html(classes="table-hover table-condensed")
     
     session.close()
     
-    return jsonify(resultstable=results.to_html(
-                                         classes='table-hover,\
-                                         table-condensed',
-                                         ),
-            )
+    return jsonify(resultstable=resultstable)
 
 
 @app.route('/update_analysis')
@@ -385,9 +386,11 @@ def edit_analysis():
     # If it does, grab its sql alchemy object and update it with new values,
     # so that the analysis with the same id is overwritten instead of
     # adding a new one.
-    checkExists = session.query(NarfAnalysis)\
-                  .filter(NarfAnalysis.name == eName)\
-                  .all()
+    checkExists = (
+            session.query(NarfAnalysis)
+            .filter(NarfAnalysis.name == eName)
+            .all()
+            )
     if len(checkExists) > 1:
         session.close()
         return Response(
@@ -453,9 +456,11 @@ def get_current_analysis():
                 answer='', tree='',
                 )
         
-    a = session.query(NarfAnalysis)\
-        .filter(NarfAnalysis.name == aSelected)\
+    a = (
+        session.query(NarfAnalysis)
+        .filter(NarfAnalysis.name == aSelected)
         .first()
+        )
     
     session.close()
     
@@ -476,9 +481,11 @@ def check_analysis_exists():
     
     nameEntered = request.args.get('nameEntered')
     
-    result = session.query(NarfAnalysis)\
-             .filter(NarfAnalysis.name == nameEntered)\
-             .first()
+    result = (
+            session.query(NarfAnalysis)
+            .filter(NarfAnalysis.name == nameEntered)
+            .first()
+            )
              
     if result is None:
         exists = False
@@ -501,9 +508,11 @@ def delete_analysis():
         success = False
         return jsonify(success=success)
     
-    result = session.query(NarfAnalysis)\
-             .filter(NarfAnalysis.name == aSelected)\
-             .first()
+    result = (
+            session.query(NarfAnalysis)
+            .filter(NarfAnalysis.name == aSelected)
+            .first()
+            )
     if result is None:
         success = False
         return jsonify(success=success)

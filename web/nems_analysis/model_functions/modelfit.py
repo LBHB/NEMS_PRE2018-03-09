@@ -95,9 +95,11 @@ def fit_single_model(cellid,batch,modelname):
     # est_set_files,val_set_files = db_get_scellfiles(session,cellid,batch)
     
     
-    idents = session.query(NarfBatches.est_set,NarfBatches.val_set)\
-                          .filter(NarfBatches.cellid == cellid)\
-                          .filter(NarfBatches.batch == batch).all()
+    idents = (
+            session.query(NarfBatches.est_set,NarfBatches.val_set)
+            .filter(NarfBatches.cellid == cellid)
+            .filter(NarfBatches.batch == batch).all()
+            )
     # empty list should return false
     if not idents:
         # no file identifiers exist for cell/batch combo in NarfBatches
@@ -146,11 +148,13 @@ def fit_single_model(cellid,batch,modelname):
     data_array.n_parms = 1
     data_array.data = "placeholder for model fitter until model fitter linked up"
     
-    check_exists = session.query(NarfResults)\
-                                .filter(NarfResults.cellid == cellid)\
-                                .filter(NarfResults.batch == batch)\
-                                .filter(NarfResults.modelname == modelname)\
-                                .all()
+    check_exists = (
+            session.query(NarfResults)
+            .filter(NarfResults.cellid == cellid)
+            .filter(NarfResults.batch == batch)
+            .filter(NarfResults.modelname == modelname)
+            .all()
+            )
     
     if len(check_exists) == 0:
         # If no entry exists in narf results for cell/model/batch combo,
@@ -164,8 +168,10 @@ def fit_single_model(cellid,batch,modelname):
         r = fetch_meta_data(data_array,cellid,batch,modelname,r)
     else:
         # If more than one entry exists in NarfResults, something went wrong
-        raise MultiResultError("Multiple entries in Narf Results for cell: %s,\
-                               batch: %s, modelname: %s"%(cellid,batch,modelname))
+        raise MultiResultError(
+                "Multiple entries in Narf Results for cell: %s,"
+                "batch: %s, modelname: %s"%(cellid,batch,modelname)
+                )
 
     # Test to make sure attributes are being correctly assigned from
     # metadata in array

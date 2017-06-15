@@ -1,6 +1,3 @@
-- using plots w/o fair checked is some times causing issues - JSON does not like float(NaN) values,
-  but python2 doesn't support math.nan -- will need to resolve.
-
 - adding or editing an analysis is done via form submission and as such will reset
     the main page to default settings after submission. May want to change to be handled
     by ajax request instead, but when user defaults/saved selections are implemented
