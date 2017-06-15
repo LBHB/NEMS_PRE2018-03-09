@@ -21,7 +21,7 @@ import pandas.io.sql as psql
 
 from nems_analysis import Session, tQueue, NarfResults, NarfBatches
 from .fit_single_utils import cleanup_file_string, fetch_meta_data, MultiResultError
-sys.path.insert(0,'/auto/users/jacob/nems')
+sys.path.insert(0,'/home/jacob/code/nems')
 from modNEM import FERReT
 
 

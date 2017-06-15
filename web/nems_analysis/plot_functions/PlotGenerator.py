@@ -100,7 +100,7 @@ class PlotGenerator():
                         newData[col].loc[c,m] = colval
                 
                 for meas in self.measure:
-                    value = math.nan
+                    value = float('NaN') 
                     newData[meas].loc[c,m] = value
                     # if hit continue, value will be left as nan
                     # otherwise, will be assigned value from data after checks
@@ -169,7 +169,7 @@ class PlotGenerator():
         
         # switch levels so that modelname is now primary indexer,
         # since most plots group by model
-        newData = newData.swaplevel(axis=0)
+        newData = newData.swaplevel(i=0,j=1,axis=0)
 
         #leaving these in for testing to make sure dropping nan values
         # is working correctly
