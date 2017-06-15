@@ -1,197 +1,254 @@
+"""Defines classes for generating bokeh plots.
+
+PlotGenerator defines the base class from which each plot type extends.
+Each plot class takes in a dataframe, a performance measure, and some optional
+specifications. The dataframe is converted into a new DataFrame
+multi-indexed by cell and model, with a column for each performance measure
+as well as any additional columns specified. This way, there is a unique
+set of values for each cell and model combination. After the data is converted,
+generate_plot can be invoked to store the jsonified script and div
+representations of the bokeh plot for the data, which can then be embedded in
+an html document.
+
 """
-- Plot Generator objects
-- Sets attributes based on variables passed from views.py
-- Makes plot using bokeh then returns it in a 
-- template-friendly format
-"""
+
+import math
+import itertools
 
 from bokeh.plotting import figure
 from bokeh.io import gridplot
 from bokeh.embed import components
-from bokeh.models import ColumnDataSource,HoverTool,ResizeTool,SaveTool,\
-                            WheelZoomTool,PanTool,ResetTool,Range1d,FactorRange
+from bokeh.models import (
+        ColumnDataSource, HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
+        PanTool, ResetTool, Range1d, FactorRange,
+        )
 from bokeh.charts import Bar, BoxPlot
 from bokeh.models.glyphs import VBar,Circle
 import pandas as pd
 import numpy as np
-import math
-import itertools
 
+# Setting default tools as global variable was causing issues with scatter
+# plot. They're included here for copy-paste as needed instead.
+#tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
+#                     self.create_hover()]
 
-"""
-setting default tools as global variable was causing issues with scatter
-plot, included here as comment for copy-paste as needed instead.
-
-tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
-                     self.create_hover()]
-
-"""
 
 class PlotGenerator():
-    def __init__(self,data='dataframe',fair=True,outliers=False,measure='r_test',\
-                 extra_cols=[]):
-        # list of models of interest
-        self.measure = [measure]
+    """Base class for plot generators."""
+    
+    def __init__(
+            self, data, measure, fair=True, outliers=False, extra_cols=[],
+            ):
+        # Force measure to be interpreted as a list for
+        # forward-compatibility with specifying multiple measures.
+        if not isinstance(measure, iter):
+            self.measure = [str(measure)]
+        else:
+            self.measure = list(measure)
         self.fair = fair
         self.outliers = outliers
         self.extra_cols = extra_cols
         self.data = self.form_data_array(data)
         
-        # use this inside views function to check whether generate_plot
-        # should be invoked
+        # Use this inside views function to check whether generate_plot
+        # should be invoked.
         if (self.data.size == 0):
             self.emptycheck = True
         else:
             self.emptycheck = False
-            
-        #put a list around measure for now so that data array can be coded
-        #to accept more than one measure if desired
 
-
-    # all plot classes should implement this method to return a script and a div
-    # to be used by plot.html template
     def generate_plot(self):
+        """Assigns script and div attributes to the plot generator object.
+        
+        All plot classes should implement some form of this function to ensure
+        that script and div are returned to the relevant view function.
+        
+        Assigns:
+        --------
+        self.script : JSON data (or a string default/error)
+            Bokeh javascript needed by whatever HTML document embeds self.div
+        self.div : JSON data (or a string default/error)
+            Bokeh javascript used to render a plot from the attached
+            datasource.
+        
+        """
+        
         self.script, self.div = ('','')
     
-    # plot classes should implement this method to include a hover tooltip
-    # must take plot data frame a column data source to use this
     def create_hover(self):
-        #if class doesn't specify code for create_hover, will just return
-        #the default bokeh hover tool
+        """Returns a Bokeh HoverTool() object, possibly with generated 
+        toolip HTML.
+        
+        """
+        
         return HoverTool()
     
     def form_data_array(self, data):
-        # See: narf_analysis --> compute_data_matrix
+        """Formats data into a multi-indexed DataFrame for plotting.
         
-        # takes dataframe passed by views function (should be a full NarfResults query)
-        # and converts to new multi-indexed frame (cellid level 0, modelname level 1)
-        # with a column for each performance measure (base class), plus any other 
-        # information needed for specific plots (overwritten in that class)
-        # if 'outliers' isn't checked, filters out rows that don't meet criteria
-        # if 'fair' is checked, filters out rows that contain NaN for any measure
+        Takes a DataFrame (typically a full NarfResults query) and converts it
+        to a new multi-indexed DataFrame (cellid level 0, modelname level 1)
+        with a column for each performance measure, plus any other columns
+        needed for specific plots.
+        If 'outliers' isn't checked, cellid rows containing values that don't
+            meet outlier criteria will be removed.
+        If 'fair' is checked, cellid rows containing a NaN value in any
+            column will be removed.
+            
+        Returns:
+        --------
+        newData : Pandas DataFrame w/ multi-index
+            Multi-indexed DataFrame containing a series of values for each
+            cellid + modelname combination.
         
-        celllist = [cell for cell in list(set(data['cellid'].values.tolist()))]
-        modellist = [model for model in list(set(data['modelname'].values.tolist()))]
+        See Also:
+        ---------
+        Narf_Analysis : compute_data_matrix
         
-        # use lists of unique cell and model names to form a multiindex for dataframe
-        multiIndex = pd.MultiIndex.from_product([celllist,modellist],names=['cellid','modelname'])
-        newData = pd.DataFrame(index=multiIndex,columns=self.measure+self.extra_cols)
+        """
+        
+        celllist = [
+                cell for cell in
+                list(set(data['cellid'].values.tolist()))
+                ]
+        modellist = [
+                model for model in
+                list(set(data['modelname'].values.tolist()))
+                ]
+        # Use lists of unique cell and model names to form a multiindex.
+        multiIndex = pd.MultiIndex.from_product(
+                [celllist,modellist], names=['cellid','modelname'],
+                )
+        newData = pd.DataFrame(
+                index = multiIndex, columns = self.measure+self.extra_cols,
+                )
         newData.sort_index()
-        # create a new dataframe of empty values with multi index and a column
-        # for each measure type
-        
+
         for c in celllist:
             for m in modellist:
-                
                 dataRow = data.loc[(data.cellid == c) & (data.modelname == m)]
                 
-                # also add column values for any additional columns specificed
+                # Add column values for any additional columns specificed
                 # in plot class (ex: n_parms for pareto plot)
-                if len(self.extra_cols) > 0:
+                if self.extra_cols:
                     for col in self.extra_cols:
                         try:
                             colval = dataRow[col].values.tolist()[0]
-                        except:
-                            # TODO: is this a good way to do this? This requires that
-                            # all extra columns also have values for every cell/model
-                            # if fair is checked.
+                        except Exception as e:
+                            # TODO: Is this a good way to do this?
+                            #       This requires that all extra columns also 
+                            #       have values for every cell/model
+                            #       if fair is checked.
                             colval = math.nan
-                            
-                        newData[col].loc[c,m] = colval
+                            print(e)
+                        finally:
+                            newData[col].loc[c,m] = colval
                 
                 for meas in self.measure:
                     value = math.nan
                     newData[meas].loc[c,m] = value
-                    # if hit continue, value will be left as nan
-                    # otherwise, will be assigned value from data after checks
-                    
+                    # If loop hits a continue, value will be left as NaN.
+                    # Otherwise, will be assigned a value from data 
+                    # after passing all checks.
                     try:
-                        # if measure recorded for c/m combo, assign to value
                         value = dataRow[meas].values.tolist()[0]
-                    except:
-                        # otherwise, error means no value recorded so leave as NaN
-                        # no need to run outlier checks if value missing
+                    except Exception as e:
+                        # Error should mean no value was recorded,
+                        # so leave as NaN.
+                        # No need to run outlier checks if value is missing.
+                        print(e)
                         continue
                     
                     if not self.outliers:
-                        #if outliers is false, run a bunch of checks based on
-                        #measure and if a check fails, step out of loop
+                        # If outliers is false, run a bunch of checks based on
+                        # measure and if a check fails, step out of the loop.
                         
-                        # commented labels from narf_analysis version
-                        # "drop r_test values below threshold"
-                        if ((meas == 'r_test') and (value\
-                             < dataRow['r_floor'].values.tolist()[0])) or\
-                           ((meas == 'r_ceiling') and (dataRow['r_test'].values.tolist()[0]\
-                             < dataRow['r_floor'].values.tolist()[0])) or\
-                           ((meas == 'r_active') and (value\
-                             < dataRow['r_floor'].values.tolist()[0])):
-                               continue
+                        # Comments for each check are copied from
+                        # from Narf_Analysis : compute_data_matrix
+                        
+                        # "Drop r_test values below threshold"
+                        a1 = (meas == 'r_test')
+                        b1 = (value < dataRow['r_floor'].values.tolist()[0])
+                        a2 = (meas == 'r_ceiling')
+                        b2 = (
+                            dataRow['r_test'].values.tolist()[0]
+                            < dataRow['r_floor'].values.tolist()[0]
+                            )
+                        a3 = (meas == 'r_floor')
+                        b3 = b1
+                        if (a1 and b1) or (a2 and b2) or (a3 and b3):
+                            continue
                     
-                        # "drop MI values greater than 1"
-                        if ((meas == 'mi_test') and (value > 1)) or\
-                           ((meas == 'mi_fit') and ((value < 0) or (value > 1))):
-                               continue
+                        # "Drop MI values greater than 1"
+                        a1 = (meas == 'mi_test')
+                        b1 = (value > 1)
+                        a2 = (meas == 'mi_fit')
+                        b2 = (0 <= value <= 1)
+                        if (a1 and b1) or (a2 and not b2):
+                            continue
                            
-                        # "drop MSE values greater than 1.1"
-                        if ((meas == 'mse_test') and (value > 1.1)) or\
-                           ((meas == 'mse_fit') and (value > 1.1)):
-                               continue
+                        # "Drop MSE values greater than 1.1"
+                        a1 = (meas == 'mse_test')
+                        b1 = (value > 1.1)
+                        a2 = (meas == 'mse_fit')
+                        b2 = b1
+                        if (a1 and b1) or (a2 and b2):
+                            continue
                            
-                        # "drop NLOGL outside normalized region"
-                        if ((meas == 'nlogl_test') and ((value < -1.0) or value > 0)) or\
-                           ((meas == 'nlogl_fit') and ((value < -1.0) or value > 0)):
-                               continue
+                        # "Drop NLOGL outside normalized region"
+                        a1 = (meas == 'nlogl_test')
+                        b1 = (-1 <= value <= 0)
+                        a2 = (meas == 'nlogl_fit')
+                        b2 = b1
+                        if (a1 and b1) or (a2 and b2):
+                            continue
                            
                         # TODO: is this still used? not listed in NarfResults
-                        # "drop gamma values that are too low"
-                        if ((meas == 'gamma_test') and (value < 0.15)) or\
-                           ((meas == 'gamma_fit') and (value < 0.15)):
-                               continue
-                            
+                        # "Drop gamma values that are too low"
+                        a1 = (meas == 'gamma_test')
+                        b1 = (value < 0.15)
+                        a2 = (meas == 'gamma_fit')
+                        b2 = b1
+                        if (a1 and b1) or (a2 and b2):
+                            continue
+
                         # TODO: is an outlier check needed for cohere_test
                         #       and/or cohere_fit?
                         
-                    # if value existed and passed outlier checks
-                    # re-assign it to dataframe position to overwrite nan
+                    # If value existed and passed outlier checks,
+                    # re-assign it to the proper DataFrame position
+                    # to overwrite the NaN value.
                     newData[meas].loc[c,m] = value
 
         if self.fair:
-            # if fair is true, drop all rows that contain a NaN value for any
-            # measure column
+            # If fair is checked, drop all rows that contain a NaN value for
+            # any column.
             for c in celllist:
                 for m in modellist:
-                    # if any of the column values for c,m combo is null
                     if newData.loc[c,m].isnull().values.any():
-                        # drop all values for all cell/model matches for this cell
-                        newData.drop(c,level='cellid',inplace=True)
-                        # then break out of model loop to continue to next cell
+                        newData.drop(c, level='cellid', inplace=True)
                         break
         
-        # switch levels so that modelname is now primary indexer,
-        # since most plots group by model
-        newData = newData.swaplevel(axis=0)
+        # Swap the 0th and 1st levels so that modelname is the primary index,
+        # since most plots group by model.
+        newData = newData.swaplevel(i=0, j=1, axis=0)
 
-        #leaving these in for testing to make sure dropping nan values
+        # Leaving these in for testing to make sure dropping NaN values
         # is working correctly
         print("was fair checked?")
         print(self.fair)
         print("does the data look different or contain nans?")
         print(newData[self.measure[0]].values)
         
-        #print("printing converted data array")
-        #print(newData)
-        
-        #print("testing index slice, should result in list of unique cells")
-        #print(newData.loc['fb18ch100_lognn_wc02_fir15_siglog100_fit05h_fit05c'])
-        
         return newData
     
         
         
 class Scatter_Plot(PlotGenerator):
+    """Defines the class used to generate a model-comparison scatter plot."""
     
-    def __init__(self,data='dataframe',fair=True,outliers=False,measure='r_test'):
-        PlotGenerator.__init__(self,data,fair,outliers,measure)
+    def __init__(self, data, measure, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, fair, outliers)
         
     def create_hover(self):
         hover_html = """
@@ -288,9 +345,8 @@ class Scatter_Plot(PlotGenerator):
 
 class Bar_Plot(PlotGenerator):
     
-        def __init__(self, data = 'dataframe', fair = True, outliers = False,\
-                 measure = 'r_test'):
-            PlotGenerator.__init__(self,data,fair,outliers,measure)
+        def __init__(self, data, measure, fair=True, outliers=False):
+            PlotGenerator.__init__(self, data, measure, fair, outliers)
             
         def create_hover(self):
             hover_html = """
@@ -331,7 +387,12 @@ class Bar_Plot(PlotGenerator):
             i = 0
             for model in modelnames:
                 values = self.data[self.measure[0]].loc[model].values
-                                       
+                
+                # TODO: Looks like some kinds of checks are needed here to
+                #       handle NaN values -- getting "Out of range float"
+                #       issue with JSON serialization.
+                
+                
                 stdev = np.std(values,axis=0)
                 mean = np.mean(values,axis=0)
                 
@@ -378,9 +439,11 @@ class Bar_Plot(PlotGenerator):
             
 class Pareto_Plot(PlotGenerator):
             
-    def __init__(self, data = 'dataframe', fair = True, outliers = False,\
-                 measure = 'r_test',extra_cols=['n_parms']):
-        PlotGenerator.__init__(self,data,fair,outliers,measure,extra_cols)
+    def __init__(
+            self, data, measure, fair=True, outliers=False,
+            extra_cols=['n_parms']
+            ):
+        PlotGenerator.__init__(self, data, measure, fair, outliers, extra_cols)
             
     def create_hover(self):
         hover_html = """

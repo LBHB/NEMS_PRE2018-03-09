@@ -1,51 +1,66 @@
+"""View functions for "Fit Single Now" and "Enqueue Models" buttons.
+
+These functions communicate with modelfit.py and are called by flask 
+when the browser navigates to their app.route URL signatures. 
+fit_single_model_view calls modelfit.fit_single_model
+for the cell, batch and model selection passed via AJAX.
+enqueue_models_view calls enqueue_models for the list of
+cell selections, batch selection, and list of model selections
+passed via AJAX.
+Both functions return json-serialized summary information for the user
+to indicate the success/failure and results of the model fit/queue.
+
+See Also:
+---------
+. : modelfit.py
+
+"""
+
 from flask import render_template, jsonify, request
-from nems_analysis import app
 import pandas as pd
+
+from nems_analysis import app
 from model_functions.modelfit import fit_single_model, enqueue_models
 
-@app.route('/modelpane')
-def modelpane_view():
-    return render_template('/modelpane/modelpane.html')
 
 @app.route('/fit_single_model')
 def fit_single_model_view():
-    #TODO: link up to model package
+    """Call modelfit.fit_single_model with user selections as args."""
+    
     cSelected = request.args.getlist('cSelected[]')
+    # Only pull the numerals from the batch string, leave off the description
     bSelected = request.args.get('bSelected')[:3]
     mSelected = request.args.getlist('mSelected[]')
     
+    # Disallow multiple cell/model selections for a single fit.
     if (len(cSelected) > 1) or (len(mSelected) > 1):
-        return jsonify(data ='error',preview='more than 1 cell and/or model')
+        return jsonify(data='error',preview='more than 1 cell and/or model')
     
-    # get cellid and modelname from results table selection,
-    # batch from batch selector
-    
-    # TODO: what do I want to have returned from this?
-    #       model queue should only have to run this one line, so only need to 
-    #       return things that will be displayed to user on single fit
+    # TODO: What should this return?
+    #       Only need to return data that will be displayed to user,
+    #       not the full data array from the model fitter.
     #       --figurefile/preview image and what else?
-    #       --nothing displayed for enqueue since they don't run right away?
-    data = fit_single_model(cellid=cSelected[0],batch=bSelected,modelname=mSelected[0])
-
-    #figure_file = data['figure_file']
-    figure_file = 'preview for %s, %s, %s'%(cSelected[0],bSelected,mSelected[0])
+    data = fit_single_model(cellid=cSelected[0],batch=bSelected,
+                            modelname=mSelected[0])
     
-    #use data after ajax call to display some type of results summary or success message?
+    # TODO: how will data be formatted?
+    #figure_file = data['figure_file']
+    figure_file = 'preview for %s, %s, %s'\
+                  %(cSelected[0],bSelected,mSelected[0])
+    
     return jsonify(data = data.data,preview = figure_file)
 
 @app.route('/enqueue_models')
 def enqueue_models_view():
+    """Call modelfit.enqueue_models with user selections as args."""
     
-    #TODO: is batch necessary? cell list has already been retrieved, but
-    #       might still need to record batch # in NarfResults at the  end.
+    # Only pull the numerals from the batch string, leave off the description.
     bSelected = request.args.get('bSelected')[:3]
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
     
-    # get batch, cell and model selections from their respective selectors.
-    # only queue models for selections, not entire analysis
-    data = enqueue_models(celllist=cSelected,batch=bSelected,modellist=mSelected)
+    # TODO: What should this return? What does the user need to see?
+    data = enqueue_models(celllist=cSelected,batch=bSelected,
+                          modellist=mSelected)
     
-    # only need to return some kind of success/failure message or summary
-    # fitting doesn't happen right away so no image or statistics to return
-    return jsonify(data = data, testb=bSelected,testc=cSelected,testm=mSelected)
+    return jsonify(data=data,testb=bSelected,testc=cSelected,testm=mSelected)

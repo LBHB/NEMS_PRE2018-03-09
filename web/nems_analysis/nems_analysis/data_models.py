@@ -1,7 +1,12 @@
-""" define data models here, to be imported by the data initializer """
-""" TODO: would this actually be useful? organizes data into objects relationships
-    instead of tables, but abstracts away from the database structure and adds
-    a lot of extra stuff - leaving as dataframes for now, may come back to this"""
+""" define data models here, to be imported by the data initializer.
+TODO: would this actually be useful? organizes data into objects relationships
+instead of tables, but abstracts away from the database structure and adds
+a lot of extra stuff - leaving as dataframes for now, may come back to this.
+
+Likely won't go with this approach since sqlalchemy more or less
+does this already.
+
+"""
 
 class Analysis():
 

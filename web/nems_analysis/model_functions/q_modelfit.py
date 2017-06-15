@@ -1,6 +1,8 @@
-"""
-stand-alone version of fit_single_model to be called from command line by
-model queue
+"""Independent version of fit_single_model to be called from command line by
+the model queuer.
+
+Not yet developed.
+
 """
 
 #import necessary model stuff (copy from fit_single_model)
