@@ -261,6 +261,7 @@ class FERReT:
             for f in functions:
                 getattr(self.impdict[f],f)(self,indata=self.train['stim'],
                        data=self.current,pupdata=self.train['pup'],pred=self.pred)
+                #TODO: remove indata step so that any function can be first in the queue
             mse=self.err()
             cost_fn.counter+=1
             if cost_fn.counter % 1000==0:
@@ -341,6 +342,7 @@ class FERReT:
         This method has data_resample, reshape_repetitions, resp_avg, create_datasets,
         and basic_min as dependencies. 
         """
+        #TODO: remove indata step so that any function can be first in the queue
         self.data_resample(noise_thresh=0.04)
         if self.data['pup'] is not None:
             self.reshape_repetitions()

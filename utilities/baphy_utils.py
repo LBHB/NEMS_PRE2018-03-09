@@ -3,7 +3,7 @@
 """
 Created on Wed Jun 14 09:33:47 2017
 
-@author: svd
+@author: svd, changes added by njs 
 """
 
 import scipy.io as si
