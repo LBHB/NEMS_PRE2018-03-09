@@ -53,12 +53,17 @@ import nems_keyword as nk    # collection of functions that evaluate keywords
 
 cellid="chn004b-a1"
 batch=271
-keywords=['fb24ch100','lognn','fir15','dexp','fit00']
+modelname="fb24ch100_lognn_fir15_dexp-fit00"
+keywords=convert_modelname_to_keywords(modelname)
+# ie, keywords=['fb24ch100','lognn','fir15','dexp','fit00']
 
 m=FERReT()
-m.cellid=cellid
+m.cellid=cellid  # save some metadata in the object
 m.batch=batch
+m.keywords=keywords
+m.modelname=modelname
 
+# execute each keyword
 for k in keywords:
     method_to_call = getattr(nk, k)
     method_to_call(m)
@@ -66,6 +71,26 @@ for k in keywords:
 m.generate_summary_plot()
 
 m.save_results_to_file()
+
+
+# pseudocode option 3 (load and visualize saved model):
+import nems_modules as nm    # nems_modules is something like nems_mod.py of old
+import nems_fitters as nf    # collection of fit algorithms
+import nems_keyword as nk    # collection of functions that evaluate keywords
+
+cellid="chn004b-a1"
+batch=271
+modelname="fb24ch100_lognn_fir15_dexp-fit00"
+
+m=load_nems_model(cellid,batch,modelname)
+
+keywords=m.keywords
+
+m.evaluate(0) # run entire stack to populate data structure
+   
+m.generate_summary_plot()
+# or
+m.generate_interactive_plot()
 
 
 
