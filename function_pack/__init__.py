@@ -6,7 +6,7 @@ Created on Mon Jun 12 16:36:10 2017
 @author: shofer
 """
 
-#Initialization file for the NEMS function pack. 
+#Initialization file for the NEMS function package. 
 
 """
 This package currently has the following modules available for fitting:
@@ -16,4 +16,5 @@ This package currently has the following modules available for fitting:
     4. no_pupil_gain.py
     5. DEXP.py
     6. tanhsig.py
+    7. gauss_nl.py
 """

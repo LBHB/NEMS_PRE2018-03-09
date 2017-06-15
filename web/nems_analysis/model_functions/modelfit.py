@@ -9,17 +9,24 @@ from the command prompt for each cell+model combination for a given analysis,
 then writes each entry to tQueue to be run via model queue.
 
 TODO:
-class/object approach appropriate here? really just carrying out the same
+class/object approach necessary here? really just carrying out the same
 procedure each time. Going with simple functions for now.
 """
+import datetime
+import sys
 
-from nems_analysis import Session, tQueue, NarfResults
+from sqlalchemy import inspect
 import pandas as pd
 import pandas.io.sql as psql
-import datetime
 
-#TODO:
-#from Noah's_model_fitting_stuff.ModelObjectFile import ModelObject
+from nems_analysis import Session, tQueue, NarfResults, NarfBatches
+from .fit_single_utils import cleanup_file_string, fetch_meta_data, MultiResultError
+sys.path.insert(0,'/auto/users/jacob/nems')
+from modNEM import FERReT
+
+
+#TODO: restructure nems package to avoid this issue
+
 
 #TODO: will need to put a similar version of fit_single in a separate .py
 #       for use with enqueue models. Needs to not import anything from the app
@@ -27,63 +34,122 @@ import datetime
 #       of the package. Can just copy paste code except will need to make its own
 #       db connection instead of importing Session from nems_analysis
 
-#TODO: where does training set vs validation set come in?
+
+class dat_object():
+    """ placeholder for data array until model fitter linked up,
+    for testing only 
+    
+    """
+    def __init__(self):
+        pass
+
 
 def fit_single_model(cellid,batch,modelname):
-    #session = Session()
     
-    #query narfbatches to get filepaths
+    session = Session()
     
-    #TODO: split modelname by underscores into list of strings before passing
-    #TODO: pass in filepaths for est and val sets instead of batch and cellid
-    #TODO: pass in filecodes as well?
+    """
+    # TODO: don't worry about these for now, may change
+    # assigned like a list comprehension for syntax
+    # but should only be one result from DB
+    filecodes = [
+                code[0] for code in \
+                session.query(NarfBatches.filecodes)\
+                .filter(NarfBatches.cellid == cellid)\
+                .filter(NarfBatches.batch == batch).all()
+                ]
+    """
     
-    #NOTE: goal of the above two changes is to abstract database-terminology
-    #       away from model fitter so that it only has to know where the data is
+    """
+    # DEPRECATED
+    # get filepaths for both est and val data sets
+    est_set_files,val_set_files = db_get_scellfiles(session,cellid,batch)
+    """
+    
+    idents = session.query(NarfBatches.est_set,NarfBatches.val_set)\
+                          .filter(NarfBatches.cellid == cellid)\
+                          .filter(NarfBatches.batch == batch).all()
+    
+    if len(idents) == 0:
+        # no file identifiers exist for cell/batch combo in NarfBatches
+        # TODO: should this throw an error? or do something else?
+        pass
+    
+    est_ident = idents[0][0]
+    val_ident = idents[0][1]
+    
+    #TODO: should do string cleanup here or pass as-is to model fitter?
+    est_ident = cleanup_file_string(est_ident)
+    val_ident = cleanup_file_string(val_ident)
+    
+    print("estimation file identifer(s) and validation file identifier(s):")
+    print(est_ident)
+    print(val_ident)
+    
+    # pass cellid, batch, modelname, est_file_ident and val_file_ident to
+    # model fitter object
+    # TODO: supposed to have the option of directly passing a file instead?
+    
+    #ModelFitter = FERReT(cellid, batch, modelname, est_ident, val_ident)
+    
+    # tell model fitter to run the queue of modules
+    #ModelFitter.run_fit()
+    
+    # get 3d numpy array from Model Fitter after modules run
+    # TODO: looks like this has changed? what do we need to call now?
+    #       ~apply to fit
+    #       and ~apply to est?
+    #ModelFitter.assemble_data_array()
+
+    # TODO: save array(s) to file(s) appropriately and return filepath(s)
+    
+    # TODO: need some kind of timeout warning for user?
+    
+    # dat_object() for testing only
+    data_array = dat_object()
+    data_array.r_test = 0.5
+    data_array.n_parms = 1
+    data_array.data = "placeholder for model fitter until model fitter linked up"
+    
+    check_exists = session.query(NarfResults).filter\
+                    (NarfResults.cellid == cellid).filter\
+                    (NarfResults.batch == batch).filter\
+                    (NarfResults.modelname == modelname).all()
+    
+    if len(check_exists) == 0:
+        # if no entry in narf results for cell/model/batch combo, write in new entry
+        r = NarfResults()
+        r = fetch_meta_data(data_array,cellid,batch,modelname,r)
+        session.add(r)
         
-    #ModelObject = ModelObject(est_set_files, val_set_files, filecodes, module_keywords)
+    elif len(check_exists) == 1:
+        # if one entry in narf results, overwrite it
+        r = check_exists[0]
+        r = fetch_meta_data(data_array,cellid,batch,modelname,r)
+        
+    else:
+        # if more than one entry exists, something went wrong
+        raise MultiResultError("Multiple entries in Narf Results for cell: %s,\
+                               batch: %s, modelname: %s"%(cellid,batch,modelname))
+
+
+    # leave session.commit() commented out until ready to test with database
+    # IF LEFT IN, THIS WILL SAVE TO / OVERWRITE DATA IN DB
     
-    #.run_fit() --> tell object to run its queue of modules
+    #session.commit()
     
-    #.assemble_data_array() --> return numpy arrays for saving to file
-    # save file(s) appropriately and return filepath(s)
-    
-    #need some kind of timeout warning? does model fitting cascade on instantiation,
-    #or need to invoke some method first?
-    
-    # form a pd.Series for NarfResults --> cellid=cellid, batch=batch,modelname=modelname,
-    #                       other fields pulled from ModelObject.fieldAttribute, filepaths
-    #                       fields retrieved above.
+    # test to make sure attributes are being correctly assigned from
+    # metadata in array
+    print("Printing attributes assigned to results entry:")
+    mapper = inspect(r)
+    for c in mapper.attrs:
+        print(c.key)
+        print(getattr(r,c.key))
     
     
-    """
-    query NarfResults with cellid, batch and modelname - if get a result, then
-    an entry for this cell + batch + model combination already exists, so need
-    to delete it before adding new entry
-    """
+    session.close()
     
-    """
-    then add via sql alchemy explicitly
-    
-    session.add_all([
-            Table(column1=data_from_modules['column1'], column2=data_from_modules['column2']),
-            --repeat for each entry
-            //construct list outside of this first for multiple entries
-            ])
-    
-    session.commit()
-    """
-    
-    """
-    OR format entry within dataframe (since we're ultimately just adding 1 row)
-    
-    dataframe['name of series corresponding to desired values'].to_sql\
-        (NarfResults,session.bind)
-    """
-    
-    #session.close()
-    
-    data = 'really cool model fitting data stuff'
+    data = data_array
     
     # only need to return data that will be displayed to user, i.e. figurefile
     # or path and a results summary. Pass as dict?
@@ -91,6 +157,7 @@ def fit_single_model(cellid,batch,modelname):
     # or something to that effect
     return data
 
+    
 def enqueue_models(celllist,batch,modellist):
     # See narf_analysis --> enqueue models callback
     #for model in modellist:
@@ -99,6 +166,7 @@ def enqueue_models(celllist,batch,modellist):
     
     data = 'some kind of success/failure messsage for user'
     return data
+
 
 def enqueue_single_model(cellid,batch,modelname):
     # See narf_analysis --> enqueue_single_model
