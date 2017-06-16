@@ -269,10 +269,52 @@ class fir_filter(nems_module):
             pl.set_cmap('jet')
             pl.figure()
             ax=pl.subplot(1,1,1)
+        
+        h=self.coefs
+        pl.set_cmap('jet')
+        ax.imshow(h, aspect='auto', origin='lower')
+        ax.set_title(self.name)
+
+class dexp(nems_module):
+    
+    name='dexp'
+    dexp=np.ones([1,4]) 
+    
+    def __init__(self,d_in=None,fit_params=['dexp']):
+        self.dexp=np.ones([1,4]) 
+        self.dexp[0][0]=1
+        self.dexp[0][3]=1 
+        self.fit_params=fit_params
+        self.data_setup(d_in)
+        print('dexp parameters created')
+
+    def eval(self):
+        v1=self.dexp[0,0]
+        v2=self.dexp[0,1]
+        v3=self.dexp[0,2]
+        v4=self.dexp[0,3]
+        del self.d_out[:]
+        for i, val in enumerate(self.d_in):
+            #self.d_out.append(copy.deepcopy(val))
+            self.d_out.append(val.copy())
+            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+            
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in[self.input_name])
+            X=v1-v2*np.exp(-np.exp(v3*(X-v4)))
+            f_out[self.output_name]=X
+    
+    def do_plot(self, ax=None):
+        if ax is None:
+            pl.set_cmap('jet')
+            pl.figure()
+            ax=pl.subplot(1,1,1)
             
         out1=self.d_out[:]
-        ax.plot(out1[0]['stim'][0,:])
-        ax.plot(out1[0]['resp'][0,:],'r')
+        s=out1[0]['stim'][0,:]
+        r=out1[0]['resp'][0,:]
+        ax.plot(s/s.max())
+        ax.plot(r/r.max(),'r')
         ax.set_title(self.name)
 
 class mean_square_error(nems_module):
@@ -321,8 +363,10 @@ class mean_square_error(nems_module):
             ax=pl.subplot(1,1,1)
             
         out1=self.d_out[:]
-        ax.plot(out1[0]['stim'][0,:])
-        ax.plot(out1[0]['resp'][0,:],'r')
+        s=out1[0]['stim'][0,:]
+        r=out1[0]['resp'][0,:]
+        ax.plot(s/s.max())
+        ax.plot(r/r.max(),'r')
         ax.set_title(self.name)
         
 class nems_stack:
@@ -337,6 +381,7 @@ class nems_stack:
     data=[]     # corresponding stack of data in/out for each module
     modelname=None
     meta={}
+    fitter=None
     
     def __init__(self):
         print("dummy")
@@ -362,6 +407,7 @@ class nems_stack:
             print("Propagating d_out from {0} into new d_in".format(self.modules[-1].name))
             mod.d_in=self.data[-1]
         self.modules.append(mod)
+        self.modules[-1].eval()
         self.data.append(mod.d_out)
         
     def popmodule(self, mod=nems_module()):

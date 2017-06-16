@@ -47,7 +47,7 @@ for mod in m.stack():
 
 
 # pseudocode option 2 (run through keyword list):
-import nems_modules as nm    # nems_modules is something like nems_mod.py of old
+import lib.nems_modules as nm    # nems_modules is something like nems_mod.py of old
 import nems_fitters as nf    # collection of fit algorithms
 import nems_keyword as nk    # collection of functions that evaluate keywords
 

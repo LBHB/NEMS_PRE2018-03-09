@@ -52,7 +52,7 @@ def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
     @author: svd
     """
     rootpath="/auto/data/code/nems_in_cache"
-    fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{4}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
+    fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
     
     # placeholder. Need to check if file exists in nems_in_cache.
     # If not, call baphy function in Matlab to regenerate it:
