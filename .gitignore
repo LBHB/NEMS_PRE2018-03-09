@@ -9,4 +9,5 @@ saved_models/
 *#
 *.pyc
 **/database_info.txt
+**/nems_path.txt
 __pycache_

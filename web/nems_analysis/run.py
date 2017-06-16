@@ -12,6 +12,14 @@ the server, potentially causing harm.
 
 """
 
+# Add any specified paths to sys.path for importing.
+# TODO: This works for now, but a better solution likely exists.
+import sys
+with open ("instance/nems_path.txt","r") as nems:
+    for path in nems:
+        sys.path.insert(0,path)
+del sys
+
 from nems_analysis import app
 
 app.run(host='0.0.0.0',port=8000,debug=True)

@@ -26,22 +26,10 @@ import pandas as pd
 import pandas.io.sql as psql
 
 from nems_analysis import Session, tQueue, NarfResults, NarfBatches
-<<<<<<< HEAD
 from .fit_single_utils import (
         cleanup_file_string, fetch_meta_data, MultiResultError,
         )
-#TODO: restructure nems package to avoid needing to insert path
-
-
-
-from .fit_single_utils import cleanup_file_string, fetch_meta_data, MultiResultError
-sys.path.insert(0,'/home/jacob/code/nems')
-from modNEM import FERReT
-
-
-
-
-
+from nemsclass import FERReT
 
 #TODO: will need to put a similar version of fit_single in a separate .py
 #       for use with enqueue models. Needs to not import anything from the app
@@ -328,7 +316,6 @@ def add_model_to_queue(commandPrompt,note,job,priority=1,rundataid=0):
     waitid = 0
     dt = str(datetime.datetime.now().replace(microsecond=0))
     
-<<<<<<< HEAD
     job.rundataid = rundataid
     job.progname = progname
     job.priority = priority
@@ -340,11 +327,3 @@ def add_model_to_queue(commandPrompt,note,job,priority=1,rundataid=0):
     job.waitid = waitid
     
     return job
-=======
-    sqlEntries = {'rundataid':rundataid,'progname':progname,\
-                  'priority':priority,'parmstring':commandPrompt,'queuedate':dt,\
-                  'allowqueuemaster':allowqueuemaster,'user':user,'note':note,\
-                  'waitid':waitid}
-    
-    return sqlEntries
->>>>>>> live
