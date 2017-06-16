@@ -1,197 +1,277 @@
+"""Defines classes for generating bokeh plots.
+
+PlotGenerator defines the base class from which each plot type extends.
+Each plot class takes in a dataframe, a performance measure, and some optional
+specifications. The dataframe is converted into a new DataFrame
+multi-indexed by cell and model, with a column for each performance measure
+as well as any additional columns specified. This way, there is a unique
+set of values for each cell and model combination. After the data is converted,
+generate_plot can be invoked to store the jsonified script and div
+representations of the bokeh plot for the data, which can then be embedded in
+an html document.
+
 """
-- Plot Generator objects
-- Sets attributes based on variables passed from views.py
-- Makes plot using bokeh then returns it in a 
-- template-friendly format
-"""
+
+import math
+import itertools
 
 from bokeh.plotting import figure
 from bokeh.io import gridplot
 from bokeh.embed import components
-from bokeh.models import ColumnDataSource,HoverTool,ResizeTool,SaveTool,\
-                            WheelZoomTool,PanTool,ResetTool,Range1d,FactorRange
+from bokeh.models import (
+        ColumnDataSource, HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
+        PanTool, ResetTool, Range1d, FactorRange,
+        )
 from bokeh.charts import Bar, BoxPlot
 from bokeh.models.glyphs import VBar,Circle
 import pandas as pd
 import numpy as np
-import math
-import itertools
+
+# Setting default tools as global variable was causing issues with scatter
+# plot. They're included here for copy-paste as needed instead.
+#tools = [
+#    PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
+#    ResetTool(), self.create_hover()
+#    ]
 
 
-"""
-setting default tools as global variable was causing issues with scatter
-plot, included here as comment for copy-paste as needed instead.
-
-tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
-                     self.create_hover()]
-
-"""
+# Specify the number of columns to use for gridplots
+GRID_COLS = 3
+# Appearance options for circle glyphs (ex. scatter plot)
+CIRCLE_FILL = 'navy'
+CIRCLE_SIZE = 5
+CIRCLE_ALPHA = 0.5
+# Appearance options for virtical bar glyphs (ex. bar plot)
+VBAR_FILL = '#FF5740'
+VBAR_WIDTH = 0.5
 
 class PlotGenerator():
-    def __init__(self,data='dataframe',fair=True,outliers=False,measure='r_test',\
-                 extra_cols=[]):
-        # list of models of interest
-        self.measure = [measure]
+    """Base class for plot generators."""
+    
+    def __init__(
+            self, data, measure, fair=True, outliers=False, extra_cols=[],
+            ):
+        # Force measure to be interpreted as a list for
+        # forward-compatibility with specifying multiple measures.
+        if isinstance(measure, list):
+            self.measure = measure
+        else:
+            self.measure = [str(measure)]
         self.fair = fair
         self.outliers = outliers
         self.extra_cols = extra_cols
         self.data = self.form_data_array(data)
         
-        # use this inside views function to check whether generate_plot
-        # should be invoked
+        # Use this inside views function to check whether generate_plot
+        # should be invoked.
         if (self.data.size == 0):
             self.emptycheck = True
         else:
             self.emptycheck = False
-            
-        #put a list around measure for now so that data array can be coded
-        #to accept more than one measure if desired
 
-
-    # all plot classes should implement this method to return a script and a div
-    # to be used by plot.html template
     def generate_plot(self):
+        """Assigns script and div attributes to the plot generator object.
+        
+        All plot classes should implement some form of this function to ensure
+        that script and div are returned to the relevant view function.
+        
+        Assigns:
+        --------
+        self.script : JSON data (or a string default/error)
+            Bokeh javascript needed by whatever HTML document embeds self.div
+        self.div : JSON data (or a string default/error)
+            Bokeh javascript used to render a plot from the attached
+            datasource.
+        
+        """
+        
         self.script, self.div = ('','')
     
-    # plot classes should implement this method to include a hover tooltip
-    # must take plot data frame a column data source to use this
     def create_hover(self):
-        #if class doesn't specify code for create_hover, will just return
-        #the default bokeh hover tool
+        """Returns a Bokeh HoverTool() object, possibly with generated 
+        toolip HTML.
+        
+        $ and @ tell the HoverTool() where to pull data values from.
+        $ denotes a special column (ex: $index or $x),
+            refer to Bokeh docs for a full list.
+        @ denotes a field in the data source (ex: @cellid)
+        
+        """
+        
         return HoverTool()
     
     def form_data_array(self, data):
-        # See: narf_analysis --> compute_data_matrix
+        """Formats data into a multi-indexed DataFrame for plotting.
         
-        # takes dataframe passed by views function (should be a full NarfResults query)
-        # and converts to new multi-indexed frame (cellid level 0, modelname level 1)
-        # with a column for each performance measure (base class), plus any other 
-        # information needed for specific plots (overwritten in that class)
-        # if 'outliers' isn't checked, filters out rows that don't meet criteria
-        # if 'fair' is checked, filters out rows that contain NaN for any measure
+        Takes a DataFrame (typically a full NarfResults query) and converts it
+        to a new multi-indexed DataFrame (cellid level 0, modelname level 1)
+        with a column for each performance measure, plus any other columns
+        needed for specific plots.
+        If 'outliers' isn't checked, cellid rows containing values that don't
+            meet outlier criteria will be removed.
+        If 'fair' is checked, cellid rows containing a NaN value in any
+            column will be removed.
+            
+        Returns:
+        --------
+        newData : Pandas DataFrame w/ multi-index
+            Multi-indexed DataFrame containing a series of values for each
+            cellid + modelname combination.
         
-        celllist = [cell for cell in list(set(data['cellid'].values.tolist()))]
-        modellist = [model for model in list(set(data['modelname'].values.tolist()))]
+        See Also:
+        ---------
+        Narf_Analysis : compute_data_matrix
         
-        # use lists of unique cell and model names to form a multiindex for dataframe
-        multiIndex = pd.MultiIndex.from_product([celllist,modellist],names=['cellid','modelname'])
-        newData = pd.DataFrame(index=multiIndex,columns=self.measure+self.extra_cols)
+        """
+        
+        celllist = [
+                cell for cell in
+                list(set(data['cellid'].values.tolist()))
+                ]
+        modellist = [
+                model for model in
+                list(set(data['modelname'].values.tolist()))
+                ]
+        # Use lists of unique cell and model names to form a multiindex.
+        multiIndex = pd.MultiIndex.from_product(
+                [celllist,modellist], names=['cellid','modelname'],
+                )
+        newData = pd.DataFrame(
+                index = multiIndex, columns = self.measure+self.extra_cols,
+                )
         newData.sort_index()
-        # create a new dataframe of empty values with multi index and a column
-        # for each measure type
-        
+
         for c in celllist:
             for m in modellist:
-                
                 dataRow = data.loc[(data.cellid == c) & (data.modelname == m)]
                 
-                # also add column values for any additional columns specificed
+                # Add column values for any additional columns specificed
                 # in plot class (ex: n_parms for pareto plot)
-                if len(self.extra_cols) > 0:
+                if self.extra_cols:
                     for col in self.extra_cols:
                         try:
                             colval = dataRow[col].values.tolist()[0]
-                        except:
-                            # TODO: is this a good way to do this? This requires that
-                            # all extra columns also have values for every cell/model
-                            # if fair is checked.
+                        except Exception as e:
+                            # TODO: Is this a good way to do this?
+                            #       This requires that all extra columns also 
+                            #       have values for every cell/model
+                            #       if fair is checked.
                             colval = math.nan
-                            
-                        newData[col].loc[c,m] = colval
+                            print(e)
+                        finally:
+                            newData[col].loc[c,m] = colval
                 
                 for meas in self.measure:
-                    value = float('NaN') 
+                    value = math.nan 
                     newData[meas].loc[c,m] = value
-                    # if hit continue, value will be left as nan
-                    # otherwise, will be assigned value from data after checks
-                    
+                    # If loop hits a continue, value will be left as NaN.
+                    # Otherwise, will be assigned a value from data 
+                    # after passing all checks.
                     try:
-                        # if measure recorded for c/m combo, assign to value
                         value = dataRow[meas].values.tolist()[0]
-                    except:
-                        # otherwise, error means no value recorded so leave as NaN
-                        # no need to run outlier checks if value missing
+                    except Exception as e:
+                        # Error should mean no value was recorded,
+                        # so leave as NaN.
+                        # No need to run outlier checks if value is missing.
+                        print(e)
                         continue
                     
                     if not self.outliers:
-                        #if outliers is false, run a bunch of checks based on
-                        #measure and if a check fails, step out of loop
+                        # If outliers is false, run a bunch of checks based on
+                        # measure and if a check fails, step out of the loop.
                         
-                        # commented labels from narf_analysis version
-                        # "drop r_test values below threshold"
-                        if ((meas == 'r_test') and (value\
-                             < dataRow['r_floor'].values.tolist()[0])) or\
-                           ((meas == 'r_ceiling') and (dataRow['r_test'].values.tolist()[0]\
-                             < dataRow['r_floor'].values.tolist()[0])) or\
-                           ((meas == 'r_active') and (value\
-                             < dataRow['r_floor'].values.tolist()[0])):
-                               continue
+                        # Comments for each check are copied from
+                        # from Narf_Analysis : compute_data_matrix
+                        
+                        # "Drop r_test values below threshold"
+                        a1 = (meas == 'r_test')
+                        b1 = (value < dataRow['r_floor'].values.tolist()[0])
+                        a2 = (meas == 'r_ceiling')
+                        b2 = (
+                            dataRow['r_test'].values.tolist()[0]
+                            < dataRow['r_floor'].values.tolist()[0]
+                            )
+                        a3 = (meas == 'r_floor')
+                        b3 = b1
+                        if (a1 and b1) or (a2 and b2) or (a3 and b3):
+                            continue
                     
-                        # "drop MI values greater than 1"
-                        if ((meas == 'mi_test') and (value > 1)) or\
-                           ((meas == 'mi_fit') and ((value < 0) or (value > 1))):
-                               continue
+                        # "Drop MI values greater than 1"
+                        a1 = (meas == 'mi_test')
+                        b1 = (value > 1)
+                        a2 = (meas == 'mi_fit')
+                        b2 = (0 <= value <= 1)
+                        if (a1 and b1) or (a2 and not b2):
+                            continue
                            
-                        # "drop MSE values greater than 1.1"
-                        if ((meas == 'mse_test') and (value > 1.1)) or\
-                           ((meas == 'mse_fit') and (value > 1.1)):
-                               continue
+                        # "Drop MSE values greater than 1.1"
+                        a1 = (meas == 'mse_test')
+                        b1 = (value > 1.1)
+                        a2 = (meas == 'mse_fit')
+                        b2 = b1
+                        if (a1 and b1) or (a2 and b2):
+                            continue
                            
-                        # "drop NLOGL outside normalized region"
-                        if ((meas == 'nlogl_test') and ((value < -1.0) or value > 0)) or\
-                           ((meas == 'nlogl_fit') and ((value < -1.0) or value > 0)):
-                               continue
+                        # "Drop NLOGL outside normalized region"
+                        a1 = (meas == 'nlogl_test')
+                        b1 = (-1 <= value <= 0)
+                        a2 = (meas == 'nlogl_fit')
+                        b2 = b1
+                        if (a1 and b1) or (a2 and b2):
+                            continue
                            
                         # TODO: is this still used? not listed in NarfResults
-                        # "drop gamma values that are too low"
-                        if ((meas == 'gamma_test') and (value < 0.15)) or\
-                           ((meas == 'gamma_fit') and (value < 0.15)):
-                               continue
-                            
+                        # "Drop gamma values that are too low"
+                        a1 = (meas == 'gamma_test')
+                        b1 = (value < 0.15)
+                        a2 = (meas == 'gamma_fit')
+                        b2 = b1
+                        if (a1 and b1) or (a2 and b2):
+                            continue
+
                         # TODO: is an outlier check needed for cohere_test
                         #       and/or cohere_fit?
                         
-                    # if value existed and passed outlier checks
-                    # re-assign it to dataframe position to overwrite nan
+                    # If value existed and passed outlier checks,
+                    # re-assign it to the proper DataFrame position
+                    # to overwrite the NaN value.
                     newData[meas].loc[c,m] = value
 
         if self.fair:
-            # if fair is true, drop all rows that contain a NaN value for any
-            # measure column
+            # If fair is checked, drop all rows that contain a NaN value for
+            # any column.
             for c in celllist:
                 for m in modellist:
-                    # if any of the column values for c,m combo is null
                     if newData.loc[c,m].isnull().values.any():
-                        # drop all values for all cell/model matches for this cell
-                        newData.drop(c,level='cellid',inplace=True)
-                        # then break out of model loop to continue to next cell
+                        newData.drop(c, level='cellid', inplace=True)
                         break
         
-        # switch levels so that modelname is now primary indexer,
-        # since most plots group by model
-        newData = newData.swaplevel(i=0,j=1,axis=0)
 
-        #leaving these in for testing to make sure dropping nan values
+        # Swap the 0th and 1st levels so that modelname is the primary index,
+        # since most plots group by model.
+        newData = newData.swaplevel(i=0, j=1, axis=0)
+
+
+
+
+
+
+        # Leaving these in for testing to make sure dropping NaN values
         # is working correctly
         print("was fair checked?")
         print(self.fair)
         print("does the data look different or contain nans?")
         print(newData[self.measure[0]].values)
         
-        #print("printing converted data array")
-        #print(newData)
-        
-        #print("testing index slice, should result in list of unique cells")
-        #print(newData.loc['fb18ch100_lognn_wc02_fir15_siglog100_fit05h_fit05c'])
-        
         return newData
     
         
         
 class Scatter_Plot(PlotGenerator):
+    """Defines the class used to generate a model-comparison scatter plot."""
     
-    def __init__(self,data='dataframe',fair=True,outliers=False,measure='r_test'):
-        PlotGenerator.__init__(self,data,fair,outliers,measure)
+    def __init__(self, data, measure, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, fair, outliers)
         
     def create_hover(self):
         hover_html = """
@@ -205,182 +285,207 @@ class Scatter_Plot(PlotGenerator):
                 <span class="hover-tooltip">cell: @cellid</span>
             </div>
             """%(self.measure[0],self.measure[0])
+            
         return HoverTool(tooltips=hover_html)
             
     def generate_plot(self):
-        # keep a list of the plots generated for each model combination
+        """Iteratively reformats and plots self.data for each cell+model combo.
+        
+        TODO: Finish this doc
+        
+        """
+        
         plots = []
         modelnames = self.data.index.levels[0].tolist()
         
-        # returns a list of tuples representing all pairs of models
+        # Iterate over a list of tuples representing all unique pairs of models.
         for pair in list(itertools.combinations(modelnames,2)):
-            tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
-                     self.create_hover()]
-            # modelnames for x and y axes
+            tools = [
+                PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
+                ResetTool(), self.create_hover(),
+                ]
+
             modelX = pair[0]
             modelY = pair[1]
             
             dataX = self.data.loc[modelX]
             dataY = self.data.loc[modelY]
             
-            # only necessary b/c bokeh's $index identifier for hovertool
-            # pulling integer index despite data being indexed by cellid.
-            # if can figure out away to pull cellid strings from index instead,
-            # will no longer need this code.
+            # Only necessary b/c bokeh's $index identifier for HoverTool()
+            # is pulling an integer index despite data being indexed by cellid.
+            # If cellid strings can be pulled from index instead,
+            # this code will no longer be needed.
             cells = []
+            cellsX = list(set(dataX.index.values.tolist()))
+            cellsY = list(set(dataY.index.values.tolist()))
             if self.fair:
-                cells = list(set(dataX.index.values.tolist()))
-                if cells != list(set(dataY.index.values.tolist())):
+                # cellsX and cellsY should be the same if fair was checked
+                cells = cellsX
+                if cells != cellsY:
                     self.script = 'Problem with form_data_array:'
                     self.div = 'Model x: ' + modelX + 'and Model y: ' + modelY\
                             + ' applied to different cells despite fair check.'
+                    return
             else:
-                cellsX = list(set(dataX.index.values.tolist()))
-                cellsY = list(set(dataY.index.values.tolist()))
+                # If fair wasn't checked, use the longer list to avoid errors.
                 if len(cellsX) >= len(cellsY):
                     cells = cellsX
                 else:
                     cells = cellsY
             
-            
-            data = pd.DataFrame({'x_values':dataX[self.measure[0]],\
-                                 'y_values':dataY[self.measure[0]],
-                                 'cellid':cells})
-            print(data)
-            
+            data = pd.DataFrame({
+                    'x_values':dataX[self.measure[0]],
+                    'y_values':dataY[self.measure[0]],
+                    'cellid':cells,
+                    })
             dat_source = ColumnDataSource(data)
                 
-            p = figure(x_range=[0,1], y_range=[0,1],x_axis_label=modelX,\
-                       y_axis_label=modelY, title=self.measure[0], tools=tools)
-                    
-            glyph = Circle(x='x_values',y='y_values',size=5,fill_color='navy',\
-                           fill_alpha=0.5)
-            p.add_glyph(dat_source,glyph)
-            p.line([0,1],[0,1],line_width=1,color='black')
-
+            p = figure(
+                    x_range=[0,1], y_range=[0,1],
+                    x_axis_label=modelX, y_axis_label=modelY,
+                    title=self.measure[0], tools=tools
+                    )
+            glyph = Circle(
+                    x='x_values', y='y_values', size=CIRCLE_SIZE,
+                    fill_color=CIRCLE_FILL, fill_alpha=CIRCLE_ALPHA,
+                    )
+            p.add_glyph(dat_source, glyph)
+            p.line([0,1], [0,1], line_width=1, color='black')
             plots.append(p)
     
-        # if made more than one plot (i.e. more than 2 models selected),
-        # put them in a grid
-        if len(plots) >= 1:
-            # split plot list into a list of lists based on size compared to
-            # nearest perfect square
-            i = 1
-            while i**i < len(plots):
-                i += 1
-                
-            # plots may still wrap around at a specific limit regardless, depending
-            # on size and browser
-            if i == 1:
-                singleplot = plots[0]
-                self.script,self.div = components(singleplot)
-                return
-            else:
-                nestedplots = [plots[j:j+i] for j in range(0,len(plots),i)]
-                
-            grid = gridplot(nestedplots)
-
+        # If more than one plot was made (i.e. 2 or more models were selected),
+        # put them in a grid.
+        if len(plots) == 1:
+            singleplot = plots[0]
+            self.script,self.div = components(singleplot)
+            return
+        elif len(plots) > 1:            
+            grid = gridplot(plots, ncols=GRID_COLS)
             self.script,self.div = components(grid)
-
         else:
-            self.script, self.div = ('Error,','No plots to display.')
+            self.script, self.div = (
+                    'Error, no plots to display.',
+                    'Make sure you selected two models.'
+                    )
 
 
 class Bar_Plot(PlotGenerator):
+    """Defines the class used to generate a mean-performance bar plot for
+    a model-by-model comparison.
     
-        def __init__(self, data = 'dataframe', fair = True, outliers = False,\
-                 measure = 'r_test'):
-            PlotGenerator.__init__(self,data,fair,outliers,measure)
-            
-        def create_hover(self):
-            hover_html = """
-                <div>
-                    <span class="hover-tooltip">model: $x</span>
-                </div>
-                <div>
-                    <span class="hover-tooltip">mean: @mean</span>
-                </div>
-                <div>
-                    <span class="hover-tooltip">stdev: @stdev</span>
-                </div>
-            """
-            return HoverTool(tooltips=hover_html)
-            
-        def generate_plot(self):
-            # TODO: hardcoded self.measure[0] for now, but should incorporate
-            #       a for loop somewhere to subplot for each selected measure
-            
-            # TODO: add significance information (see plot_bar_pretty and randttest
-                                                  # in narf_analysis)      
+    """
     
-            #build new pandas series of stdev values to be added to dataframe
+    def __init__(self, data, measure, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, fair, outliers)
             
-            #if want to show more info on tooltip in the future, just need
-            #to build an appropriate series to add and then build its tooltip
-            #in the create_hover function
-
-            modelnames = self.data.index.levels[0].tolist()
-            
-            index = range(len(modelnames))
-            stdev_col = pd.Series(index=index)
-            mean_col = pd.Series(index=index)
-            model_col = pd.Series(index=index,dtype=str)
-            
-            #for each model, find the stdev and mean over the measure values, then
-            #assign those values to new Series objects to use for the plot
-            i = 0
-            for model in modelnames:
-                values = self.data[self.measure[0]].loc[model].values
-                                       
-                stdev = np.std(values,axis=0)
-                mean = np.mean(values,axis=0)
-                
-                stdev_col.iat[i] = stdev
-                mean_col.iat[i] = mean
-                model_col.iat[i] = model
-                i += 1
-                    
-            newData = pd.DataFrame.from_dict({'stdev':stdev_col,'mean':mean_col,\
-                                              'modelname':model_col})
-            
-            tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
-                     self.create_hover()]
-            
-            #build data source from new dataframe for use with hover tool
-            dat_source = ColumnDataSource(newData)
-            
-            xrange = FactorRange(factors=newData['modelname'].tolist())
-            yrange = Range1d(start=0,end=max(newData['mean'])*1.5)
-            
-            p = figure(x_range=xrange,x_axis_label='Model',y_range=yrange, y_axis_label=\
-                       'Mean %s'%self.measure[0],title="Mean %s Performance By Model"\
-                       %self.measure[0],tools=tools)
-            
-            p.xaxis.major_label_orientation=(np.pi/4)
-            
-            glyph = VBar(x='modelname',top='mean',bottom=0,width=0.5,fill_color='#FF5740',\
-                         line_color='modelname')
-            
-            p.add_glyph(dat_source,glyph)
-
-            
-            #use this for basic bar plot instead, but doesn't work well with custom
-            #hover tool
-            """            
-            p = Bar(self.data,label='modelname',values=self.measure,agg='mean',\
-                    title='Mean %s Performance By Model'%self.measure,legend=None,\
-                    tools=tools, color='modelname')
+    def create_hover(self):
+        hover_html = """
+            <div>
+                <span class="hover-tooltip">model: $x</span>
+            </div>
+            <div>
+                <span class="hover-tooltip">mean: @mean</span>
+            </div>
+            <div>
+                <span class="hover-tooltip">stdev: @stdev</span>
+            </div>
             """
             
-            self.script,self.div = components(p)
+        return HoverTool(tooltips=hover_html)
             
+    def generate_plot(self):           
+        """Calculates mean and standard deviation for measure(s) by model,
+        then generates a bar plot of model vs mean performance.
+        
+        TODO: Finish this doc.
+        
+        """
+
+        # Use this for a built-in bar plot instead,
+        # but doesn't work with custom hover tool
+        #p = Bar(self.data,label='modelname',values=self.measure,agg='mean',\
+        #        title='Mean %s Performance By Model'%self.measure,legend=None,\
+        #        tools=tools, color='modelname')
+        #self.script,self.div = components(p)
+        #return
+        
+        # TODO: hardcoded self.measure[0] for now, but should incorporate
+        #       a for loop somewhere to subplot for each selected measure
+        
+        # TODO: add significance information (see plot_bar_pretty
+        #       and randttest in narf_analysis)      
+
+        # build new pandas series of stdev values to be added to dataframe
+        # if want to show more info on tooltip in the future, just need
+        # to build an appropriate series to add and then build its tooltip
+        #in the create_hover function
+
+        modelnames = self.data.index.levels[0].tolist()
+        stdev_col = pd.Series(index=modelnames)
+        mean_col = pd.Series(index=modelnames)
+        #for each model, find the stdev and mean over the measure values, then
+        #assign those values to new Series objects to use for the plot
+        for model in modelnames:
+            values = self.data[self.measure[0]].loc[model]
+            print(values)
+            stdev = values.std(skipna=True)
+            mean = values.mean(skipna=True)
+            if (math.isnan(stdev)) or (math.isnan(mean)):
+                # If either statistic comes out as NaN, entire column was NaN,
+                # so model doesn't have the necessary data.
+                continue
+            stdev_col.at[model] = stdev
+            mean_col.at[model] = mean
+            
+        newData = pd.DataFrame.from_dict({
+                'stdev':stdev_col, 'mean':mean_col,
+                })
+        # Drop any models with NaN values, since that means they had no
+        # performance data for one or more columns.
+        newData.dropna(axis=0, how='any', inplace=True)
+        if newData.size == 0:
+            self.script,self.div = (
+                    "Error, no plot to display.",
+                    "None of the models contained valid performance data."
+                    )
+            return
+        dat_source = ColumnDataSource(newData)
+        
+        tools = [
+                PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
+                ResetTool(), self.create_hover()
+                ]
+        xrange = FactorRange(factors=modelnames)
+        yrange = Range1d(start=0, end=max(newData['mean'])*1.5)
+        p = figure(
+                x_range=xrange, x_axis_label='Model',
+                y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
+                title="Mean %s Performance By Model"%self.measure[0],
+                tools=tools,
+                )
+        p.xaxis.major_label_orientation=(np.pi/4)
+        glyph = VBar(
+                x='index', top='mean', bottom=0, width=VBAR_WIDTH,
+                fill_color=VBAR_FILL, line_color='black'
+                )
+        p.add_glyph(dat_source,glyph)
+            
+        self.script,self.div = components(p)
             
             
 class Pareto_Plot(PlotGenerator):
-            
-    def __init__(self, data = 'dataframe', fair = True, outliers = False,\
-                 measure = 'r_test',extra_cols=['n_parms']):
-        PlotGenerator.__init__(self,data,fair,outliers,measure,extra_cols)
+    """Defines the class used to generate a Bokeh box-plot for mean performance
+    versus model complexity.
+    
+    """
+    
+    # Always include 'n_parms' as an extra column, since it's required
+    # for this plot type.
+    def __init__(
+            self, data, measure, fair=True, outliers=False,
+            extra_cols=['n_parms']
+            ):
+        PlotGenerator.__init__(self, data, measure, fair, outliers, extra_cols)
             
     def create_hover(self):
         hover_html = """
@@ -391,12 +496,16 @@ class Pareto_Plot(PlotGenerator):
             <span class="hover-tooltip">%s value: $y</span>
         </div>
         """%self.measure[0]
+        
         return HoverTool(tooltips=hover_html)
             
     def generate_plot(self):
+        """TODO: write this doc."""
         
-        tools = [PanTool(),ResizeTool(),SaveTool(),WheelZoomTool(),ResetTool(),\
-                     self.create_hover()]
+        tools = [
+                PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
+                ResetTool(), self.create_hover()
+                ]
             
         
         # TODO: Change this to custom chart type? Not quite the same as narf pareto
@@ -412,9 +521,11 @@ class Pareto_Plot(PlotGenerator):
         #       could implement simlar to custom bar above and use either lines
         #       or narrow rectangles (for better visibility)
         
-        p = BoxPlot(self.data,values=self.measure[0],label='n_parms',\
-                        title="Mean Performance (%s) versus Complexity"%self.measure[0],\
-                        tools=tools, color='n_parms')
+        p = BoxPlot(
+                self.data, values=self.measure[0], label='n_parms',
+                title="Mean Performance (%s) vs Complexity"%self.measure[0],
+                tools=tools, color='n_parms',
+                )
             
         self.script,self.div = components(p)
             

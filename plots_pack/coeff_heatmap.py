@@ -11,9 +11,9 @@ useful for FIR or factorized spectrogram models.
 
 import matplotlib.pyplot as plt
 
-def heatmap(obj=None,model='FIR',size=(6,6),**kwargs):
+def heatmap(obj=None,module=None,size=(6,6),**kwargs):
     if obj is not None:
-        arr=getattr(obj,obj.fit_param[model][0])
+        arr=getattr(obj,obj.fit_param[module][0])
     else:
         arr=kwargs['coeffs']
     plt.figure(figsize=size)

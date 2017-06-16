@@ -16,3 +16,5 @@ author: @svd
     #   6. LoadMFile -- load contents of baphy parameter+event file
     #   7. evtimes 
     #   8. raster_plot
+
+#Note: I created a raster plot function in the Plotting package that can take in the response raster from the baphy file-NJS
