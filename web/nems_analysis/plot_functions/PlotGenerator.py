@@ -251,11 +251,6 @@ class PlotGenerator():
         # since most plots group by model.
         newData = newData.swaplevel(i=0, j=1, axis=0)
 
-
-
-
-
-
         # Leaving these in for testing to make sure dropping NaN values
         # is working correctly
         print("was fair checked?")
@@ -265,7 +260,6 @@ class PlotGenerator():
         
         return newData
     
-        
         
 class Scatter_Plot(PlotGenerator):
     """Defines the class used to generate a model-comparison scatter plot."""

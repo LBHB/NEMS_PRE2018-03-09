@@ -2,9 +2,7 @@ $(document).ready(function(){
         
     // TODO: Split this up into multile .js files? getting a bit crowded in here,
     // could group by functionality at this point.    
-        
-    
-    
+
     
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
