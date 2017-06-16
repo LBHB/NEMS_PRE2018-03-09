@@ -11,26 +11,46 @@ import nems_fitters as nf
 import nems_utils as nu
 import baphy_utils
 
+# loader keywords
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat(est_files=[file],fs=200))
 
+def fb18ch100(stack):
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat(est_files=[file],fs=100))
+
+
+# fir filter keywords
+def fir10(stack):
+    out1=stack.output()
+    stack.append(nm.fir_filter(d_in=out1,num_coefs=10))
+
+def fir15(stack):
+    out1=stack.output()
+    stack.append(nm.fir_filter(d_in=out1,num_coefs=15))
+
+
+# static NL keywords
 def lognn(stack):
     print("lognn not implemented")
     #stack.addmodule(nm.nonlinearity('log_compress'))
-    
-    
-def fir15(stack):
-    stack.addmodule(nm.fir_filter(15))  # where 15 is the number of time bins
 
 def dexp(stack):
     stack.addmodule(nm.dexp)
 
+
+# fitter keywords
 def fit00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
     if not mseidx:
+        # add MSE calculator module to stack if not there yet
         stack.append(nm.mean_square_error())
+
+        # set error (for minimization) for this stack to be output of last module
+        stack.error=stack.modules[-1].error
         
     stack.fitter=nf.simplex()
     stack.fit()

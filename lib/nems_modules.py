@@ -150,7 +150,7 @@ class load_mat(nems_module):
             data['fs']=self.fs
             stim_resamp_factor=self.fs/data['stimFs']
             resp_resamp_factor=self.fs/data['respFs']
-                                
+            
             # reshape stimulus to be channel X time
             data['stim']=np.transpose(data['stim'],(0,2,1))
             if stim_resamp_factor != 1:
@@ -168,6 +168,9 @@ class load_mat(nems_module):
                 data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
                 
             # average across trials
+            print(np.isnan(data['resp'][0,:,:]).shape)
+            data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
+            
             data['resp']=np.nanmean(data['resp'],axis=1)
             data['resp']=np.transpose(data['resp'],(1,0))
             
@@ -194,7 +197,54 @@ class load_mat(nems_module):
             #Duration=data['Duration'][0,0] # Duration of TORC sounds
             #PreStimSilence=data['PreStimSilence'][0,0]
             #PostStimSilence=data['PostStimSilence'][0,0]
+
+class standard_est_val(nems_module):
+ 
+    name='standard_est_val'
+    valfrac=0.05
+    valmode=False
+    
+    def __init__(self, d_in=None, valfrac=0.05):
+        self.valfrac=valfrac
+        self.valmode=False
+        self.data_setup(d_in)
+    
+    def eval(self):
+        del self.d_out[:]
+         # for each data file:
+        for i, d in enumerate(self.d_in):
+            #self.d_out.append(d)
+            
+            # figure out number of distinct stim
+            s=d['repcount']
+            
+            m=s.max()
+            validx = s==m
+            estidx = s<m
+            
+            d_est=d.copy()
+            d_val=d.copy()
+            
+            d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
+            d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
+            d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
+            d_val['repcount']=copy.deepcopy(d['repcount'][validx])
+            d_val['resp']=copy.deepcopy(d['resp'][validx,:])
+            d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
+            
+            if 'pupil' in d.keys():
+                d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
+                d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
+            
+            d_est['est']=True
+            d_val['est']=False
+            
+            self.d_out.append(d_est)
+            if self.valmode:
+                self.d_out.append(d_val)
+
         
+       
 class add_scalar(nems_module):
  
     name='add_scalar'
@@ -221,6 +271,7 @@ class sum_dim(nems_module):
         
     def eval(self):
         del self.d_out[:]
+        # for each data file:
         for i, val in enumerate(self.d_in):
             self.d_out.append(copy.deepcopy(val))
 
@@ -310,11 +361,12 @@ class dexp(nems_module):
             pl.figure()
             ax=pl.subplot(1,1,1)
             
+        in1=self.d_in[:]
         out1=self.d_out[:]
-        s=out1[0]['stim'][0,:]
-        r=out1[0]['resp'][0,:]
-        ax.plot(s/s.max())
-        ax.plot(r/r.max(),'r')
+        s1=in1[0]['stim'][0,:]
+        s2=out1[0]['stim'][0,:]
+        ax.plot(s1/s1.max())
+        ax.plot(s2/s2.max(),'r')
         ax.set_title(self.name)
 
 class mean_square_error(nems_module):

@@ -27,17 +27,18 @@ est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 # create an empty stack
 stack=nm.nems_stack()
 
-stack.meta['cellid']='chn020f-b1'
-stack.meta['batch']=271
+#stack.meta['cellid']='chn020f-b1'
+stack.meta['cellid']='bbl031f-a1'
+stack.meta['batch']=291
 
 # add a loader module to stack
 #stack.append(nm.load_mat(est_files=est_files,fs=100))
-nk.fb24ch200(stack)
-
-
+#nk.fb24ch200(stack)
+nk.fb18ch100(stack)
+stack.append(nm.standard_est_val())
 
 # add fir filter module to stack
-stack.append(nm.fir_filter(d_in=out1,num_coefs=10))
+nk.fir10(stack)
 
 # add MSE calculator module to stack
 stack.append(nm.mean_square_error())
@@ -57,18 +58,15 @@ stack.append(nm.dexp())
 stack.append(nm.mean_square_error())
 
 stack.fitter=nf.basic_min(stack)
+stack.fitter.maxit=100  # does this work??
 stack.fitter.do_fit()
-
 
 # display the output of each
 pl.figure()
-ii=0
-ax=pl.subplot(3,1,1)
-stack.modules[0].do_plot(ax)
-ax=pl.subplot(3,1,2)
-stack.modules[1].do_plot(ax)
-ax=pl.subplot(3,1,3)
-stack.modules[2].do_plot(ax)
+for idx,m in enumerate(stack.modules):
+    ax=pl.subplot(5,1,idx+1)
+    stack.modules[idx].do_plot(ax)
+    
 
 
 ## old display stuff

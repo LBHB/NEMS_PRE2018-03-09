@@ -26,7 +26,7 @@ class nems_fitter:
         
     # create fitter, this should be turned into an object in the nems_fitters libarry
     def test_cost(self,phi):
-        self.stack.modules[1].phi2parms(phi)
+        self.stack.modules[2].phi2parms(phi)
         self.stack.eval(1)
         self.counter+=1
         if self.counter % 100 == 0:
@@ -37,9 +37,10 @@ class nems_fitter:
         # run the fitter
         self.counter=0
         # pull out current phi as initial conditions
-        self.phi0=self.stack.modules[1].parms2phi()
+        self.phi0=self.stack.modules[2].parms2phi()
         phi=sp.optimize.fmin(self.test_cost, self.phi0, maxiter=1000)
         return phi
+    
     
 class basic_min(nems_fitter):
     """
@@ -126,7 +127,7 @@ class basic_min(nems_fitter):
         cons=()
         self.phi0=self.fit_to_phi() 
         self.counter=0
-        print(self.phi0)
+        print("phi0 intialized ({0} parameters)".format(len(self.phi0))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
                              constraints=cons,options=opt)
         print(self.stack.error())
