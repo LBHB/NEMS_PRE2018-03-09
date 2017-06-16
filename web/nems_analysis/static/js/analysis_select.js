@@ -15,9 +15,8 @@ $(document).ready(function(){
         updateAnalysisDetails();
     }
     
-    //TODO: not working, select all cells/models with checkbox
     
-    $("#selectAllCells").change(selectCellsCheck);
+    $("#selectAllCells").on('click', selectCellsCheck);
     
     function selectCellsCheck(){
         var cellOptions = document.getElementsByName("cellOption[]");
@@ -31,8 +30,7 @@ $(document).ready(function(){
         updateResults();                           
     }
     
-    $("#selectAllModels").change(selectModelsCheck);
-    
+    $("#selectAllModels").on('click', selectModelsCheck);
     
     function selectModelsCheck(){
         var modelOptions = document.getElementsByName("modelOption[]");
@@ -288,6 +286,18 @@ $(document).ready(function(){
         });
     }
 
+    $("#newAnalysis").on('click',newAnalysis);
+    
+    function newAnalysis(){
+        $("[name='editName']").val('');
+        $("[name='editStatus']").val('');
+        $("[name='editTags']").val('');
+        $("[name='editBatch']").val('');
+        $("[name='editQuestion']").html('');
+        $("[name='editAnswer']").html('');
+        $("[name='editTree']").val('');
+    }
+    
     $("#editAnalysis").on('click',editAnalysis);
     
     function editAnalysis(){
@@ -315,7 +325,7 @@ $(document).ready(function(){
             }                
         });
     }
-            
+    
     $("#submitEditForm").on('click',verifySubmit);
     
     
@@ -340,7 +350,8 @@ $(document).ready(function(){
                 if(confirm("ATTENTION: This will save the entered information to the\n" +
                             "database, potentially overwriting previous settings.\n" +
                             "Are you sure you want to continue?")){
-                    $("#analysisEditor").submit();
+                    //$("#analysisEditor").submit();
+                    submitAnalysis();
                 } else{
                     return false;
                 }
@@ -348,6 +359,30 @@ $(document).ready(function(){
            error: function(error){
                    
             }
+        });
+    }
+                
+    function submitAnalysis(){
+        var name = $("[name='editName']").val();
+        var status = $("[name='editStatus']").val();
+        var tags = $("[name='editTags']").val();
+        var batch = $("[name='editBatch']").val();
+        var question = $("[name='editQuestion']").val();
+        var answer = $("[name='editAnswer']").val();
+        var tree = $("[name='editTree']").val();
+        
+        $.ajax({
+           url: $SCRIPT_ROOT + '/edit_analysis',
+           data: { name:name, status:status, tags:tags, batch:batch,
+                  question:question, answer:answer, tree:tree },
+           type: 'GET',
+           success: function(data){
+               $("#analysisEditorModal").modal('hide')
+               console.log(data.success);
+           },
+           error: function(error){
+               console.log(error)
+           }
         });
     }
 
