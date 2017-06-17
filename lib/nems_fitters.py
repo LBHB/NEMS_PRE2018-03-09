@@ -27,7 +27,7 @@ class nems_fitter:
     # create fitter, this should be turned into an object in the nems_fitters libarry
     def test_cost(self,phi):
         self.stack.modules[2].phi2parms(phi)
-        self.stack.eval(1)
+        self.stack.evaluate(1)
         self.counter+=1
         if self.counter % 100 == 0:
             print('Eval #{0}. MSE={1}'.format(self.counter,self.stack.error()))
@@ -45,7 +45,7 @@ class nems_fitter:
 class basic_min(nems_fitter):
     """
     The basic fitting routine used to fit a model. This function defines a cost
-    function that evaluates the functions being fit using the current parameters
+    function that evals the functions being fit using the current parameters
     for those functions and outputs the current mean square error (mse). 
     This cost function is evaulated by the scipy optimize.minimize routine,
     which seeks to minimize the mse by changing the function parameters. 
@@ -100,7 +100,7 @@ class basic_min(nems_fitter):
             
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
-        self.stack.eval(self.fit_modules[0])
+        self.stack.evaluate(self.fit_modules[0])
         mse=self.stack.error()
         self.counter+=1
         if self.counter % 1000==0:
@@ -109,7 +109,7 @@ class basic_min(nems_fitter):
         return(mse)
     
     def do_fit(self):
-        self.counter=0
+        # figure out which modules have free parameters, if fit modules not specified
         if len(self.fit_modules)==0:
             for idx,m in enumerate(self.stack.modules):
                 this_phi=m.parms2phi()
@@ -118,7 +118,6 @@ class basic_min(nems_fitter):
         
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(self.maxit)
-        print("maxiter: {0}".format(opt['maxiter']))
         #if function=='tanhON':
             #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
             #routine='COBYLA'
@@ -127,10 +126,11 @@ class basic_min(nems_fitter):
         cons=()
         self.phi0=self.fit_to_phi() 
         self.counter=0
-        print("phi0 intialized ({0} parameters)".format(len(self.phi0))
+        print("phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
+        print("maxiter: {0}".format(opt['maxiter']))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
-                             constraints=cons,options=opt)
-        print(self.stack.error())
+                             constraints=cons,options=opt,tol=0.01)
+        print("Final MSE: {0}".format(self.stack.error()))
         return(self.stack.error())
     
     

@@ -103,6 +103,7 @@ class FERReT:
               +str(rHz)+"Hz to "+str(newHz)+"Hz.")
         
 
+
     def reshape_repetitions(self):
         """
         Reshapes response, stimulus, and pupil arrays to T*R x S matrix.

@@ -11,3 +11,4 @@ saved_models/
 **/database_info.txt
 **/nems_path.txt
 __pycache_
+.spyproject/

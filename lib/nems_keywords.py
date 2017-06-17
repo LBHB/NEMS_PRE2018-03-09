@@ -6,10 +6,10 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
-import nems_modules as nm
-import nems_fitters as nf
-import nems_utils as nu
-import baphy_utils
+import lib.nems_modules as nm
+import lib.nems_fitters as nf
+import lib.nems_utils as nu
+import lib.baphy_utils as baphy_utils
 
 # loader keywords
 def fb24ch200(stack):
@@ -19,6 +19,12 @@ def fb24ch200(stack):
 
 def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat(est_files=[file],fs=100))
+
+def loadlocal(stack):
+    file='/auto/users/shofer/data/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
+    #file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat(est_files=[file],fs=100))
 
@@ -34,12 +40,17 @@ def fir15(stack):
 
 
 # static NL keywords
-def lognn(stack):
-    print("lognn not implemented")
-    #stack.addmodule(nm.nonlinearity('log_compress'))
+def dlog(stack):
+    out1=stack.output()
+    stack.append(nm.nonlinearity(d_in=out1,nltype='dlog',fit_params=['dlog']))
+    
+def exp(stack):
+    out1=stack.output()
+    stack.append(nm.nonlinearity(d_in=out1,nltype='exp',fit_params=['exp']))
 
 def dexp(stack):
-    stack.addmodule(nm.dexp)
+    out1=stack.output()
+    stack.append(nm.dexp(d_in=out1))
 
 
 # fitter keywords
@@ -47,13 +58,15 @@ def fit00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
     if not mseidx:
         # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error())
-
+        stack.append(nm.mean_square_error(d_in=stack.output()))
+        
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
         
-    stack.fitter=nf.simplex()
-    stack.fit()
+    stack.evaluate(1)
+
+    stack.fitter=nf.nems_fitter(stack)
+    stack.fitter.do_fit()
 
 # etc etc for other keywords
     
