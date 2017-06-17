@@ -29,20 +29,20 @@ def load_baphy_file(filepath):
     m=matdata['data'][0][0]
     data['resp']=m['resp_raster']
     data['stim']=m['stim']
-    meta['stimf']=m['stimfs'][0][0]
-    meta['respf']=m['respfs'][0][0]
-    meta['iso']=m['isolation'][0][0]
-    meta['tags']=np.concatenate(m['tags'][0]['tags'][0][0],axis=0)
-    meta['tagidx']=m['tags'][0]['tagidx'][0][0]
-    meta['ff']=m['tags'][0]['ff'][0][0]
-    meta['prestim']=m['tags'][0]['PreStimSilence'][0][0][0]
-    meta['poststim']=m['tags'][0]['PostStimSilence'][0][0][0]
-    meta['duration']=m['tags'][0]['Duration'][0][0][0] 
+    data['stimf']=m['stimfs'][0][0]
+    data['respf']=m['respfs'][0][0]
+    data['iso']=m['isolation'][0][0]
+    data['tags']=np.concatenate(m['tags'][0]['tags'][0][0],axis=0)
+    data['tagidx']=m['tags'][0]['tagidx'][0][0]
+    data['ff']=m['tags'][0]['ff'][0][0]
+    data['prestim']=m['tags'][0]['PreStimSilence'][0][0][0]
+    data['poststim']=m['tags'][0]['PostStimSilence'][0][0][0]
+    data['duration']=m['tags'][0]['Duration'][0][0][0] 
     try:
         data['pup']=m['pupil']
     except:
         data['pup']=None
-    return(data,meta)
+    return(data)
     
 def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
     """

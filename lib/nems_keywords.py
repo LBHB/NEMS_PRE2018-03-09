@@ -6,10 +6,10 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
-import nems_modules as nm
-import nems_fitters as nf
-import nems_utils as nu
-import baphy_utils
+import lib.nems_modules as nm
+import lib.nems_fitters as nf
+import lib.nems_utils as nu
+import lib.baphy_utils as baphy_utils
 
 # loader keywords
 def fb24ch200(stack):
@@ -22,6 +22,11 @@ def fb18ch100(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat(est_files=[file],fs=100))
 
+def loadlocal(stack):
+    file='/auto/users/shofer/data/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
+    #file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat(est_files=[file],fs=100))
 
 # fir filter keywords
 def fir10(stack):
@@ -34,12 +39,16 @@ def fir15(stack):
 
 
 # static NL keywords
-def lognn(stack):
-    print("lognn not implemented")
-    #stack.addmodule(nm.nonlinearity('log_compress'))
+def dlog(stack):
+    out1=stack.output()
+    stack.append(nm.nonlinearity(d_in=out1,nltype='dlog',fit_params=['dlog']))
+    
+def exp(stack):
+    out1=stack.output()
+    stack.append(nm.nonlinearity(d_in=out1,nltype='exp',fit_params=['exp']))
 
 def dexp(stack):
-    stack.addmodule(nm.dexp)
+    stack.append(nm.dexp)
 
 
 # fitter keywords

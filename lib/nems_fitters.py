@@ -27,7 +27,7 @@ class nems_fitter:
     # create fitter, this should be turned into an object in the nems_fitters libarry
     def test_cost(self,phi):
         self.stack.modules[2].phi2parms(phi)
-        self.stack.eval(1)
+        self.stack.evaluate(1)
         self.counter+=1
         if self.counter % 100 == 0:
             print('Eval #{0}. MSE={1}'.format(self.counter,self.stack.error()))
@@ -45,7 +45,7 @@ class nems_fitter:
 class basic_min(nems_fitter):
     """
     The basic fitting routine used to fit a model. This function defines a cost
-    function that evaluates the functions being fit using the current parameters
+    function that evals the functions being fit using the current parameters
     for those functions and outputs the current mean square error (mse). 
     This cost function is evaulated by the scipy optimize.minimize routine,
     which seeks to minimize the mse by changing the function parameters. 
@@ -100,7 +100,7 @@ class basic_min(nems_fitter):
             
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
-        self.stack.eval(self.fit_modules[0])
+        self.stack.evaluate(self.fit_modules[0])
         mse=self.stack.error()
         self.counter+=1
         if self.counter % 1000==0:
@@ -127,7 +127,7 @@ class basic_min(nems_fitter):
         cons=()
         self.phi0=self.fit_to_phi() 
         self.counter=0
-        print("phi0 intialized ({0} parameters)".format(len(self.phi0))
+        print("phi0 intialized ({0} parameters)".format(len(self.phi0)))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
                              constraints=cons,options=opt)
         print(self.stack.error())

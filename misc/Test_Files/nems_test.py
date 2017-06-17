@@ -7,8 +7,7 @@ Created on Mon Apr 17 23:16:23 2017
 """
 
 import numpy as np
-import matplotlib as mp
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import scipy.io
 import scipy.signal
@@ -23,21 +22,23 @@ import lib.nems_keywords as nk
 #est_files=[datapath + 'chn020f-b1_b271_ozgf_c24_fs200.mat']
 datapath='/Users/svd/python/nems/misc/ref/'
 est_files=[datapath + 'bbl031f-a1_nat_export.mat']
-
+#'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
 # create an empty stack
 stack=nm.nems_stack()
 
 #stack.meta['cellid']='chn020f-b1'
-stack.meta['cellid']='bbl031f-a1'
+#stack.meta['cellid']='bbl031f-a1'
+stack.meta['cellid']='bbl038f-a2_nat_export'
 stack.meta['batch']=291
 
 # add a loader module to stack
 #stack.append(nm.load_mat(est_files=est_files,fs=100))
 #nk.fb24ch200(stack)
-nk.fb18ch100(stack)
+nk.loadlocal(stack)
 stack.append(nm.standard_est_val())
 
 # add fir filter module to stack
+nk.dlog(stack)
 nk.fir10(stack)
 
 # add MSE calculator module to stack
@@ -45,7 +46,7 @@ stack.append(nm.mean_square_error())
 
 # set error (for minimization) for this stack to be output of last module
 stack.error=stack.modules[-1].error
-stack.eval(1)
+stack.evaluate(1)
 
 stack.fitter=nf.nems_fitter(stack)
 #stack.fitter=nf.basic_min(stack)
@@ -62,10 +63,10 @@ stack.fitter.maxit=100  # does this work??
 stack.fitter.do_fit()
 
 # display the output of each
-pl.figure()
-for idx,m in enumerate(stack.modules):
-    ax=pl.subplot(5,1,idx+1)
-    stack.modules[idx].do_plot(ax)
+for ids,m in enumerate(stack.modules):
+    #plt.figure(num=idx,figsize=(8,3))
+    #ax=plt.plot(5,1,idx+1)
+    stack.modules[ids].do_plot(idx=ids)
     
 
 
