@@ -86,6 +86,7 @@ def main_view():
             session.query(NarfAnalysis.batch)
             .distinct().all()
             ]
+    batchlist.sort()
     
     # Default settings for results display.
     # TODO: let user choose their defaults and save for later sessions
@@ -369,13 +370,13 @@ def edit_analysis():
     session = Session()
     modTime = str(datetime.datetime.now().replace(microsecond=0))
     
-    eName = request.form.get('editName')
-    eStatus = request.form.get('editStatus')
-    eTags = request.form.get('editTags')
-    eQuestion = request.form.get('editQuestion')
-    eAnswer = request.form.get('editAnswer')
-    eTree = request.form.get('editTree')
-    eBatch = request.form.get('editBatch')
+    eName = request.args.get('name')
+    eStatus = request.args.get('status')
+    eTags = request.args.get('tags')
+    eQuestion = request.args.get('question')
+    eAnswer = request.args.get('answer')
+    eTree = request.args.get('tree')
+    eBatch = request.args.get('batch')
     #TODO: add checks to require input inside form fields
     #      or allow blank so that people can erase stuff?
     
@@ -421,21 +422,23 @@ def edit_analysis():
     
     # For verifying correct logging - comment these out 
     # when not needed for testing.
-    # print("checking if attributes added correctly")
-    # print("name:"); print(a.name)
-    # print("question:"); print(a.question)
-    # print("answer:"); print(a.answer)
-    # print("status:"); print(a.status)
-    # print("tags:"); print(a.tags)
-    # print("batch:"); print(a.batch)
-    # print("model tree:"); print(a.modeltree)
-    
+    print("Added the following analysis to database:")
+    print("------------------")
+    print("name:"); print(a.name)
+    print("question:"); print(a.question)
+    print("answer:"); print(a.answer)
+    print("status:"); print(a.status)
+    print("tags:"); print(a.tags)
+    print("batch:"); print(a.batch)
+    print("model tree:"); print(a.modeltree)
+    print("-----------------\n\n")
+    addedName = a.name
     session.commit()
     session.close()
     
     # After handling submissions, return user to main page so that it
     # refreshes with new analysis included in list    
-    return redirect(url_for('main_view'))
+    return jsonify(success="Analysis %s saved successfully."%addedName)
 
 
 @app.route('/get_current_analysis')

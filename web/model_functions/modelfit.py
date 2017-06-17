@@ -24,12 +24,14 @@ import sys
 from sqlalchemy import inspect
 import pandas as pd
 import pandas.io.sql as psql
+import numpy as np
 
 from nems_analysis import Session, tQueue, NarfResults, NarfBatches
 from .fit_single_utils import (
         cleanup_file_string, fetch_meta_data, MultiResultError,
         )
 from nemsclass import FERReT
+from lib.baphy_utils import get_celldb_file, get_kw_file
 
 #TODO: will need to put a similar version of fit_single in a separate .py
 #       for use with enqueue models. Needs to not import anything from the app
@@ -75,7 +77,6 @@ def fit_single_model(cellid,batch,modelname):
     """
     
     session = Session()
-    
     # TODO: don't worry about these for now, may change
     # assigned like a list comprehension for syntax
     # but should only be one result from DB
@@ -92,6 +93,8 @@ def fit_single_model(cellid,batch,modelname):
     # est_set_files,val_set_files = db_get_scellfiles(session,cellid,batch)
     
     
+    # TODO: Are the identifiers still needed? doesn't look like the file
+    #       loader util is actually doing anything with them.
     idents = (
             session.query(NarfBatches.est_set,NarfBatches.val_set)
             .filter(NarfBatches.cellid == cellid)
@@ -109,35 +112,45 @@ def fit_single_model(cellid,batch,modelname):
     #TODO: should do string cleanup here or pass as-is to model fitter?
     est_ident = cleanup_file_string(est_ident)
     val_ident = cleanup_file_string(val_ident)
-    
-    print("estimation file identifer(s) and validation file identifier(s):")
-    print(est_ident)
-    print(val_ident)
-    
-    
-    # TODO: need to use get_kw_file from utils to get filepath using batch,
-    #       cell and modelname. but should that be done here or by
-    #       FERReT object?
-    
-    # TODO: supposed to have the option of directly passing a file instead?
+
+
+    # TODO: still calling FERReT or using nems_test variant instead?
     # pass cellid, batch, modelname, est_file_ident and val_file_ident to
-    # model fitter object
-    #ModelFitter = FERReT(cellid, batch, modelname, est_ident, val_ident)
+    # model fitter object -- or just filepath instead?
+    keywords = modelname.split('_')
+    file = get_kw_file(batch,cellid,keywords.pop(0))
+    keywords = '_'.join(keywords)
+    ModelFitter = FERReT(filepath=file, imp_type='standard', keyword=keywords)
+    #TODO: got to 'creating validation and training sets' inside FERReT object
+    #           before error. Stopping testing until decided if we're keeping
+    #           this procedure.
+    
+    
+    
     # tell model fitter to run the queue of modules
     # returns nothing
-    #ModelFitter.run_fit()
+    ModelFitter.run_fit()
     # get 3d numpy array from Model Fitter after modules run
     # each returns a dict of numpy arrays with 
     # keys 'stim, resp, pup, and predicted'
-    #est_data = ModelFitter.apply_to_est()
-    #val_data = ModelFitter.apply_to_val()
-
+    est_data = ModelFitter.apply_to_est()
+    val_data = ModelFitter.apply_to_val()
+    
+    print("est_data retrieved?"); print(est_data)
+    print("val_data retrieved?"); print(val_data)
     # TODO: save array(s) to file(s) appropriately and return filepath(s)
-    
-    # TODO: need some kind of timeout warning for user? this will probably
-    #       take a while to run -- usually at least several minutes in NARF
-    
-    
+    # Calculate a filepath based on some rules? or just re-use get_kw_file?
+    #np.save(est_filepath, est_data)
+    #np.save(val_filepath, val_data)
+    # Write the filepaths to the database. Where should they go?
+    #tableEntry = (
+    #        session.query(SomeTableName.columnsForFilePath)
+    #        .filter(cellid == cellid)
+    #        .filter(modelname == modelname)
+    #        .all()
+    #        )
+    #tableEntry.estCol = est_filepath
+    #tableEntry.valCol = val_filepath
     
     # dat_object() for testing only
     data_array = dat_object()
@@ -244,8 +257,9 @@ def enqueue_single_model(cellid,batch,modelname):
     session = Session()
     tQueueId = -1
     
-    commandPrompt = "q_fit_single_model(%s,%s,%s)"%(\
-                                     cellid,batch,modelname)
+    commandPrompt = "q_fit_single_model(%s,%s,%s)"%(
+                                     cellid,batch,modelname,
+                                     )
 
     note = "%s/%s/%s"%(cellid,batch,modelname)
     

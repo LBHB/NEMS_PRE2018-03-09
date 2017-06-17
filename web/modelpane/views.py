@@ -3,9 +3,13 @@
 Only used for testing the template right now.
 
 """
+import itertools
 
 from flask import render_template, Session
 
+from lib.baphy_utils import get_kw_file, get_celldb_file
+#import lib.nems_keywords as nk
+#import lib.nems_modules as nm
 from nems_analysis import app
 
 @app.route('/modelpane')
@@ -33,9 +37,17 @@ def modelpane_view():
     #    view functions, so that AJAX can interact with them?
     #    Flask.g the right place to store this?
     
-    testMods = ['mod%s'%i for i in range(5)]
-    testPlots = ['plot%s'%i for i in range(5)]
     
+    # test code
+    i = 5
+    logo = (
+            '/auto/users/jacob/nems/web/'
+            'nems_analysis/static/lbhb_logo.jpg'
+            )
+    logos = list(itertools.repeat(logo,i))
+    testMods = ['mod%s'%j for j in range(i)]
+    testPlots = [open_plot(j) for j in logos]
+
     #session.close()
     
     return render_template(
@@ -59,3 +71,9 @@ def update_modelpane():
     #plot = modObject.make_new_plot_with_changed_value
     
     #return jsonify(plot=plot)
+    
+    
+def open_plot(filepath):
+    with open(filepath, 'r+b') as img:
+        image = img.read()
+    return image
