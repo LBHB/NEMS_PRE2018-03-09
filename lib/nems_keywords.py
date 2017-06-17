@@ -28,6 +28,7 @@ def loadlocal(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat(est_files=[file],fs=100))
 
+
 # fir filter keywords
 def fir10(stack):
     out1=stack.output()
@@ -48,7 +49,8 @@ def exp(stack):
     stack.append(nm.nonlinearity(d_in=out1,nltype='exp',fit_params=['exp']))
 
 def dexp(stack):
-    stack.append(nm.dexp)
+    out1=stack.output()
+    stack.append(nm.dexp(d_in=out1))
 
 
 # fitter keywords
@@ -56,13 +58,15 @@ def fit00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
     if not mseidx:
         # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error())
-
+        stack.append(nm.mean_square_error(d_in=stack.output()))
+        
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
         
-    stack.fitter=nf.simplex()
-    stack.fit()
+    stack.evaluate(1)
+
+    stack.fitter=nf.nems_fitter(stack)
+    stack.fitter.do_fit()
 
 # etc etc for other keywords
     

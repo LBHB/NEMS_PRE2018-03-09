@@ -109,7 +109,7 @@ class basic_min(nems_fitter):
         return(mse)
     
     def do_fit(self):
-        self.counter=0
+        # figure out which modules have free parameters, if fit modules not specified
         if len(self.fit_modules)==0:
             for idx,m in enumerate(self.stack.modules):
                 this_phi=m.parms2phi()
@@ -118,7 +118,6 @@ class basic_min(nems_fitter):
         
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(self.maxit)
-        print("maxiter: {0}".format(opt['maxiter']))
         #if function=='tanhON':
             #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
             #routine='COBYLA'
@@ -127,10 +126,11 @@ class basic_min(nems_fitter):
         cons=()
         self.phi0=self.fit_to_phi() 
         self.counter=0
-        print("phi0 intialized ({0} parameters)".format(len(self.phi0)))
+        print("phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
+        print("maxiter: {0}".format(opt['maxiter']))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
-                             constraints=cons,options=opt)
-        print(self.stack.error())
+                             constraints=cons,options=opt,tol=0.01)
+        print("Final MSE: {0}".format(self.stack.error()))
         return(self.stack.error())
     
     

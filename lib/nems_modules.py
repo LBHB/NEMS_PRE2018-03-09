@@ -93,13 +93,9 @@ class nems_module:
             os+=np.prod(s)
             
     def do_plot(self,size=(12,4),idx=None):
-        #if ax is None:
-            #pl.set_cmap('jet')
-            #pl.figure()
-            #ax=pl.subplot(1,1,1)
-            
+        if idx:
+            plt.figure(num=idx,figsize=size)
         out1=self.d_out[:]
-        plt.figure(num=idx,figsize=size)
         plt.imshow(out1[0]['stim'][:,0,:], aspect='auto', origin='lower')
         plt.title(self.name)
         
@@ -336,7 +332,7 @@ class fir_filter(nems_module):
         for i, val in enumerate(self.d_in):
             #self.d_out.append(copy.deepcopy(val))
             self.d_out.append(val.copy())
-            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+            #self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
             
         for f_in,f_out in zip(self.d_in,self.d_out):
             X=copy.deepcopy(f_in[self.input_name])
@@ -354,8 +350,9 @@ class fir_filter(nems_module):
             #pl.figure()
             #ax=pl.subplot(1,1,1)
         
+        if idx:
+            plt.figure(num=idx,figsize=size)
         h=self.coefs
-        plt.figure(num=idx,figsize=size)
         plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'))
         plt.colorbar()
         plt.title(self.name)
@@ -365,13 +362,11 @@ class dexp(nems_module):
     name='dexp'
     dexp=np.ones([1,4]) 
     
-    def __init__(self,d_in=None,fit_params=['dexp']):
-        self.dexp=np.ones([1,4]) 
-        #self.dexp[0][0]=1
-        #self.dexp[0][3]=1 
+    def __init__(self,d_in=None,dexp=None,fit_params=['dexp']):
+        if dexp is None:
+            self.dexp=np.ones([1,4]) 
         self.fit_params=fit_params
         self.data_setup(d_in)
-        print('dexp parameters created')
 
     def evaluate(self):
         v1=self.dexp[0,0]
@@ -395,11 +390,12 @@ class dexp(nems_module):
             #pl.figure()
             #ax=pl.subplot(1,1,1)
             
-        in1=self.d_in[:]
-        out1=self.d_out[:]
-        s1=in1[0]['stim'][0,:]
-        s2=out1[0]['stim'][0,:]
-        plt.figure(num=idx,figsize=size)
+        if idx:
+            plt.figure(num=idx,figsize=size)
+        in1=self.d_in[0]
+        out1=self.d_out[0]
+        s1=in1['stim'][0,:]
+        s2=out1['stim'][0,:]
         pre, =plt.plot(s1/s1.max(),label='Pre-nonlinearity')
         post, =plt.plot(s2/s2.max(),'r',label='Post-nonlinearity')
         plt.legend(handles=[pre,post])
@@ -444,8 +440,8 @@ class nonlinearity(nems_module):
         #etc...
         
         
-    def do_plot(self,size=(12,4),idx=None):
-        print('No nonlinearity plot yet')
+#    def do_plot(self,size=(12,4),idx=None):
+#        print('No nonlinearity plot yet')
             
             
         
@@ -528,15 +524,11 @@ class mean_square_error(nems_module):
             return self.meta['val_mse']
             
     def do_plot(self,size=(12,4),idx=None):
-        #if ax is None:
-            #pl.set_cmap('jet')
-            #pl.figure()
-            #ax=pl.subplot(1,1,1)
-            
-        out1=self.d_out[:]
-        s=out1[0]['stim'][0,:]
-        r=out1[0]['resp'][0,:]
-        plt.figure(num=idx,figsize=size)
+        if idx:
+            plt.figure(num=idx,figsize=size)
+        out1=self.d_out[0]
+        s=out1['stim'][0,:]
+        r=out1['resp'][0,:]
         pred, =plt.plot(s/s.max(),label='Predicted')
         resp, =plt.plot(r/r.max(),'r',label='Response')
         plt.legend(handles=[pred,resp])
@@ -596,6 +588,15 @@ class nems_stack:
     def default_error(self):
         return np.zeros([1,1])
         
+    def quick_plot(self):
+        plt.figure(figsize=(8,9))
+        for idx,m in enumerate(self.modules):
+            plt.subplot(len(self.modules),1,idx+1)
+            m.do_plot()
+#        for idx,m in enumerate(self.modules):
+#            plt.subplot(len(self.modules),1,idx+1)
+#            m.do_plot()
+            
 # end nems_stack
 
 
