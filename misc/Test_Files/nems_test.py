@@ -64,7 +64,7 @@ nk.dexp(stack)
 stack.append(nm.mean_square_error)
 
 stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.001
+stack.fitter.tol=0.005
 stack.fitter.do_fit()
 
 stack.quick_plot()

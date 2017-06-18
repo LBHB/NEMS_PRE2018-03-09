@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.io
 import scipy.signal as sps
 import copy
+import lib.nems_utils as nu
 
 empty_data={}
 
@@ -19,16 +20,17 @@ class nems_module:
     # common attributes for all modules
     #
     name='pass-through'
+    user_editable_fields=['input_name','output_name']
+    plot_fns=[nu.plot_spectrogram]
+    
     input_name='stim'  # name of input matrix in d_in
     output_name='stim' # name of output matrix in d_out
     parent_stack=None # pointer to stack instance that owns this module
     id=None  # unique name for this module to be referenced from the stack??
     d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
     d_out=None # pointer to output, parent_stack.d[i+!]
-    user_editable_fields=['input_name','output_name']
     fit_fields=[]  # what fields should be fed to phi for fitting
-    meta={}  # deprecated, should remove all references
-
+    
     #
     # Begin standard functions
     #
@@ -45,7 +47,7 @@ class nems_module:
             self.id="{0}{1}".format(self.name,len(parent_stack.modules))
         
         self.d_out=copy.copy(self.d_in)
-        
+        self.do_plot=self.plot_fns[0]  # default is first in list
         self.my_init(**xargs)
         
     def parms2phi(self):
@@ -88,17 +90,17 @@ class nems_module:
         #to be individual large figures, added other small details -njs June 16, 2017
         if idx:
             plt.figure(num=idx,figsize=size)
-        out1=self.d_out[:][0]
+        out1=self.d_out[:][self.parent_stack.plot_dataidx]
         if out1['stim'].ndim==3:
-            plt.imshow(out1['stim'][:,0,:], aspect='auto', origin='lower')
+            plt.imshow(out1['stim'][:,self.parent_stack.plot_stimidx,:], aspect='auto', origin='lower')
         else:
-            s=out1['stim'][0,:]
-            r=out1['resp'][0,:]
+            s=out1['stim'][self.parent_stack.plot_stimidx,:]
+            r=out1['resp'][self.parent_stack.plot_stimidx,:]
             pred, =plt.plot(s,label='Predicted')
             resp, =plt.plot(r,'r',label='Response')
             plt.legend(handles=[pred,resp])
                 
-        plt.title(self.name)
+        plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
             
         
 # end nems_module
@@ -107,6 +109,7 @@ class dummy_data(nems_module):
 
     name='dummy_data'
     user_editable_fields=['output_name','data_len']
+    plot_fns=[nu.plot_spectrogram]
     data_len=100
     
     def my_init(self,data_len=100):
@@ -127,6 +130,7 @@ class load_mat(nems_module):
 
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
+    plot_fns=[nu.plot_spectrogram]
     est_files=[]
     fs=100
     
@@ -337,6 +341,7 @@ class sum_dim(nems_module):
 class fir_filter(nems_module):
     name='fir_filter'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
+    plot_fns=[nu.plot_strf, nu.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_dims=0
@@ -362,25 +367,26 @@ class fir_filter(nems_module):
         Y=np.reshape(X,s[1:])
         return Y
     
-    def do_plot(self,size=(12,4),idx=None):
-        #if ax is None:
-            #pl.set_cmap('jet')
-            #pl.figure()
-            #ax=pl.subplot(1,1,1)
-        
-        if idx:
-            plt.figure(num=idx,figsize=size)
-        h=self.coefs
-        plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'))
-        plt.colorbar()
-        plt.title(self.name)
+#    def do_plot(self,size=(12,4),idx=None):
+#        #if ax is None:
+#            #pl.set_cmap('jet')
+#            #pl.figure()
+#            #ax=pl.subplot(1,1,1)
+#        
+#        if idx:
+#            plt.figure(num=idx,figsize=size)
+#        h=self.coefs
+#        plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'))
+#        plt.colorbar()
+#        plt.title(self.name)
 
 class dexp(nems_module):
     
     name='dexp'
     user_editable_fields=['output_name','dexp']
-    dexp=np.ones([1,4]) 
-    
+    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
+    dexp=np.ones([1,4])
+        
     def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
         self.dexp=dexp 
         self.fit_fields=fit_fields
@@ -393,22 +399,22 @@ class dexp(nems_module):
         Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
         return Y
     
-    def do_plot(self,size=(12,4),idx=None):
-        #if ax is None:
-            #pl.set_cmap('jet')
-            #pl.figure()
-            #ax=pl.subplot(1,1,1)
-            
-        if idx:
-            plt.figure(num=idx,figsize=size)
-        in1=self.d_in[0]
-        out1=self.d_out[0]
-        s1=in1['stim'][0,:]
-        s2=out1['stim'][0,:]
-        pre, =plt.plot(s1/s1.max(),label='Pre-nonlinearity')
-        post, =plt.plot(s2/s2.max(),'r',label='Post-nonlinearity')
-        plt.legend(handles=[pre,post])
-        plt.title(self.name)
+#    def do_plot(self,size=(12,4),idx=None):
+#        #if ax is None:
+#            #pl.set_cmap('jet')
+#            #pl.figure()
+#            #ax=pl.subplot(1,1,1)
+#            
+#        if idx:
+#            plt.figure(num=idx,figsize=size)
+#        in1=self.d_in[self.parent_stack.plot_dataidx]
+#        out1=self.d_out[self.parent_stack.plot_dataidx]
+#        s1=in1['stim'][self.parent_stack.plot_stimidx,:]
+#        s2=out1['stim'][self.parent_stack.plot_stimidx,:]
+#        pre, =plt.plot(s1,label='Pre-nonlinearity')
+#        post, =plt.plot(s2,'r',label='Post-nonlinearity')
+#        plt.legend(handles=[pre,post])
+#        plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
         
 class nonlinearity(nems_module): 
     
@@ -490,17 +496,19 @@ class linpupgain(nems_module):
         output=d0+(d*pups)+(g0*ins)+g*np.multiply(pups,ins)
  
         
-        
-    
 
 class mean_square_error(nems_module):
  
     name='mean_square_error'
+    user_editable_fields=['output_name','dexp']
+    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
     input1='stim'
     input2='resp'
     output=np.ones([1,1])
     norm=True
-    
+    est_mse=0
+    val_mse=0
+        
     def my_init(self, input1='stim',input2='resp',norm=True):
         self.input1=input1
         self.input2=input2
@@ -523,27 +531,16 @@ class mean_square_error(nems_module):
             mse=E/P
         else:
             mse=E/N
-        self.meta['est_mse']=mse
+        self.est_mse=mse
         
         return mse
 
     def error(self, est_data=True):
         if est_data:
-            return self.meta['est_mse']
+            return self.est_mse
         else:
             # placeholder for something that can distinguish between est and val
-            return self.meta['val_mse']
-            
-    def do_plot(self,size=(12,4),idx=None):
-        if idx:
-            plt.figure(num=idx,figsize=size)
-        out1=self.d_out[0]
-        s=out1['stim'][0,:]
-        r=out1['resp'][0,:]
-        plt.plot(s,r,'ko')
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-        plt.title(self.name)
+            return self.val_mse
         
 class nems_stack:
         
@@ -560,6 +557,9 @@ class nems_stack:
     data=[]     # corresponding stack of data in/out for each module
     meta={}
     fitter=None
+    
+    plot_dataidx=0
+    plot_stimidx=0
     
     def __init__(self):
         print("Creating new stack")
@@ -610,7 +610,7 @@ class nems_stack:
         plt.figure(figsize=(8,9))
         for idx,m in enumerate(self.modules):
             plt.subplot(len(self.modules),1,idx+1)
-            m.do_plot()
+            m.do_plot(m)
 #        for idx,m in enumerate(self.modules):
 #            plt.subplot(len(self.modules),1,idx+1)
 #            m.do_plot()
