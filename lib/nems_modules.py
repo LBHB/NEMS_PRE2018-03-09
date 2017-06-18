@@ -6,42 +6,8 @@ import copy
 
 empty_data={}
 
-class nems_data:
-    """nems_data
 
-    NOT USED CURRENTLY!  JUST USING LIST OF DICTIONARIES FOR DATA STACK!
-    
-    Generic NEMS data bucket
 
-    provides input and output of each nems_module
-
-    structure containing a set of matrices, corresponding to input(s)
-    and output(s). eg, resp, stim, stim2, state, etc.
-
-    """
-    est_files=[]
-    val_files=[]
-    data=[]
-    
-    def __init__(self):
-        self.data=[]
-
-    def d(self,n=None):
-        if n is None:
-            return self.data
-        else:
-            return self.data[n]
-
-    def copy_keys(self,d_in=None):
-        if d_in != None:
-            self.est_files=d_in.est_files
-            self.val_files=d_in.val_files
-            self.data=d_in.data.copy()
-
-# end nems_data
-
-        
-        
 class nems_module:
     """nems_module
 
@@ -49,81 +15,130 @@ class nems_module:
 
     """
     
-    # common properties for all modules
+    #
+    # common attributes for all modules
+    #
     name='pass-through'
     input_name='stim'  # name of input matrix in d_in
     output_name='stim' # name of output matrix in d_out
-    phi=None # vector of parameter values that can be fit
-    d_in=None
-    d_out=None
-    fit_params=[]
-    meta={}
+    parent_stack=None # pointer to stack instance that owns this module
+    id=None  # unique name for this module to be referenced from the stack??
+    d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
+    d_out=None # pointer to output, parent_stack.d[i+!]
+    user_editable_fields=['input_name','output_name']
+    fit_fields=[]  # what fields should be fed to phi for fitting
+    meta={}  # deprecated, should remove all references
 
-    def __init__(self,d_in=None):
-        self.data_setup(d_in)
+    #
+    # Begin standard functions
+    #
+    def __init__(self,parent_stack=None,**xargs):
+        print("creating module "+self.name)
         
-    def data_setup(self,d_in=None):
-        if d_in is None:
-            self.d_in=[] # list of data buckets fed into module
+        if parent_stack is None:
+            self.d_in=[]
         else:
-            self.d_in=d_in
-        self.d_out=[] # list of outputs, same size as data in
-
-    def prep_eval(self):
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            self.d_out.append(val)
+            # point to parent in order to allow access to it attributes
+            self.parent_stack=parent_stack
+            # d_in is by default the last entry of parent_stack.data
+            self.d_in=parent_stack.data[-1]
+            self.id="{0}{1}".format(self.name,len(parent_stack.modules))
         
-    def evaluate(self):
-        # default: pass-through pointers to data from input to output,
-        # need to deepcopy individual dict entries if they are changed
-        self.prep_eval()
+        self.d_out=copy.copy(self.d_in)
+        
+        self.my_init(**xargs)
         
     def parms2phi(self):
         phi=np.empty(shape=[0,1])
-        for k in self.fit_params:
+        for k in self.fit_fields:
             phi=np.append(phi,getattr(self, k).flatten())
         return phi
         
     def phi2parms(self,phi=[]):
         os=0;
-        for k in self.fit_params:
+        for k in self.fit_fields:
             s=getattr(self, k).shape
             setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
             os+=np.prod(s)
             
-    def do_plot(self,size=(12,4),idx=None):
-        if idx:
-            plt.figure(num=idx,figsize=size)
-        out1=self.d_out[:]
-        plt.imshow(out1[0]['stim'][:,0,:], aspect='auto', origin='lower')
-        plt.title(self.name)
+    def evaluate(self):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
         
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in[self.input_name])
+            f_out[self.output_name]=self.my_eval(X)
+    
+    #
+    # customizable functions
+    #
+    def my_init(self,**xargs):
+        # initialization specfic to this module
+        0 # null op?
+        
+    def my_eval(X):
+        # default: pass-through pointers to data from input to output,
+        # need to deepcopy individual dict entries if they are changed
+        Y=X
+        return Y
+        
+    def do_plot(self,size=(12,4),idx=None):
         #Moved from pylab to pyplot module in all do_plot functions, changed plots 
         #to be individual large figures, added other small details -njs June 16, 2017
+        if idx:
+            plt.figure(num=idx,figsize=size)
+        out1=self.d_out[:][0]
+        if out1['stim'].ndim==3:
+            plt.imshow(out1['stim'][:,0,:], aspect='auto', origin='lower')
+        else:
+            s=out1['stim'][0,:]
+            r=out1['resp'][0,:]
+            pred, =plt.plot(s,label='Predicted')
+            resp, =plt.plot(r,'r',label='Response')
+            plt.legend(handles=[pred,resp])
+                
+        plt.title(self.name)
+            
+        
 # end nems_module
+
+class dummy_data(nems_module):
+
+    name='dummy_data'
+    user_editable_fields=['output_name','data_len']
+    data_len=100
+    
+    def my_init(self,data_len=100):
+        self.data_len=data_len
+
+    def evaluate(self):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+        
+        self.d_out[0][self.output_name]=np.zeros([12,2,self.data_len])
+        self.d_out[0][self.output_name][0,0,10:19]=1
+        self.d_out[0][self.output_name][0,0,30:49]=1
+        self.d_out[0]['resp']=self.d_out[0]['stim'][0,:,:]*2+1        
+
 
 class load_mat(nems_module):
 
     name='load_mat'
+    user_editable_fields=['output_name','est_files','fs']
     est_files=[]
-    val_files=[]
     fs=100
     
-    def __init__(self,d_in=None,est_files=[],val_files=[],fs=100):
-        self.data_setup(d_in)
+    def my_init(self,est_files=[],fs=100):
         self.est_files=est_files.copy()
-        self.val_files=val_files.copy()
         self.fs=fs
 
     def evaluate(self):
-        self.prep_eval()
-        self.meta['est_files']=self.est_files
-        self.meta['val_files']=self.val_files
-        
-        # new list object for dat
         del self.d_out[:]
-        
+#        for i, d in enumerate(self.d_in):
+#            self.d_out.append(d.copy())
+                    
         # load contents of Matlab data file
         for f in self.est_files:
             #f='tor_data_por073b-b1.mat'
@@ -229,13 +244,13 @@ class load_mat(nems_module):
 class standard_est_val(nems_module):
  
     name='standard_est_val'
+    user_editable_fields=['output_name','valfrac','valmode']
     valfrac=0.05
     valmode=False
     
-    def __init__(self, d_in=None, valfrac=0.05):
+    def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
         self.valmode=False
-        self.data_setup(d_in)
     
     def evaluate(self):
         del self.d_out[:]
@@ -277,72 +292,75 @@ class standard_est_val(nems_module):
 class add_scalar(nems_module):
  
     name='add_scalar'
+    user_editable_fields=['output_name','n']
+    n=np.zeros([1,1])
     
-    def __init__(self, d_in=None, n=1, fit_params=['n']):
-        self.fit_params=fit_params
-        self.data_setup(d_in)
-        self.n=n
-       
-    def evaluate(self):
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            self.d_out.append(copy.deepcopy(val))
-
-        for f in self.d_out:
-            f[self.output_name]=f[self.input_name]+self.n
+    def my_init(self, n=0, fit_fields=['n']):
+        self.fit_fields=fit_fields
+        self.n[0,0]=n
+                   
+    def my_eval(self,X):
+        Y=X+self.n
+        return Y
+    
+class dc_gain(nems_module):
+ 
+    name='dc_gain'
+    user_editable_fields=['output_name','d','g']
+    d=np.zeros([1,1])
+    g=np.ones([1,1])
+    
+    def my_init(self, d=0, g=1, fit_fields=['d','g']):
+        self.fit_fields=fit_fields
+        self.d[0,0]=d
+        self.g[0,0]=g
+    
+    def my_eval(self,X):
+        Y=X*self.g+self.d
+        return Y
+   
         
 class sum_dim(nems_module):
+
     name='sum_dim'
-     
-    def __init__(self, d_in=None, dim=1):
-        self.data_setup(d_in)
+    user_editable_fields=['output_name','dim']
+    dim=0
+    
+    def my_init(self, dim=0):
         self.dim=dim
         
-    def evaluate(self):
-        del self.d_out[:]
-        # for each data file:
-        for i, val in enumerate(self.d_in):
-            self.d_out.append(copy.deepcopy(val))
-
-        for f in self.d_out:
-            f[self.output_name]=f[self.input_name].sum(axis=self.dim)
-
+    def my_eval(self,X):
+        Y=X.sum(axis=self.dim)
+        return Y
             
+    
 class fir_filter(nems_module):
     name='fir_filter'
+    user_editable_fields=['output_name','num_dims','coefs','baseline']
     coefs=None
     baseline=np.zeros([1,1])
     num_dims=0
     
-    def __init__(self, d_in=None, num_dims=0, num_coefs=20, baseline=0, fit_params=['baseline','coefs']):
-        if d_in and not(num_dims):
-            num_dims=d_in[0]['stim'].shape[0]
+    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs']):
+        if self.d_in and not(num_dims):
+            num_dims=self.d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
         self.num_coefs=num_coefs
         self.baseline[0]=baseline
         self.coefs=np.zeros([num_dims,num_coefs])
+        self.fit_fields=fit_fields
         
-        self.fit_params=fit_params
-        self.data_setup(d_in)
-        
-    def evaluate(self):
+    def my_eval(self,X):
         #if not self.d_out:
         #    # only allocate memory once, the first time evaling. rish is that output_name could change
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            #self.d_out.append(copy.deepcopy(val))
-            self.d_out.append(val.copy())
-            #self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
-            
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            s=X.shape
-            X=np.reshape(X,[s[0],-1])
-            for i in range(0,s[0]):
-                y=np.convolve(X[i,:],self.coefs[i,:])
-                X[i,:]=y[0:X.shape[1]]
-            X=X.sum(0)+self.baseline
-            f_out[self.output_name]=np.reshape(X,s[1:])
+        s=X.shape
+        X=np.reshape(X,[s[0],-1])
+        for i in range(0,s[0]):
+            y=np.convolve(X[i,:],self.coefs[i,:])
+            X[i,:]=y[0:X.shape[1]]
+        X=X.sum(0)+self.baseline
+        Y=np.reshape(X,s[1:])
+        return Y
     
     def do_plot(self,size=(12,4),idx=None):
         #if ax is None:
@@ -360,29 +378,20 @@ class fir_filter(nems_module):
 class dexp(nems_module):
     
     name='dexp'
+    user_editable_fields=['output_name','dexp']
     dexp=np.ones([1,4]) 
     
-    def __init__(self,d_in=None,dexp=None,fit_params=['dexp']):
-        if dexp is None:
-            self.dexp=np.ones([1,4]) 
-        self.fit_params=fit_params
-        self.data_setup(d_in)
+    def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
+        self.dexp=dexp 
+        self.fit_fields=fit_fields
 
-    def evaluate(self):
+    def my_eval(self,X):
         v1=self.dexp[0,0]
         v2=self.dexp[0,1]
         v3=self.dexp[0,2]
         v4=self.dexp[0,3]
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            #self.d_out.append(copy.deepcopy(val))
-            self.d_out.append(val.copy())
-            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
-            
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            X=v1-v2*np.exp(-np.exp(v3*(X-v4)))
-            f_out[self.output_name]=X
+        Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
+        return Y
     
     def do_plot(self,size=(12,4),idx=None):
         #if ax is None:
@@ -405,9 +414,9 @@ class nonlinearity(nems_module):
     
     name='nonlinearity'
     
-    def __init__(self,d_in=None,nltype='dlog',fit_params=['dlog']):
+    def __init__(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
         self.nltype=nltype
-        self.fit_params=fit_params
+        self.fit_fields=fit_fields
         self.data_setup(d_in)
         if nltype=='dlog':
             self.dlog=np.ones([1,1])
@@ -454,10 +463,10 @@ class linpupgain(nems_module):
     
     name='linpupgain'
     
-    def __init__(self,d_in=None,fit_params=['linpugain']):
+    def __init__(self,d_in=None,fit_fields=['linpugain']):
         self.linpupgain=np.zeros([1,4])
         self.linpupgain[0][1]=0
-        self.fit_params=fit_params
+        self.fit_fields=fit_fields
         self.data_setup(d_in)
         print('linpupgain parameters created')     
     
@@ -492,14 +501,16 @@ class mean_square_error(nems_module):
     output=np.ones([1,1])
     norm=True
     
-    def __init__(self, d_in=None, input1='stim',input2='resp',norm=True):
-        self.data_setup(d_in)
+    def my_init(self, input1='stim',input2='resp',norm=True):
         self.input1=input1
         self.input2=input2
         self.norm=norm
         
     def evaluate(self):
-        self.prep_eval()
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+            
         E=np.zeros([1,1])
         P=np.zeros([1,1])
         N=0
@@ -529,9 +540,9 @@ class mean_square_error(nems_module):
         out1=self.d_out[0]
         s=out1['stim'][0,:]
         r=out1['resp'][0,:]
-        pred, =plt.plot(s/s.max(),label='Predicted')
-        resp, =plt.plot(r/r.max(),'r',label='Response')
-        plt.legend(handles=[pred,resp])
+        plt.plot(s,r,'ko')
+        plt.xlabel('Predicted')
+        plt.ylabel('Actual')
         plt.title(self.name)
         
 class nems_stack:
@@ -542,18 +553,24 @@ class nems_stack:
      modules = list of nems_modules in sequence of execution
 
     """
+    modelname=None
     modules=[]  # stack of modules
     mod_names=[]
+    mod_ids=[]
     data=[]     # corresponding stack of data in/out for each module
-    modelname=None
     meta={}
     fitter=None
     
     def __init__(self):
-        print("dummy")
+        print("Creating new stack")
         self.modules=[]
         self.mod_names=[]
         self.data=[]
+        self.data.append([])
+        self.data[0].append({})
+        self.data[0][0]['resp']=[]
+        self.data[0][0]['stim']=[]
+        
         self.meta={}
         self.modelname='Empty stack'
         self.error=self.default_error
@@ -565,18 +582,19 @@ class nems_stack:
             #    print("Propagating mod {0} d_out to mod{1} d_in".format(ii-1,ii))
             #    self.modules[ii].d_in=self.modules[ii-1].d_out
             self.modules[ii].evaluate()
-            
-    def append(self, mod=None):
+    
+    # create instance of mod and append to stack    
+    def append(self, mod=None, **xargs):
         if mod is None:
-            mod=nems_module()
-        mod.meta=self.meta
-        if len(self.modules):
-            print("Propagating d_out from {0} into new d_in".format(self.modules[-1].name))
-            mod.d_in=self.data[-1]
-        self.modules.append(mod)
-        self.mod_names.append(mod.name)
-        self.modules[-1].evaluate()
-        self.data.append(mod.d_out)
+            m=nems_module(self)
+        else:
+            m=mod(self, **xargs)
+        
+        self.modules.append(m)
+        self.data.append(m.d_out)
+        self.mod_names.append(m.name)
+        self.mod_ids.append(m.id)
+        m.evaluate()
         
     def popmodule(self, mod=nems_module()):
         del self.modules[-1]

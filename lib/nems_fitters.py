@@ -37,7 +37,7 @@ class nems_fitter:
         # run the fitter
         self.counter=0
         # pull out current phi as initial conditions
-        self.phi0=self.stack.modules[2].parms2phi()
+        self.phi0=self.stack.modules[1].parms2phi()
         phi=sp.optimize.fmin(self.test_cost, self.phi0, maxiter=1000)
         return phi
     
@@ -64,6 +64,7 @@ class basic_min(nems_fitter):
     routine='L-BFGS-B'
     counter=0
     fit_modules=[]
+    tol=0.001
     
     def __init__(self,parent,routine='L-BFGS-B',maxit=50000):
         self.stack=parent
@@ -129,7 +130,7 @@ class basic_min(nems_fitter):
         print("phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
         print("maxiter: {0}".format(opt['maxiter']))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
-                             constraints=cons,options=opt,tol=0.01)
+                             constraints=cons,options=opt,tol=self.tol)
         print("Final MSE: {0}".format(self.stack.error()))
         return(self.stack.error())
     

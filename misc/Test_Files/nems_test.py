@@ -36,25 +36,24 @@ stack.meta['cellid']='bbl031f-a1'
 nk.fb18ch100(stack)
 #nk.loadlocal(stack)
 
-stack.append(nm.standard_est_val())
+stack.append(nm.standard_est_val)
 
 # add fir filter module to stack
 #nk.dlog(stack)
 nk.fir10(stack)
 
 ## add MSE calculator module to stack
-#stack.append(nm.mean_square_error(d_in=stack.output()))
+stack.append(nm.mean_square_error)
 #
 ## set error (for minimization) for this stack to be output of last module
-#stack.error=stack.modules[-1].error
-#stack.evaluate(1)
+stack.error=stack.modules[-1].error
+stack.evaluate(1)
 #
-#stack.fitter=nf.nems_fitter(stack)
-##stack.fitter=nf.basic_min(stack)
-##stack.fitter.maxit=500
-#
-#stack.fitter.do_fit()
-nk.fit00(stack)
+#nk.fit00(stack)
+stack.fitter=nf.basic_min(stack)
+stack.fitter.tol=0.05
+
+stack.fitter.do_fit()
 
 mse=stack.modules[-1].error()
 print('mse after stage 1: {0}'.format(mse))
@@ -62,10 +61,10 @@ print('mse after stage 1: {0}'.format(mse))
 # add nonlinearity and refit
 stack.popmodule()
 nk.dexp(stack)
-stack.append(nm.mean_square_error(d_in=stack.output()))
+stack.append(nm.mean_square_error)
 
 stack.fitter=nf.basic_min(stack)
-stack.fitter.maxit=10  # does this work??
+stack.fitter.tol=0.001
 stack.fitter.do_fit()
 
 stack.quick_plot()
