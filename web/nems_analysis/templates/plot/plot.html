@@ -10,25 +10,19 @@
     <meta name="description" content="">
     <meta name="author" content="">
     
-    <!-- May have to update version in the future (currently 0.12.5 portion of URL) -->
-    <!-- Downloaded to static folder instead of using websites, so would just have to
-     replace files and update file names as needed for updates -->
-    <link href="{{ url_for('static', filename='css/bokeh-0.12.5.min.css') }}"
-    rel="stylesheet" type="text/css">
-    <link href="{{ url_for('static', filename='css/bokeh-widgets-0.12.5.min.css') }}"
-    rel="stylesheet" type="text/css">
-    <script src="{{ url_for('static', filename='js/bokeh-0.12.5.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bokeh-widgets-0.12.5.min.js') }}"></script>
+    <!-- May have to update version in the future (currently 0.12.6 portion of URL) -->
+    <!-- Switched from static files in /static/js to CDN URL for easier updating,
+        but if load times become slow just have to download the newer files -->
+    <link
+        href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.css"
+        rel="stylesheet" type="text/css">
+    <link
+        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.css"
+        rel="stylesheet" type="text/css">
 
-<!-- maintain url versions for if static folder breaks for some reason
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
 
-    <link href="cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.css"
-    rel="stylesheet" type="text/css">
-    <link href="cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.5.min.css"
-    rel="stylesheet" type="text/css">
-    <script src="cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.js"></script>
-    <script src="cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.5.min.css"></script>
-    -->
     {{ script|safe }}
 </head>
 <body>
