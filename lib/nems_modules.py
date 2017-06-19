@@ -2,12 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io
 import scipy.signal as sps
+import scipy.stats as spstats
 import copy
 import lib.nems_utils as nu
-
-empty_data={}
-
-
 
 class nems_module:
     """nems_module
@@ -62,7 +59,29 @@ class nems_module:
             s=getattr(self, k).shape
             setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
             os+=np.prod(s)
+    
+    def unpack_data(self,name='stim',est=True):
+        m=self
+        if m.d_in[0][name].ndim==2:
+            X=np.empty([0,1])
+        else:
+            s=m.d_in[0][name].shape
+            X=np.empty([s[0],0])
             
+        for i, d in enumerate(m.d_in):
+            if est and d['est']:
+                if d[name].ndim==2:
+                    X=np.concatenate((X,d[name].reshape([-1,1])))
+                else:
+                    X=np.concatenate((X,d[name].reshape([s[0],-1])),axis=1)
+            if not est and not d['est']:
+                if d[name].ndim==2:
+                    X=np.concatenate((X,d[name].reshape([-1,1])))
+                else:
+                    X=np.concatenate((X,d[name].reshape([s[0],-1])),axis=1)
+                
+        return X
+    
     def evaluate(self):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
@@ -124,7 +143,7 @@ class dummy_data(nems_module):
         self.d_out[0][self.output_name][0,0,10:19]=1
         self.d_out[0][self.output_name][0,0,30:49]=1
         self.d_out[0]['resp']=self.d_out[0]['stim'][0,:,:]*2+1        
-
+        self.d_out[0]['repcount']=np.sum(np.isnan(self.d_out[0]['resp'])==False,axis=0)
 
 class load_mat(nems_module):
 
@@ -250,11 +269,9 @@ class standard_est_val(nems_module):
     name='standard_est_val'
     user_editable_fields=['output_name','valfrac','valmode']
     valfrac=0.05
-    valmode=False
     
     def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
-        self.valmode=False
     
     def evaluate(self):
         del self.d_out[:]
@@ -288,7 +305,7 @@ class standard_est_val(nems_module):
             d_val['est']=False
             
             self.d_out.append(d_est)
-            if self.valmode:
+            if self.parent_stack.valmode:
                 self.d_out.append(d_val)
 
         
@@ -367,18 +384,6 @@ class fir_filter(nems_module):
         Y=np.reshape(X,s[1:])
         return Y
     
-#    def do_plot(self,size=(12,4),idx=None):
-#        #if ax is None:
-#            #pl.set_cmap('jet')
-#            #pl.figure()
-#            #ax=pl.subplot(1,1,1)
-#        
-#        if idx:
-#            plt.figure(num=idx,figsize=size)
-#        h=self.coefs
-#        plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'))
-#        plt.colorbar()
-#        plt.title(self.name)
 
 class dexp(nems_module):
     
@@ -491,8 +496,6 @@ class linpupgain(nems_module):
             X=v1-v2*np.exp(-np.exp(v3*(X-v4)))
             f_out[self.output_name]=X
         
-        
-        
         output=d0+(d*pups)+(g0*ins)+g*np.multiply(pups,ins)
  
         
@@ -500,14 +503,13 @@ class linpupgain(nems_module):
 class mean_square_error(nems_module):
  
     name='mean_square_error'
-    user_editable_fields=['output_name','dexp']
+    user_editable_fields=['input1','input2','norm']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
     input1='stim'
     input2='resp'
-    output=np.ones([1,1])
     norm=True
-    est_mse=0
-    val_mse=0
+    mse_est=np.ones([1,1])
+    mse_val=np.ones([1,1])
         
     def my_init(self, input1='stim',input2='resp',norm=True):
         self.input1=input1
@@ -531,16 +533,55 @@ class mean_square_error(nems_module):
             mse=E/P
         else:
             mse=E/N
-        self.est_mse=mse
+        self.mse_est=mse
+        self.parent_stack.meta['mse_est']=mse
         
         return mse
 
-    def error(self, est_data=True):
-        if est_data:
-            return self.est_mse
+    def error(self, est=True):
+        if est:
+            return self.mse_est
         else:
             # placeholder for something that can distinguish between est and val
-            return self.val_mse
+            return self.mse_val
+        
+class correlation(nems_module):
+ 
+    name='correlation'
+    user_editable_fields=['input1','input2']
+    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
+    input1='stim'
+    input2='resp'
+    r_est=np.ones([1,1])
+    r_val=np.ones([1,1])
+        
+    def my_init(self, input1='stim',input2='resp',norm=True):
+        self.input1=input1
+        self.input2=input2
+        self.do_plot=self.plot_fns[1]
+        
+    def evaluate(self):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+
+        X1=self.unpack_data(self.input1,est=True)            
+        X2=self.unpack_data(self.input2,est=True)
+        r_est,p=spstats.pearsonr(X1,X2)
+        self.r_est=r_est
+        self.parent_stack.meta['r_est']=r_est
+
+        X1=self.unpack_data(self.input1,est=False)            
+        if X1.size:
+            X2=self.unpack_data(self.input2,est=False)
+            r_val,p=spstats.pearsonr(X1,X2)
+            self.r_val=r_val
+            self.parent_stack.meta['r_val']=r_val
+        
+            return r_val
+        else:
+            return r_est
+    
         
 class nems_stack:
         
@@ -557,6 +598,7 @@ class nems_stack:
     data=[]     # corresponding stack of data in/out for each module
     meta={}
     fitter=None
+    valmode=False
     
     plot_dataidx=0
     plot_stimidx=0
@@ -574,6 +616,7 @@ class nems_stack:
         self.meta={}
         self.modelname='Empty stack'
         self.error=self.default_error
+        self.valmode=False
         
     def evaluate(self,start=0):
         # evalute stack, starting at module # start
@@ -605,15 +648,14 @@ class nems_stack:
     
     def default_error(self):
         return np.zeros([1,1])
-        
+    
     def quick_plot(self):
         plt.figure(figsize=(8,9))
         for idx,m in enumerate(self.modules):
-            plt.subplot(len(self.modules),1,idx+1)
-            m.do_plot(m)
-#        for idx,m in enumerate(self.modules):
-#            plt.subplot(len(self.modules),1,idx+1)
-#            m.do_plot()
+            # skip first module
+            if idx>0:
+                plt.subplot(len(self.modules)-1,1,idx)
+                m.do_plot(m)
             
 # end nems_stack
 

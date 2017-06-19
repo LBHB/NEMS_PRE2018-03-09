@@ -16,7 +16,7 @@ def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=200)
-
+    
 def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -28,14 +28,35 @@ def loadlocal(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100)
 
+def ev(stack):
+    stack.append(nm.standard_est_val, valfrac=0.05)
+
 
 # fir filter keywords
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
-
+    
+    # mini fit
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.05
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
+    
+    
 def fir15(stack):
     stack.append(nm.fir_filter,num_coefs=15)
 
+    # mini fit
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.05
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
 
 # static NL keywords
 def dlog(stack):
@@ -61,6 +82,7 @@ def fit00(stack):
     stack.evaluate(1)
 
     stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.001
     stack.fitter.do_fit()
 
 # etc etc for other keywords

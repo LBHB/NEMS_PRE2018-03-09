@@ -29,45 +29,47 @@ stack=nm.nems_stack()
 
 stack.meta['batch']=291
 #stack.meta['cellid']='chn020f-b1'
-stack.meta['cellid']='bbl031f-a1'
+#stack.meta['cellid']='bbl031f-a1'
+stack.meta['cellid']='bbl061h-a1'
 #stack.meta['cellid']='bbl038f-a2_nat_export'
 
 # add a loader module to stack
 nk.fb18ch100(stack)
 #nk.loadlocal(stack)
 
-stack.append(nm.standard_est_val)
+nk.ev(stack)
 
-# add fir filter module to stack
+# add fir filter module to stack & fit a little
 #nk.dlog(stack)
 nk.fir10(stack)
 
-## add MSE calculator module to stack
-stack.append(nm.mean_square_error)
-#
-## set error (for minimization) for this stack to be output of last module
-stack.error=stack.modules[-1].error
-stack.evaluate(1)
-#
-#nk.fit00(stack)
-stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.05
-
-stack.fitter.do_fit()
-
-mse=stack.modules[-1].error()
-print('mse after stage 1: {0}'.format(mse))
-
 # add nonlinearity and refit
-stack.popmodule()
 nk.dexp(stack)
+
+# following has been moved to nk.fit00
 stack.append(nm.mean_square_error)
 
 stack.fitter=nf.basic_min(stack)
 stack.fitter.tol=0.005
 stack.fitter.do_fit()
 
+stack.valmode=True
+stack.evaluate(1)
+corridx=nu.find_modules(stack,'correlation')
+if not corridx:
+    # add MSE calculator module to stack if not there yet
+    stack.append(nm.correlation)    
+
+stack.plot_dataidx=1
+
+# default results plot
 stack.quick_plot()
+
+# save
+#filename="/auto/data/code/nems_saved_models/batch{0}/{1}.pkl".format(stack.meta['batch'],stack.meta['cellid'])
+#nu.save_model(stack,filename)
+
+
 ## single figure display
 #plt.figure(figsize=(8,9))
 #for idx,m in enumerate(stack.modules):

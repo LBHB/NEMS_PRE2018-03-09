@@ -9,15 +9,54 @@ Created on Fri Jun 16 05:20:07 2017
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
+import os
+import copy
 
+#
+# random utilties
+#
 def find_modules(stack, mod_name):
-    matchidx=[]
-    for idx,m in enumerate(stack.modules):
-        if m.name==mod_name:
-            matchidx.append(idx)
+    matchidx = [i for i, m in enumerate(stack.modules) if m.name==mod_name]
  
     return matchidx
 
+def save_model(stack, file_path):
+    
+    # truncate data to save disk space
+    stack2=copy.deepcopy(stack)
+    for i in range(1,len(stack2.data)):
+        del stack2.data[i][:]
+        
+    directory = os.path.dirname(file_path)
+    
+    try:
+        os.stat(directory)
+    except:
+        os.mkdir(directory)       
+        
+    # Store data (serialize)
+    with open(file_path, 'wb') as handle:
+        pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    print("Saved model to {0}".format(file_path))
+
+def load_model(file_path):
+    try:
+        # Load data (deserialize)
+        with open(file_path, 'rb') as handle:
+            stack = pickle.load(handle)
+        return stack
+    except:
+        print("error loading {0}".format(file_path))
+                   
+    return stack
+
+    
+
+#
+# PLOTTING FUNCTIONS
+#
 def plot_spectrogram(m,idx=None,size=(12,4)):
     #Moved from pylab to pyplot module in all do_plot functions, changed plots 
     #to be individual large figures, added other small details -njs June 16, 2017
