@@ -33,6 +33,9 @@ stack.meta['batch']=291
 stack.meta['cellid']='bbl061h-a1'
 #stack.meta['cellid']='bbl038f-a2_nat_export'
 
+stack.meta['batch']=267
+stack.meta['cellid']='ama024a-17-1'
+
 # add a loader module to stack
 nk.fb18ch100(stack)
 #nk.loadlocal(stack)
