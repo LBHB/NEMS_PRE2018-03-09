@@ -60,7 +60,7 @@ def fit_single_model(cellid,batch,modelname):
     stack.quick_plot()
     
     # save
-    filename="/auto/data/code/nems_saved_models/batch{0}/{1}.pkl".format(batch,cellid)
+    filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
     nu.save_model(stack,filename)
     return stack
 
@@ -78,7 +78,7 @@ example:
 """
 def load_single_model(cellid,batch,modelname):
     
-    filename="/auto/data/code/nems_saved_models/batch{0}/{1}.pkl".format(batch,cellid)
+    filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
     stack=nu.load_model(filename)
     stack.evaluate()
     

@@ -166,84 +166,92 @@ class load_mat(nems_module):
         for f in self.est_files:
             #f='tor_data_por073b-b1.mat'
             matdata = scipy.io.loadmat(f,chars_as_strings=True)
-            s=matdata['data'][0][0]
-            try:
-                data={}
-                data['resp']=s['resp_raster']
-                data['stim']=s['stim']
-                data['respFs']=s['respfs'][0][0]
-                print(data['respFs'])
-                data['stimFs']=s['stimfs'][0][0]
-                print(data['stimFs'])
-                data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
-                data['isolation']=s['isolation']
-            except:
-                data = scipy.io.loadmat(f,chars_as_strings=True)
-                data['raw_stim']=data['stim'].copy()
-                data['raw_resp']=data['resp'].copy()
-            try:
-                data['pupil']=s['pupil']
-            except:
-                data['pupil']=None
-#            data = scipy.io.loadmat(f,chars_as_strings=True)
-#            data['raw_stim']=data['stim'].copy()
-#            data['raw_resp']=data['resp'].copy()
+            for s in matdata['data'][0]:
+                try:
+                    data={}
+                    data['resp']=s['resp_raster']
+                    data['stim']=s['stim']
+                    data['respFs']=s['respfs'][0][0]
+                    print(data['respFs'])
+                    data['stimFs']=s['stimfs'][0][0]
+                    print(data['stimFs'])
+                    data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
+                    data['isolation']=s['isolation']
+                except:
+                    data = scipy.io.loadmat(f,chars_as_strings=True)
+                    data['raw_stim']=data['stim'].copy()
+                    data['raw_resp']=data['resp'].copy()
+                try:
+                    data['pupil']=s['pupil']
+                except:
+                    data['pupil']=None
+                try:
+                    if s['estfile']:
+                        data['est']=True
+                    else:
+                        data['est']=False
+                except:
+                    print("Est/val conditions not flagged in datafile")
+                    
+    #            data = scipy.io.loadmat(f,chars_as_strings=True)
+    #            data['raw_stim']=data['stim'].copy()
+    #            data['raw_resp']=data['resp'].copy()
+                    
+                data['fs']=self.fs
+                noise_thresh=0.04
+                stim_resamp_factor=int(data['stimFs']/self.fs)
+                resp_resamp_factor=int(data['respFs']/self.fs)
                 
-            data['fs']=self.fs
-            noise_thresh=0.04
-            stim_resamp_factor=int(data['stimFs']/self.fs)
-            resp_resamp_factor=int(data['respFs']/self.fs)
-            
-            
-            # reshape stimulus to be channel X time
-            data['stim']=np.transpose(data['stim'],(0,2,1))
-            if stim_resamp_factor != 1:
-                s=data['stim'].shape
-                #new_stim_size=np.round(s[2]*stim_resamp_factor)
-                print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
-                resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
-                s_indices=resamp<noise_thresh
-                resamp[s_indices]=0
-                data['stim']=resamp
-                #data['stim']=scipy.signal.resample(data['stim'],new_stim_size,axis=2)
                 
-            # resp time (axis 0) should be resampled to match stim time (axis 1)
-            if resp_resamp_factor != 1:
-                s=data['resp'].shape
-                #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
-                resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
-                s_indices=resamp<noise_thresh
-                resamp[s_indices]=0
-                data['resp']=resamp
-                #data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
+                # reshape stimulus to be channel X time
+                data['stim']=np.transpose(data['stim'],(0,2,1))
+                if stim_resamp_factor != 1:
+                    s=data['stim'].shape
+                    #new_stim_size=np.round(s[2]*stim_resamp_factor)
+                    print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
+                    s_indices=resamp<noise_thresh
+                    resamp[s_indices]=0
+                    data['stim']=resamp
+                    #data['stim']=scipy.signal.resample(data['stim'],new_stim_size,axis=2)
+                    
+                # resp time (axis 0) should be resampled to match stim time (axis 1)
+                if resp_resamp_factor != 1:
+                    s=data['resp'].shape
+                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
+                    print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
+                    s_indices=resamp<noise_thresh
+                    resamp[s_indices]=0
+                    data['resp']=resamp
+                    #data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
+                    
+                if data['pupil'] is not None and resp_resamp_factor != 1:
+                    s=data['pupil'].shape
+                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
+                    print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
+                    s_indices=resamp<noise_thresh
+                    resamp[s_indices]=0
+                    data['pupil']=resamp
+                    #data['pupil']=scipy.signal.resample(data['pupil'],new_resp_size,axis=0)
+                    
+                #Changed resmaple to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
+                #-njs June 16, 2017
+                    
+                # average across trials
+                print(np.isnan(data['resp'][0,:,:]).shape)
+                data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 
-            if data['pupil'] is not None and resp_resamp_factor != 1:
-                s=data['pupil'].shape
-                #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
-                resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
-                s_indices=resamp<noise_thresh
-                resamp[s_indices]=0
-                data['pupil']=resamp
-                #data['pupil']=scipy.signal.resample(data['pupil'],new_resp_size,axis=0)
+                #TODO: remove avging & add trial reshape if there is pupil data
+                if data['pupil'] is None:
+                    data['resp']=np.nanmean(data['resp'],axis=1) 
+                    data['resp']=np.transpose(data['resp'],(1,0))
                 
-            #Changed resmaple to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
-            #-njs June 16, 2017
-                
-            # average across trials
-            print(np.isnan(data['resp'][0,:,:]).shape)
-            data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
-            
-            #TODO: remove avging & add trial reshape if there is pupil data
-            if data['pupil'] is None:
-                data['resp']=np.nanmean(data['resp'],axis=1) 
-                data['resp']=np.transpose(data['resp'],(1,0))
-            
-            # append contents of file to data, assuming data is a dictionary
-            # with entries stim, resp, etc...
-            print('load_mat: appending {0} to d_out stack'.format(f))
-            self.d_out.append(data)
+                # append contents of file to data, assuming data is a dictionary
+                # with entries stim, resp, etc...
+                print('load_mat: appending {0} to d_out stack'.format(f))
+                self.d_out.append(data)
 
             # spectrogram of TORC stimuli. 15 frequency bins X 300 time samples X 30 different TORCs
             #stim=data['stim']
@@ -278,35 +286,44 @@ class standard_est_val(nems_module):
          # for each data file:
         for i, d in enumerate(self.d_in):
             #self.d_out.append(d)
-            
-            # figure out number of distinct stim
-            s=d['repcount']
-            
-            m=s.max()
-            validx = s==m
-            estidx = s<m
-            
-            d_est=d.copy()
-            d_val=d.copy()
-            
-            d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
-            d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
-            d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
-            d_val['repcount']=copy.deepcopy(d['repcount'][validx])
-            d_val['resp']=copy.deepcopy(d['resp'][validx,:])
-            d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
-            
-            #if 'pupil' in d.keys():
-            if d['pupil'] is not None:
-                d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
-                d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
-            
-            d_est['est']=True
-            d_val['est']=False
-            
-            self.d_out.append(d_est)
-            if self.parent_stack.valmode:
-                self.d_out.append(d_val)
+            try:
+                if d['est']:
+                    # flagged as est data
+                    self.d_out.append(d)
+                elif self.parent_stack.valmode:
+                    self.d_out.append(d)
+                    
+            except:
+                # est/val not flagged, need to figure out
+                
+                # figure out number of distinct stim
+                s=d['repcount']
+                
+                m=s.max()
+                validx = s==m
+                estidx = s<m
+                
+                d_est=d.copy()
+                d_val=d.copy()
+                
+                d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
+                d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
+                d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
+                d_val['repcount']=copy.deepcopy(d['repcount'][validx])
+                d_val['resp']=copy.deepcopy(d['resp'][validx,:])
+                d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
+                
+                #if 'pupil' in d.keys():
+                if d['pupil'] is not None:
+                    d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
+                
+                d_est['est']=True
+                d_val['est']=False
+                
+                self.d_out.append(d_est)
+                if self.parent_stack.valmode:
+                    self.d_out.append(d_val)
 
         
        
