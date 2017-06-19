@@ -72,8 +72,7 @@ def fit_single_model_view():
         session.add(r)
     else:
         # TODO: assign performance variables from stack.meta
-        r.figurefile = plotfile
-        pass
+        r[0].figurefile = plotfile
     
     session.commit()
     session.close()
