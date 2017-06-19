@@ -84,9 +84,12 @@
             "moduleWrapper{{ loop.index-1 }}">
             
                 <div class="plot-wrapper">
+                <!--
                     <p>plot number {{ loop.index-1 }} goes here</p>
                     <img class="plotPNG" id="plot{{ loop.index-1 }}"
                     src="{{ url_for('static',filename='lbhb_logo.jpg') }}">
+                    -->
+                {{ plots[loop.index-1]|safe }}
                 </div> <!-- plot-wrapper -->
                 
             </div><!-- end col -->

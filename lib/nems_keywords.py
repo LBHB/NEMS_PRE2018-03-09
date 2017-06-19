@@ -15,42 +15,58 @@ import lib.baphy_utils as baphy_utils
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat(est_files=[file],fs=200))
-
+    stack.append(nm.load_mat,est_files=[file],fs=200)
+    
 def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat(est_files=[file],fs=100))
+    stack.append(nm.load_mat,est_files=[file],fs=100)
 
 def loadlocal(stack):
     file='/auto/users/shofer/data/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
     #file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat(est_files=[file],fs=100))
+    stack.append(nm.load_mat,est_files=[file],fs=100)
+
+def ev(stack):
+    stack.append(nm.standard_est_val, valfrac=0.05)
 
 
 # fir filter keywords
 def fir10(stack):
-    out1=stack.output()
-    stack.append(nm.fir_filter(d_in=out1,num_coefs=10))
-
+    stack.append(nm.fir_filter,num_coefs=10)
+    
+    # mini fit
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.05
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
+    
+    
 def fir15(stack):
-    out1=stack.output()
-    stack.append(nm.fir_filter(d_in=out1,num_coefs=15))
+    stack.append(nm.fir_filter,num_coefs=15)
 
+    # mini fit
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.05
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
 
 # static NL keywords
 def dlog(stack):
-    out1=stack.output()
-    stack.append(nm.nonlinearity(d_in=out1,nltype='dlog',fit_params=['dlog']))
+    stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['dlog'])
     
 def exp(stack):
-    out1=stack.output()
-    stack.append(nm.nonlinearity(d_in=out1,nltype='exp',fit_params=['exp']))
+    stack.append(nm.nonlinearity,nltype='exp',fit_fields=['exp'])
 
 def dexp(stack):
-    out1=stack.output()
-    stack.append(nm.dexp(d_in=out1))
+    stack.append(nm.dexp)
 
 
 # fitter keywords
@@ -58,14 +74,15 @@ def fit00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
     if not mseidx:
         # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error(d_in=stack.output()))
+        stack.append(nm.mean_square_error)
         
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
         
     stack.evaluate(1)
 
-    stack.fitter=nf.nems_fitter(stack)
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.001
     stack.fitter.do_fit()
 
 # etc etc for other keywords
