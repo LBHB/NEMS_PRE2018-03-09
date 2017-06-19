@@ -582,6 +582,37 @@ $(document).ready(function(){
         
         //open separate window/tab for additional specifications like priority?
     });
+        
+    $("#inspect").on('click',function(){
+        var cSelected = [];
+        var mSelected = [];
+        var bSelected = $("#batchSelector").val();
+        
+        $(".dataframe tr.selectedRow").each(function(){
+            cSelected.push($(this).children().eq(1).html());
+        });
+        $(".dataframe tr.selectedRow").each(function(){
+            mSelected.push($(this).children().eq(2).html());
+        });
+                     
+        $.ajax({
+            url: $SCRIPT_ROOT + '/modelpane_view',
+            data: { bSelected:bSelected, cSelected:cSelected,
+                   mSelected:mSelected },
+            type: 'GET',
+            success: function(data){
+                console.log("Opening modelpane browser for cell: "
+                            + cSelected + 
+                            ", modelname: "
+                            + mSelected +
+                            ", from batch: "
+                            + bSelected)
+            },
+            error: function(data){
+                console.log(error)
+            }
+        });
+    });
                 
 });
         
