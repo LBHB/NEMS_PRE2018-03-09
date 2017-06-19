@@ -19,38 +19,68 @@ See Also:
 from flask import render_template, jsonify, request
 import pandas as pd
 
-from nems_analysis import app
-from model_functions.modelfit import fit_single_model, enqueue_models
+from nems_analysis import app, NarfResults, Session
+#from model_functions.modelfit import fit_single_model, enqueue_models
+import lib.nems_utils as nu
+import lib.nems_modules as nm
+import lib.nems_keywords as nk
+import lib.nems_fitters as nf
+import lib.nems_main as nems
+import model_functions.fit_single_utils as fsu
 
 
 @app.route('/fit_single_model')
 def fit_single_model_view():
-    """Call modelfit.fit_single_model with user selections as args."""
+    """Call lib.nems_main.fit_single_model with user selections as args."""
+    
+    session = Session()
     
     cSelected = request.args.getlist('cSelected[]')
-    # Only pull the numerals from the batch string, leave off the description
     bSelected = request.args.get('bSelected')[:3]
     mSelected = request.args.getlist('mSelected[]')
-    
+
     # Disallow multiple cell/model selections for a single fit.
     if (len(cSelected) > 1) or (len(mSelected) > 1):
-        return jsonify(data='error',preview='more than 1 cell and/or model')
+        return jsonify(r_est='error',r_val='more than 1 cell and/or model')
+        
+    print(
+            "Beginning model fit -- this may take several minutes.",
+            "Please wait for a success/failure response.",
+            )
     
-    # TODO: What should this return?
-    #       Only need to return data that will be displayed to user,
-    #       not the full data array from the model fitter.
-    #       --figurefile/preview image and what else?
-    data = fit_single_model(cellid=cSelected[0],batch=bSelected,
-                            modelname=mSelected[0])
+    stack = nems.fit_single_model(
+            cellid=cSelected[0], batch=bSelected, modelname=mSelected[0],
+                            )
     
-    # TODO: how will data be formatted?
-    #figure_file = data['figure_file']
-    figure_file = 'preview for %s, %s, %s'\
-                  %(cSelected[0],bSelected,mSelected[0])
+    plotfile = nu.quick_plot_save(stack, mode="json")
     
-    return jsonify(data = data.data,preview = figure_file)
+    r = (
+            session.query(NarfResults)
+            .filter(NarfResults.cellid == cSelected[0])
+            .filter(NarfResults.batch == bSelected)
+            .filter(NarfResults.modelname == mSelected[0])
+            .all()
+            )
+    
+    if not r:
+        r = NarfResults()
+        r.cellid = cSelected[0]
+        r.batch = bSelected
+        r.modelname = mSelected[0]
+        r.figurefile = plotfile
+        # TODO: assign performance variables from stack.meta
+        session.add(r)
+    else:
+        # TODO: assign performance variables from stack.meta
+        r.figurefile = plotfile
+        pass
+    
+    session.commit()
+    session.close()
+    
+    return jsonify(r_est=stack.meta['r_est'][0], r_val=stack.meta['r_val'][0])
 
-@app.route('/enqueue_models')
+#@app.route('/enqueue_models')
 def enqueue_models_view():
     """Call modelfit.enqueue_models with user selections as args."""
     

@@ -496,9 +496,7 @@ $(document).ready(function(){
     
     
     
-    $("#fitSingle").on('click',function(){
-        alert("just a test right now");
-        
+    $("#fitSingle").on('click',function(){   
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
@@ -514,6 +512,10 @@ $(document).ready(function(){
             return false;
         }
         
+        alert("Preparing to fit selection -- this may take several minutes."
+              + "Until console is implemented, use the browser console"
+              + "(right-click inspect element >> console or network tab)"
+              + "to monitor for success/failure.")
         // TODO: insert confirmation box here, with warning about waiting for
         //          fit job to finish
         
@@ -524,15 +526,18 @@ $(document).ready(function(){
             // TODO: should use POST maybe in this case?
             type: 'GET',
             success: function(data){
-                alert(data.data)
-                alert(data.preview)
+                alert("Fit finished.\n"
+                      + "r_test: " + data.r_est + "\n"
+                      + "r_val: " + data.r_val + "\n")
                 //open preview in new window like the preview button?
                 //then would only have to pass file path
                 //window.open('preview/' + data.preview,'width=520','height=910')
             },
             error: function(error){
+                alert("Fit failed, see console for error message.")
                 console.log(error)        
-            }
+            },
+            timeout: 0
         });
         //model fit cascade starts here
         //ajax call to flask app with selected cell, batch and model
@@ -584,6 +589,8 @@ $(document).ready(function(){
     });
         
     $("#inspect").on('click',function(){
+        /*
+        //pull from results table
         var cSelected = [];
         var mSelected = [];
         var bSelected = $("#batchSelector").val();
@@ -594,24 +601,18 @@ $(document).ready(function(){
         $(".dataframe tr.selectedRow").each(function(){
             mSelected.push($(this).children().eq(2).html());
         });
-                     
-        $.ajax({
-            url: $SCRIPT_ROOT + '/modelpane_view',
-            data: { bSelected:bSelected, cSelected:cSelected,
-                   mSelected:mSelected },
-            type: 'GET',
-            success: function(data){
-                console.log("Opening modelpane browser for cell: "
-                            + cSelected + 
-                            ", modelname: "
-                            + mSelected +
-                            ", from batch: "
-                            + bSelected)
-            },
-            error: function(data){
-                console.log(error)
-            }
-        });
+        
+        //would have to create a new form and assign values to it
+        // leaving as form select for now.
+        */
+        
+        
+        //pull from selectors 
+        var form = document.getElementById("selections");
+        form.action = $SCRIPT_ROOT + '/modelpane'
+        form.target = "_blank"
+
+        form.submit(); 
     });
                 
 });

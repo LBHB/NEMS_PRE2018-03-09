@@ -17,7 +17,7 @@ import lib.nems_main as nems
 
 from nems_analysis import app
 
-@app.route('/modelpane')
+@app.route('/modelpane', methods=['GET','POST'])
 def modelpane_view():
     """Launches Modelpane window to inspect the model fit to the selected
     cell and model."""
@@ -25,9 +25,9 @@ def modelpane_view():
     #session = Session()
     
     # TODO: Get these from results table, or from selectors?
-    bSelected = request.args.get('bSelected')
-    cSelected = request.args.get('cSelected')
-    mSelected = request.args.get('mSelected')
+    bSelected = request.form.get('batch')[:3]
+    cSelected = request.form.getlist('celllist')[0]
+    mSelected = request.form.getlist('modelnames')[0]
     
     # Get data filepaths from database (sCellFile?) and open them
     #paths = (session.query(SomeTable.someColumns)
@@ -96,13 +96,15 @@ def modelpane_view():
     #testPlots = [open_plot(j) for j in logos]
     #testPlots = ['plot%s'%j for j in range(i)]
 
-    bSelected = 291     #bSelected
-    cSelected = 'bbl031f-a1'        #cSelected
-    mSelected =  "fb18ch100_fir10_fit00"
+    #bSelected = 291     #bSelected
+    #cSelected = 'bbl031f-a1'        #cSelected
+    #mSelected =  "fb18ch100_fir10_fit00"
 
     stack = nm.nems_stack()
     try:
-        stack = nems.load_single_model(cSelected, bSelected, mSelected)
+        stack = nems.load_single_model(
+                cellid=cSelected, batch=bSelected, modelname=mSelected,
+                )
     except:
         return Response(
                 "Model has not been fitted yet, or its fit file",
@@ -141,8 +143,3 @@ def modelpane_view():
     
     #return jsonify(plot=plot)
     
-    
-def open_plot(filepath):
-    with open(filepath, 'r+b') as img:
-        image = img.read()
-    return image

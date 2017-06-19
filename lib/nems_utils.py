@@ -8,7 +8,7 @@ Created on Fri Jun 16 05:20:07 2017
 
 import scipy as sp
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, mpld3
 import pickle
 import os
 import copy
@@ -52,7 +52,36 @@ def load_model(file_path):
                    
     return stack
 
+
+def quick_plot_save(stack, mode="json"):
+    """Copy of quick_plot from nems_modules.stack for easy save or embed."""
+    batch = stack.meta['batch']
+    cellid = stack.meta['cellid']
+    modelname = stack.meta['modelname']
     
+    fig = plt.figure(figsize=(8,9))
+    for idx,m in enumerate(stack.modules):
+        # skip first module
+        if idx>0:
+            plt.subplot(len(stack.modules)-1,1,idx)
+            m.do_plot(m)
+    
+    mode = mode.lower()
+    if mode == "json":
+        filename = (
+                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.JSON"
+                .format(batch,cellid,modelname)
+                )
+        mpld3.save_json(fig, filename)
+
+    if mode == "html":
+        filename = (
+                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.html"
+                .format(batch,cellid,modelname)
+                )
+        mpld3.save_html(fig, filename)
+        
+    return filename
 
 #
 # PLOTTING FUNCTIONS
