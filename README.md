@@ -43,7 +43,7 @@ Ongoing: expand this information in [NEMS Wiki](https://bitbucket.org/lbhb/nems/
 
 ### How do I get set up? ###
 
-* Dependencies: numpy, scipy, scipy.signal, scipy.io, math, matplotlib.pyplot, importlib, copy. Eventually pandas, sqlalchemy, some GUI support
+* Dependencies: numpy, scipy, scipy.signal, scipy.io, math, matplotlib.pyplot, importlib, copy, pandas, sqlalchemy, flask, mpld3, bokeh, pymysql, some GUI support
 
 ### Who do I talk to? ###
 

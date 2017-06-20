@@ -49,8 +49,6 @@
             CellDB</a></li>
             <li><a href="{{ url_for('error_log') }}" target="_blank">
             Error Log</a></li>
-            <li><a href="{{ url_for('modelpane_view') }}" target="_blank">
-            Modelpane Template Test</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -172,6 +170,18 @@
                     <option disabled value=""> Select an analysis to populate models. </option>
                 </select>
                 <input type="checkbox" id="selectAllModels" checked> Select All</input> 
+                </div>
+                
+                <div class="input-group" id="modelButtons">
+                <div class="input-group-btn">
+                    <button tabindex="-1" class="btn btn-default" type="button"
+                    id="fitSingle"> Fit Single Now </button>
+                </div>
+                
+                <div class="input-group-btn">
+                    <button tabindex="-1" class="btn btn-default" type="button"
+                    id="enqueue"> Enqueue Models </button>
+                </div>
                 </div>
                 
                 <div class="form-group">
@@ -310,6 +320,15 @@
                 <div class="input-group-btn">
                 </div>
                 
+                <!-- open modelpane view for result(s) selected on table -->
+                <div class="input-group-btn">
+                    <button tabindex="-1" class="btn btn-default" type="button"
+                    id="inspect"> Inspect </button>
+                </div>
+                
+                <div class="input-group-btn">
+                </div>
+                
                 <!-- open preview file for result(s) selected on table -->
                 <div class="input-group-btn">
                     <button tabindex="-1" class="btn btn-default" type="button"
@@ -339,23 +358,6 @@
                 
                 </div>
                 
-                <div class="input-group" id="modelButtons">
-                <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
-                    id="fitSingle"> Fit Single Now </button>
-                </div>
-                
-                <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
-                    id="enqueue"> Enqueue Models </button>
-                </div>
-                
-                <!-- open modelpane view for result(s) selected on table -->
-                <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
-                    id="inspect"> Inspect </button>
-                </div>
-                </div>
             </div><!-- resultsArea  col -->
         </div><!-- row -->
 
@@ -466,6 +468,22 @@
             </div><!--content -->
         </div><!--dialog-->
     </div><!--modal-->
+    
+    <div class="modal" id="loadingPopup">
+        <p> Loading, please wait... </p>
+        <div id="loadingMessage">
+        </div>
+    </div>
+    
+    <!-- hidden form for modelpane submission -->
+    <div style="display:none;">
+    <form class="form" id="modelpane" method="POST" target="_blank"
+        action="{{ url_for('modelpane_view') }}">
+        <input type="text" id="p_batch" name="batch" value="">
+        <input type="text" id="p_cellid" name="cellid" value="">
+        <input type="text" id="p_modelname" name="modelname" value="">
+    </form>
+    </div>
     
     <!-- load jquery -->
     <script type=text/javascript src=
