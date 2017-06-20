@@ -58,14 +58,9 @@
                 <div class="control-group" align="left">
                     <label for="testMulti"> Test Multi </label>
                     <select class="form-control" id="testMulti" size="5" multiple>
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
+                        {% for field in fields[loop.index-1] %}
+                            <option> {{ field }} </option>
+                        {% endfor %}
                     </select>
                 </div><!-- control-group -->
                 

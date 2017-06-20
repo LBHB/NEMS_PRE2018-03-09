@@ -3,7 +3,24 @@ $(document).ready(function(){
     // TODO: Split this up into multile .js files? getting a bit crowded in here,
     // could group by functionality at this point.    
 
-    
+    //initialize console stream
+    if(typeof(EventSource) !== 'undefined'){
+        var source = new EventSource("/console");
+        source.onopen = function(){
+            console.log("Browser opened event source.");
+        }
+        source.onmessage = function(e){
+            console.log(e.data);
+            document.getElementById("console").innerHTML += (e.data + "<br/>");
+        }
+        source.onerror = function(e){
+            console.log("Console source failed.");     
+            document.getElementById("console").innerHTML = "Console source failed.";
+        }
+    } else{
+        document.getElementById("console").innerHTML = "Browser does not support EventSource";
+    }
+
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
         trigger: 'click',

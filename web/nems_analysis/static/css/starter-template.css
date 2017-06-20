@@ -100,7 +100,7 @@ textarea {
 
 #tableWrapper {
   margin-top: 10px;
-  height: 70vh;
+  height: 50vh;
   display: block;
   overflow: auto;
   border: none;
@@ -146,4 +146,12 @@ body.loading {
 
 body.loading #loadingPopup {
   display: block;        
+}
+ 
+.jumbotron {
+  border: 1px solid #C8C8C8;
+  margin-top: 20px;
+  height: 30vh;
+  overflow: auto;
+  text-align: left;
 }

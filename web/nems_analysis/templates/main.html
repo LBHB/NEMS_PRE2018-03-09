@@ -355,7 +355,9 @@
                 
                 </div> <!-- input-group -->
                 <div id="tableWrapper">
+                </div>
                 
+                <div class="jumbotron" id="console">
                 </div>
                 
             </div><!-- resultsArea  col -->
@@ -499,5 +501,6 @@
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
     <script type=text/javascript src=
     "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
+    
   </body>
 </html>
