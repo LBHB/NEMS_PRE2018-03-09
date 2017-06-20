@@ -18,6 +18,7 @@ See Also:
 
 from flask import render_template, jsonify, request
 import pandas as pd
+import matplotlib.pyplot as plt, mpld3
 
 from nems_analysis import app, NarfResults, Session
 #from model_functions.modelfit import fit_single_model, enqueue_models
@@ -50,9 +51,10 @@ def fit_single_model_view():
     
     stack = nems.fit_single_model(
             cellid=cSelected[0], batch=bSelected, modelname=mSelected[0],
-                            )
+            autoplot=False,
+            )
     
-    plotfile = nu.quick_plot_save(stack, mode="json")
+    plotfile = nu.quick_plot_save(stack)
     
     r = (
             session.query(NarfResults)

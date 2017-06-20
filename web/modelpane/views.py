@@ -117,6 +117,10 @@ def modelpane_view():
         m.do_plot(m)
         html = mpld3.fig_to_html(p)
         plots.append(html)
+        plt.close(p)
+    # make double sure that all figures close after loop
+    # to avoid excess memory usage.
+    plt.close("all")
 
     #session.close()
 

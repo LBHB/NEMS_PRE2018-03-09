@@ -53,8 +53,23 @@ def load_model(file_path):
     return stack
 
 
-def quick_plot_save(stack, mode="json"):
-    """Copy of quick_plot from nems_modules.stack for easy save or embed."""
+def quick_plot_save(stack, mode=None):
+    """Copy of quick_plot from nems_modules.stack for easy save or embed.
+    
+    mode options:
+    -------------
+        "json" -- .json
+        "html" -- .html
+        "png" -- .png
+        default -- .png
+        
+    returns:
+    --------
+    filename : string
+        Path to saved file, currently of the form:
+        "/auto/data/code/nems_saved_models/batch{#}/{cell}_{modelname}.type"
+    
+    """
     batch = stack.meta['batch']
     cellid = stack.meta['cellid']
     modelname = stack.meta['modelname']
@@ -66,21 +81,41 @@ def quick_plot_save(stack, mode="json"):
             plt.subplot(len(stack.modules)-1,1,idx)
             m.do_plot(m)
     
-    mode = mode.lower()
-    if mode == "json":
+    if mode is not None:
+        mode = mode.lower()
+    if mode is None:
+        filename = (
+            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
+            .format(batch,cellid,modelname)
+            )
+        fig.savefig(filename)
+    elif mode == "png":
+        filename = (
+            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
+            .format(batch,cellid,modelname)
+            )
+        fig.savefig(filename)
+    elif mode == "json":
         filename = (
                 "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.JSON"
                 .format(batch,cellid,modelname)
                 )
         mpld3.save_json(fig, filename)
-
-    if mode == "html":
+    elif mode == "html":
         filename = (
                 "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.html"
                 .format(batch,cellid,modelname)
                 )
         mpld3.save_html(fig, filename)
-        
+    else:
+        filename = (
+                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
+                .format(batch,cellid,modelname)
+                )
+        fig.savefig(filename)
+    # TODO: more file format options?
+    # TODO: keep png as default, or something else more appropriate?
+    plt.close(fig)
     return filename
 
 #

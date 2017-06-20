@@ -24,7 +24,7 @@ example fit on nice IC cell:
     nems.fit_single_model(cellid,batch,modelname)
 
 """
-def fit_single_model(cellid,batch,modelname):
+def fit_single_model(cellid, batch, modelname, autoplot=True):
     
     stack=nm.nems_stack()
     
@@ -57,7 +57,10 @@ def fit_single_model(cellid,batch,modelname):
     else:
         stack.plot_dataidx=0
         
-    stack.quick_plot()
+    # edit: added autoplot kwarg for option to disable auto plotting
+    #       -jacob, 6/20/17
+    if autoplot:
+        stack.quick_plot()
     
     # save
     filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
