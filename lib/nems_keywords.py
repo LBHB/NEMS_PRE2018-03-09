@@ -40,7 +40,7 @@ def fir10(stack):
     stack.append(nm.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.05
+    stack.fitter.tol=0.01
     
     stack.fitter.do_fit()
     stack.popmodule()
@@ -53,7 +53,7 @@ def fir15(stack):
     stack.append(nm.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.05
+    stack.fitter.tol=0.01
     
     stack.fitter.do_fit()
     stack.popmodule()

@@ -53,6 +53,7 @@ def modelpane_view():
             modules=[m.name for m in stack.modules[1:]],
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
+            fields=[m.user_editable_fields for m in stack.modules[1:]]
            )
    
 

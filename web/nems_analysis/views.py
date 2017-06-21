@@ -22,6 +22,7 @@ any other category (so far, just one function to serve error_log.txt).
 """
 
 import datetime
+import sys
 
 from flask import (
         render_template, jsonify, request, redirect,url_for, Response,
@@ -603,19 +604,5 @@ def preview(filepath):
                 image not in local storage
                 """
                 )
-
-
-
-####################################################################
-###################     MISCELLANEOUS  #############################
-####################################################################
-
-
-
-@app.route('/error_log')
-def error_log():
-    """Serve the static error_log.txt file."""
-    
-    # TODO: Add an interface to edit the text from the site, or submit
-    #       suggestions some other way, so that users can report bugs etc.
-    return app.send_static_file('error_log.txt')
+        
+#end

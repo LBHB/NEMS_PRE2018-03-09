@@ -69,12 +69,17 @@ class nems_module:
             X=np.empty([s[0],0])
             
         for i, d in enumerate(m.d_in):
-            if est and d['est']:
+            if not 'est' in d.keys():
                 if d[name].ndim==2:
                     X=np.concatenate((X,d[name].reshape([-1,1])))
                 else:
                     X=np.concatenate((X,d[name].reshape([s[0],-1])),axis=1)
-            if not est and not d['est']:
+            elif (est and d['est']):
+                if d[name].ndim==2:
+                    X=np.concatenate((X,d[name].reshape([-1,1])))
+                else:
+                    X=np.concatenate((X,d[name].reshape([s[0],-1])),axis=1)
+            elif not est and not d['est']:
                 if d[name].ndim==2:
                     X=np.concatenate((X,d[name].reshape([-1,1])))
                 else:
@@ -371,7 +376,46 @@ class sum_dim(nems_module):
         Y=X.sum(axis=self.dim)
         return Y
             
+       
+class weight_channels(nems_module):
+    name='weight_channels'
+    user_editable_fields=['output_name','num_dims','coefs','baseline','phi','parm_fun']
+    plot_fns=[nu.plot_strf, nu.plot_spectrogram]
+    coefs=None
+    baseline=np.zeros([1,1])
+    num_chans=1
+    parm_fun=None
     
+    def my_init(self, num_dims=0, num_chans=1, baseline=np.zeros([1,1]), 
+                fit_fields=['coefs'], parm_fun=None, phi=np.zeros([1,1])):
+        if self.d_in and not(num_dims):
+            num_dims=self.d_in[0]['stim'].shape[0]
+        self.num_dims=num_dims
+        self.num_chans=num_chans
+        self.baseline=baseline
+        self.fit_fields=fit_fields
+        if parm_fun:
+            self.parm_fun=parm_fun
+            self.coefs=parm_fun(phi)
+        else:
+            #self.coefs=np.ones([num_chans,num_dims])/num_dims/100
+            self.coefs=np.random.normal(0.05,0.01,[num_chans,num_dims])/num_dims
+        self.phi=phi
+        
+    def my_eval(self,X):
+        #if not self.d_out:
+        #    # only allocate memory once, the first time evaling. rish is that output_name could change
+        if self.parm_fun:
+            self.coefs=self.parm_fun(self.phi)
+        s=X.shape
+        X=np.reshape(X,[s[0],-1])
+        X=np.matmul(self.coefs,X)
+        s=list(s)
+        s[0]=self.num_chans
+        Y=np.reshape(X,s)
+        return Y
+    
+ 
 class fir_filter(nems_module):
     name='fir_filter'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
@@ -407,17 +451,17 @@ class dexp(nems_module):
     name='dexp'
     user_editable_fields=['output_name','dexp']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
-    dexp=np.ones([1,4])
+    dexp=np.ones([1,4])/100
         
-    def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
+    def my_init(self,dexp=np.ones([1,4])/100,fit_fields=['dexp']):
         self.dexp=dexp 
         self.fit_fields=fit_fields
 
     def my_eval(self,X):
-        v1=self.dexp[0,0]
-        v2=self.dexp[0,1]
-        v3=self.dexp[0,2]
-        v4=self.dexp[0,3]
+        v1=self.dexp[0,0]*100
+        v2=self.dexp[0,1]*100
+        v3=self.dexp[0,2]*100
+        v4=self.dexp[0,3]*100
         Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
         return Y
     

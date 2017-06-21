@@ -100,7 +100,7 @@ textarea {
 
 #tableWrapper {
   margin-top: 10px;
-  height: 70vh;
+  height: 50vh;
   display: block;
   overflow: auto;
   border: none;
@@ -134,16 +134,18 @@ textarea {
   left: 0;
   height: 100%;
   width: 100%;
-  background: rgba( 255, 255, 255, .8)
-              url('http://i.stack.imgur.com/FhHRx.gif')
-              50% 50%
+  color: white;
+  background: rgba( 0, 0, 0, .1)
+              url('http://i.stack.imgur.com/FhHRx.gif') 
+              50% 50% 
               no-repeat;
+  text-align: center;
 }
-
-body.loading {
-  overflow: hidden;        
-}
-
-body.loading #loadingPopup {
-  display: block;        
+ 
+.jumbotron {
+  border: 1px solid #C8C8C8;
+  margin-top: 20px;
+  height: 30vh;
+  overflow: auto;
+  text-align: left;
 }
