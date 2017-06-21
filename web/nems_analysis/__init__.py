@@ -24,8 +24,8 @@ sCellFile = Base.classes.sCellFile
 
 Session = sessionmaker(bind=engine)
 
-#these don't get used for anything, just have to be loaded when
-#app is initiated
+# these don't get used for anything within this module, 
+# just have to be loaded when app is initiated
 import nems_analysis.views
 import plot_functions.views
 import model_functions.views

@@ -8,8 +8,12 @@ via model queue or command line without depending on a running app server.
     
 import datetime
 
+import numpy as np
+
 def cleanup_file_string(s):
-    """Remove curly braces and commas from string, then return string."""
+    """Remove curly braces and commas from string, then return string.
+    ?DEPRECATED?
+    """
     s = s.replace('{','')
     s = s.replace('}','')
     s = s.replace(',','')
@@ -19,83 +23,80 @@ def cleanup_file_string(s):
 class MultiResultError(Exception):
     """Throw this if more than one result is found when checking for an
     existing entry in NarfResults
-    
+    ?DEPRECATED?
     """
     pass
         
-def fetch_meta_data(mf,c,b,m,r):
+def fetch_meta_data(stack, r, attrs):
     """Assign attributes from model fitter object to NarfResults object.
     
     Arguments:
     ----------
-    mf : FERReT object instance
-        FERReT (model-fitter) object instance that has loaded and fit its
-        module queue, then assigned the resulting performance scores as
-        attributes.
-    c : string
-        cellid that was passed to the FERReT object instance.
-    b : string
-        batch number that was passed to the FERReT object instance.
-    m : string
-        modelname that was passed to the FERReT object instance.
+    stack : nems_modules.stack
+        Stack containing meta data, modules, module names et cetera
+        (see nems_modules).
     r : sqlalchemy ORM object instance
         NarfResults object, either a blank one that was created before calling
         this function or one that was retrieved via a query to NarfResults.
         
     Returns:
     --------
-    r : sqlalchemy ORM object
-        A new NarfResults object instance with attribute values populated from 
-        the corresponding attributes of the FERReT object instance.
+    Nothing. Attributes of 'r' are modified in-place.
         
     """
     
-    #passed in
-    r.cellid = c
-    r.batch = b
-    r.modelname = m
-    #current datetime
     r.lastmod = datetime.datetime.now().replace(microsecond=0)
     
-    #should be saved 
-    r.r_fit = fetch_attr_value(mf,'r_fit')
-    r.r_test = fetch_attr_value(mf,'r_test')
-    r.r_test_rb = fetch_attr_value(mf,'r_test_rb')
-    r.r_ceiling = fetch_attr_value(mf,'r_ceiling')
-    r.r_floor = fetch_attr_value(mf,'r_floor')
-    r.r_active = fetch_attr_value(mf,'r_active')
-    r.mi_test = fetch_attr_value(mf,'mi_test')
-    r.mi_fit = fetch_attr_value(mf,'mi_fit')
-    r.nlogl_test = fetch_attr_value(mf,'nlogl_test')
-    r.nlogl_fit = fetch_attr_value(mf,'nlogl_fit')
-    r.mse_test = fetch_attr_value(mf,'mse_test')
-    r.mse_fit = fetch_attr_value(mf,'mse_fit')
-    r.cohere_test = fetch_attr_value(mf,'cohere_test')
-    r.cohere_fit = fetch_attr_value(mf,'cohere_fit')
-    r.n_parms = fetch_attr_value(mf,'n_parms',default=0)
-    r.score = fetch_attr_value(mf,'score')
-    r.sparsity = fetch_attr_value(mf,'sparsity')
-    r.modelpath = fetch_attr_value(mf,'modelpath',default='')
-    r.modelfile = fetch_attr_value(mf,'modelfile',default='')
-    r.githash = fetch_attr_value(mf,'githash',default='')
-    r.figurefile = fetch_attr_value(mf,'figurefile',default='')
+    for a in attrs:
+        # list of non-numerical attributes, should be blank instead of 0.0
+        if a in ['modelpath', 'modelfile', 'githash']:
+            default = ''
+        else:
+            default = 0.0
+        # TODO: hard coded fix for now to match up stack.meta names with 
+        # narfresults names.
+        # Either need to maintain hardcoded list of fields instead of pulling
+        # from NarfResults, or keep meta names in fitter matched to columns
+        # some other way if naming rules change.
+        if 'fit' in a:
+            k = a.replace('fit','est')
+        elif 'test' in a:
+            k = a.replace('test','val')
+        else:
+            k = a
+        setattr(r, a, _fetch_attr_value(stack, k, default))
+
+
+def _fetch_attr_value(stack,k,default=0.0):
+    """Return the value of key 'k' of stack.meta, or default. Internal use."""
     
-    return r
-
-
-def fetch_attr_value(mf,a,default=0.0):
-    """Return the value of attribute 'a' of FERReT instance 'mf', or default"""
-    if hasattr(mf,a):
-        if getattr(mf,a) is not None:
-            v = getattr(mf,a)
+    # if stack.meta[k] is a string, return it.
+    # if it's an ndarray or anything else with indicies, get the first index;
+    # otherwise, just get the value. Then convert to scalar if np data type.
+    # or if key doesn't exist at all, return the default value.
+    if k in stack.meta:
+        if stack.meta[k]:
+            if not isinstance(stack.meta[k], str):
+                try:
+                    v = stack.meta[k][0]
+                except:
+                    v = stack.meta[k]
+                finally:
+                    try:
+                        v = np.asscalar(v)
+                    except:
+                        pass
+            else:
+                v = stack.meta[k]
     else:
         v = default
         
+    
     return v
     
 
 def db_get_scellfiles(session,cellid,batch):
-    
+    """?DEPRECATED?"""
     # DEPRECATED -- now just passing est/val idents instead
     # if decide to use again in the future, would need to import narf batches
     # and scellfile,

@@ -27,7 +27,7 @@ import lib.nems_modules as nm
 import lib.nems_keywords as nk
 import lib.nems_fitters as nf
 import lib.nems_main as nems
-import model_functions.fit_single_utils as fsu
+from model_functions.fit_single_utils import fetch_meta_data
 
 
 @app.route('/fit_single_model')
@@ -48,14 +48,12 @@ def fit_single_model_view():
             "Beginning model fit -- this may take several minutes.",
             "Please wait for a success/failure response.",
             )
-    
     stack = nems.fit_single_model(
             cellid=cSelected[0], batch=bSelected, modelname=mSelected[0],
             autoplot=False,
             )
-    
     plotfile = nu.quick_plot_save(stack)
-    
+
     r = (
             session.query(NarfResults)
             .filter(NarfResults.cellid == cSelected[0])
@@ -63,18 +61,21 @@ def fit_single_model_view():
             .filter(NarfResults.modelname == mSelected[0])
             .all()
             )
-    
+    collist = ['%s'%(s) for s in NarfResults.__table__.columns]
+    attrs = [s.replace('NarfResults.', '') for s in collist]
+    attrs.remove('id')
+    attrs.remove('figurefile')
+    attrs.remove('lastmod')
     if not r:
         r = NarfResults()
-        r.cellid = cSelected[0]
-        r.batch = bSelected
-        r.modelname = mSelected[0]
         r.figurefile = plotfile
+        fetch_meta_data(stack, r, attrs)
         # TODO: assign performance variables from stack.meta
         session.add(r)
     else:
         # TODO: assign performance variables from stack.meta
         r[0].figurefile = plotfile
+        fetch_meta_data(stack, r[0], attrs)
     
     session.commit()
     session.close()

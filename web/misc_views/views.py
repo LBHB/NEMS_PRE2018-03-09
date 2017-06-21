@@ -1,11 +1,8 @@
 """Miscellaneous view functions.
 
 Contents so far:
-    console (and supporting functions/classes)
+    console
     error_log
-    
-console referenced from:
-    http://flask.pocoo.org/snippets/116/
     
 """
 import sys
@@ -24,26 +21,16 @@ def error_log():
     return app.send_static_file('error_log.txt')
 
 
-@app.route('/console')
-def console():
-    """Serve contents of sys.stdout as they are added."""
-    print("inside console view")
-    
-    if request.headers.get('accept') == 'text/event-stream':
-        print("inside request.headers.get('accept') if statement")
-        def gen():
-            print("inside gen() function")
-            stdout_gen = ( line for line in sys.stdout.readlines() )
-            try:
-                while True:
-                    
-                    yield str(next(stdout_gen))
-            except GeneratorExit:
-                yield "Stream broken."
-            
-        return Response(gen(), mimetype="text/event-stream")
-    print("'if request.headers.get' failed")
-    return Response("Stream failed.", mimetype="text/event-stream")
+#@app.route('/py_console')
+#def console():
+#    """Serve contents of sys.stdout as they are added."""
+
+    #stdout_gen = ( line for line in sys.stdout )
+#    def gen():
+#        while True:
+#            yield 'test message'
+#            
+#    return Response(gen(), mimetype="text/event-stream")
 
     
 
