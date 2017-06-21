@@ -34,7 +34,7 @@ stack.meta['cellid']='bbl061h-a1'
 #stack.meta['cellid']='bbl038f-a2_nat_export'
 
 stack.meta['batch']=267
-stack.meta['cellid']='ama024a-17-1'
+stack.meta['cellid']='ama024a-21-1'
 
 # add a loader module to stack
 nk.fb18ch100(stack)
@@ -44,6 +44,7 @@ nk.ev(stack)
 
 # add fir filter module to stack & fit a little
 #nk.dlog(stack)
+stack.append(nm.weight_channels,num_chans=2)
 nk.fir10(stack)
 
 # add nonlinearity and refit
@@ -52,8 +53,11 @@ nk.dexp(stack)
 # following has been moved to nk.fit00
 stack.append(nm.mean_square_error)
 
-stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.005
+stack.error=stack.modules[-1].error
+stack.fitter=nf.fit_iteratively(stack)
+stack.fitter.sub_fitter=nf.basic_min(stack)
+stack.fitter.sub_fitter.tol=0.05
+
 stack.fitter.do_fit()
 
 stack.valmode=True

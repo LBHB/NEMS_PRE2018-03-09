@@ -8,7 +8,7 @@ Created on Fri Jun 16 05:20:07 2017
 
 import scipy as sp
 import numpy as np
-import matplotlib.pyplot as plt, mpld3
+import matplotlib.pyplot as plt
 import pickle
 import os
 import copy
@@ -93,7 +93,7 @@ def plot_spectrogram(m,idx=None,size=(12,4)):
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
     if out1['stim'].ndim==3:
-        plt.imshow(out1['stim'][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower')
+        plt.imshow(out1['stim'][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower', interpolation='none')
     else:
         s=out1['stim'][m.parent_stack.plot_stimidx,:]
         r=out1['resp'][m.parent_stack.plot_stimidx,:]
@@ -141,6 +141,8 @@ def plot_strf(m,idx=None,size=(12,4)):
     if idx:
         plt.figure(num=idx,figsize=size)
     h=m.coefs
-    plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'))
+    mmax=np.max(np.abs(h.reshape(-1)))
+    plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
+    plt.clim(-mmax,mmax)
     plt.colorbar()
     plt.title(m.name)
