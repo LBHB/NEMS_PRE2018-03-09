@@ -4,21 +4,23 @@ $(document).ready(function(){
     // could group by functionality at this point.    
 
     //socketio -- not working?
-    //namespace="/console"
-    //var socket = io.connect(
-    //        location.protocol + '//' 
-    //        + document.domain + ':' 
-    //        + location.port + namespace
-    //        );
-    //socket.on('connect', function() {
-    //   console.log('socket connected');    
-    //});
+    namespace = '/py_console'
+    var socket = io.connect(
+            location.protocol + '//'
+            + document.domain + ':' 
+            + location.port + namespace
+            );
+            
+    socket.on('connect', function() {
+       console.log('socket connected');
+       socket.emit('jsconnect', {'data':'connection confirmation from js'});
+    });
     
-    //socket.on('console_update', function(msg){
-    //    $('#console').prepend("<p>" + msg.data + "</p>");
-    //});
+    socket.on('console_update', function(msg){
+        $('#console').prepend("<p>" + msg.data + "</p>");
+    });
     
-    //EventSource
+    //EventSource -- not working?
     //var source = new EventSource("/py_console");
     //source.onmessage = function(e){
     //    console.log(e.data)

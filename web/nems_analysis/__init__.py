@@ -1,10 +1,13 @@
 from flask import Flask
+from flask_socketio import SocketIO
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 
 app = Flask(__name__)
 app.config.from_object('config')
+socketio = SocketIO(app, logger=True, engineio_logger=True)
+thread = None
 
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that
