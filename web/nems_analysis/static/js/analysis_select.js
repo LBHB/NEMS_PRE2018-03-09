@@ -3,7 +3,24 @@ $(document).ready(function(){
     // TODO: Split this up into multile .js files? getting a bit crowded in here,
     // could group by functionality at this point.    
 
-    
+    //initialize console stream
+    if(typeof(EventSource) !== 'undefined'){
+        var source = new EventSource("/console");
+        source.onopen = function(){
+            console.log("Browser opened event source.");
+        }
+        source.onmessage = function(e){
+            console.log(e.data);
+            document.getElementById("console").innerHTML += (e.data + "<br/>");
+        }
+        source.onerror = function(e){
+            console.log("Console source failed.");     
+            document.getElementById("console").innerHTML = "Console source failed.";
+        }
+    } else{
+        document.getElementById("console").innerHTML = "Browser does not support EventSource";
+    }
+
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
         trigger: 'click',
@@ -512,12 +529,20 @@ $(document).ready(function(){
             return false;
         }
         
-        alert("Preparing to fit selection -- this may take several minutes."
+        if (!(confirm("Preparing to fit selection -- this may take several minutes."
               + "Until console is implemented, use the browser console"
               + "(right-click inspect element >> console or network tab)"
-              + "to monitor for success/failure.")
+              + "to monitor for success/failure.\n\n"
+              + "Select OK to continue."))){
+            return false;
+        }
         // TODO: insert confirmation box here, with warning about waiting for
         //          fit job to finish
+        
+        addLoad("Running model fit procedure.");
+                
+        console.log("Sending fit request to server. Success or failure will be"
+                    + "reported here when job is finished.")
         
         $.ajax({
             url: $SCRIPT_ROOT + '/fit_single_model',
@@ -526,27 +551,35 @@ $(document).ready(function(){
             // TODO: should use POST maybe in this case?
             type: 'GET',
             success: function(data){
-                alert("Fit finished.\n"
+                console.log("Fit finished.\n"
                       + "r_test: " + data.r_est + "\n"
-                      + "r_val: " + data.r_val + "\n")
+                      + "r_val: " + data.r_val + "\n"
+                      + "Click 'inspect' to browse model")
                 //open preview in new window like the preview button?
                 //then would only have to pass file path
                 //window.open('preview/' + data.preview,'width=520','height=910')
             },
             error: function(error){
-                alert("Fit failed, see console for error message.")
+                console.log("Fit failed.")
                 console.log(error)        
             },
             timeout: 0
         });
-        //model fit cascade starts here
-        //ajax call to flask app with selected cell, batch and model
-        //flask instantiates ferret object (or whatever model fitter ends up as)
-        //with attributes based on ajax data
-        //gets back data package
-        //updates database entries with new data
-        //returns figure file image and some dialogue indicating results
+        updateResults();
+        removeLoad();
     });
+            
+    $body = $("body");
+    $message = $("#loadingMessage");
+    function addLoad(message){
+        message = message || "";
+        $message.html("<p>" + message + "</p>")
+        $body.addClass("loading");
+    }
+    function removeLoad(){
+        $message.html("")
+        $body.removeClass("loading");
+    }
                 
     $("#enqueue").on('click',function(){
         alert("just a test right now");
@@ -589,7 +622,6 @@ $(document).ready(function(){
     });
         
     $("#inspect").on('click',function(){
-        /*
         //pull from results table
         var cSelected = [];
         var mSelected = [];
@@ -597,22 +629,32 @@ $(document).ready(function(){
         
         $(".dataframe tr.selectedRow").each(function(){
             cSelected.push($(this).children().eq(1).html());
+            if (cSelected.length > 0){
+                return false;
+            }
         });
         $(".dataframe tr.selectedRow").each(function(){
             mSelected.push($(this).children().eq(2).html());
+            if (mSelected.length > 0){
+                return false;
+            }
         });
+ 
+        if ((cSelected.length === 0) || (mSelected.length === 0)){
+            alert("Must choose one cell and one model from the table.");
+            return false;
+        }
         
-        //would have to create a new form and assign values to it
-        // leaving as form select for now.
-        */
+        var form = document.getElementById("modelpane");
+        var batch = document.getElementById("p_batch");
+        var cellid = document.getElementById("p_cellid");
+        var modelname = document.getElementById("p_modelname");
         
+        batch.value = bSelected;
+        cellid.value = cSelected;
+        modelname.value = mSelected;
         
-        //pull from selectors 
-        var form = document.getElementById("selections");
-        form.action = $SCRIPT_ROOT + '/modelpane'
-        form.target = "_blank"
-
-        form.submit(); 
+        form.submit();
     });
                 
 });
