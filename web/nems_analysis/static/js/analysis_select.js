@@ -3,23 +3,27 @@ $(document).ready(function(){
     // TODO: Split this up into multile .js files? getting a bit crowded in here,
     // could group by functionality at this point.    
 
-    //initialize console stream
-    if(typeof(EventSource) !== 'undefined'){
-        var source = new EventSource("/console");
-        source.onopen = function(){
-            console.log("Browser opened event source.");
-        }
-        source.onmessage = function(e){
-            console.log(e.data);
-            document.getElementById("console").innerHTML += (e.data + "<br/>");
-        }
-        source.onerror = function(e){
-            console.log("Console source failed.");     
-            document.getElementById("console").innerHTML = "Console source failed.";
-        }
-    } else{
-        document.getElementById("console").innerHTML = "Browser does not support EventSource";
-    }
+    //socketio -- not working?
+    //namespace="/console"
+    //var socket = io.connect(
+    //        location.protocol + '//' 
+    //        + document.domain + ':' 
+    //        + location.port + namespace
+    //        );
+    //socket.on('connect', function() {
+    //   console.log('socket connected');    
+    //});
+    
+    //socket.on('console_update', function(msg){
+    //    $('#console').prepend("<p>" + msg.data + "</p>");
+    //});
+    
+    //EventSource
+    //var source = new EventSource("/py_console");
+    //source.onmessage = function(e){
+    //    console.log(e.data)
+    //    $('#py_console').prepend("<p>" + e.data + "</p");
+    //}
 
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
@@ -369,6 +373,8 @@ $(document).ready(function(){
                             "Are you sure you want to continue?")){
                     //$("#analysisEditor").submit();
                     submitAnalysis();
+                updateAnalysis();
+                              
                 } else{
                     return false;
                 }
@@ -511,6 +517,12 @@ $(document).ready(function(){
     //////////////////////////////////////////////////////////////////////
     
     
+    function addLoad(){
+        $('#loadingPopup').css('display', 'block');
+    }
+    function removeLoad(){
+        $('#loadingPopup').css('display', 'none');
+    }
     
     
     $("#fitSingle").on('click',function(){   
@@ -539,7 +551,7 @@ $(document).ready(function(){
         // TODO: insert confirmation box here, with warning about waiting for
         //          fit job to finish
         
-        addLoad("Running model fit procedure.");
+        addLoad();
                 
         console.log("Sending fit request to server. Success or failure will be"
                     + "reported here when job is finished.")
@@ -550,36 +562,27 @@ $(document).ready(function(){
                        mSelected:mSelected },
             // TODO: should use POST maybe in this case?
             type: 'GET',
+            timeout: 0,
             success: function(data){
                 console.log("Fit finished.\n"
                       + "r_test: " + data.r_est + "\n"
                       + "r_val: " + data.r_val + "\n"
-                      + "Click 'inspect' to browse model")
+                      + "Click 'inspect' to browse model");
+                
+                updateResults();
+                removeLoad();
                 //open preview in new window like the preview button?
                 //then would only have to pass file path
                 //window.open('preview/' + data.preview,'width=520','height=910')
             },
             error: function(error){
-                console.log("Fit failed.")
-                console.log(error)        
+                console.log("Fit failed.");
+                console.log(error);
+                removeLoad();
             },
-            timeout: 0
         });
-        updateResults();
-        removeLoad();
     });
-            
-    $body = $("body");
-    $message = $("#loadingMessage");
-    function addLoad(message){
-        message = message || "";
-        $message.html("<p>" + message + "</p>")
-        $body.addClass("loading");
-    }
-    function removeLoad(){
-        $message.html("")
-        $body.removeClass("loading");
-    }
+        
                 
     $("#enqueue").on('click',function(){
         alert("just a test right now");
