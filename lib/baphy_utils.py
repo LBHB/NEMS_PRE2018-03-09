@@ -33,8 +33,11 @@ def load_baphy_file(filepath):
     data['respf']=m['respfs'][0][0]
     data['iso']=m['isolation'][0][0]
     data['tags']=np.concatenate(m['tags'][0]['tags'][0][0],axis=0)
-    data['tagidx']=m['tags'][0]['tagidx'][0][0]
-    data['ff']=m['tags'][0]['ff'][0][0]
+    try:
+        data['tagidx']=m['tags'][0]['tagidx'][0][0]
+        data['ff']=m['tags'][0]['ff'][0][0]
+    except:
+        pass    
     data['prestim']=m['tags'][0]['PreStimSilence'][0][0][0]
     data['poststim']=m['tags'][0]['PostStimSilence'][0][0][0]
     data['duration']=m['tags'][0]['Duration'][0][0][0] 
