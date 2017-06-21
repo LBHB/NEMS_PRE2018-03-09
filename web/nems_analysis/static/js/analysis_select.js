@@ -373,8 +373,7 @@ $(document).ready(function(){
                             "Are you sure you want to continue?")){
                     //$("#analysisEditor").submit();
                     submitAnalysis();
-                updateAnalysis();
-                              
+                                  
                 } else{
                     return false;
                 }
@@ -402,6 +401,7 @@ $(document).ready(function(){
            success: function(data){
                $("#analysisEditorModal").modal('hide')
                console.log(data.success);
+               updateAnalysis();
            },
            error: function(error){
                console.log(error)
