@@ -3,12 +3,10 @@
 Only used for testing the template right now.
 
 """
-import itertools
 
 from flask import request, render_template, Session, Response
 import matplotlib.pyplot as plt, mpld3
 
-from lib.baphy_utils import get_kw_file, get_celldb_file
 import lib.nems_modules as nm
 import lib.nems_fitters as nf
 import lib.nems_keywords as nk
@@ -47,13 +45,19 @@ def modelpane_view():
     # make double sure that all figures close after loop
     # to avoid excess memory usage.
     plt.close("all")
-
+    
+    plot_fns = [m.plot_fns for m in stack.modules[1:]]    
+    for pf in plot_fns:
+        for f in pf:
+            f = printable_plot_name(f)
+    
     return render_template(
             "/modelpane/modelpane.html", 
             modules=[m.name for m in stack.modules[1:]],
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
-            fields=[m.user_editable_fields for m in stack.modules[1:]]
+            fields=[m.user_editable_fields for m in stack.modules[1:]],
+            plottypes=plot_fns
            )
    
 
@@ -72,4 +76,9 @@ def modelpane_view():
     #plot = modObject.make_new_plot_with_changed_value
     
     #return jsonify(plot=plot)
-    
+
+def printable_plot_name(plot_fn):
+    p = plot_fn.replace('<function plot_', '')
+    i = p.find(' at')
+    p = p[:i]
+    return p

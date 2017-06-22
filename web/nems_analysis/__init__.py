@@ -13,7 +13,7 @@ from nems_analysis.SplitOutput import SplitOutput
 app = Flask(__name__)
 app.config.from_object('config')
 
-socketio = SocketIO(app, logger=True, async_mode='threading')
+socketio = SocketIO(app, async_mode='threading')
 thread = None
 
 stringio = StringIO()
@@ -76,8 +76,8 @@ Session = sessionmaker(bind=engine)
 
 # these don't get used for anything within this module, 
 # just have to be loaded when app is initiated
-import misc_views.views
 import nems_analysis.views
+import misc_views.views
 import plot_functions.views
 import model_functions.views
 import modelpane.views
