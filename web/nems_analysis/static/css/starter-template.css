@@ -136,16 +136,18 @@ textarea {
   width: 100%;
   color: white;
   background: rgba( 0, 0, 0, .3)
-              url('http://imgur.com/IsHgAhV.gif') 
-              50% 50% 
+              url('http://imgur.com/qnRTMK6.gif')
+              50% 50%
               no-repeat;
-  text-align: center;
 }
- 
+
 .jumbotron {
+  padding: 10px !important;
   border: 1px solid #C8C8C8;
   margin-top: 20px;
   height: 30vh;
   overflow: auto;
   text-align: left;
+  font-size: 8px !important;
+  line-height: 16px;
 }

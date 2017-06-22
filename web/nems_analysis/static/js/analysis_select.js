@@ -8,16 +8,17 @@ $(document).ready(function(){
     var socket = io.connect(
             location.protocol + '//'
             + document.domain + ':' 
-            + location.port + namespace
+            + location.port + namespace,
+            {'timeout':0}
             );
             
     socket.on('connect', function() {
        console.log('socket connected');
-       socket.emit('jsconnect', {'data':'connection confirmation from js'});
     });
     
     socket.on('console_update', function(msg){
-        $('#console').prepend("<p>" + msg.data + "</p>");
+        //console.log('received console_update from server');
+        $('#py_console').prepend("<p>" + msg.data + "</p>");
     });
     
     //EventSource -- not working?

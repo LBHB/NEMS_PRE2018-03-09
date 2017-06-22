@@ -68,6 +68,9 @@ class PlotGenerator():
             self.emptycheck = True
         else:
             self.emptycheck = False
+            
+        print("Building plot...")
+            
 
     def generate_plot(self):
         """Assigns script and div attributes to the plot generator object.
@@ -251,12 +254,12 @@ class PlotGenerator():
         # since most plots group by model.
         newData = newData.swaplevel(i=0, j=1, axis=0)
 
-        # Leaving these in for testing to make sure dropping NaN values
+        # Leave these in for testing to make sure dropping NaN values
         # is working correctly
-        print("was fair checked?")
-        print(self.fair)
-        print("does the data look different or contain nans?")
-        print(newData[self.measure[0]].values)
+        #print("was fair checked?")
+        #print(self.fair)
+        #print("does the data look different or contain nans?")
+        #print(newData[self.measure[0]].values)
         
         return newData
     
@@ -349,6 +352,7 @@ class Scatter_Plot(PlotGenerator):
     
         # If more than one plot was made (i.e. 2 or more models were selected),
         # put them in a grid.
+
         if len(plots) == 1:
             singleplot = plots[0]
             self.script,self.div = components(singleplot)
@@ -421,7 +425,6 @@ class Bar_Plot(PlotGenerator):
         #assign those values to new Series objects to use for the plot
         for model in modelnames:
             values = self.data[self.measure[0]].loc[model]
-            print(values)
             stdev = values.std(skipna=True)
             mean = values.mean(skipna=True)
             if (math.isnan(stdev)) or (math.isnan(mean)):
