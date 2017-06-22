@@ -22,6 +22,6 @@ with open ("instance/nems_path.txt","r") as nems:
         sys.path.insert(0,path)
 del sys
 
-from nems_analysis import app
+from nems_analysis import app, socketio
 
-app.run(host="0.0.0.0", port=8000, debug=True)
+socketio.run(app, host="0.0.0.0", port=8000, debug=True)
