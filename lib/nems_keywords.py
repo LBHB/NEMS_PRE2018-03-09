@@ -31,6 +31,18 @@ def loadlocal(stack):
 def ev(stack):
     stack.append(nm.standard_est_val, valfrac=0.05)
 
+# weight channels keywords
+def wc01(stack):
+    stack.append(nm.weight_channels,num_chans=1)
+
+def wc02(stack):
+    stack.append(nm.weight_channels,num_chans=2)
+
+def wc03(stack):
+    stack.append(nm.weight_channels,num_chans=3)
+
+def wc04(stack):
+    stack.append(nm.weight_channels,num_chans=4)
 
 # fir filter keywords
 def fir10(stack):
