@@ -1,20 +1,26 @@
 $(document).ready(function(){
+
+    $(".plotSelect").change(updatePlot)
+    function updatePlot(){
+
+        var plotDiv = $(this).parents(".row").find(".plot-wrapper");
+        var modAffected = $(this).parents(".row").attr('id');
+        var plotType = $(this).val();
         
-    $(".collapse.show").each(function(){
-        $(this).collapse({
-            'toggle': true
+        console.log("modAffected: " + modAffected + ", plotType: " + plotType)
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/update_modelpane_plot',
+            data: { modAffected:modAffected, plotType:plotType },
+            type: 'GET',
+            success: function(data){
+                plotDiv.html(data.html);
+            },
+            error: function(error){
+                console.log(error);
+            }
         });
-    });
-   
-    // TODO: How to get matplotlib images into the image wrappers?
-    $(".plotPNG").each(function(){
-        //var bytes = $(this).value
-        //$(this).src = "data:image/png;base64," + bytes;
-    });
-    
-    // TODO: AJAX calls with selection changes when parameters adjusted.
-    //       Get back new plot(s) to refresh page.
-    //       Just replace inner HTML of plot wrapper with new <img> ?
-    
+        
+    }
     
 });
