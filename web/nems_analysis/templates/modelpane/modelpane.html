@@ -48,10 +48,9 @@
                 <div class="control-group" align="left">
                     <label for="testSelect"> Test Select </label>
                     <select class="form-control" id="testSelect">
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
-                        <option> testing </option>
+                        {% for type in plottypes[loop.index-1] %}
+                            <option> {{ type }} </option>
+                        {% endfor %}
                     </select>
                 </div><!-- control-group -->
                 

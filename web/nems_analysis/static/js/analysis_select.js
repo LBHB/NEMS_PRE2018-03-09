@@ -8,24 +8,23 @@ $(document).ready(function(){
     var socket = io.connect(
             location.protocol + '//'
             + document.domain + ':' 
-            + location.port + namespace
+            + location.port + namespace,
+            {'timeout':0}
             );
             
     socket.on('connect', function() {
        console.log('socket connected');
-       socket.emit('jsconnect', {'data':'connection confirmation from js'});
     });
     
     socket.on('console_update', function(msg){
-        $('#console').prepend("<p>" + msg.data + "</p>");
+        //console.log('received console_update from server');
+        $('#py_console').prepend("<p>" + msg.data + "</p>");
     });
     
-    //EventSource -- not working?
-    //var source = new EventSource("/py_console");
-    //source.onmessage = function(e){
-    //    console.log(e.data)
-    //    $('#py_console').prepend("<p>" + e.data + "</p");
-    //}
+    // use this in place of console.log to send to py_console
+    function py_console_log(message){
+      $('#py_console').prepend("<p>" + message + "</p>");        
+    }
 
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
@@ -402,7 +401,7 @@ $(document).ready(function(){
            type: 'GET',
            success: function(data){
                $("#analysisEditorModal").modal('hide')
-               console.log(data.success);
+               py_console_log(data.success);
                updateAnalysis();
            },
            error: function(error){
@@ -431,10 +430,10 @@ $(document).ready(function(){
                 type: 'GET',
                 success: function(data){
                     if (data.success){
-                        alert(aSelected = "successfully deleted.");
+                        py_console_log(aSelected + " successfully deleted.");
                         updateAnalysis();
                     } else{
-                        alert("Something went wrong - unable to delete:\n" + aSelected);
+                        py_console_log("Something went wrong - unable to delete:\n" + aSelected);
                         return false;
                     }
                 },
@@ -447,10 +446,11 @@ $(document).ready(function(){
         }
     }
     
+    
+    
     ///////////////////////////////////////////////////////////////////////
     //     table selection, preview, strf, inspect                       //
     ///////////////////////////////////////////////////////////////////////
-    
     
     
     
@@ -476,7 +476,7 @@ $(document).ready(function(){
 
         // only proceed if selections have been made
         if ((cSelected.length == 0) || (mSelected.length == 0)){
-            alert('Must select at least one result from table')
+            py_console_log('Must select at least one result from table')
             return false;
         }
         
@@ -506,7 +506,7 @@ $(document).ready(function(){
     });
                 
     $("#strf").on('click',function(){
-        alert("Function not yet implemented");
+        py_console_log("STRF Function not yet implemented");
         //return strf plots ala narf_analysis
         //low priority
     });
@@ -517,6 +517,7 @@ $(document).ready(function(){
     //////////////////////////////////////////////////////////////////////            
     //               Model fitting, inspect                             //
     //////////////////////////////////////////////////////////////////////
+    
     
     
     function addLoad(){
@@ -534,20 +535,19 @@ $(document).ready(function(){
         
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
-            alert('Must select a batch')
+            py_console_log('Must select a batch')
             return false;
         }
         if ((cSelected.length > 1) || (mSelected.length > 1) || (cSelected.length
             == 0) || (mSelected.length == 0)){
-            alert('Must select one model and one cell')
+            py_console_log('Must select one model and one cell')
             return false;
         }
         
-        if (!(confirm("Preparing to fit selection -- this may take several minutes."
-              + "Until console is implemented, use the browser console"
-              + "(right-click inspect element >> console or network tab)"
-              + "to monitor for success/failure.\n\n"
-              + "Select OK to continue."))){
+        if (!(confirm(
+                "Preparing to fit selection -- this may take several minutes."
+              + "Web interface will be disabled until fit is complete."
+              + "\n\nSelect OK to continue."))){
             return false;
         }
         // TODO: insert confirmation box here, with warning about waiting for
@@ -555,7 +555,7 @@ $(document).ready(function(){
         
         addLoad();
                 
-        console.log("Sending fit request to server. Success or failure will be"
+        py_console_log("Sending fit request to server. Success or failure will be"
                     + "reported here when job is finished.")
         
         $.ajax({
@@ -566,7 +566,7 @@ $(document).ready(function(){
             type: 'GET',
             timeout: 0,
             success: function(data){
-                console.log("Fit finished.\n"
+                py_console_log("Fit finished.\n"
                       + "r_test: " + data.r_est + "\n"
                       + "r_val: " + data.r_val + "\n"
                       + "Click 'inspect' to browse model");
@@ -578,7 +578,7 @@ $(document).ready(function(){
                 //window.open('preview/' + data.preview,'width=520','height=910')
             },
             error: function(error){
-                console.log("Fit failed.");
+                py_console_log("Fit failed.");
                 console.log(error);
                 removeLoad();
             },
@@ -587,7 +587,7 @@ $(document).ready(function(){
         
                 
     $("#enqueue").on('click',function(){
-        alert("just a test right now");
+        py_console_log("just a test right now");
         
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
@@ -595,11 +595,11 @@ $(document).ready(function(){
         
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
-            alert('Must select a batch')
+            py_console_log('Must select a batch')
             return false;
         }
         if ((cSelected.length == 0) || (mSelected.length == 0)){
-            alert('Must select at least one model and at least one cell')
+            py_console_log('Must select at least one model and at least one cell')
             return false;
         }
         
@@ -610,10 +610,10 @@ $(document).ready(function(){
             // TODO: should POST be used in this case?
             type: 'GET',
             success: function(data){
-                alert(data.data);
-                alert(data.testb);
-                alert(data.testc);
-                alert(data.testm);
+                py_console_log(data.data);
+                py_console_log(data.testb);
+                py_console_log(data.testc);
+                py_console_log(data.testm);
             },
             error: function(error){
                 console.log(error)        
@@ -646,7 +646,7 @@ $(document).ready(function(){
         });
  
         if ((cSelected.length === 0) || (mSelected.length === 0)){
-            alert("Must choose one cell and one model from the table.");
+            py_console_log("Must choose one cell and one model from the table.");
             return false;
         }
         
