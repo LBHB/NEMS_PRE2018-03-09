@@ -44,7 +44,7 @@ nk.ev(stack)
 
 # add fir filter module to stack & fit a little
 #nk.dlog(stack)
-stack.append(nm.weight_channels,num_chans=2)
+nk.wc03(stack)
 nk.fir10(stack)
 
 # add nonlinearity and refit
