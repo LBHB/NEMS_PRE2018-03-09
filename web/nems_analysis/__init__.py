@@ -1,6 +1,6 @@
 import sys
 from io import StringIO
-#import datetime
+import datetime
 
 from flask import Flask
 from flask_socketio import SocketIO
@@ -55,6 +55,7 @@ def start_logging():
             {'data':'console connected or re-connected'},
             namespace='/py_console',
             )
+
 
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that

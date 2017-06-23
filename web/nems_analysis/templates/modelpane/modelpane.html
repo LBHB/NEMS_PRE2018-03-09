@@ -26,6 +26,23 @@
     
     <!-- Custom styles for this template -->
     <link href="{{ url_for('static', filename='css/modelpane/modelpane.css') }}" rel="stylesheet">
+    
+    <!-- load jquery -->
+    <script type=text/javascript src=
+        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+        
+    <!-- Bootstrap JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 
+    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
+    crossorigin="anonymous"></script>
+    
+    <!-- modelpane-specific javascript -->
+    <script type="text/javascript">
+        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
+    <script type="text/javascript" src=
+        "{{ url_for('static',filename='js/modelpane/modelpane.js') }}">
+    </script>
+    
   </head>
   <body>
     <div class="container-fluid">
@@ -37,17 +54,18 @@
 
         <h4 text-align="left" align="left">
         <button class="btn-default" data-toggle="collapse"
-        data-target="#moduleRow{{ loop.index-1 }}" aria-expanded="true">
-        Toggle {{ modules[loop.index-1] }} </a>
+        data-target="#{{ module }}" aria-expanded="true">
+        Toggle {{ module }} </button>
         </h4>
         
-        <div class="row collapse.show collapse in" id="moduleRow{{ loop.index-1 }}">
+        <div class="row collapse.show collapse in" id="{{ module }}">
         
             <div class="col-xs-4">
             
                 <div class="control-group" align="left">
-                    <label for="testSelect"> Test Select </label>
-                    <select class="form-control" id="testSelect">
+                    <label for="plotSelect{{ loop.index-1 }}"> Plot Type </label>
+                    <select class="plotSelect form-control" id=
+                    "plotSelect{{ loop.index-1 }}">
                         {% for type in plottypes[loop.index-1] %}
                             <option> {{ type }} </option>
                         {% endfor %}
@@ -55,7 +73,7 @@
                 </div><!-- control-group -->
                 
                 <div class="control-group" align="left">
-                    <label for="testMulti"> Test Multi </label>
+                    <label for="testMulti"> Editable Fields </label>
                     <select class="form-control" id="testMulti" size="5" multiple>
                         {% for field in fields[loop.index-1] %}
                             <option> {{ field }} </option>
@@ -70,45 +88,24 @@
                     <label class="checkbox">
                         <input type="checkbox"> Test1
                     </label>
-                    <button type="button"> Submit </button>
+                    <button type="button"
+                    class="submitModulesChanges"> Submit </button>
                 </div>
             </div><!-- end col -->
             
             <div class="col-xs-8">
             
-                <div class="plot-wrapper">
-                <!--
-                    <p>plot number {{ loop.index-1 }} goes here</p>
-                    <img class="plotPNG" id="plot{{ loop.index-1 }}"
-                    src="{{ url_for('static',filename='lbhb_logo.jpg') }}">
-                    -->
-                {{ plots[loop.index-1]|safe }}
+                <div class="plot-wrapper" id="plot{{ loop.index-1 }}">
+                    {{ plots[loop.index-1]|safe }}
                 </div> <!-- plot-wrapper -->
-                
+
             </div><!-- end col -->
         </div><!-- end row -->
-
-        
+  
     {% endfor %}
     
     </div> <!-- end starter-template -->
     </div> <!-- end container -->
-    
-        <!-- load jquery -->
-    <script type=text/javascript src=
-        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
-        
-    <!-- Bootstrap JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 
-    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
-    crossorigin="anonymous"></script>
-    
-    <!-- modelpane-specific javascript -->
-    <script type=text/javascript>
-        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
-    <script src=
-        "{{ url_for('static',filename='js/modelpane/modelpane.js') }}"
-    </script>
 
   </body>
 </html>
