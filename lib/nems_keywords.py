@@ -47,12 +47,15 @@ def wc04(stack):
 # fir filter keywords
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
+    #stack.modules[-1].baseline=stack.data[-1][0]['resp'].mean()
     
     # mini fit
     stack.append(nm.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.01
+    stack.fitter.tol=0.05
+    #stack.fitter=nf.coordinate_descent(stack)
+    #stack.fitter.tol=0.001
     
     stack.fitter.do_fit()
     stack.popmodule()

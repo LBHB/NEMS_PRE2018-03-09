@@ -330,7 +330,47 @@ class standard_est_val(nems_module):
                 if self.parent_stack.valmode:
                     self.d_out.append(d_val)
 
+class normalize(nems_module):
+ 
+    name='standard_est_val'
+    user_editable_fields=['output_name','valfrac','valmode']
+    force_positive=True
+    d=0
+    g=1
+    
+    def my_init(self, force_positive=True):
+        self.force_positive=force_positive
+    
+    def evaluate(self):
+        X=self.unpack_data()
+        name=self.input_name
         
+        if self.d_in[0][name].ndim==2:
+            if self.force_positive:
+                self.d=X.min()
+                self.g=1/(X-self.d).max()
+            else:
+                self.d=X.mean()
+                self.g=X.std()
+        else:
+            s=self.d_in[0][name].shape
+            if self.force_positive:
+                self.d=X[:,:].min(axis=1).reshape([s[0],1,1])
+                self.g=1/(X[:,:]-self.d.reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
+            else:
+                self.d=X[:,:].mean(axis=1).reshape([s[0],1,1])
+                self.g=X[:,:].std(axis=1).reshape([s[0],1,1])
+                self.g[np.isinf(g)]=0
+                
+        # apply the normalization
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+        
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in[self.input_name])
+            f_out[self.output_name]=np.multiply(X-self.d,self.g)
+                        
        
 class add_scalar(nems_module):
  
@@ -399,7 +439,7 @@ class weight_channels(nems_module):
             self.coefs=parm_fun(phi)
         else:
             #self.coefs=np.ones([num_chans,num_dims])/num_dims/100
-            self.coefs=np.random.normal(0.05,0.01,[num_chans,num_dims])/num_dims
+            self.coefs=np.random.normal(1,0.1,[num_chans,num_dims])/num_dims
         self.phi=phi
         
     def my_eval(self,X):
@@ -451,17 +491,17 @@ class dexp(nems_module):
     name='dexp'
     user_editable_fields=['output_name','dexp']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
-    dexp=np.ones([1,4])/100
+    dexp=np.ones([1,4])
         
-    def my_init(self,dexp=np.ones([1,4])/100,fit_fields=['dexp']):
+    def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
         self.dexp=dexp 
         self.fit_fields=fit_fields
 
     def my_eval(self,X):
-        v1=self.dexp[0,0]*100
-        v2=self.dexp[0,1]*100
-        v3=self.dexp[0,2]*100
-        v4=self.dexp[0,3]*100
+        v1=self.dexp[0,0]
+        v2=self.dexp[0,1]
+        v3=self.dexp[0,2]
+        v4=self.dexp[0,3]
         Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
         return Y
     

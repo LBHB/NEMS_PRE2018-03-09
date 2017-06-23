@@ -140,6 +140,94 @@ class basic_min(nems_fitter):
         print("Final MSE: {0}".format(self.stack.error()))
         return(self.stack.error())
 
+
+class coordinate_descent(nems_fitter):
+    """
+    coordinate descent - step one parameter at a time
+    """
+
+    name='coordinate_descent'
+    maxit=1000
+    tol=0.001
+    step_init=0.01
+    step_change=np.sqrt(0.5)
+    step_min=1e-7
+    
+    
+    def my_init(self,tol=0.001,maxit=1000):
+        print("initializing basic_min")
+        self.maxit=maxit
+        self.tol=tol
+                    
+    def cost_fn(self,phi):
+        self.phi_to_fit(phi)
+        self.stack.evaluate(self.fit_modules[0])
+        mse=self.stack.error()
+        self.counter+=1
+        if self.counter % 100==0:
+            print('Eval #{0}: Error={1}'.format(self.counter,mse))
+        return(mse)
+    
+    def do_fit(self):
+        
+        self.phi0=self.fit_to_phi() 
+        self.counter=0
+        n_params=len(self.phi0)
+        
+#        if ~options.Elitism
+#            options.EliteParams = n_params;
+#            options.EliteSteps = 1;
+#        end
+
+        n = 1;   # step counter
+        x = self.phi0.copy(); # current phi
+        x_save = x.copy()     # last updated phi
+        s = self.cost_fn(x)   # current score
+        s_new = np.zeros([n_params,2])     # Improvement of score over the previous step
+        s_delta = np.inf     # Improvement of score over the previous step
+        step_size = self.step_init;  # Starting step size.
+        #print("{0}: phi0 intialized (start error={1}, {2} parameters)".format(self.name,s,len(self.phi0)))
+        #print(x)
+      
+        while s_delta>self.tol and n<self.maxit and step_size>self.step_min:
+            for ii in range(0,n_params):
+                for ss in [0,1]:
+                    x[:]=x_save[:]
+                    if ss==0:
+                        x[ii]+=step_size
+                    else:
+                        x[ii]-=step_size
+                    s_new[ii,ss]=self.cost_fn(x)
+                    
+            x_opt=np.unravel_index(s_new.argmin(),(n_params,2))
+            popt,sopt=x_opt
+            s_delta=s-s_new[x_opt]
+            print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
+            
+            if s_delta<0:
+                step_size=step_size*self.step_change
+                print("Backwards, adjusting step size to {0}".format(step_size))
+            
+            elif s_delta<self.tol:
+                print("Error improvement too small. Iteration complete.")
+                
+            elif sopt:
+                x_save[popt]-=step_size
+            else:
+                x_save[popt]+=step_size
+            
+            x=x_save.copy()
+            n+=1
+            s=s_new[x_opt]
+            
+        # save final parameters back to model
+        self.phi_to_fit(x)
+        
+        #print("Final MSE: {0}".format(s))
+        return(s)
+
+
+
 class fit_iteratively(nems_fitter):
     """
     iterate through modules, running fitting each one with sub_fitter()
@@ -154,14 +242,21 @@ class fit_iteratively(nems_fitter):
         self.max_iter=max_iter
             
     def do_fit(self):
-        self.sub_fitter.tol=self.sub_fitter.tol*2
-        for iter in range(0,self.max_iter):
-            self.sub_fitter.tol=self.sub_fitter.tol/2
+        self.sub_fitter.tol=self.sub_fitter.tol
+        iter=0
+        err=self.stack.error()
+        while iter<self.max_iter:
             for i in self.fit_modules:
                 print("Begin sub_fitter on mod {0}/iter {1}/tol={2}".format(i,iter,self.sub_fitter.tol))
                 self.sub_fitter.fit_modules=[i]
-                self.sub_fitter.do_fit()
-        
+                new_err=self.sub_fitter.do_fit()
+            if err-new_err<self.sub_fitter.tol:
+                print("")
+                print("error improvement less than tol, starting new outer iteration")
+                iter+=1
+                self.sub_fitter.tol=self.sub_fitter.tol/2
+            err=new_err
+            
         return(self.stack.error())
 
 
