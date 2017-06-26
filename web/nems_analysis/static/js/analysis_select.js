@@ -586,9 +586,7 @@ $(document).ready(function(){
     });
         
                 
-    $("#enqueue").on('click',function(){
-        py_console_log("just a test right now");
-        
+    $("#enqueue").on('click',function(){  
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
@@ -603,6 +601,16 @@ $(document).ready(function(){
             return false;
         }
         
+        if (!(confirm("Continuing will queue a model fit for all combinations\n"
+                      + "of selected models and cells. Until the background\n"
+                      + "model queuer is implemented, all fits will run immediately.\n"
+                      + "This may take a very long time. Are you sure you wish to continue?"))){
+            return false;
+        }
+            
+        addLoad();
+        py_console_log("Sending fit request for each combination - please wait...");
+                      
         $.ajax({
             url: $SCRIPT_ROOT + '/enqueue_models',
             data: { bSelected:bSelected, cSelected:cSelected,
@@ -611,12 +619,11 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data){
                 py_console_log(data.data);
-                py_console_log(data.testb);
-                py_console_log(data.testc);
-                py_console_log(data.testm);
+                removeLoad();
             },
             error: function(error){
-                console.log(error)        
+                console.log(error)   
+                removeLoad();
             }
         });
         //communicates with daemon to queue model fitting for each selection on cluster,

@@ -16,6 +16,8 @@ See Also:
 
 """
 
+from itertools import product
+
 from flask import render_template, jsonify, request
 import pandas as pd
 import matplotlib.pyplot as plt, mpld3
@@ -82,9 +84,13 @@ def fit_single_model_view():
     
     return jsonify(r_est=stack.meta['r_est'][0], r_val=stack.meta['r_val'][0])
 
-#@app.route('/enqueue_models')
+@app.route('/enqueue_models')
 def enqueue_models_view():
     """Call modelfit.enqueue_models with user selections as args."""
+    
+    session = Session()
+    #max number of models to run?
+    QUEUE_LIMIT = 20
     
     # Only pull the numerals from the batch string, leave off the description.
     bSelected = request.args.get('bSelected')[:3]
@@ -92,7 +98,52 @@ def enqueue_models_view():
     mSelected = request.args.getlist('mSelected[]')
     
     # TODO: What should this return? What does the user need to see?
-    data = enqueue_models(celllist=cSelected,batch=bSelected,
-                          modellist=mSelected)
+    # data = enqueue_models(celllist=cSelected,batch=bSelected,
+    #                      modellist=mSelected)
     
-    return jsonify(data=data,testb=bSelected,testc=cSelected,testm=mSelected)
+
+    combos = list(product(cSelected, mSelected))
+    for combo in combos:
+        cell = combo[0]
+        model = combo[1]
+        stack = nems.fit_single_model(
+                cellid=cell, batch=bSelected,
+                modelname=model, autoplot=False,
+                )
+        plotfile = nu.quick_plot_save(stack)
+        r = (
+                session.query(NarfResults)
+                .filter(NarfResults.cellid == cSelected[0])
+                .filter(NarfResults.batch == bSelected)
+                .filter(NarfResults.modelname == mSelected[0])
+                .all()
+                )
+        collist = ['%s'%(s) for s in NarfResults.__table__.columns]
+        attrs = [s.replace('NarfResults.', '') for s in collist]
+        attrs.remove('id')
+        attrs.remove('figurefile')
+        attrs.remove('lastmod')
+        if not r:
+            r = NarfResults()
+            r.figurefile = plotfile
+            fetch_meta_data(stack, r, attrs)
+            # TODO: assign performance variables from stack.meta
+            session.add(r)
+        else:
+            # TODO: assign performance variables from stack.meta
+            r[0].figurefile = plotfile
+            fetch_meta_data(stack, r[0], attrs)
+
+        session.commit()
+
+    session.close()
+    
+    if QUEUE_LIMIT:
+        data = (
+                "Queue limit exceeded. The first %d "
+                "cell/model combinations have been fitted."%QUEUE_LIMIT
+                )
+    else:
+        data = "All cell/model combinations have been fitted."
+    
+    return jsonify(data=data)

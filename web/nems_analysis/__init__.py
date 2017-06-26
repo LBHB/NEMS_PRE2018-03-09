@@ -73,6 +73,8 @@ NarfResults = Base.classes.NarfResults
 tQueue = Base.classes.tQueue
 sCellFile = Base.classes.sCellFile
 
+# import this when another module needs to use the database connection.
+# used like a class - ex: 'session = Session()'
 Session = sessionmaker(bind=engine)
 
 # these don't get used for anything within this module, 

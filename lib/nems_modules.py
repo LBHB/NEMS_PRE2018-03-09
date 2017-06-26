@@ -613,7 +613,7 @@ class nonlinearity(nems_module):
         #etc...
         
         
-     def my_eval(self,X):
+    def my_eval(self,X):
         
         if self.nltype=='dlog':
             v1=self.dlog[0,0]
