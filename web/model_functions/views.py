@@ -90,7 +90,9 @@ def enqueue_models_view():
     
     session = Session()
     #max number of models to run?
-    QUEUE_LIMIT = 20
+    queuelimit = request.args.get('queuelimit')
+    if queuelimit:
+        queuelimit = int(queuelimit)
     
     # Only pull the numerals from the batch string, leave off the description.
     bSelected = request.args.get('bSelected')[:3]
@@ -103,7 +105,7 @@ def enqueue_models_view():
     
 
     combos = list(product(cSelected, mSelected))
-    for combo in combos:
+    for combo in combos[:queuelimit]:
         cell = combo[0]
         model = combo[1]
         stack = nems.fit_single_model(
@@ -138,12 +140,17 @@ def enqueue_models_view():
 
     session.close()
     
-    if QUEUE_LIMIT:
+    if queuelimit:
         data = (
-                "Queue limit exceeded. The first %d "
-                "cell/model combinations have been fitted."%QUEUE_LIMIT
+                "Queue limit present. The first %d "
+                "cell/model combinations have been fitted (all)."%queuelimit
+                )
+    elif queuelimit < len(combos):
+        data = (
+                "Queue limit exceeded. Some cell/model combinations were "
+                "not fit (%d out of %d fit)."%(queuelimit, len(combos))
                 )
     else:
-        data = "All cell/model combinations have been fitted."
+        data = "All cell/model combinations have been fitted (no limit)."
     
     return jsonify(data=data)
