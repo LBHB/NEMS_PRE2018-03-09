@@ -590,7 +590,8 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
-        
+        var queuelimit = $("#queuelimit").val();
+                          
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
             py_console_log('Must select a batch')
@@ -601,9 +602,15 @@ $(document).ready(function(){
             return false;
         }
         
+        if (queuelimit > 50){
+            py_console_log("WARNING: Setting a queue limit higher than 50"
+                           + "will likely result in a very long wait time."
+                           + "Trying a smaller limit first is recommended.")
+        }
+        
         if (!(confirm("Continuing will queue a model fit for all combinations\n"
                       + "of selected models and cells. Until the background\n"
-                      + "model queuer is implemented, all fits will run immediately.\n"
+                      + "model queuer is implemented, all fits will run immediately.\n\n"
                       + "This may take a very long time. Are you sure you wish to continue?"))){
             return false;
         }
@@ -614,7 +621,7 @@ $(document).ready(function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/enqueue_models',
             data: { bSelected:bSelected, cSelected:cSelected,
-                   mSelected:mSelected },
+                   mSelected:mSelected, queuelimit:queuelimit },
             // TODO: should POST be used in this case?
             type: 'GET',
             success: function(data){
