@@ -8,6 +8,7 @@ Created on Mon Apr 17 23:16:23 2017
 
 import numpy as np
 import matplotlib.pyplot as plt
+import imp
 
 import scipy.io
 import scipy.signal
@@ -15,6 +16,8 @@ import lib.nems_modules as nm
 import lib.nems_fitters as nf
 import lib.nems_keywords as nk
 import lib.nems_utils as nu
+
+imp.reload(nf)
 
 #datapath='/Users/svd/python/nems/ref/week5_TORCs/'
 #est_files=[datapath + 'tor_data_por073b-b1.mat']
@@ -44,7 +47,8 @@ nk.ev(stack)
 
 # add fir filter module to stack & fit a little
 #nk.dlog(stack)
-stack.append(nm.weight_channels,num_chans=2)
+stack.append(nm.normalize)
+nk.wc02(stack)
 nk.fir10(stack)
 
 # add nonlinearity and refit
@@ -52,11 +56,13 @@ nk.dexp(stack)
 
 # following has been moved to nk.fit00
 stack.append(nm.mean_square_error)
-
 stack.error=stack.modules[-1].error
-stack.fitter=nf.fit_iteratively(stack)
-stack.fitter.sub_fitter=nf.basic_min(stack)
-stack.fitter.sub_fitter.tol=0.05
+
+
+stack.fitter=nf.fit_iteratively(stack,max_iter=5)
+#stack.fitter.sub_fitter=nf.basic_min(stack)
+stack.fitter.sub_fitter=nf.coordinate_descent(stack,tol=0.001,maxit=10)
+stack.fitter.sub_fitter.step_init=0.05
 
 stack.fitter.do_fit()
 

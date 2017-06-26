@@ -31,16 +31,31 @@ def loadlocal(stack):
 def ev(stack):
     stack.append(nm.standard_est_val, valfrac=0.05)
 
+# weight channels keywords
+def wc01(stack):
+    stack.append(nm.weight_channels,num_chans=1)
+
+def wc02(stack):
+    stack.append(nm.weight_channels,num_chans=2)
+
+def wc03(stack):
+    stack.append(nm.weight_channels,num_chans=3)
+
+def wc04(stack):
+    stack.append(nm.weight_channels,num_chans=4)
 
 # fir filter keywords
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
+    #stack.modules[-1].baseline=stack.data[-1][0]['resp'].mean()
     
     # mini fit
     stack.append(nm.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.01
+    stack.fitter.tol=0.05
+    #stack.fitter=nf.coordinate_descent(stack)
+    #stack.fitter.tol=0.001
     
     stack.fitter.do_fit()
     stack.popmodule()

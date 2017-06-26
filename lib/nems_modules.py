@@ -32,6 +32,13 @@ class nems_module:
     # Begin standard functions
     #
     def __init__(self,parent_stack=None,**xargs):
+        """
+        __init__
+        Standard initialization for all modules. Sets up next step in data
+        stream linking parent_stack.data to self.data_in and .data_out.
+        Also configures default plotter and calls self.my_init(), which can 
+        optionally be defined to perform module-specific initialization.
+        """
         print("creating module "+self.name)
         
         if parent_stack is None:
@@ -48,12 +55,20 @@ class nems_module:
         self.my_init(**xargs)
         
     def parms2phi(self):
+        """
+        parms2phi - extract all parameter values contained in properties
+        listed in self.fit_fields so that they can be passed to fit routines.
+        """
         phi=np.empty(shape=[0,1])
         for k in self.fit_fields:
             phi=np.append(phi,getattr(self, k).flatten())
         return phi
         
     def phi2parms(self,phi=[]):
+        """
+        phi2parms - import fit parameter values from a vector provided by a 
+        fit routine
+        """
         os=0;
         for k in self.fit_fields:
             s=getattr(self, k).shape
@@ -61,6 +76,10 @@ class nems_module:
             os+=np.prod(s)
     
     def unpack_data(self,name='stim',est=True):
+        """
+        unpack_data - extact a data varabile from all files into a single
+        matrix (concatenated across files)
+        """
         m=self
         if m.d_in[0][name].ndim==2:
             X=np.empty([0,1])
@@ -88,6 +107,16 @@ class nems_module:
         return X
     
     def evaluate(self):
+        """
+        evaluate - iterate through each file, extracting the input data 
+        (X=self.data_in[self.input_name]) and passing it as matrix to 
+        self.my_eval(), which can perform the module-specific
+        transformation (default is a simple pass-through) output of my_eval
+        is saved to self.d_out[self.output_name].
+        Notice that a deepcopy is made of the input variable so that changes
+        to it will not accidentally propagate backwards through the data
+        stream
+        """
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
@@ -100,17 +129,19 @@ class nems_module:
     # customizable functions
     #
     def my_init(self,**xargs):
-        # initialization specfic to this module
-        0 # null op?
+        # placeholder for module specific initialization
+        pass 
         
     def my_eval(X):
-        # default: pass-through pointers to data from input to output,
-        # need to deepcopy individual dict entries if they are changed
+        # placeholder for module-specific evaluation, default is
+        # pass-through of pointer to input data matrix.
         Y=X
         return Y
         
     def do_plot(self,size=(12,4),idx=None):
-        #Moved from pylab to pyplot module in all do_plot functions, changed plots 
+        #deprecated. plot functions are now in nems_utils.py
+        
+        # Moved from pylab to pyplot module in all do_plot functions, changed plots 
         #to be individual large figures, added other small details -njs June 16, 2017
         if idx:
             plt.figure(num=idx,figsize=size)
@@ -126,11 +157,16 @@ class nems_module:
                 
         plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
             
-        
 # end nems_module
 
-class dummy_data(nems_module):
+"""
+Data loader modules, typically first entry in the stack
+"""
 
+class dummy_data(nems_module):
+    """
+    dummy_data - generate some very dumb test data without loading any files
+    """
     name='dummy_data'
     user_editable_fields=['output_name','data_len']
     plot_fns=[nu.plot_spectrogram]
@@ -277,6 +313,11 @@ class load_mat(nems_module):
             #PreStimSilence=data['PreStimSilence'][0,0]
             #PostStimSilence=data['PostStimSilence'][0,0]
 
+
+"""
+Special module(s) for organizing/splitting estimation and validation data.
+Currently just one that replicates (mostly) the standard procedure from NARF
+"""
 class standard_est_val(nems_module):
  
     name='standard_est_val'
@@ -330,10 +371,64 @@ class standard_est_val(nems_module):
                 if self.parent_stack.valmode:
                     self.d_out.append(d_val)
 
+"""
+Modules that actually transform the data stream
+"""
+
+class normalize(nems_module):
+    """
+    normalize - rescale a variable, typically stim, to put it in a range that
+    works well with fit algorithms --
+    either mean 0, variance 1 (if sign doesn't matter) or
+    min 0, max 1 (if positive values desired)
+    IMPORTANT NOTE: normalization factors are computed from estimation data 
+    only but applied to both estimation and validation data streams
+    """
+    name='standard_est_val'
+    user_editable_fields=['output_name','valfrac','valmode']
+    force_positive=True
+    d=0
+    g=1
+    
+    def my_init(self, force_positive=True):
+        self.force_positive=force_positive
+    
+    def evaluate(self):
+        X=self.unpack_data()
+        name=self.input_name
         
+        if self.d_in[0][name].ndim==2:
+            if self.force_positive:
+                self.d=X.min()
+                self.g=1/(X-self.d).max()
+            else:
+                self.d=X.mean()
+                self.g=X.std()
+        else:
+            s=self.d_in[0][name].shape
+            if self.force_positive:
+                self.d=X[:,:].min(axis=1).reshape([s[0],1,1])
+                self.g=1/(X[:,:]-self.d.reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
+            else:
+                self.d=X[:,:].mean(axis=1).reshape([s[0],1,1])
+                self.g=X[:,:].std(axis=1).reshape([s[0],1,1])
+                self.g[np.isinf(g)]=0
+                
+        # apply the normalization
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+        
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in[self.input_name])
+            f_out[self.output_name]=np.multiply(X-self.d,self.g)
+                        
        
 class add_scalar(nems_module):
- 
+    """ 
+    add_scalar -- pretty much a dummy test module but may be useful for
+    some reason
+    """
     name='add_scalar'
     user_editable_fields=['output_name','n']
     n=np.zeros([1,1])
@@ -347,6 +442,9 @@ class add_scalar(nems_module):
         return Y
     
 class dc_gain(nems_module):
+    """ 
+    dc_gain -- apply a scale and offset term
+    """
  
     name='dc_gain'
     user_editable_fields=['output_name','d','g']
@@ -364,7 +462,9 @@ class dc_gain(nems_module):
    
         
 class sum_dim(nems_module):
-
+    """
+    sum_dim - sum a matrix across one dimension. maybe useful? mostly testing
+    """
     name='sum_dim'
     user_editable_fields=['output_name','dim']
     dim=0
@@ -378,6 +478,12 @@ class sum_dim(nems_module):
             
        
 class weight_channels(nems_module):
+    """
+    weight_channels - apply a weighting matrix across a variable in the data
+    stream. Used to provide spectral filters, directly imported from NARF.
+    a helper function parm_fun can be defined to parameterized the weighting
+    matrix. but by default the weights are each independent
+    """
     name='weight_channels'
     user_editable_fields=['output_name','num_dims','coefs','baseline','phi','parm_fun']
     plot_fns=[nu.plot_strf, nu.plot_spectrogram]
@@ -399,7 +505,7 @@ class weight_channels(nems_module):
             self.coefs=parm_fun(phi)
         else:
             #self.coefs=np.ones([num_chans,num_dims])/num_dims/100
-            self.coefs=np.random.normal(0.05,0.01,[num_chans,num_dims])/num_dims
+            self.coefs=np.random.normal(1,0.1,[num_chans,num_dims])/num_dims
         self.phi=phi
         
     def my_eval(self,X):
@@ -417,6 +523,9 @@ class weight_channels(nems_module):
     
  
 class fir_filter(nems_module):
+    """
+    fir_filter - the workhorse linear filter module
+    """
     name='fir_filter'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
     plot_fns=[nu.plot_strf, nu.plot_spectrogram]
@@ -447,21 +556,23 @@ class fir_filter(nems_module):
     
 
 class dexp(nems_module):
-    
+    """
+    dexp - static sigmoid. TODO : wrapped into the standard static nonlinearity
+    """
     name='dexp'
     user_editable_fields=['output_name','dexp']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
-    dexp=np.ones([1,4])/100
+    dexp=np.ones([1,4])
         
-    def my_init(self,dexp=np.ones([1,4])/100,fit_fields=['dexp']):
+    def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
         self.dexp=dexp 
         self.fit_fields=fit_fields
 
     def my_eval(self,X):
-        v1=self.dexp[0,0]*100
-        v2=self.dexp[0,1]*100
-        v3=self.dexp[0,2]*100
-        v4=self.dexp[0,3]*100
+        v1=self.dexp[0,0]
+        v2=self.dexp[0,1]
+        v3=self.dexp[0,2]
+        v4=self.dexp[0,3]
         Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
         return Y
     
@@ -483,7 +594,11 @@ class dexp(nems_module):
 #        plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
         
 class nonlinearity(nems_module): 
-    
+    """
+    nonlinearity - apply a static nonlinearity. TODO: use helper functions
+    rather than a look-up table to determine which NL to apply. paraters can
+    be saved in a generic vector self.phi - see NARF implementation for reference 
+    """
     name='nonlinearity'
     
     def __init__(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
@@ -498,28 +613,18 @@ class nonlinearity(nems_module):
         #etc...
         
         
-    def evaluate(self):
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            #self.d_out.append(copy.deepcopy(val))
-            self.d_out.append(val.copy())
-            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+    def my_eval(self,X):
         
         if self.nltype=='dlog':
             v1=self.dlog[0,0]
-            for f_in,f_out in zip(self.d_in,self.d_out):
-                X=copy.deepcopy(f_in[self.input_name])
-                X=np.log(X+v1)
-                f_out[self.output_name]=X
+            Y=np.log(X+v1)
         elif self.nltype=='exp':
             v1=self.exp[0,0]
             v2=self.exp[0,1]
-            for f_in,f_out in zip(self.d_in,self.d_out):
-                X=copy.deepcopy(f_in[self.input_name])
-                X=np.exp(v1*(X-v2))
-                f_out[self.output_name]=X
+            Y=np.exp(v1*(X-v2))
         #etc...
         
+        return Y        
         
 #    def do_plot(self,size=(12,4),idx=None):
 #        print('No nonlinearity plot yet')
@@ -532,7 +637,12 @@ class nonlinearity(nems_module):
 
 #TODO: finish linpupgain/figure out best way to load in pupil data 
 class linpupgain(nems_module): 
-    
+    """
+    linpupgain - apply a gain/offset based on pupil diamter. This function 
+    can probably be generalized to use any state variable -- not just pupil.
+    my not be able to use standard my_eval() because needs access to two 
+    variables in the data stream rather than just one.
+    """
     name='linpupgain'
     
     def __init__(self,d_in=None,fit_fields=['linpugain']):
@@ -560,7 +670,9 @@ class linpupgain(nems_module):
         output=d0+(d*pups)+(g0*ins)+g*np.multiply(pups,ins)
  
         
-
+"""
+modules for computing scores/ assessing model performance
+"""
 class mean_square_error(nems_module):
  
     name='mean_square_error'
@@ -648,8 +760,13 @@ class nems_stack:
         
     """nems_stack
 
-    Properties:
+    Key components:
      modules = list of nems_modules in sequence of execution
+     data = stream of data as it is evaluated through the sequence
+            of modules
+     fitter = pointer to the fit module
+     quick_plot = generates a plot of something about the transformation
+                  that takes place at each modules step
 
     """
     modelname=None

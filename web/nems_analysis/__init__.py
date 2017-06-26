@@ -1,6 +1,6 @@
 import sys
 from io import StringIO
-#import datetime
+import datetime
 
 from flask import Flask
 from flask_socketio import SocketIO
@@ -13,7 +13,7 @@ from nems_analysis.SplitOutput import SplitOutput
 app = Flask(__name__)
 app.config.from_object('config')
 
-socketio = SocketIO(app, logger=True, async_mode='threading')
+socketio = SocketIO(app, async_mode='threading')
 thread = None
 
 stringio = StringIO()
@@ -56,6 +56,7 @@ def start_logging():
             namespace='/py_console',
             )
 
+
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that
 POOL_RECYCLE = 7200;
@@ -72,12 +73,14 @@ NarfResults = Base.classes.NarfResults
 tQueue = Base.classes.tQueue
 sCellFile = Base.classes.sCellFile
 
+# import this when another module needs to use the database connection.
+# used like a class - ex: 'session = Session()'
 Session = sessionmaker(bind=engine)
 
 # these don't get used for anything within this module, 
 # just have to be loaded when app is initiated
-import misc_views.views
 import nems_analysis.views
+import misc_views.views
 import plot_functions.views
 import model_functions.views
 import modelpane.views
