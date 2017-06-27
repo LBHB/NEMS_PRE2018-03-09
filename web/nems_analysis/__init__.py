@@ -20,6 +20,7 @@ stringio = StringIO()
 orig_stdout = sys.stdout
 sys.stdout = SplitOutput(stringio, orig_stdout)
 
+# redirect output of stdout to py_console div in web browser
 def py_console():
     while True:
         # Set sampling rate for console reader in seconds
@@ -43,7 +44,7 @@ def py_console():
         except Exception as e:
             print(e)
             pass
-
+# start looping py_console() in the background when socket is connected
 @socketio.on('connect', namespace='/py_console')
 def start_logging():
     global thread
@@ -73,6 +74,8 @@ NarfResults = Base.classes.NarfResults
 tQueue = Base.classes.tQueue
 sCellFile = Base.classes.sCellFile
 
+# import this when another module needs to use the database connection.
+# used like a class - ex: 'session = Session()'
 Session = sessionmaker(bind=engine)
 
 # these don't get used for anything within this module, 

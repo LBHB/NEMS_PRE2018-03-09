@@ -6,3 +6,5 @@ class SplitOutput():
     def write(self, s):
         for stream in self.streams:
             stream.write(s)
+    def flush(self):
+        pass

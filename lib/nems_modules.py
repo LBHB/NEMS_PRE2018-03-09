@@ -614,7 +614,7 @@ class nonlinearity(nems_module):
         #etc...
         
         
-     def my_eval(self,X):
+    def my_eval(self,X):
         
         #if self.nltype=='dlog':
         if hasattr(self,'dlog'):
