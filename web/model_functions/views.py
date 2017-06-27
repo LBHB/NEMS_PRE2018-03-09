@@ -103,21 +103,27 @@ def enqueue_models_view():
     # data = enqueue_models(celllist=cSelected,batch=bSelected,
     #                      modellist=mSelected)
     
-
+    
     combos = list(product(cSelected, mSelected))
+    failures = []
     for combo in combos[:queuelimit]:
         cell = combo[0]
         model = combo[1]
-        stack = nems.fit_single_model(
-                cellid=cell, batch=bSelected,
-                modelname=model, autoplot=False,
-                )
+        try:
+            stack = nems.fit_single_model(
+                    cellid=cell, batch=bSelected,
+                    modelname=model, autoplot=False,
+                    )
+        except Exception as e:
+            print(e)
+            failures += combo
+            continue
         plotfile = nu.quick_plot_save(stack)
         r = (
                 session.query(NarfResults)
-                .filter(NarfResults.cellid == cSelected[0])
+                .filter(NarfResults.cellid == cell)
                 .filter(NarfResults.batch == bSelected)
-                .filter(NarfResults.modelname == mSelected[0])
+                .filter(NarfResults.modelname == model)
                 .all()
                 )
         collist = ['%s'%(s) for s in NarfResults.__table__.columns]
@@ -152,5 +158,10 @@ def enqueue_models_view():
                 )
     else:
         data = "All cell/model combinations have been fitted (no limit)."
+        
+    if failures:
+        failures = ["%s, %s\n"%(c[0],c[1]) for c in failures]
+        failures = " ".join(failures)
+        data += "\n Failed combinations: %s"%failures
     
     return jsonify(data=data)

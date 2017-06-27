@@ -4,22 +4,22 @@ $(document).ready(function(){
     // could group by functionality at this point.    
 
     //socketio -- not working?
-    //namespace = '/py_console'
-    //var socket = io.connect(
-    //        location.protocol + '//'
-    //        + document.domain + ':' 
-    //        + location.port + namespace,
-    //        {'timeout':0}
-    //        );
+    namespace = '/py_console'
+    var socket = io.connect(
+            location.protocol + '//'
+            + document.domain + ':' 
+            + location.port + namespace,
+            {'timeout':0}
+            );
             
-    //socket.on('connect', function() {
-    //   console.log('socket connected');
-    //});
+    socket.on('connect', function() {
+       console.log('socket connected');
+    });
     
-    //socket.on('console_update', function(msg){
-    //    //console.log('received console_update from server');
-    //    $('#py_console').prepend("<p>" + msg.data + "</p>");
-    //});
+    socket.on('console_update', function(msg){
+        //console.log('received console_update from server');
+        $('#py_console').prepend("<p>" + msg.data + "</p>");
+    });
     
     // use this in place of console.log to send to py_console
     function py_console_log(message){
