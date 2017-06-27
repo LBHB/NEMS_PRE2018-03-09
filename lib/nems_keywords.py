@@ -23,6 +23,9 @@ def fb18ch100(stack):
     stack.append(nm.load_mat,est_files=[file],fs=100)
 
 def loadlocal(stack):
+    """
+    This keyword is just to load up a local file that is not yet on the BAPHY database
+    """
     file='/auto/users/shofer/data/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
     #file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))

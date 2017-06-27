@@ -213,9 +213,7 @@ class load_mat(nems_module):
                     data['resp']=s['resp_raster']
                     data['stim']=s['stim']
                     data['respFs']=s['respfs'][0][0]
-                    print(data['respFs'])
                     data['stimFs']=s['stimfs'][0][0]
-                    print(data['stimFs'])
                     data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
                     data['isolation']=s['isolation']
                 except:
@@ -554,7 +552,7 @@ class fir_filter(nems_module):
         Y=np.reshape(X,s[1:])
         return Y
     
-
+"""
 class dexp(nems_module):
     """
     dexp - static sigmoid. TODO : wrapped into the standard static nonlinearity
@@ -592,17 +590,18 @@ class dexp(nems_module):
 #        post, =plt.plot(s2,'r',label='Post-nonlinearity')
 #        plt.legend(handles=[pre,post])
 #        plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
-        
+"""
+    
 class nonlinearity(nems_module): 
     """
     nonlinearity - apply a static nonlinearity. TODO: use helper functions
-    rather than a look-up table to determine which NL to apply. paraters can
+    rather than a look-up table to determine which NL to apply. parameters can
     be saved in a generic vector self.phi - see NARF implementation for reference 
     """
     name='nonlinearity'
     
     def __init__(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
-        self.nltype=nltype
+        #self.nltype=nltype #This might cause an issue if there is more than one nonlinearity...?
         self.fit_fields=fit_fields
         self.data_setup(d_in)
         if nltype=='dlog':
@@ -610,18 +609,30 @@ class nonlinearity(nems_module):
         elif nltype=='exp':
             self.exp=np.ones([1,2])
             self.exp[0][1]=0
+        elif nltype=='dexp'
+            self.dexp=np.ones([1,4])
         #etc...
         
         
      def my_eval(self,X):
         
-        if self.nltype=='dlog':
+        #if self.nltype=='dlog':
+        if hasattr(self,'dlog'):
             v1=self.dlog[0,0]
             Y=np.log(X+v1)
-        elif self.nltype=='exp':
+        #elif self.nltype=='exp':
+        elif hasattr(self,'exp'):
             v1=self.exp[0,0]
             v2=self.exp[0,1]
             Y=np.exp(v1*(X-v2))
+        #elif self.nltype=='dexp'
+        elif hasattr(self,'dexp'):
+            v1=self.dexp[0,0]
+            v2=self.dexp[0,1]
+            v3=self.dexp[0,2]
+            v4=self.dexp[0,3]
+            Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
+        return Y
         #etc...
         
         return Y        
@@ -638,8 +649,7 @@ class nonlinearity(nems_module):
 #TODO: finish linpupgain/figure out best way to load in pupil data 
 class linpupgain(nems_module): 
     """
-    linpupgain - apply a gain/offset based on pupil diamter. This function 
-    can probably be generalized to use any state variable -- not just pupil.
+    linpupgain - apply a gain/offset based on pupil diameter, or some other continuous variable.
     my not be able to use standard my_eval() because needs access to two 
     variables in the data stream rather than just one.
     """
@@ -834,6 +844,12 @@ class nems_stack:
             if idx>0:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
+                
+    def do_raster_plot(self,stims):
+        m=self.modules[0]
+        nu.raster_plot(m,
+        
+        
             
 # end nems_stack
 
