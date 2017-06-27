@@ -554,9 +554,9 @@ class fir_filter(nems_module):
     
 """
 class dexp(nems_module):
-    """
-    dexp - static sigmoid. TODO : wrapped into the standard static nonlinearity
-    """
+
+    #dexp - static sigmoid. TODO : wrapped into the standard static nonlinearity
+    
     name='dexp'
     user_editable_fields=['output_name','dexp']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
@@ -609,7 +609,7 @@ class nonlinearity(nems_module):
         elif nltype=='exp':
             self.exp=np.ones([1,2])
             self.exp[0][1]=0
-        elif nltype=='dexp'
+        elif nltype=='dexp':
             self.dexp=np.ones([1,4])
         #etc...
         
@@ -827,6 +827,113 @@ class nems_stack:
         self.mod_ids.append(m.id)
         m.evaluate()
         
+    def insert(self, mod=None, idx=None, **xargs):
+        """Insert a module at index in stack, then evaluate the inserted
+        module and all those that come after it.
+        
+        TODO: Not currently working. Looks like nems_modules are set up
+                to assume that the last item in parent_stack.data is
+                their d_in. Not sure how to change this without messing up
+                other stuff.
+        
+        Returns:
+        --------
+        idx : int
+            Index the module was inserted at.
+            Will either be the same as the argument idx if given, or
+            the last index in the stack if mod was appended instead.
+        
+        @author: jacob
+        
+        """
+        
+        if mod is None:
+            m = nems_module(self)
+        else:
+            m = mod(self, **xargs)
+            
+        # if no index is given or index is out of bounds,
+        # just append mod to the end of the stack
+        if (not idx) or (idx > len(self.modules)-1)\
+                     or (idx < -1*len(self.modules)-1):
+            self.append(self, mod=m, **xargs)
+            idx = len(self.modules) - 1
+            return idx
+        
+        # insert module into stack lists
+        self.modules.insert(idx, mod)
+        self.data.insert(idx, m.d_out)
+        self.mod_names.insert(idx, m.name)
+        self.mod_ids.insert(idx, m.id)
+        
+        # re-evaluate the new module + those after it
+        tail = self.modules[idx:]
+        for mod in tail:
+            mod.evaluate(mod)
+
+        return idx
+    
+    def remove(self, idx=None, mod=None, all_idx=False):
+        """Remove the module at the given index in stack, then re-evaluate
+        all modules that came after the removed module.
+        
+        Arguments:
+        ----------
+        idx : int
+            Index of module to be removed. If no idx is given, but a mod is
+            given, nu.find_modules will be used to find idx.
+        mod : nems_module
+            Module to be removed. Only needs to be passed if index is not
+            given, or if all matching indices should be removed.
+        
+        all_idx : boolean
+            If true, and a module is passed instead without an idx, 
+            all matching instances of the module will be removed.
+            Otherwise the instance at the highest index will be removed.
+            
+        Errors:
+        -------
+        Raises an IndexError if idx is None or its absolute value is greater
+        than the length of self.modules, or if mod is given but not found.
+        
+        @author: jacob
+        
+        """
+        
+        if mod and not idx:
+            try: 
+                idx = nu.find_modules(self, mod.name)
+                if all_idx and (len(idx) > 1):
+                    for i in reversed(idx):
+                        self.remove(idx=i)
+                else:
+                    idx = [i for i in reversed(idx)]
+                    self.remove(idx=idx[0])
+            except Exception as e:
+                print(e)
+                raise e
+                    
+        if (not idx) or (idx > len(self.modules)-1)\
+                     or (idx < -1*len(self.modules)-1):
+            raise IndexError
+        
+        # remove module from stack lists
+        self.modules.pop(idx)
+        self.data.pop(idx)
+        self.mod_names.pop(idx)
+        self.mod_ids.pop(idx)
+        
+        # re-evaluate the modules that came after the removed modules
+        # if the mod removed was the last one in the stack,
+        # don't need to evaluate anything.
+        if len(self.modules) == idx:
+            pass
+        else:
+            tail = self.modules[idx:]
+            for mod in tail:
+                mod.evaluate(mod)
+        
+    
     def popmodule(self, mod=nems_module()):
         del self.modules[-1]
         del self.data[-1]
@@ -845,9 +952,9 @@ class nems_stack:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
                 
-    def do_raster_plot(self,stims):
-        m=self.modules[0]
-        nu.raster_plot(m,
+    #def do_raster_plot(self,stims):
+    #    m=self.modules[0]
+    #    nu.raster_plot(m,
         
         
             
