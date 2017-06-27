@@ -20,6 +20,7 @@ stringio = StringIO()
 orig_stdout = sys.stdout
 sys.stdout = SplitOutput(stringio, orig_stdout)
 
+# redirect output of stdout to py_console div in web browser
 def py_console():
     while True:
         # Set sampling rate for console reader in seconds
@@ -43,7 +44,7 @@ def py_console():
         except Exception as e:
             print(e)
             pass
-
+# start looping py_console() in the background when socket is connected
 @socketio.on('connect', namespace='/py_console')
 def start_logging():
     global thread
