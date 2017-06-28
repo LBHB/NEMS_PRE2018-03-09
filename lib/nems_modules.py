@@ -5,6 +5,7 @@ import scipy.signal as sps
 import scipy.stats as spstats
 import copy
 import lib.nems_utils as nu
+import math as mt
 
 class nems_module:
     """nems_module
@@ -35,7 +36,7 @@ class nems_module:
         """
         __init__
         Standard initialization for all modules. Sets up next step in data
-        stream linking parent_stack.data to self.data_in and .data_out.
+        stream linking parent_stack.data to self.d_in and self.d_out.
         Also configures default plotter and calls self.my_init(), which can 
         optionally be defined to perform module-specific initialization.
         """
@@ -77,7 +78,7 @@ class nems_module:
     
     def unpack_data(self,name='stim',est=True):
         """
-        unpack_data - extact a data varabile from all files into a single
+        unpack_data - extact a data variable from all files into a single
         matrix (concatenated across files)
         """
         m=self
@@ -132,12 +133,12 @@ class nems_module:
         # placeholder for module specific initialization
         pass 
         
-    def my_eval(X):
+    def my_eval(self,X):
         # placeholder for module-specific evaluation, default is
         # pass-through of pointer to input data matrix.
         Y=X
         return Y
-        
+    """   
     def do_plot(self,size=(12,4),idx=None):
         #deprecated. plot functions are now in nems_utils.py
         
@@ -146,17 +147,46 @@ class nems_module:
         if idx:
             plt.figure(num=idx,figsize=size)
         out1=self.d_out[:][self.parent_stack.plot_dataidx]
+
         if out1['stim'].ndim==3:
             plt.imshow(out1['stim'][:,self.parent_stack.plot_stimidx,:], aspect='auto', origin='lower')
+        #elif out1['pupil'] is None:
         else:
             s=out1['stim'][self.parent_stack.plot_stimidx,:]
             r=out1['resp'][self.parent_stack.plot_stimidx,:]
             pred, =plt.plot(s,label='Predicted')
             resp, =plt.plot(r,'r',label='Response')
             plt.legend(handles=[pred,resp])
+
+        
+        else:
+            u=0
+            c=out1['repcount'][self.parent_stack.plot_stimidx]
+            h=out1['stim'][self.parent_stack.plot_stimidx].shape
+            scl=h[1]/c
+            
+            for i in self.parent_stack.plot_trialidx:
+                s=out1['stim'][self.parent_stack.plot_stimidx,u:(u+scl)]
+                r=out1['resp'][self.parent_stack.plot_stimidx,u:(u+scl)]
+                pred, =plt.plot(s,label='Predicted')
+                resp, =plt.plot(r,'r',label='Response')
+                plt.legend(handles=[pred,resp])
+                u=u+scl
+        
+            
+            
+            
+    #def pupil_quick_plot(self,trials=(0,4)):
+     #   s=self.data[-1][0]['repcount'][self.plot_stimidx]
+     #   if isinstance(trials,int):
+     #     size=(12,15)
+     #   s=self.data[-1][0]['repcount'][trials]
+     #   plt.figure(figsize=size)
+     #   for i in range(trials[0],trials[1]):
+                
                 
         plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
-            
+        """
 # end nems_module
 
 """
@@ -235,7 +265,7 @@ class load_mat(nems_module):
     #            data = scipy.io.loadmat(f,chars_as_strings=True)
     #            data['raw_stim']=data['stim'].copy()
     #            data['raw_resp']=data['resp'].copy()
-                    
+                                    
                 data['fs']=self.fs
                 noise_thresh=0.04
                 stim_resamp_factor=int(data['stimFs']/self.fs)
@@ -282,11 +312,21 @@ class load_mat(nems_module):
                 print(np.isnan(data['resp'][0,:,:]).shape)
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 
-                #TODO: remove avging & add trial reshape if there is pupil data
+                #print(data['stim'].shape)
+                #print(data['resp'].shape)
+                #print(data['pupil'].shape)
+                
                 if data['pupil'] is None:
                     data['resp']=np.nanmean(data['resp'],axis=1) 
                     data['resp']=np.transpose(data['resp'],(1,0))
-                
+                else:
+                    for i in ('resp','pupil'):
+                        s=data[i].shape
+                        data[i]=np.reshape(data[i],(s[0]*s[1],s[2]),order='F')
+                        data[i]=np.transpose(data[i],(1,0))
+                    data['stim']=np.tile(data['stim'],(1,1,s[1]))
+
+                    
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 print('load_mat: appending {0} to d_out stack'.format(f))
@@ -340,6 +380,10 @@ class standard_est_val(nems_module):
             except:
                 # est/val not flagged, need to figure out
                 
+                #TODO: This only works if the data has not been reshaped into a
+                #continous single stimulus for pupil data
+                #Or, just reshape the data after this if pupil is used.<--THIS DOESNT WORK
+                
                 # figure out number of distinct stim
                 s=d['repcount']
                 
@@ -361,6 +405,63 @@ class standard_est_val(nems_module):
                 if d['pupil'] is not None:
                     d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
                     d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
+                    #for j in (d_est,d_val):
+                    #    for i in ('resp','pupil'):
+                    #        s=j[i].shape
+                    #        j[i]=np.reshape(j[i],(s[0]*s[1],s[2]),order='F')
+                    #        j[i]=np.transpose(j[i],(1,0))
+                    #    j['stim']=np.tile(j['stim'],(1,1,s[1]))
+                
+                d_est['est']=True
+                d_val['est']=False
+                
+                self.d_out.append(d_est)
+                if self.parent_stack.valmode:
+                    self.d_out.append(d_val)
+                    
+class pupil_est_val(nems_module):
+ 
+    name='pupil_est_val'
+    user_editable_fields=['output_name','valfrac','valmode']
+    valfrac=0.05
+    
+    def my_init(self, valfrac=0.05):
+        self.valfrac=valfrac
+    
+    def evaluate(self):
+        del self.d_out[:]
+         # for each data file:
+        for i, d in enumerate(self.d_in):
+            #self.d_out.append(d)
+            try:
+                if d['est']:
+                    # flagged as est data
+                    self.d_out.append(d)
+                elif self.parent_stack.valmode:
+                    self.d_out.append(d)
+                    
+            except:
+                st=d['stim'].shape
+                re=d['resp'].shape
+                stspl=mt.ceil(st[1]*(1-self.valfrac))
+                respl=mt.ceil(re[0]*(1-self.valfrac))
+                
+                
+                d_est=d.copy()
+                d_val=d.copy()
+                
+
+                d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
+                d_est['resp']=copy.deepcopy(d['resp'][:respl,:])
+                d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
+                d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
+                d_val['resp']=copy.deepcopy(d['resp'][respl:,:])
+                d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+                
+                #if 'pupil' in d.keys():
+                if d['pupil'] is not None:
+                    d_est['pupil']=copy.deepcopy(d['pupil'][:respl,:])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][respl:,:])
                 
                 d_est['est']=True
                 d_val['est']=False
@@ -552,27 +653,28 @@ class fir_filter(nems_module):
         Y=np.reshape(X,s[1:])
         return Y
     
-"""
-class dexp(nems_module):
+
+#class dexp(nems_module):
     """
     dexp - static sigmoid. TODO : wrapped into the standard static nonlinearity
     """
-    name='dexp'
-    user_editable_fields=['output_name','dexp']
-    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
-    dexp=np.ones([1,4])
+    
+    #name='dexp'
+    #user_editable_fields=['output_name','dexp']
+    #plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
+    #dexp=np.ones([1,4])
         
-    def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
-        self.dexp=dexp 
-        self.fit_fields=fit_fields
+    #def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
+        #self.dexp=dexp 
+        #self.fit_fields=fit_fields
 
-    def my_eval(self,X):
-        v1=self.dexp[0,0]
-        v2=self.dexp[0,1]
-        v3=self.dexp[0,2]
-        v4=self.dexp[0,3]
-        Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
-        return Y
+    #def my_eval(self,X):
+        #v1=self.dexp[0,0]
+        #v2=self.dexp[0,1]
+        #v3=self.dexp[0,2]
+        #v4=self.dexp[0,3]
+        #Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
+        #return Y
     
 #    def do_plot(self,size=(12,4),idx=None):
 #        #if ax is None:
@@ -590,8 +692,8 @@ class dexp(nems_module):
 #        post, =plt.plot(s2,'r',label='Post-nonlinearity')
 #        plt.legend(handles=[pre,post])
 #        plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
-"""
-    
+
+#TODO: make sure that this module is adding parameters to fit?
 class nonlinearity(nems_module): 
     """
     nonlinearity - apply a static nonlinearity. TODO: use helper functions
@@ -600,16 +702,15 @@ class nonlinearity(nems_module):
     """
     name='nonlinearity'
     
-    def __init__(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
+    def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
         #self.nltype=nltype #This might cause an issue if there is more than one nonlinearity...?
         self.fit_fields=fit_fields
-        self.data_setup(d_in)
         if nltype=='dlog':
             self.dlog=np.ones([1,1])
         elif nltype=='exp':
             self.exp=np.ones([1,2])
             self.exp[0][1]=0
-        elif nltype=='dexp'
+        elif nltype=='dexp':
             self.dexp=np.ones([1,4])
         #etc...
         
@@ -655,11 +756,11 @@ class linpupgain(nems_module):
     """
     name='linpupgain'
     
-    def __init__(self,d_in=None,fit_fields=['linpugain']):
+    def my_init(self,d_in=None,fit_fields=['linpupgain']):
         self.linpupgain=np.zeros([1,4])
         self.linpupgain[0][1]=0
         self.fit_fields=fit_fields
-        self.data_setup(d_in)
+        #self.data_setup(d_in)
         print('linpupgain parameters created')     
     
     def evaluate(self):
@@ -674,11 +775,9 @@ class linpupgain(nems_module):
             self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])        
         for f_in,f_out in zip(self.d_in,self.d_out):
             X=copy.deepcopy(f_in[self.input_name])
-            X=v1-v2*np.exp(-np.exp(v3*(X-v4)))
-            f_out[self.output_name]=X
-        
-        output=d0+(d*pups)+(g0*ins)+g*np.multiply(pups,ins)
- 
+            Xp=copy.deepcopy(f_in['pupil'])
+            Y=d0+(d*Xp)+(g0*X)+g*np.multiply(Xp,X)
+            f_out[self.output_name]=Y
         
 """
 modules for computing scores/ assessing model performance
@@ -768,8 +867,7 @@ class correlation(nems_module):
         
 class nems_stack:
         
-    """nems_stack
-
+    """
     Key components:
      modules = list of nems_modules in sequence of execution
      data = stream of data as it is evaluated through the sequence
@@ -790,6 +888,8 @@ class nems_stack:
     
     plot_dataidx=0
     plot_stimidx=0
+
+
     
     def __init__(self):
         print("Creating new stack")
@@ -805,6 +905,7 @@ class nems_stack:
         self.modelname='Empty stack'
         self.error=self.default_error
         self.valmode=False
+        self.trial_idx=(0,4)
         
     def evaluate(self,start=0):
         # evalute stack, starting at module # start
@@ -838,21 +939,24 @@ class nems_stack:
         return np.zeros([1,1])
     
     def quick_plot(self):
-        plt.figure(figsize=(8,9))
+        plt.figure(figsize=(12,15))
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
                 
-    def do_raster_plot(self,stims):
-        m=self.modules[0]
-        nu.raster_plot(m,
+                
+                
+
+        
+
+
+        
+    #def do_raster_plot(self,stims):
+        #m=self.modules[0]
+        #nu.raster_plot(m,
         
         
             
 # end nems_stack
-
-
-
-        

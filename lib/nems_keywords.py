@@ -24,7 +24,8 @@ def fb18ch100(stack):
 
 def loadlocal(stack):
     """
-    This keyword is just to load up a local file that is not yet on the BAPHY database
+    This keyword is just to load up a local file that is not yet on the BAPHY database.
+    Right now just loads files from my computer --njs, June 27 2017
     """
     file='/auto/users/shofer/data/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
     #file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
@@ -84,7 +85,7 @@ def exp(stack):
     stack.append(nm.nonlinearity,nltype='exp',fit_fields=['exp'])
 
 def dexp(stack):
-    stack.append(nm.dexp)
+    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
 
 
 # fitter keywords
