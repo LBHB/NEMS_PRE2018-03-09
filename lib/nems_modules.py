@@ -19,7 +19,7 @@ class nems_module:
     #
     name='pass-through'
     user_editable_fields=['input_name','output_name']
-    plot_fns=[nu.plot_spectrogram]
+    plot_fns=[nu.plot_spectrogram,nu.plot_trials]
     
     input_name='stim'  # name of input matrix in d_in
     output_name='stim' # name of output matrix in d_out
@@ -53,6 +53,7 @@ class nems_module:
         
         self.d_out=copy.copy(self.d_in)
         self.do_plot=self.plot_fns[0]  # default is first in list
+        self.do_trial_plot=self.plot_fns[0]
         self.my_init(**xargs)
         
     def parms2phi(self):
@@ -138,40 +139,40 @@ class nems_module:
         # pass-through of pointer to input data matrix.
         Y=X
         return Y
-    """   
-    def do_plot(self,size=(12,4),idx=None):
-        #deprecated. plot functions are now in nems_utils.py
-        
-        # Moved from pylab to pyplot module in all do_plot functions, changed plots 
-        #to be individual large figures, added other small details -njs June 16, 2017
-        if idx:
-            plt.figure(num=idx,figsize=size)
-        out1=self.d_out[:][self.parent_stack.plot_dataidx]
-
-        if out1['stim'].ndim==3:
-            plt.imshow(out1['stim'][:,self.parent_stack.plot_stimidx,:], aspect='auto', origin='lower')
-        #elif out1['pupil'] is None:
-        else:
-            s=out1['stim'][self.parent_stack.plot_stimidx,:]
-            r=out1['resp'][self.parent_stack.plot_stimidx,:]
-            pred, =plt.plot(s,label='Predicted')
-            resp, =plt.plot(r,'r',label='Response')
-            plt.legend(handles=[pred,resp])
-
-        
-        else:
-            u=0
-            c=out1['repcount'][self.parent_stack.plot_stimidx]
-            h=out1['stim'][self.parent_stack.plot_stimidx].shape
-            scl=h[1]/c
-            
-            for i in self.parent_stack.plot_trialidx:
-                s=out1['stim'][self.parent_stack.plot_stimidx,u:(u+scl)]
-                r=out1['resp'][self.parent_stack.plot_stimidx,u:(u+scl)]
-                pred, =plt.plot(s,label='Predicted')
-                resp, =plt.plot(r,'r',label='Response')
-                plt.legend(handles=[pred,resp])
-                u=u+scl
+      
+    #def do_plot(self,size=(12,4),idx=None):
+    #    #deprecated. plot functions are now in nems_utils.py
+    #   
+    #    # Moved from pylab to pyplot module in all do_plot functions, changed plots 
+    #    #to be individual large figures, added other small details -njs June 16, 2017
+    #    if idx:
+    #        plt.figure(num=idx,figsize=size)
+    #    out1=self.d_out[:][self.parent_stack.plot_dataidx]
+    #
+    #    if out1['stim'].ndim==3:
+    #        plt.imshow(out1['stim'][:,self.parent_stack.plot_stimidx,:], aspect='auto', origin='lower')
+    #    elif out1['pupil'] is None:
+    #    #else:
+    #        s=out1['stim'][self.parent_stack.plot_stimidx,:]
+    #        r=out1['resp'][self.parent_stack.plot_stimidx,:]
+    #        pred, =plt.plot(s,label='Predicted')
+    #        resp, =plt.plot(r,'r',label='Response')
+    #        plt.legend(handles=[pred,resp])
+    #
+    #    
+    #    else:
+    #     u=0
+    #        c=out1['repcount'][self.parent_stack.plot_stimidx]
+    #        h=out1['stim'][self.parent_stack.plot_stimidx].shape
+    #        scl=h[1]/c
+    #        
+    #        for i in self.parent_stack.plot_trialidx:
+    #            s=out1['stim'][self.parent_stack.plot_stimidx,u:(u+scl)]
+    #            r=out1['resp'][self.parent_stack.plot_stimidx,u:(u+scl)]
+    #            pred, =plt.plot(s,label='Predicted')
+    #            resp, =plt.plot(r,'r',label='Response')
+    #            plt.legend(handles=[pred,resp])
+    #            u=u+scl
         
             
             
@@ -185,8 +186,8 @@ class nems_module:
      #   for i in range(trials[0],trials[1]):
                 
                 
-        plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
-        """
+        #plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
+        
 # end nems_module
 
 """
@@ -220,12 +221,14 @@ class load_mat(nems_module):
 
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
-    plot_fns=[nu.plot_spectrogram]
+    plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
+    do_trial_plot=plot_fns[0]
     est_files=[]
     fs=100
     
     def my_init(self,est_files=[],fs=100):
         self.est_files=est_files.copy()
+        self.do_trial_plot=self.plot_fns[0]
         self.fs=fs
 
     def evaluate(self):
@@ -381,8 +384,8 @@ class standard_est_val(nems_module):
                 # est/val not flagged, need to figure out
                 
                 #TODO: This only works if the data has not been reshaped into a
-                #continous single stimulus for pupil data
-                #Or, just reshape the data after this if pupil is used.<--THIS DOESNT WORK
+                #continous single stimulus for pupil data --made a new est/val
+                # specifically for pupil --njs, June 28 2017
                 
                 # figure out number of distinct stim
                 s=d['repcount']
@@ -585,7 +588,7 @@ class weight_channels(nems_module):
     """
     name='weight_channels'
     user_editable_fields=['output_name','num_dims','coefs','baseline','phi','parm_fun']
-    plot_fns=[nu.plot_strf, nu.plot_spectrogram]
+    plot_fns=[nu.plot_strf,nu.plot_trials,nu.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_chans=1
@@ -640,6 +643,7 @@ class fir_filter(nems_module):
         self.baseline[0]=baseline
         self.coefs=np.zeros([num_dims,num_coefs])
         self.fit_fields=fit_fields
+        self.do_trial_plot=self.plot_fns[0]
         
     def my_eval(self,X):
         #if not self.d_out:
@@ -702,6 +706,7 @@ class nonlinearity(nems_module):
     be saved in a generic vector self.phi - see NARF implementation for reference 
     """
     name='nonlinearity'
+    plot_fns=[nu.pred_act_psth,nu.plot_trials]
     
     def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
         #self.nltype=nltype #This might cause an issue if there is more than one nonlinearity...?
@@ -756,11 +761,13 @@ class linpupgain(nems_module):
     variables in the data stream rather than just one.
     """
     name='linpupgain'
+    plot_fns=[nu.plot_trials]
     
     def my_init(self,d_in=None,fit_fields=['linpupgain']):
         self.linpupgain=np.zeros([1,4])
         self.linpupgain[0][1]=0
         self.fit_fields=fit_fields
+        self.do_trial_plot=self.plot_fns[0]
         #self.data_setup(d_in)
         print('linpupgain parameters created')     
     
@@ -787,7 +794,7 @@ class mean_square_error(nems_module):
  
     name='mean_square_error'
     user_editable_fields=['input1','input2','norm']
-    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
+    plot_fns=[nu.pred_act_psth,nu.plot_trials,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
     norm=True
@@ -798,6 +805,7 @@ class mean_square_error(nems_module):
         self.input1=input1
         self.input2=input2
         self.norm=norm
+        self.do_trial_plot=self.plot_fns[1]
         
     def evaluate(self):
         del self.d_out[:]
@@ -906,7 +914,7 @@ class nems_stack:
         self.modelname='Empty stack'
         self.error=self.default_error
         self.valmode=False
-        self.trial_idx=(0,4)
+        self.plot_trialidx=(0,3)
         
     def evaluate(self,start=0):
         # evalute stack, starting at module # start
@@ -1053,11 +1061,25 @@ class nems_stack:
             if idx>0:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
+    
+    def trial_quick_plot(self):
+        """
+        Plots several trials of a stimulus after fitting pupil data.
+        This is to make it easier to visualize the fits on individual trials,
+        as opposed to over the entire length of the fitted vector.
+        """
+        
+        for idx,m in enumerate(self.modules):
+            # skip first module
+            if idx>0:
+                print('idx= '+str(idx))
+                m.do_trial_plot(m,idx)
                 
+    #def raster_plot(self):
+        
+        
+#help(plt.subplot)             
 
-    #def do_raster_plot(self,stims):
-    #    m=self.modules[0]
-    #    nu.raster_plot(m,
         
         
             
