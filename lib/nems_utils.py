@@ -182,6 +182,29 @@ def plot_strf(m,idx=None,size=(12,4)):
     plt.clim(-mmax,mmax)
     plt.colorbar()
     plt.title(m.name)
+    
+def plot_trials(m,idx=None,size=(12,4)):
+    """
+    plots individual trials of a stimulus, specified by parent_stack.plot_trialidx
+    """
+    out1=m.d_out[m.parent_stack.plot_dataidx]
+    u=0
+    c=out1['repcount'][m.parent_stack.plot_stimidx]
+    h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    scl=int(h[0]/c)
+    tr=m.parent_stack.plot_trialidx
+    
+    for i in range(tr[0],tr[1]):
+        plt.figure(num=str(idx)+str(i),figsize=size)
+        s=out1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
+        r=out1['resp'][m.parent_stack.plot_stimidx,u:(u+scl)]
+        pred, =plt.plot(s,label='Predicted')
+        resp, =plt.plot(r,'r',label='Response')
+        plt.legend(handles=[pred,resp])
+        u=u+scl
+    
+    
+    
 
 def raster_plot(m=None,idx=None,stims='all',size=(12,6),**kwargs):
     """

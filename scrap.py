@@ -42,24 +42,25 @@ alldata=stack.data
 
 
 stack.append(nm.fir_filter,num_coefs=10)
-#stack.append(nm.linpupgain)
+
 stack.append(nm.mean_square_error)
 
 stack.error=stack.modules[-1].error
 stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.05
+stack.fitter.tol=0.001
 stack.fitter.do_fit()
-"""
+
 stack.popmodule()
-stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
+stack.append(nm.linpupgain)
+#stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
 stack.append(nm.mean_square_error)
 stack.error=stack.modules[-1].error
                          
 stack.fitter=nf.basic_min(stack)
 stack.fitter.tol=0.01
 stack.fitter.do_fit()
-"""
-stack.quick_plot()
+stack.plot_trialidx=(10,11)
+stack.trial_quick_plot()
 
 reps=stack.data[-1][0]['repcount']
 
