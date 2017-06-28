@@ -42,7 +42,7 @@ def modelpane_view():
                 )
     except:
         return Response(
-                "Model has not been fitted yet, or its fit file",
+                "Model has not been fitted yet, or its fit file "
                 "is not in local storage."
                 )
         
@@ -65,13 +65,16 @@ def modelpane_view():
         for j, f in enumerate(pf):
             newf = printable_plot_name(f)
             plot_fns[i][j] = newf
-            
+    
+    fields = [m.user_editable_fields for m in stackmods]
+    
     return render_template(
             "/modelpane/modelpane.html", 
             modules=[m.name for m in stackmods],
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
-            fields=[m.user_editable_fields for m in stackmods],
+            fields=fields,
+            field_values=field_values,
             plottypes=plot_fns,
             all_mods=all_mods,
            )
@@ -171,8 +174,7 @@ def append_module():
 @app.route('/insert_module', methods=['GET','POST'])
 def insert_module():
     
-    #TODO: Not currently working - see lib.nems_modules > nems_stack > insert()
-    
+    #TODO: Not currently working, html components disabled for now
     global mp_stack
     
     module_name = request.form.get('a_module')
@@ -201,6 +203,7 @@ def remove_module():
     global mp_stack
     
     module_name = request.form.get('r_module')
+    # TODO: all_idx not getting picked up by form submission? disabled for now
     all_idx = request.form.get('all_idx')
     if not all_idx:
         all_idx = False

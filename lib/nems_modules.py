@@ -929,14 +929,27 @@ class nems_stack:
         self.mod_ids.append(m.id)
         m.evaluate()
         
+    def append_instance(self, mod=None):
+        """Same as append but takes an instance of a module instead
+        of the class to preserve existing **xargs. For use with insert/remove.
+        Could maybe merge these with an added boolean arg? Wasn't sure if that
+        would interfere with the **xargs.
+        
+        @author: jacob
+        
+        """
+        if not mod:
+            mod=nems_module(self)
+        self.modules.append(mod)
+        self.data.append(mod.d_out)
+        self.mod_names.append(mod.name)
+        self.mod_ids.append(mod.id)
+        mod.evaluate()
+        
     def insert(self, mod=None, idx=None, **xargs):
         """Insert a module at index in stack, then evaluate the inserted
-        module and all those that come after it.
-        
-        TODO: Not currently working. Looks like nems_modules are set up
-                to assume that the last item in parent_stack.data is
-                their d_in. Not sure how to change this without messing up
-                other stuff.
+        module and re-append all the modules that were in the stack previously,
+        starting with the insertion index.
         
         Returns:
         --------
@@ -949,34 +962,22 @@ class nems_stack:
         
         """
         
-        if mod is None:
-            m = nems_module(self)
-        else:
-            m = mod(self, **xargs)
-            
         # if no index is given or index is out of bounds,
         # just append mod to the end of the stack
         if (not idx) or (idx > len(self.modules)-1)\
                      or (idx < -1*len(self.modules)-1):
-            self.append(self, mod=m, **xargs)
+            self.append(mod, **xargs)
             idx = len(self.modules) - 1
             return idx
         
-        # insert module into stack lists
-        self.modules.insert(idx, mod)
-        self.data.insert(idx, m.d_out)
-        self.mod_names.insert(idx, m.name)
-        self.mod_ids.insert(idx, m.id)
-        
-        # re-evaluate the new module + those after it
-        tail = self.modules[idx:]
-        for mod in tail:
-            mod.evaluate(mod)
-
+        tail = [self.popmodule_2() for m in self.modules[idx:]]
+        self.append(mod, **xargs)
+        for mod in reversed(tail[:-1]):
+            self.append_instance(mod)
         return idx
     
     def remove(self, idx=None, mod=None, all_idx=False):
-        """Remove the module at the given index in stack, then re-evaluate
+        """Remove the module at the given index in stack, then re-append
         all modules that came after the removed module.
         
         Arguments:
@@ -1003,39 +1004,63 @@ class nems_stack:
         """
         
         if mod and not idx:
-            try: 
-                idx = nu.find_modules(self, mod.name)
-                if all_idx and (len(idx) > 1):
-                    for i in reversed(idx):
-                        self.remove(idx=i)
-                else:
-                    idx = [i for i in reversed(idx)]
-                    self.remove(idx=idx[0])
-            except Exception as e:
-                print(e)
-                raise e
-                    
+            idx = nu.find_modules(self, mod.name)
+            if not idx:
+                print("Module does not exist in stack.")
+                return
+            if not all_idx:
+                # Only remove the instance with the highest index
+                self.remove(idx=idx[-1], mod=None)
+                return
+            else:
+                j = idx[0]
+                # same as tail comp below, but exclude all indexes that match
+                # the mod
+                tail_keep = [
+                        self.popmodule_2() for i, m in 
+                        enumerate(self.modules[j:])
+                        if i not in idx
+                        ]
+                # still need to pop the matched instances, but don't need to
+                # do anything with them.
+                tail_toss = [
+                        self.popmodule_2() for i, m in
+                        enumerate(self.modules[j:])
+                        if i in idx
+                        ]
+                for mod in reversed(tail_keep):
+                    self.append_instance(mod)
+                        
+            
         if (not idx) or (idx > len(self.modules)-1)\
                      or (idx < -1*len(self.modules)-1):
             raise IndexError
         
-        # remove module from stack lists
-        self.modules.pop(idx)
-        self.data.pop(idx)
-        self.mod_names.pop(idx)
-        self.mod_ids.pop(idx)
+        # Remove modules from stack starting at the end until reached idx.
+        tail = [self.popmodule_2() for m in self.modules[idx:]]
+        # Then put them back on starting with the second to last module popped.
+        for mod in reversed(tail[:-1]):
+            self.append_instance(mod)
+
         
-        # re-evaluate the modules that came after the removed modules
-        # if the mod removed was the last one in the stack,
-        # don't need to evaluate anything.
-        if len(self.modules) == idx:
-            pass
-        else:
-            tail = self.modules[idx:]
-            for mod in tail:
-                mod.evaluate(mod)
+    def popmodule_2(self):
+        """For remove and insert -- wasn't sure if the original popmodule 
+        method had a specific use-case, so I didn't want to modify it.
+        Can merge the two if these changes won't cause issues.
         
-    
+        Removes the last module from stack lists, along with its corresponding
+        data and name (and id?).
+        
+        @author: jacob
+        """
+        
+        m = self.modules.pop(-1)
+        self.data.pop(-1)
+        self.mod_names.pop(-1)
+        # Doesn't look like this one is being used yet?
+        #self.mod_ids.pop(-1)
+        return m
+        
     def popmodule(self, mod=nems_module()):
         del self.modules[-1]
         del self.data[-1]
