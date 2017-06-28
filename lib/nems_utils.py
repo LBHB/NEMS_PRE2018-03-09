@@ -194,6 +194,8 @@ def plot_trials(m,idx=None,size=(12,4)):
     scl=int(h[0]/c)
     tr=m.parent_stack.plot_trialidx
     
+    #Could also rewrite this so all plots are in a single figure (i.e. each 
+    #trial is a subplot, rather than its own figure)
     for i in range(tr[0],tr[1]):
         plt.figure(num=str(idx)+str(i),figsize=size)
         s=out1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
@@ -201,12 +203,32 @@ def plot_trials(m,idx=None,size=(12,4)):
         pred, =plt.plot(s,label='Predicted')
         resp, =plt.plot(r,'r',label='Response')
         plt.legend(handles=[pred,resp])
+        plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
+        u=u+scl
+        
+def trial_prepost_psth(m,idx=None,size=(12,4)):
+    in1=m.d_in[m.parent_stack.plot_dataidx]
+    out1=m.d_out[m.parent_stack.plot_dataidx]
+    u=0
+    c=out1['repcount'][m.parent_stack.plot_stimidx]
+    h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    scl=int(h[0]/c)
+    tr=m.parent_stack.plot_trialidx
+    
+    for i in range(tr[0],tr[1]):
+        plt.figure(num=str(idx)+str(i),figsize=size)
+        s1=in1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
+        s2=out1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
+        pred, =plt.plot(s1,label='Pre-'+m.name)
+        resp, =plt.plot(s2,'r',label='Post-'+m.name)
+        plt.legend(handles=[pred,resp])
+        plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
         u=u+scl
     
     
     
 
-def raster_plot(m=None,idx=None,stims='all',size=(12,6),**kwargs):
+def raster_plot(data=None,stims='all',size=(12,6),**kwargs):
     """
     This function generates a raster plot of the data for the specified stimuli.
     It shows the spikes that occur during the actual trial in green, and the background
@@ -219,15 +241,19 @@ def raster_plot(m=None,idx=None,stims='all',size=(12,6),**kwargs):
         dur_time= stimulus duration
         post_time= poststim silence
         frequency= sampling frequency
-        
-    TODO: Update to be compatible with stack-based nems
+        self.parent_stack.unresampled=[data['resp'],data['respFs'],data['duration'],
+                                               data['poststim'],data['prestim']]
+    TODO: Update to be compatible with stack-based nems:
+        -change inputs
+        -check if data is resampled/find some way to hold an unresampled copy
+        of the data (may require changing load mat?)
     """
-    if obj is not None:
-        ins=obj.ins['resp']
-        pre=obj.meta['prestim']
-        dur=obj.meta['duration']
-        post=obj.meta['poststim']
-        freq=obj.meta['respf']
+    if data is not None:
+        ins=data[0]
+        pre=data[4]
+        dur=data[2]
+        post=data[3]
+        freq=data[1]
     else:
         ins=kwargs['data']
         pre=kwargs['pre_time']

@@ -36,6 +36,7 @@ def ev(stack):
     stack.append(nm.standard_est_val, valfrac=0.05)
 
 # weight channels keywords
+###############################################################################
 def wc01(stack):
     stack.append(nm.weight_channels,num_chans=1)
 
@@ -48,7 +49,9 @@ def wc03(stack):
 def wc04(stack):
     stack.append(nm.weight_channels,num_chans=4)
 
+
 # fir filter keywords
+###############################################################################
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
     #stack.modules[-1].baseline=stack.data[-1][0]['resp'].mean()
@@ -78,6 +81,7 @@ def fir15(stack):
     stack.popmodule()
 
 # static NL keywords
+###############################################################################
 def dlog(stack):
     stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['dlog'])
     
@@ -87,8 +91,13 @@ def exp(stack):
 def dexp(stack):
     stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
 
+# state variable keyowrds
+###############################################################################
+def pupgain(stack):
+    stack.append(nm.linpupgain)
 
 # fitter keywords
+###############################################################################
 def fit00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
     if not mseidx:
