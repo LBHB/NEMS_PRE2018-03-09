@@ -11,7 +11,7 @@ import lib.nems_fitters as nf
 import lib.nems_utils as nu
 import lib.nems_keywords as nk
 import lib.baphy_utils as baphy_utils
-
+import os
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -65,6 +65,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True):
     # save
     filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
     nu.save_model(stack,filename)
+    os.chmod(filename, 0o666)
     return stack
 
 """
