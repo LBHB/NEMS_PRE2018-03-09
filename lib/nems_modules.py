@@ -746,6 +746,7 @@ class nonlinearity(nems_module):
     """
     name='nonlinearity'
     plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth]
+    user_editable_fields = ['nltype', 'fit_fields']
     
     
     

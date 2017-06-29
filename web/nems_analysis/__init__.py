@@ -24,7 +24,7 @@ sys.stdout = SplitOutput(stringio, orig_stdout)
 def py_console():
     while True:
         # Set sampling rate for console reader in seconds
-        socketio.sleep(0.5)
+        socketio.sleep(1)
         try:
             data = stringio.getvalue()
             lines = data.split('\n')

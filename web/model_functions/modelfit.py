@@ -26,7 +26,6 @@ import pandas as pd
 import pandas.io.sql as psql
 import numpy as np
 
-from nems_analysis import Session, tQueue, NarfResults, NarfBatches
 from .fit_single_utils import (
         cleanup_file_string, fetch_meta_data, MultiResultError,
         )
@@ -162,7 +161,7 @@ def add_model_to_queue(commandPrompt,note,job,priority=1,rundataid=0):
     #TODO: set these some where else? able to choose from UI?
     #       could grab user name from login once implemented
     user = 'default-user-name-here?'
-    progname = 'python queuerun'
+    progname = 'python3'
     allowqueuemaster=1
     waitid = 0
     dt = str(datetime.datetime.now().replace(microsecond=0))
@@ -178,6 +177,8 @@ def add_model_to_queue(commandPrompt,note,job,priority=1,rundataid=0):
     job.waitid = waitid
     
     return job
+
+
 
 
 

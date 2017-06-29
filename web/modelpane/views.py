@@ -12,6 +12,7 @@ from flask import (
         url_for,
         )
 import matplotlib.pyplot as plt, mpld3
+import numpy as np
 
 import lib.nems_modules as nm
 import lib.nems_fitters as nf
@@ -71,11 +72,11 @@ def modelpane_view():
             plot_fns[i][j] = newf
     
     fields = [m.user_editable_fields for m in stackmods]
-    keywords = [
-            [m.name] + vars(nk)[m.name]
-            for m in stackmods
-            if m.name in vars(nk)
-            ]
+    #keywords = [
+    #        [m.name] + vars(nk)[m.name]
+    #        for m in stackmods
+    #        if m.name in vars(nk)
+    #        ]
     
     return render_template(
             "/modelpane/modelpane.html", 
@@ -83,7 +84,7 @@ def modelpane_view():
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
             fields=fields,
-            keywords=keywords,
+            #keywords=keywords,
             plottypes=plot_fns,
             all_mods=all_mods,
            )
@@ -100,6 +101,9 @@ def refresh_modelpane():
     model = mp_stack.meta['modelname']
     
     all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
+    # remove any modules that shouldn't show up as an option in modelpane
+    all_mods.remove('load_mat')
+    
     stackmods = mp_stack.modules[1:]
     plots = []
     for m in stackmods:
@@ -118,16 +122,24 @@ def refresh_modelpane():
         for j, f in enumerate(pf):
             newf = printable_plot_name(f)
             plot_fns[i][j] = newf
-
+    
+    fields = [m.user_editable_fields for m in stackmods]
+    #keywords = [
+    #        [m.name] + vars(nk)[m.name]
+    #        for m in stackmods
+    #        if m.name in vars(nk)
+    #        ]
+    
     return render_template(
-            'modelpane/modelpane.html',
+            "/modelpane/modelpane.html", 
             modules=[m.name for m in stackmods],
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cell, model),
-            fields=[m.user_editable_fields for m in stackmods],
+            fields=fields,
             plottypes=plot_fns,
+            #keywords=keywords,
             all_mods=all_mods,
-            )
+           )
 
 
 @app.route('/update_modelpane_plot')
@@ -159,41 +171,7 @@ def update_modelpane_plot():
     html = mpld3.fig_to_html(p)
     
     return jsonify(html=html)
-
-
-@app.route('/get_kw_defaults')
-def get_kw_defaults():
-    
-    kw = request.args.get('kSelected')
-    mod = request.args.get('modAffected')
-    module = getattr(nm, mod)
-    editable_fields = module.user_editable_fields
-    
-    try:
-        nm = getattr(nm, kw)
-        # if above passed w/o exception, kw must have been the
-        # base class default
-        inst = module(nm.nems_stack())
-        defaults = {
-                field: getattr(inst, field)
-                for field in editable_fields
-                }
-    except Exception as e:
-        print(e)
-        if hasattr(nk, kw):
-            fn = getattr(nk, kw)
-        else:
-            print("Default values could not be found for: " + kw)
-            kwargs = {
-                    field: value for value, field
-                    in enumerate(editable_fields)
-                    }
-            return jsonify(**kwargs)
-    
-        defaults = get_default_args(fn, editable_fields)
-        
-    return jsonify(**defaults)
-                    
+                 
                     
 @app.route('/append_module', methods=['GET','POST'])
 def append_module():
@@ -276,11 +254,85 @@ def printable_plot_name(plot_fn):
         p = p[:i]
     return p
 
-def get_default_args(function, editables):
-    args, varargs, keywords, defaults = inspect.getargspec(function)
-    for i, arg in reversed(args):
-        if arg in editables:
-            args.remove(arg)
-            defaults.pop(-(i+1))
-            
-    return dict(zip(reversed(args), reversed(defaults)))
+
+@app.route('/get_kw_defaults')
+def get_kw_defaults():
+    """DEPRECATED"""
+    
+    global mp_stack
+    kw = request.args.get('kSelected')
+    mod = request.args.get('modAffected')
+    module = getattr(nm, mod)
+    editable_fields = module.user_editable_fields
+    
+    # TODO: still getting ndarray type error when trying to jsonify.
+    #       looks like it's b/c there are some times multi-dim nd arrays
+    #       as editable fields, which can't be serialized.
+    #if hasattr(nm, kw):
+    #    # if above passed w/o exception, kw must have been the
+    #    # base class default
+    #    inst = module(mp_stack)
+    #    defaults = {
+    #            field: getattr(inst, field)
+    #            for field in editable_fields
+    #            }
+    #    # convert any np types to scalar equivalents
+    #    for key in defaults.keys():
+    #        x = defaults[key]
+    #        if isinstance(x, float) or isinstance(x, int) or isinstance(x, str):
+    #            pass
+    #        elif isinstance(x, list):
+    #            #flatten list into string
+    #            defaults[key] = ','.join(x)
+    #        else:
+    #            try:
+    #                x = defaults[key][0]
+    #            except:
+    #                x = defaults[key]
+    #            finally:
+    #                try:
+    #                    x = np.asscalar(x)
+    #                except Exception as e:
+    #                    print("couldn't convert to np.scalar")
+    #                    print(type(x))
+    #                   print(e)
+    #else:
+    if hasattr(nk, kw):
+        fn = getattr(nk, kw)
+        if isinstance(fn, list):
+            defaults = {
+                field: value for value, field
+                in enumerate(editable_fields)
+                }
+        else:
+            defaults = get_kw_args(fn, editable_fields)
+    else:
+        print("Default values could not be found for: " + kw)
+        defaults = {
+                field: value for value, field
+                in enumerate(editable_fields)
+                }
+        
+    return jsonify(**defaults)
+   
+
+def get_kw_args(function, editables):
+    """DEPRECATED"""
+    source = inspect.getsource(function)
+    values = {}
+    for field in source:
+        # find index of first character of field arg
+        i = source.find(field + "=")
+        # find index of first character of assigned value
+        # IMPORTANT: this assumes that field and value are separated by
+        #            single '=' character.
+        j = i + len(field) + 2
+        # get the last index of the assigned value
+        k = source[j:].find(',')
+        if k == -1:
+            k = source[j:].find(')')
+        # get the value
+        values[field] = source[j:k+1]
+        
+    return values
+    
