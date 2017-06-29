@@ -72,8 +72,10 @@ class nems_module:
         fit routine
         """
         os=0;
+        #print(phi)
         for k in self.fit_fields:
             s=getattr(self, k).shape
+            #phi=np.array(phi)
             setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
             os+=np.prod(s)
     
@@ -174,20 +176,11 @@ class nems_module:
     #            plt.legend(handles=[pred,resp])
     #            u=u+scl
         
-            
-            
-            
-    #def pupil_quick_plot(self,trials=(0,4)):
-     #   s=self.data[-1][0]['repcount'][self.plot_stimidx]
-     #   if isinstance(trials,int):
-     #     size=(12,15)
-     #   s=self.data[-1][0]['repcount'][trials]
-     #   plt.figure(figsize=size)
-     #   for i in range(trials[0],trials[1]):
                 
                 
-        #plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
+    #    plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
         
+    
 # end nems_module
 
 """
@@ -226,10 +219,11 @@ class load_mat(nems_module):
     est_files=[]
     fs=100
     
-    def my_init(self,est_files=[],fs=100):
+    def my_init(self,est_files=[],fs=100,formpup=True):
         self.est_files=est_files.copy()
         self.do_trial_plot=self.plot_fns[0]
         self.fs=fs
+        self.formpup=formpup
 
     def evaluate(self):
         del self.d_out[:]
@@ -325,15 +319,18 @@ class load_mat(nems_module):
                 #print(data['resp'].shape)
                 #print(data['pupil'].shape)
                 
-                if data['pupil'] is None:
+                if data['pupil'] is None: 
                     data['resp']=np.nanmean(data['resp'],axis=1) 
                     data['resp']=np.transpose(data['resp'],(1,0))
-                else:
+                elif data['pupil'] is not None and self.formpup is True:
                     for i in ('resp','pupil'):
                         s=data[i].shape
                         data[i]=np.reshape(data[i],(s[0]*s[1],s[2]),order='F')
                         data[i]=np.transpose(data[i],(1,0))
                     data['stim']=np.tile(data['stim'],(1,1,s[1]))
+               #else:
+                    #for i in ('resp','pupil'):
+                        #data[i]=np.transpose(data[i],(1,0))
 
                     
                 # append contents of file to data, assuming data is a dictionary
@@ -360,7 +357,7 @@ class load_mat(nems_module):
             #PreStimSilence=data['PreStimSilence'][0,0]
             #PostStimSilence=data['PostStimSilence'][0,0]
 
-
+    
 """
 Special module(s) for organizing/splitting estimation and validation data.
 Currently just one that replicates (mostly) the standard procedure from NARF
@@ -389,9 +386,7 @@ class standard_est_val(nems_module):
             except:
                 # est/val not flagged, need to figure out
                 
-                #TODO: This only works if the data has not been reshaped into a
-                #continous single stimulus for pupil data --made a new est/val
-                # specifically for pupil --njs, June 28 2017
+                #--made a new est/val specifically for pupil --njs, June 28 2017
                 
                 # figure out number of distinct stim
                 s=d['repcount']
@@ -429,6 +424,10 @@ class standard_est_val(nems_module):
                     self.d_out.append(d_val)
                     
 class pupil_est_val(nems_module):
+    """
+    Breaks imported data into est/val. Needed for batch 294-like data, where there is no est/val data
+    flagged and low numbers of stimuli
+    """
  
     name='pupil_est_val'
     user_editable_fields=['output_name','valfrac','valmode']
@@ -478,6 +477,43 @@ class pupil_est_val(nems_module):
                 self.d_out.append(d_est)
                 if self.parent_stack.valmode:
                     self.d_out.append(d_val)
+                    
+                    
+class pupil_model(nems_module):
+    name='pupil_model'
+    
+    def my_init(self,tile_data=True):
+        self.tile_data=tile_data
+   
+    def evaluate(self):
+        del self.d_out[:]
+        for i, val in enumerate(self.d_in):
+            self.d_out.append(val.copy())
+            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in['resp'])
+            Xp=copy.deepcopy(f_in['pupil'])
+            Xa=np.nanmean(X,axis=1)
+            print(X.shape)
+            print(Xp.shape)
+            if self.tile_data is True:
+                s=Xp.shape
+                Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F')
+                Z=np.transpose(Z,(1,0))
+                Q=np.reshape(X,(s[0]*s[1],s[2]),order='F')
+                Q=np.transpose(Q,(1,0))
+                Y=np.tile(Xa,(s[1],1))
+                Y=np.transpose(Y,(1,0))
+                print(Y.shape)
+            else:
+                Y=X
+            f_out[self.output_name]=Y  
+            f_out['pupil']=Z
+            f_out['resp']=Q
+            
+    
+    
+    
 
 """
 Modules that actually transform the data stream
@@ -713,6 +749,8 @@ class nonlinearity(nems_module):
     """
     name='nonlinearity'
     plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth]
+    
+    
     
     def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
         #self.nltype=nltype #This might cause an issue if there is more than one nonlinearity...?
@@ -1124,21 +1162,15 @@ class nems_stack:
         un=copy.deepcopy(self.unresampled)
         res=un[0]
         pup=un[5]
-        print(res.shape)
         idx=self.plot_stimidx
         b=np.nanmean(pup[:,:,idx],axis=0)
-        print(b.shape)
         bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
         bc=bc[:,1]
         res[:,:,idx]=res[:,bc,idx]
         un[0]=res
         nu.raster_plot(data=un,stims=idx,size=(12,6))
-        
-    #TODO: implement pupil sorted raster plot
-#help(plt.subplot)             
+           
 
-        
-        
             
 # end nems_stack
 

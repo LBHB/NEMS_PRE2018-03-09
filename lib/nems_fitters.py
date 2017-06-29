@@ -8,6 +8,12 @@ Created on Fri Jun 16 05:20:07 2017
 
 import scipy as sp
 import numpy as np
+import sys
+sys.path.append('/auto/users/shofer/scikit-optimize')
+import skopt.optimizer.gbrt as skgb
+import skopt.optimizer.gp as skgp
+
+
 
 class nems_fitter:
     """nems_fitter
@@ -139,7 +145,61 @@ class basic_min(nems_fitter):
                              constraints=cons,options=opt,tol=self.tol)
         print("Final MSE: {0}".format(self.stack.error()))
         return(self.stack.error())
-
+"""
+Tried using skopt package. Did not go super well, only used pupil data though.
+Will try again later with different data (i.e. more estimation data) --njs, June 29 2017
+    
+class forest_min(nems_fitter):
+    name='forest_min'
+    maxit=100
+    routine='skopt_ft'
+    
+    def my_init(self,dims,maxit=500):
+        print("initializing basic_min")
+        self.maxit=maxit
+        self.dims=dims
+        
+                    
+    def cost_fn(self,phi):
+        #print(phi.shape)
+        phi=np.array(phi)
+        self.phi_to_fit(phi)
+        self.stack.evaluate(self.fit_modules[0])
+        mse=self.stack.error()
+        self.counter+=1
+        mse=np.asscalar(mse)
+        if self.counter % 100==0:
+            print('Eval #'+str(self.counter))
+            print('MSE='+str(mse))
+        #print(mse)
+        return(mse)
+    
+    def do_fit(self):
+        
+        opt=dict.fromkeys(['maxiter'])
+        opt['maxiter']=int(self.maxit)
+        opt['eps']=1e-7
+        #if function=='tanhON':
+            #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
+            #routine='COBYLA'
+        #else:
+            #
+        #cons=()
+        self.phi0=np.array(self.fit_to_phi())
+        self.y0=self.cost_fn(self.phi0)
+        self.counter=0
+        print("gaussian_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
+        #print("maxiter: {0}".format(opt['maxiter']))
+        #sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
+                             #constraints=cons,options=opt,tol=self.tol)
+        #skgp.gp_minimize(self.cost_fn,self.dims,base_estimator=None, n_calls=100, 
+                         #n_random_starts=10, acq_func='gp_hedge', acq_optimizer='auto', x0=self.phi0, 
+                         #y0=self.y0, random_state=True, verbose=True)
+        skgb.gbrt_minimize(func=self.cost_fn,dimensions=self.dims,n_calls=self.maxit,x0=self.phi0,
+                         y0=self.y0,random_state=False,verbose=True)
+        print("Final MSE: {0}".format(self.stack.error()))
+        return(self.stack.error())
+"""
 
 class coordinate_descent(nems_fitter):
     """

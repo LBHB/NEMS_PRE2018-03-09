@@ -243,10 +243,6 @@ def raster_plot(data=None,stims='all',size=(12,6),**kwargs):
         frequency= sampling frequency
         self.parent_stack.unresampled=[data['resp'],data['respFs'],data['duration'],
                                                data['poststim'],data['prestim']]
-    TODO: Update to be compatible with stack-based nems:
-        -change inputs
-        -check if data is resampled/find some way to hold an unresampled copy
-        of the data (may require changing load mat?)
     """
     if data is not None:
         ins=data[0]
