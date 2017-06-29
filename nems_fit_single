@@ -30,4 +30,7 @@ if __name__ == '__main__':
 
     print("Running fit_single_model({0},{1},{2})".format(cellid,batch,modelname))
     nems.fit_single_model(cellid,batch,modelname)
+
+    print("Done with fit. To do: Code to generate and save figure for preview")
+    
     
