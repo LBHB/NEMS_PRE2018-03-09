@@ -5,6 +5,7 @@ Only used for testing the template right now.
 """
 
 import copy
+import inspect
 
 from flask import (
         request, render_template, Session, Response, jsonify, redirect, 
@@ -47,6 +48,9 @@ def modelpane_view():
                 )
         
     all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
+    # remove any modules that shouldn't show up as an option in modelpane
+    all_mods.remove('load_mat')
+    
     stackmods = mp_stack.modules[1:]
     plots = []
     for m in stackmods:
@@ -67,6 +71,11 @@ def modelpane_view():
             plot_fns[i][j] = newf
     
     fields = [m.user_editable_fields for m in stackmods]
+    keywords = [
+            [m.name] + vars(nk)[m.name]
+            for m in stackmods
+            if m.name in vars(nk)
+            ]
     
     return render_template(
             "/modelpane/modelpane.html", 
@@ -74,42 +83,11 @@ def modelpane_view():
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
             fields=fields,
-            field_values=field_values,
+            keywords=keywords,
             plottypes=plot_fns,
             all_mods=all_mods,
            )
    
-
-@app.route('/update_modelpane_plot')
-def update_modelpane_plot():
-    #"""Placeholder functions. Update some parameter/attribute of a module?"""
-    
-    global mp_stack
-    modAffected = request.args.get('modAffected')
-    plotType = request.args.get('plotType')
-    if not modAffected:
-        return jsonify(html="<p>Affected module is None<p>")
-    
-    try:
-        i = [mod.name for mod in mp_stack.modules].index(modAffected)
-    except Exception as e:
-        print(e)
-        return Response('')
-    
-    try:
-        m = mp_stack.modules[i]
-    except Exception as e:
-        print(e)
-        print("index was: " + str(i))
-        return Response('')
-    
-    p = plt.figure(figsize=FIGSIZE)
-    plot_fn = getattr(nu, plotType)
-    plot_fn(m)
-    html = mpld3.fig_to_html(p)
-    
-    return jsonify(html=html)
-
 
 @app.route('/refresh_modelpane')
 def refresh_modelpane():
@@ -151,6 +129,72 @@ def refresh_modelpane():
             all_mods=all_mods,
             )
 
+
+@app.route('/update_modelpane_plot')
+def update_modelpane_plot():
+    #"""Placeholder functions. Update some parameter/attribute of a module?"""
+    
+    global mp_stack
+    modAffected = request.args.get('modAffected')
+    plotType = request.args.get('plotType')
+    if not modAffected:
+        return jsonify(html="<p>Affected module is None<p>")
+    
+    try:
+        i = [mod.name for mod in mp_stack.modules].index(modAffected)
+    except Exception as e:
+        print(e)
+        return Response('')
+    
+    try:
+        m = mp_stack.modules[i]
+    except Exception as e:
+        print(e)
+        print("index was: " + str(i))
+        return Response('')
+    
+    p = plt.figure(figsize=FIGSIZE)
+    plot_fn = getattr(nu, plotType)
+    plot_fn(m)
+    html = mpld3.fig_to_html(p)
+    
+    return jsonify(html=html)
+
+
+@app.route('/get_kw_defaults')
+def get_kw_defaults():
+    
+    kw = request.args.get('kSelected')
+    mod = request.args.get('modAffected')
+    module = getattr(nm, mod)
+    editable_fields = module.user_editable_fields
+    
+    try:
+        nm = getattr(nm, kw)
+        # if above passed w/o exception, kw must have been the
+        # base class default
+        inst = module(nm.nems_stack())
+        defaults = {
+                field: getattr(inst, field)
+                for field in editable_fields
+                }
+    except Exception as e:
+        print(e)
+        if hasattr(nk, kw):
+            fn = getattr(nk, kw)
+        else:
+            print("Default values could not be found for: " + kw)
+            kwargs = {
+                    field: value for value, field
+                    in enumerate(editable_fields)
+                    }
+            return jsonify(**kwargs)
+    
+        defaults = get_default_args(fn, editable_fields)
+        
+    return jsonify(**defaults)
+                    
+                    
 @app.route('/append_module', methods=['GET','POST'])
 def append_module():
 
@@ -231,3 +275,12 @@ def printable_plot_name(plot_fn):
     if i > 0:
         p = p[:i]
     return p
+
+def get_default_args(function, editables):
+    args, varargs, keywords, defaults = inspect.getargspec(function)
+    for i, arg in reversed(args):
+        if arg in editables:
+            args.remove(arg)
+            defaults.pop(-(i+1))
+            
+    return dict(zip(reversed(args), reversed(defaults)))

@@ -131,16 +131,26 @@
                     </select>
                 </div><!-- control-group -->
                 
-                <div class="control-group" align="left">
-                    <label for="testMulti"> Editable Fields </label>
-                    <select class="form-control" id="testMulti" size="5" multiple>
-                    {% set i = loop.index-1 %}
-                    {% for field in fields[i] %}
-                        {% set j = loop.index-1 %}
-                        <option> {{ field }} : {{ field_values[i][j] }} </option>
-                    {% endfor %}
+                <br/>
+                <div class="control-group" align="left" id="editableFields">
+                    <label for="selectPreset"> Keyword Preset </label>
+                    <select class="form-control" id="selectPreset">
+                        {% for kw in keywords[loop.index-1] %}
+                        <option value="{{ kw }}"> {{ kw }} </option>
+                        {% endfor %}
                     </select>
-                </div><!-- control-group -->
+                    <span class="lbl"> <strong>Editable Fields</strong> </span>
+                    {% for field in fields[loop.index-1] %}
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <input type="checkbox" checked>
+                        </span>
+                        <span class="input-group-addon"> {{ field }} </span>
+                        <input type="text" class="form-control" placeholder=
+                        "{{ field }}" id="{{ loop.index-1 }}{{ field }}">
+                    </div>
+                    {% endfor %}
+                </div>
                 
                 <div class="control-group" align="right">     
                     <label class="checkbox">
