@@ -27,22 +27,6 @@
     <!-- Custom styles for this template -->
     <link href="{{ url_for('static', filename='css/modelpane/modelpane.css') }}" rel="stylesheet">
     
-    <!-- load jquery -->
-    <script type=text/javascript src=
-        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
-        
-    <!-- Bootstrap JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 
-    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
-    crossorigin="anonymous"></script>
-    
-    <!-- modelpane-specific javascript -->
-    <script type="text/javascript">
-        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
-    <script type="text/javascript" src=
-        "{{ url_for('static',filename='js/modelpane/modelpane.js') }}">
-    </script>
-    
   </head>
   <body>
     <div class="container-fluid">
@@ -133,12 +117,14 @@
                 
                 <br/>
                 <div class="control-group" align="left" id="editableFields">
+                    <!--   Discontinue this
                     <label for="selectPreset"> Keyword Preset </label>
-                    <select class="form-control" id="selectPreset">
-                        {% for kw in keywords[loop.index-1] %}
+                    <select class="form-control selectPreset">
+                        {#{% for kw in keywords[loop.index-1] %}
                         <option value="{{ kw }}"> {{ kw }} </option>
-                        {% endfor %}
+                        {% endfor %}#}
                     </select>
+                    -->
                     <span class="lbl"> <strong>Editable Fields</strong> </span>
                     {% for field in fields[loop.index-1] %}
                     <div class="input-group">
@@ -146,8 +132,11 @@
                             <input type="checkbox" checked>
                         </span>
                         <span class="input-group-addon"> {{ field }} </span>
-                        <input type="text" class="form-control" placeholder=
-                        "{{ field }}" id="{{ loop.index-1 }}{{ field }}">
+                        <div display="none" value="{{ field }}" class=
+                        "input-finder">
+                            <input type="text" class="form-control {{ field }}" 
+                            placeholder="{{ field }}">
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -177,6 +166,22 @@
     
     </div> <!-- end starter-template -->
     </div> <!-- end container -->
+
+    <!-- load jquery -->
+    <script type=text/javascript src=
+        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+        
+    <!-- Bootstrap JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 
+    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
+    crossorigin="anonymous"></script>
+    
+    <!-- modelpane-specific javascript -->
+    <script type="text/javascript">
+        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
+    <script type="text/javascript" src=
+        "{{ url_for('static',filename='js/modelpane/modelpane.js') }}">
+    </script>
 
   </body>
 </html>

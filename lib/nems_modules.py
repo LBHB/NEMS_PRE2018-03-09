@@ -713,6 +713,7 @@ class nonlinearity(nems_module):
     """
     name='nonlinearity'
     plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth]
+    user_editable_fields = ['nltype', 'fit_fields']
     
     def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
         #self.nltype=nltype #This might cause an issue if there is more than one nonlinearity...?
