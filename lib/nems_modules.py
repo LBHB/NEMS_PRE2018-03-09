@@ -249,6 +249,9 @@ class load_mat(nems_module):
                     data['stimFs']=s['stimfs'][0][0]
                     data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
                     data['isolation']=s['isolation']
+                    data['prestim']=s['tags'][0]['PreStimSilence'][0][0][0]
+                    data['poststim']=s['tags'][0]['PostStimSilence'][0][0][0]
+                    data['duration']=s['tags'][0]['Duration'][0][0][0] 
                 except:
                     data = scipy.io.loadmat(f,chars_as_strings=True)
                     data['raw_stim']=data['stim'].copy()
@@ -273,6 +276,9 @@ class load_mat(nems_module):
                 noise_thresh=0.04
                 stim_resamp_factor=int(data['stimFs']/self.fs)
                 resp_resamp_factor=int(data['respFs']/self.fs)
+                
+                self.parent_stack.unresampled=[data['resp'],data['respFs'],data['duration'],
+                                               data['poststim'],data['prestim'],data['pupil']]
                 
                 
                 # reshape stimulus to be channel X time
@@ -706,11 +712,13 @@ class nonlinearity(nems_module):
     be saved in a generic vector self.phi - see NARF implementation for reference 
     """
     name='nonlinearity'
-    plot_fns=[nu.pred_act_psth,nu.plot_trials]
+    plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth]
     
     def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
         #self.nltype=nltype #This might cause an issue if there is more than one nonlinearity...?
         self.fit_fields=fit_fields
+        #self.do_trial_plot=self.plot_fns[1]
+        self.do_trial_plot=print('no plot yet')
         if nltype=='dlog':
             self.dlog=np.ones([1,1])
         elif nltype=='exp':
@@ -761,7 +769,7 @@ class linpupgain(nems_module):
     variables in the data stream rather than just one.
     """
     name='linpupgain'
-    plot_fns=[nu.plot_trials]
+    plot_fns=[nu.trial_prepost_psth]
     
     def my_init(self,d_in=None,fit_fields=['linpupgain']):
         self.linpupgain=np.zeros([1,4])
@@ -915,6 +923,7 @@ class nems_stack:
         self.error=self.default_error
         self.valmode=False
         self.plot_trialidx=(0,3)
+        self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
         
     def evaluate(self,start=0):
         # evalute stack, starting at module # start
@@ -1100,9 +1109,32 @@ class nems_stack:
                 print('idx= '+str(idx))
                 m.do_trial_plot(m,idx)
                 
-    #def raster_plot(self):
+    def do_raster_plot(self):
+        """
+        Generates a raster plot for the stimulus specified by self.plot_stimidx
+        """
+        un=self.unresampled
+        nu.raster_plot(data=un,stims=self.plot_stimidx,size=(12,6))
         
+    def do_sorted_raster(self):
+        """
+        Generates a raster plot sorted by average pupil diameter for the stimulus
+        specified by self.plot_stimidx
+        """
+        un=copy.deepcopy(self.unresampled)
+        res=un[0]
+        pup=un[5]
+        print(res.shape)
+        idx=self.plot_stimidx
+        b=np.nanmean(pup[:,:,idx],axis=0)
+        print(b.shape)
+        bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
+        bc=bc[:,1]
+        res[:,:,idx]=res[:,bc,idx]
+        un[0]=res
+        nu.raster_plot(data=un,stims=idx,size=(12,6))
         
+    #TODO: implement pupil sorted raster plot
 #help(plt.subplot)             
 
         

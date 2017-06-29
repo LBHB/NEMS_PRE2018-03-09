@@ -48,7 +48,9 @@ standard_est_val = ['ev', ]
 def ev(stack):
     stack.append(nm.standard_est_val, valfrac=0.05)
 
+
 # weight channels keywords
+###############################################################################
 
 weight_channels = ['wc01', 'wc02', 'wc03', 'wc04']
 
@@ -64,7 +66,9 @@ def wc03(stack):
 def wc04(stack):
     stack.append(nm.weight_channels,num_chans=4)
 
+
 # fir filter keywords
+###############################################################################
 
 fir_filter = ['fir10', 'fir15']
 
@@ -97,6 +101,7 @@ def fir15(stack):
     stack.popmodule()
 
 # static NL keywords
+###############################################################################
 
 nonlinearity = ['dlog', 'exp', 'dexp']
 
@@ -110,7 +115,16 @@ def dexp(stack):
     stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
 
 
+# state variable keyowrds
+###############################################################################
+
+linpupgain = ['pupgain', ]
+def pupgain(stack):
+    stack.append(nm.linpupgain)
+
+
 # fitter keywords
+###############################################################################
 
 fitter = ['fit00', ]
 
