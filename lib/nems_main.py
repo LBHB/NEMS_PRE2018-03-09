@@ -24,8 +24,13 @@ example fit on nice IC cell:
     nems.fit_single_model(cellid,batch,modelname)
 
 """
-def fit_single_model(cellid, batch, modelname, autoplot=True):
-    
+def fit_single_model(cellid, batch, modelname, autoplot=True,pupilspec=False):
+    """
+    Fits a single NEMS model.
+    Note that setting pupilspec=True will ignore evaluating validation data, 
+    and will plot individual trials. Added for dealing with batch 294 data
+    --njs, June 29 2017
+    """
     stack=nm.nems_stack()
     
     stack.meta['batch']=batch
@@ -41,26 +46,29 @@ def fit_single_model(cellid, batch, modelname, autoplot=True):
         f(stack)
 
     # measure performance on both estimation and validation data
-    stack.valmode=True
-    stack.evaluate(1)
-    corridx=nu.find_modules(stack,'correlation')
-    if not corridx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.correlation)
-    
-    print("Final r_est={0} r_val={1}".format(stack.meta['r_est'],stack.meta['r_val']))
-    
-    # default results plot, show validation data if exists
-    valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-    if valdata:
-        stack.plot_dataidx=valdata[0]
-    else:
-        stack.plot_dataidx=0
+    if pupilspec is not True:
+        stack.valmode=True
+        stack.evaluate(1)
+        corridx=nu.find_modules(stack,'correlation')
+        if not corridx:
+            # add MSE calculator module to stack if not there yet
+            stack.append(nm.correlation)
+        
+        print("Final r_est={0} r_val={1}".format(stack.meta['r_est'],stack.meta['r_val']))
+        
+        # default results plot, show validation data if exists
+        valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+        if valdata:
+            stack.plot_dataidx=valdata[0]
+        else:
+            stack.plot_dataidx=0
         
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
-    if autoplot:
+    if autoplot and pupilspec is False:
         stack.quick_plot()
+    elif pupilspec is True:
+        stack.trial_quick_plot()
     
     # save
     filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)

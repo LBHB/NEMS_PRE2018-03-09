@@ -494,8 +494,6 @@ class pupil_model(nems_module):
             X=copy.deepcopy(f_in['resp'])
             Xp=copy.deepcopy(f_in['pupil'])
             Xa=np.nanmean(X,axis=1)
-            print(X.shape)
-            print(Xp.shape)
             if self.tile_data is True:
                 s=Xp.shape
                 Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F')
@@ -504,7 +502,6 @@ class pupil_model(nems_module):
                 Q=np.transpose(Q,(1,0))
                 Y=np.tile(Xa,(s[1],1))
                 Y=np.transpose(Y,(1,0))
-                print(Y.shape)
             else:
                 Y=X
             f_out[self.output_name]=Y  
@@ -752,23 +749,38 @@ class nonlinearity(nems_module):
     
     
     
-    def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog']):
-        #self.nltype=nltype #This might cause an issue if there is more than one nonlinearity...?
+    def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog'],phi0=[1]):
         self.fit_fields=fit_fields
+        self.nltype=nltype
+        phi0=np.array([phi0])
+        setattr(self,nltype,phi0)
+        #self.phi=phi0
         #self.do_trial_plot=self.plot_fns[1]
         self.do_trial_plot=print('no plot yet')
-        if nltype=='dlog':
-            self.dlog=np.ones([1,1])
-        elif nltype=='exp':
-            self.exp=np.ones([1,2])
-            self.exp[0][1]=0
-        elif nltype=='dexp':
-            self.dexp=np.ones([1,4])
+        #if nltype=='dlog':
+        #    self.dlog=np.ones([1,1])
+        #elif nltype=='exp':
+        #    self.exp=np.ones([1,2])
+        #    self.exp[0][1]=0
+        #elif nltype=='dexp':
+        #    self.dexp=np.ones([1,4])
         #etc...
         
+    #TODO: could even put these functions in a separate module?
+    def dlog_fn(self,X):
+        Y=np.log(X+self.dlog[0,0])
+        return(Y)
+    def exp_fn(self,X):
+        Y=np.exp(self.exp[0,0]*(X-self.exp[0,1]))
+        return(Y)
+    def dexp_fn(self,X):
+        Y=self.dexp[0,0]-self.dexp[0,1]*np.exp(-np.exp(self.dexp[0,2]*(X-self.dexp[0,3])))
+        return(Y)
         
     def my_eval(self,X):
-        
+        Z=getattr(self,self.nltype+'_fn')(X)
+        return(Z)
+        """
         #if self.nltype=='dlog':
         if hasattr(self,'dlog'):
             v1=self.dlog[0,0]
@@ -787,19 +799,11 @@ class nonlinearity(nems_module):
             Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
         return Y
         #etc...
-        
-        return Y        
-        
-#    def do_plot(self,size=(12,4),idx=None):
-#        print('No nonlinearity plot yet')
-            
-            
-        
-        
-        
-        
+        """
+                 
 
-#TODO: finish linpupgain/figure out best way to load in pupil data 
+#TODO: might change this to accommodate nonlinear pupil gain functions. Will see 
+#how easy this is to do with nonlinearity module before proceeding --njs, June 29 2017
 class linpupgain(nems_module): 
     """
     linpupgain - apply a gain/offset based on pupil diameter, or some other continuous variable.

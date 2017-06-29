@@ -241,8 +241,6 @@ def raster_plot(data=None,stims='all',size=(12,6),**kwargs):
         dur_time= stimulus duration
         post_time= poststim silence
         frequency= sampling frequency
-        self.parent_stack.unresampled=[data['resp'],data['respFs'],data['duration'],
-                                               data['poststim'],data['prestim']]
     """
     if data is not None:
         ins=data[0]
