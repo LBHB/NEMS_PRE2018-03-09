@@ -22,13 +22,11 @@ import lib.baphy_utils as baphy_utils
 load_mat = ['fb24ch200', 'fb18ch100', 'loadlocal']
 
 def fb24ch200(stack):
-    mod_name="load_mat"
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=200)
     
 def fb18ch100(stack):
-    mod_name="load_mat"
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100)
