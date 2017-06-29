@@ -9,9 +9,9 @@ Created on Fri Jun 16 05:20:07 2017
 import scipy as sp
 import numpy as np
 import sys
-sys.path.append('/auto/users/shofer/scikit-optimize')
-import skopt.optimizer.gbrt as skgb
-import skopt.optimizer.gp as skgp
+#sys.path.append('/auto/users/shofer/scikit-optimize')
+#import skopt.optimizer.gbrt as skgb
+#import skopt.optimizer.gp as skgp
 
 
 
