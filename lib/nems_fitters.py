@@ -103,8 +103,7 @@ class basic_min(nems_fitter):
     as a default, as this is memory efficient for large parameter counts and seems
     to produce good results. However, there are many other potential algorithms 
     detailed in the documentation for optimize.minimize
-    
-    Function returns self.pred, the current model prediction. 
+     
     """
 
     name='basic_min'
@@ -130,7 +129,8 @@ class basic_min(nems_fitter):
         
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(self.maxit)
-        opt['eps']=1e-7
+        if self.routine=='L-BFGS-B':
+            opt['eps']=1e-7
         #if function=='tanhON':
             #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
             #routine='COBYLA'
@@ -146,7 +146,84 @@ class basic_min(nems_fitter):
         print("Final MSE: {0}".format(self.stack.error()))
         return(self.stack.error())
     
-#TODO: implement scipy basinhopping routine
+#TODO: implement scipy basinhopping routine. Note that this is scipy's implementation 
+#of simulated annealing
+
+
+class anneal_min(nems_fitter):
+    """
+    A simulated annealing method to find the ~global~ minimum of your parameters.
+    
+    This fitter uses scipy.optimize.basinhopping, which is scipy's built-in annealing
+    routine. Essentially, this routine uses scipy.optimize.minimize to minimize the
+    function, then randomly perturbs the function and reminimizes it. It will continue
+    this procedure until either the maximum number of iterations had been exceed or
+    the minimum remains constant for a specified number of iterations.
+    
+    anneal_iter=number of annealing iterations to perform
+    stop=number of iterations after which to stop annealing if global min remains the same
+    up_int=update step size every up_int iterations
+    maxiter=maximum iterations for each round of minimization
+    tol=tolerance for each round of minimization
+    min_method=method used for each round of minimization. 'L-BFGS-B' works well
+    
+    WARNING: this fitter takes a ~~long~~ time. It is usually better to try basic_min
+    first, and then use this method if basic_min fails.
+    
+    Also, note that since basinhopping (at least as implemented here) uses random jumps,
+    the results my not be exactly the same every time, and the annealing may take a 
+    different number of iterations each time it is called
+    """
+
+    name='anneal_min'
+    anneal_iter=100
+    stop=5
+    up_int=10
+    min_method='L-BFGS-B'
+    maxiter=10000
+    tol=0.01
+    
+    def my_init(self,min_method='L-BFGS-B',anneal_iter=100,stop=5,maxiter=10000,up_int=10,bounds=None):
+        print("initializing anneal_min")
+        self.anneal_iter=anneal_iter
+        self.min_method=min_method
+        self.stop=stop
+        self.maxiter=10000
+        self.bounds=None
+        self.up_int=up_int
+                    
+    def cost_fn(self,phi):
+        self.phi_to_fit(phi)
+        self.stack.evaluate(self.fit_modules[0])
+        mse=self.stack.error()
+        self.counter+=1
+        if self.counter % 1000==0:
+            print('Eval #'+str(self.counter))
+            print('MSE='+str(mse))
+        return(mse)
+    
+    def do_fit(self,verb=False):
+        opt=dict.fromkeys(['maxiter'])
+        opt['maxiter']=int(self.maxiter)
+        opt['eps']=1e-7
+        min_kwargs=dict(method=self.min_method,tol=self.tol,bounds=self.bounds,options=opt)
+        #if function=='tanhON':
+            #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
+            #routine='COBYLA'
+        #else:
+            #
+        #cons=()
+        self.phi0=self.fit_to_phi() 
+        self.counter=0
+        print("anneal_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
+        #print("maxiter: {0}".format(opt['maxiter']))
+        opt_res=sp.optimize.basinhopping(self.cost_fn,self.phi0,niter=self.anneal_iter,
+                                         T=0.01,stepsize=0.01,minimizer_kwargs=min_kwargs,
+                                         interval=self.up_int,disp=verb,niter_success=self.stop)
+        phi_final=opt_res.lowest_optimization_result.x
+        self.cost_fn(phi_final)
+        print("Final MSE: {0}".format(self.stack.error()))
+        return(self.stack.error())
 
 """
 Tried using skopt package. Did not go super well, only used pupil data though.
