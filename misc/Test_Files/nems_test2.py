@@ -39,7 +39,7 @@ stack.append(nm.mean_square_error)
 
 stack.error=stack.modules[-1].error
 stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.001
+stack.fitter.tol=0.1
 stack.fitter.do_fit()
 
 stack.popmodule()
@@ -47,9 +47,9 @@ stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'],phi0=[1,1,1,1])
 stack.append(nm.mean_square_error)
 stack.error=stack.modules[-1].error
                          
-stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.001
-stack.fitter.do_fit()
+stack.fitter=nf.anneal_min(stack,anneal_iter=15)
+stack.fitter.tol=0.01
+out=stack.fitter.do_fit(verb=True)
 
 
 stack.quick_plot()
