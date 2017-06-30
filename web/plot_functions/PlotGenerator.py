@@ -27,6 +27,10 @@ from bokeh.models.glyphs import VBar,Circle
 import pandas as pd
 import numpy as np
 
+#NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
+#      list for use with web interface
+PLOT_TYPES = ['Scatter_Plot', 'Bar_Plot', 'Pareto_Plot']
+
 # Setting default tools as global variable was causing issues with scatter
 # plot. They're included here for copy-paste as needed instead.
 #tools = [
@@ -36,7 +40,7 @@ import numpy as np
 
 
 # Specify the number of columns to use for gridplots
-GRID_COLS = 3
+GRID_COLS = 1
 # Appearance options for circle glyphs (ex. scatter plot)
 CIRCLE_FILL = 'navy'
 CIRCLE_SIZE = 5
@@ -340,7 +344,7 @@ class Scatter_Plot(PlotGenerator):
             p = figure(
                     x_range=[0,1], y_range=[0,1],
                     x_axis_label=modelX, y_axis_label=modelY,
-                    title=self.measure[0], tools=tools
+                    title=self.measure[0], tools=tools, responsive=True
                     )
             glyph = Circle(
                     x='x_values', y='y_values', size=CIRCLE_SIZE,

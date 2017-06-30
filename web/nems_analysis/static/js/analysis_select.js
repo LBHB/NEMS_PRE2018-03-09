@@ -18,18 +18,31 @@ $(document).ready(function(){
     
     socket.on('console_update', function(msg){
         //console.log('received console_update from server');
-        $('#py_console').prepend("<p>" + msg.data + "</p>");
+        $('#py_console').prepend("<p class='py_con_msg'>" + msg.data + "</p>");
     });
     
     // use this in place of console.log to send to py_console
     function py_console_log(message){
-      $('#py_console').prepend("<p>" + message + "</p>");        
+      $('#py_console').prepend("<p class='py_con_msg'>" + message + "</p>");        
     }
 
     //initializes bootstrap popover elements
     $('[data-toggle="popover"]').popover({
         trigger: 'click',
     });
+    
+    function initTable(table){
+        // Called any time results is updated -- set table options here
+        table.DataTable({
+            paging: false,
+            search: {
+                "caseInsensitive": true,
+            },
+            //responsive: true,
+            // TODO: add select option to replace custom one
+            // (can add ctrl/shift click etc)
+        });
+    }
     
     var analysisCheck = document.getElementById("analysisSelector").value;
     if ((analysisCheck !== "") && (analysisCheck !== undefined) && (analysisCheck !== null)){
@@ -207,6 +220,7 @@ $(document).ready(function(){
                 //grabs whole div - replace inner html with new table?
                 results = $("#tableWrapper");
                 results.html(data.resultstable)
+                initTable(results.children("table"));
             },
             error: function(error) {
                 console.log(error);
@@ -550,10 +564,10 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(1).html());
+            cSelected.push($(this).children().eq(0).html());
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(2).html());
+            mSelected.push($(this).children().eq(1).html());
         });
 
         // only proceed if selections have been made
@@ -570,10 +584,15 @@ $(document).ready(function(){
             success: function(data){
                 // TODO: get this to open multiple windows. currently just
                 // opens the first one then stops.
-                for (var i=0;i<data.filepaths.length;i++){
-                    window.open('preview' + data.filepaths[i],
-                                'width=520','height=910');
-                }
+                //for (var i=0;i<data.filepaths.length;i++){
+                //    window.open('preview' + data.filepaths[i],
+                //                'width=520','height=910');
+                //}
+                $("#displayWrapper").empty();
+                $("#displayWrapper").html(
+                        '<img id="preview_image" src="data:image/png;base64,'
+                        + data.image + '" />'
+                        );
             },
             error: function(error){
                 console.log(error);        
@@ -729,13 +748,13 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(1).html());
+            cSelected.push($(this).children().eq(0).html());
             if (cSelected.length > 0){
                 return false;
             }
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(2).html());
+            mSelected.push($(this).children().eq(1).html());
             if (mSelected.length > 0){
                 return false;
             }
@@ -757,6 +776,67 @@ $(document).ready(function(){
         
         form.submit();
     });
-                
+        
+    
+    ////////////////////////////////////////////////////////////////////
+    //////////////////////  PLOTS //////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
+        
+    
+    // from modelpane for reference
+    $(".plotSelect").change(updatePlot);
+    
+    function updatePlot(){
+        var plotDiv = $(this).parents(".row").find(".plot-wrapper");
+        var modAffected = $(this).parents(".row").attr('id');
+        var plotType = $(this).val();
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/update_modelpane_plot',
+            data: { modAffected:modAffected, plotType:plotType },
+            type: 'GET',
+            success: function(data){
+                plotDiv.html(data.html);
+            },
+            error: function(error){
+                console.log(error);
+            }
+        });
+        
+    }
+        
+    $("#submitPlot").on('click', getNewPlot);
+    
+    function getNewPlot(){
+        var plotDiv = $("#displayWrapper");
+        
+        var plotType = $("#plotTypeSelector").val();
+        var bSelected = $("#batchSelector").val();
+        var cSelected = $("#cellSelector").val();
+        var mSelected = $("#modelSelector").val();
+        var measure = $("#measureSelector").val();
+        var onlyFair = $("#onlyFair").val();
+        var includeOutliers = $("#includeOutliers").val();
+        //TODO: add this
+        //var useSNRorISO = $()
+        
+        addLoad();
+        $.ajax({
+            url: $SCRIPT_ROOT + '/generate_plot_html',
+            data: { plotType:plotType, bSelected:bSelected, cSelected:cSelected,
+                    mSelected:mSelected, measure:measure, onlyFair:onlyFair,
+                    includeOutliers:includeOutliers },
+            type: 'GET',
+            success: function(data){
+                plotDiv.empty();
+                plotDiv.html(data.script + data.div);
+                removeLoad();
+            },
+            error: function(error){
+                console.log(error)
+                removeLoad();
+            }
+        })
+    }
 });
         
