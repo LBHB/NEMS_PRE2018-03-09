@@ -130,6 +130,7 @@ def plot_spectrogram(m,idx=None,size=(12,4)):
     out1=m.d_out[m.parent_stack.plot_dataidx]
     if out1['stim'].ndim==3:
         plt.imshow(out1['stim'][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower', interpolation='none')
+        plt.colorbar()
     else:
         s=out1['stim'][m.parent_stack.plot_stimidx,:]
         r=out1['resp'][m.parent_stack.plot_stimidx,:]
@@ -225,7 +226,8 @@ def trial_prepost_psth(m,idx=None,size=(12,4)):
         plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
         u=u+scl
     
-    
+def non_plot(m):
+    pass
     
 
 def raster_plot(data=None,stims='all',size=(12,6),**kwargs):

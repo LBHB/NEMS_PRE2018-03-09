@@ -33,12 +33,13 @@ stack.append(nm.standard_est_val,valfrac=0.05)
 
 #stack.append(nm.dc_gain,g=1,d=0)
 #stack.append(nm.sum_dim)
+stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['dlog'],phi0=[1],premodel=True)
 stack.append(nm.fir_filter,num_coefs=10)
 stack.append(nm.mean_square_error)
 
 stack.error=stack.modules[-1].error
 stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.01
+stack.fitter.tol=0.001
 stack.fitter.do_fit()
 
 stack.popmodule()
@@ -47,7 +48,7 @@ stack.append(nm.mean_square_error)
 stack.error=stack.modules[-1].error
                          
 stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.01
+stack.fitter.tol=0.001
 stack.fitter.do_fit()
 
 

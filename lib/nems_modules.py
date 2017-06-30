@@ -744,13 +744,16 @@ class nonlinearity(nems_module):
     rather than a look-up table to determine which NL to apply. parameters can
     be saved in a generic vector self.phi - see NARF implementation for reference 
     """
+    #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
-    plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth]
+    plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields']
     
     
     
-    def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog'],phi0=[1]):
+    def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog'],phi0=[1],premodel=False):
+        if premodel is True:
+            self.do_plot=self.plot_fns[2]
         self.fit_fields=fit_fields
         self.nltype=nltype
         phi0=np.array([phi0])
@@ -758,14 +761,6 @@ class nonlinearity(nems_module):
         #self.phi=phi0
         #self.do_trial_plot=self.plot_fns[1]
         self.do_trial_plot=print('no plot yet')
-        #if nltype=='dlog':
-        #    self.dlog=np.ones([1,1])
-        #elif nltype=='exp':
-        #    self.exp=np.ones([1,2])
-        #    self.exp[0][1]=0
-        #elif nltype=='dexp':
-        #    self.dexp=np.ones([1,4])
-        #etc...
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
@@ -781,52 +776,39 @@ class nonlinearity(nems_module):
     def my_eval(self,X):
         Z=getattr(self,self.nltype+'_fn')(X)
         return(Z)
-        """
-        #if self.nltype=='dlog':
-        if hasattr(self,'dlog'):
-            v1=self.dlog[0,0]
-            Y=np.log(X+v1)
-        #elif self.nltype=='exp':
-        elif hasattr(self,'exp'):
-            v1=self.exp[0,0]
-            v2=self.exp[0,1]
-            Y=np.exp(v1*(X-v2))
-        #elif self.nltype=='dexp'
-        elif hasattr(self,'dexp'):
-            v1=self.dexp[0,0]
-            v2=self.dexp[0,1]
-            v3=self.dexp[0,2]
-            v4=self.dexp[0,3]
-            Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
-        return Y
-        #etc...
-        """
+
                  
 
-#TODO: might change this to accommodate nonlinear pupil gain functions. Will see 
+#TODO: might change this to accommodate multiple pupil gain functions (nonlinear?). Will see 
 #how easy this is to do with nonlinearity module before proceeding --njs, June 29 2017
-class linpupgain(nems_module): 
+class state_gain(nems_module): 
     """
-    linpupgain - apply a gain/offset based on pupil diameter, or some other continuous variable.
+    state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
     my not be able to use standard my_eval() because needs access to two 
     variables in the data stream rather than just one.
     """
-    name='linpupgain'
-    plot_fns=[nu.trial_prepost_psth]
+    name='state_gain'
+    plot_fns=[nu.trial_prepost_psth,nu.non_plot]
     
-    def my_init(self,d_in=None,fit_fields=['linpupgain']):
-        self.linpupgain=np.zeros([1,4])
-        self.linpupgain[0][1]=0
+    def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['linpupgain'],phi0=[0,1,0,0],premodel=False):
+        if premodel is True:
+            self.do_trial_plot=self.plot_fns[1]
+        #self.linpupgain=np.zeros([1,4])
+        #self.linpupgain[0][1]=0
         self.fit_fields=fit_fields
+        self.gain_type=gain_type
+        phi0=np.array([phi0])
+        setattr(self,gain_type,phi0)
         self.do_trial_plot=self.plot_fns[0]
         #self.data_setup(d_in)
-        print('linpupgain parameters created')     
+        print('state_gain parameters created')
+        
+    def linpupgain_fn(self,X,Xp):
+        Y=self.linpupgain[0,0]+(self.linpupgain[0,2]*Xp)+(self.linpupgain[0,1]*X)+self.linpupgain[0,3]*np.multiply(Xp,X)
+        return(Y)
+    
     
     def evaluate(self):
-        d0=self.linpupgain[0,0]
-        g0=self.linpupgain[0,1]
-        d=self.linpupgain[0,2]
-        g=self.linpupgain[0,3]
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
             #self.d_out.append(copy.deepcopy(val))
@@ -835,8 +817,8 @@ class linpupgain(nems_module):
         for f_in,f_out in zip(self.d_in,self.d_out):
             X=copy.deepcopy(f_in[self.input_name])
             Xp=copy.deepcopy(f_in['pupil'])
-            Y=d0+(d*Xp)+(g0*X)+g*np.multiply(Xp,X)
-            f_out[self.output_name]=Y
+            Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+            f_out[self.output_name]=Z
         
 """
 modules for computing scores/ assessing model performance

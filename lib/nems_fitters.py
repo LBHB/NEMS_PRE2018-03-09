@@ -145,6 +145,9 @@ class basic_min(nems_fitter):
                              constraints=cons,options=opt,tol=self.tol)
         print("Final MSE: {0}".format(self.stack.error()))
         return(self.stack.error())
+    
+#TODO: implement scipy basinhopping routine
+
 """
 Tried using skopt package. Did not go super well, only used pupil data though.
 Will try again later with different data (i.e. more estimation data) --njs, June 29 2017

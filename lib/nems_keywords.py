@@ -105,22 +105,22 @@ def fir15(stack):
 nonlinearity = ['dlog', 'exp', 'dexp']
 
 def dlog(stack):
-    stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['dlog'])
+    stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['dlog'],phi0=[1])
     
 def exp(stack):
-    stack.append(nm.nonlinearity,nltype='exp',fit_fields=['exp'])
+    stack.append(nm.nonlinearity,nltype='exp',fit_fields=['exp'],phi0=[1,1])
 
 def dexp(stack):
-    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
+    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'],phi0=[1,1,1,1])
 
 
 # state variable keyowrds
 ###############################################################################
 
-linpupgain = ['pupgain', ]
+state_gain = ['pupgain', ]
 
 def pupgain(stack):
-    stack.append(nm.linpupgain)
+    stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['linpupgain'],phi0=[0,1,0,0])
 
 
 # fitter keywords
