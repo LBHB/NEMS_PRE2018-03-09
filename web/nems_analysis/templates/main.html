@@ -23,8 +23,21 @@
     integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" 
     crossorigin="anonymous">
     
+    <!-- DataTables jQuery plugin -->
+    <link rel="stylesheet" href=
+    "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
+    
+    <!-- Bokeh dependencies -->
+    <link rel="stylesheet" type="text/css"
+        href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.css">
+    <link rel="stylesheet" type="text/css"
+        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.css">
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
+    
     <!-- Custom styles for this template -->
     <link href="{{ url_for('static', filename='css/starter-template.css') }}" rel="stylesheet">
+    
   </head>
 
   <body>
@@ -61,7 +74,7 @@
         
 <!--            Left-hand-side, form selections       ---->
 
-            <div class="col-xs-4">
+            <div class="col-xs-3">
             <form class="form" id="selections" method="POST" target="_blank">
                 <div class="form-group" id="analysisGroup">
                 <label for="analysisSelector"> Select Analysis </label>
@@ -75,29 +88,30 @@
                 <div class="form-group" id="analysisButtons">
                 
                 <div class="btn-group">
-                <button type="button" class="btn btn-default" data-toggle=
+                <button type="button" class="btn btn-default btn-xs" data-toggle=
                     "popover" id="analysisDetails" data-placement="bottom"
                     data-content="No Selection" data-html="true"> Details </button>
                 </div>
                 
                 <div class="btn-group editorGroup">
-                <button type="button" class="btn btn-default" data-toggle="modal"
-                id="newAnalysis" data-target="#analysisEditorModal"> New Analysis </button>
+                <button type="button" class="btn btn-default btn-xs" data-toggle="modal"
+                id="newAnalysis" data-target="#analysisEditorModal"> New </button>
                 </div>
                 
                 <div class="btn-group editorGroup">
-                <button type="button" class="btn btn-default" data-toggle="modal"
-                id="editAnalysis" data-target="#analysisEditorModal"> Edit Analysis </button>
+                <button type="button" class="btn btn-default btn-xs" data-toggle="modal"
+                id="editAnalysis" data-target="#analysisEditorModal"> Edit </button>
                 </div>
                 <!-- modal div at bottom of page -->
                 
                 <div class="btn-group editorGroup">
-                <button type="button" class="btn btn-default" id="deleteAnalysis"> 
-                Delete Analysis </button>
+                <button type="button" class="btn btn-default btn-xs" id="deleteAnalysis"> 
+                Delete </button>
                 </div>
                 
                 <div class="dropdown">
-                <button type="button" tabindex="-1" class="btn btn-default dropdown-toggle"
+                <button type="button" tabindex="-1" class=
+                    "btn btn-default btn-xs dropdown-toggle"
                     data-toggle="dropdown" id="filerStatus"> Status </button>
                     <div id="statusFilters" class="dropdown-menu">
                         <li>
@@ -116,8 +130,9 @@
                 </div>
                 
                 <div class="dropdown">
-                <button type="button" tabindex="-1" class="btn btn-default dropdown-toggle" 
-                id="filterTags" data-toggle="dropdown"> Tags </button>
+                <button type="button" tabindex="-1" class=
+                    "btn btn-default btn-xs dropdown-toggle" 
+                    id="filterTags" data-toggle="dropdown"> Tags </button>
                     <div id="tagFilters" class="dropdown-menu">
                     <!-- if 3 columns (or more) become necessary later, will have to change
                     sm-6 to sm-(12/number of columns needed) and change width of
@@ -169,28 +184,33 @@
                     id="modelSelector">
                     <option disabled value=""> Select an analysis to populate models. </option>
                 </select>
+                
                 <input type="checkbox" id="selectAllModels" checked> Select All</input> 
                 </div>
                 
                 <div class="input-group" id="modelButtons">
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
+                    <button tabindex="-1" class="btn btn-default btn-xs" type="button"
                     id="fitSingle"> Fit Single Now </button>
                 </div>
                 
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
+                    <button tabindex="-1" class="btn btn-default btn-xs" type="button"
                     id="enqueue"> Enqueue Models </button>
                 </div>
                 <div class="input-group">
-                    <span class="lbl" for="queuelimit"> Queue Limit </span>
                     <input type="text" id="queuelimit" size="5" value="20">
+                    <span class="lbl" for="queuelimit"> Queue Limit </span>
                 </div>
                 
                 </div>
                 
-                <div class="form-group">
-                <label for="measureSelector"> Performance Measure </label>
+                <div class="form-group form-inline" id="plotMeasureTypeGroupLabels">
+                    <label for="measureSelector"> Performance Measure </label>
+                    <label for="plotTypeSelector"> Plot Type </label>
+                </div>
+                
+                <div class="form-group form-inline" id="plotMeasureTypeGroup">
                 <select class="form-control plot-form" id="measureSelector" name="measure">
                     {% for measure in measurelist %}
                         <option value="{{ measure }}"
@@ -199,6 +219,12 @@
                             {% endif %}
                         > {{ measure }} </option>
                     {% endfor %}
+                </select>
+                
+                <select class="form-control plot-form" id="plotTypeSelector">
+                {% for type in plotTypeList %}
+                    <option value="{{ type }}"> {{ type | replace('_',' ') }} </option>
+                {% endfor %}
                 </select>
                 </div>
                 
@@ -241,7 +267,12 @@
                 <input type="text" id="plotOpVal" name="plotOpVal" value="0">
                 </div>
 
+                <div class="input-group-btn">
+                    <button class="btn btn-default btn-sm" type="button"
+                    id="submitPlot"> Submit Plot </button>
+                </div>
                 
+                <!-- old plot submit buttons for form version
                 <div id="plotOpSubmits">
                 <button type="Submit" name="scatter" form="selections" formaction=
                         "{{ url_for('scatter_plot') }}" class="plotsub" disabled> Scatter
@@ -250,6 +281,7 @@
                 <button type="Submit" name="pareto" form="selections" formaction=
                         "{{ url_for('pareto_plot') }}" class="plotsub" disabled> Pareto
                 </div>
+                -->
                 
                 </div><!-- plotOpAll -->
             </form>
@@ -257,7 +289,7 @@
             
 <!--     Right-hand-side, table display and options ------------------>
 
-            <div class="col-xs-8" id="resultsArea">
+            <div class="col-xs-5" id="resultsArea">
                 <div class="input-group">
                 
                 <div class="input-group-btn">
@@ -321,9 +353,12 @@
                     <input type="text" id="rowLimit" value="{{ defaultrowlimit }}"
                                 class="form-control">
                 </div>
+                </div><!-- outer input group -->
                 
-                <div class="input-group-btn">
+                <div id="tableWrapper">
                 </div>
+                
+                <div class="input-group" id="tableBottom">
                 
                 <!-- open modelpane view for result(s) selected on table -->
                 <div class="input-group-btn">
@@ -358,9 +393,8 @@
                     id="clearSelected"> Clear Selections </button>
                 </div>
                 
-                </div> <!-- input-group -->
-                <div id="tableWrapper">
-                </div>
+                </div><!-- outer input group -->
+                
                 
                 <div class="jumbotron">
                     <div id="py_console">
@@ -368,6 +402,13 @@
                 </div>
                 
             </div><!-- resultsArea  col -->
+            
+            <div class="col-xs-4">
+                <!-- preview/plot display here? -->
+                <div id="displayWrapper">
+                </div>
+            </div><!-- preview/plot area col -->
+            
         </div><!-- row -->
 
     </div><!-- starter template-->
@@ -487,6 +528,10 @@
     <!-- load jquery -->
     <script type=text/javascript src=
         "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+        
+    <!-- DataTables jQuery plugin -->    
+    <script src=
+    "https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
         
     <!-- Bootstrap JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 

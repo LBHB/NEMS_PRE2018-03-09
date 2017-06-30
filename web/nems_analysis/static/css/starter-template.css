@@ -6,10 +6,6 @@ body {
   text-align: center;
 }
 
-.form-group {
-  text-align: left;
-}
-
 tables.dataframe, .dataframe th, .dataframe td {
   border: none;
   border-bottom: 1px solid #C8C8C8;
@@ -20,7 +16,19 @@ tables.dataframe, .dataframe th, .dataframe td {
 }
 
 .input-group {
-  margin:10px;
+  margin:5px;
+  margin-bottom: none;
+}
+
+.form-group {
+  margin:5px;
+  margin-bottom: none;
+  text-align: left;
+}
+
+#tableBottom .input-group-btn{
+  display: inline;
+  margin:2px; 
 }
 
 #rowLimit {
@@ -57,7 +65,7 @@ tables.dataframe, .dataframe th, .dataframe td {
 
 #batchDiv {
   clear:both;
-  margin-top: 45px !important;    
+  margin-top: 30px;  
 }
 
 .dropdown-menu {
@@ -71,6 +79,23 @@ textarea {
 
 #editTree {
   width: 100% !important;      
+}
+
+#plotMeasureTypeGroup{
+  align: center;        
+}
+
+#plotMeasureTypeGroupLabels label{
+  width:40%;
+  text-align: center;
+}
+
+#measureSelector{
+  width: 40%;        
+}
+
+#plotTypeSelector{
+  width: 40%;        
 }
 
 #plotOpButtons {
@@ -100,12 +125,18 @@ textarea {
 
 #tableWrapper {
   margin-top: 10px;
-  height: 50vh;
+  height: 60vh;
   display: block;
   overflow: auto;
-  border: none;
-  border-left: 1px solid #C8C8C8;
-  border-top: 1px solid #C8C8C8;
+  border: 1px solid #C8C8C8;
+}
+
+#displayWrapper {
+  margin-top: 1vh;
+  height: 85vh;
+  display: block;
+  overflow: auto;
+  border: 1px solid #C8C8C8;      
 }
 
 .table-hover, .table-condensed {
@@ -145,9 +176,13 @@ textarea {
   padding: 10px !important;
   border: 1px solid #C8C8C8;
   margin-top: 20px;
-  height: 30vh;
+  height: 10vh;
   overflow: auto;
   text-align: left;
-  font-size: 8px !important;
-  line-height: 16px;
+}
+
+.jumbotron .py_con_msg {
+  font-size: 12px;
+  line-height: 14px;
+  margin: 4px;
 }

@@ -23,6 +23,7 @@ any other category (so far, just one function to serve error_log.txt).
 
 import datetime
 import sys
+from base64 import b64encode
 
 from flask import (
         render_template, jsonify, request, redirect,url_for, Response,
@@ -32,9 +33,10 @@ from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc
 
 from nems_analysis import (
-        app, Session, NarfAnalysis, NarfBatches, NarfResults,
+        app, Session, NarfAnalysis, NarfBatches, NarfResults, sBatch,
         )
 from nems_analysis.ModelFinder import ModelFinder
+from plot_functions.PlotGenerator import PLOT_TYPES
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
@@ -82,10 +84,25 @@ def main_view():
             .order_by(asc(NarfAnalysis.id)).all()
             ]
     
-    batchlist = [
+    batchids = [
             i[0] for i in
             session.query(NarfBatches.batch)
             .distinct().all()
+            ]
+    batchnames = []
+    for i in batchids:
+        name = (
+                session.query(sBatch.name)
+                .filter(sBatch.id == i)
+                .first()
+                )
+        if not name:
+            batchnames.append('')
+        else:
+            batchnames.append(name.name)
+    batchlist = [
+            (batch + ': ' + batchnames[i])
+            for i, batch in enumerate(batchids)
             ]
     batchlist.sort()
     
@@ -131,15 +148,17 @@ def main_view():
     collist.remove('cellid')
     collist.remove('modelname')
 
+    plotTypeList = PLOT_TYPES
+
     session.close()
     
-    return render_template('main.html',analysislist=analysislist,
-                           batchlist=batchlist,collist=collist,
-                           defaultcols=defaultcols,measurelist=measurelist,
-                           defaultrowlimit=defaultrowlimit,sortlist=collist,
-                           defaultsort=defaultsort,statuslist=statuslist,
-                           taglist=taglist
-                           )
+    return render_template(
+            'main.html', analysislist=analysislist, batchlist=batchlist,
+            collist=collist, defaultcols=defaultcols, measurelist=measurelist,
+            defaultrowlimit=defaultrowlimit,sortlist=collist,
+            defaultsort=defaultsort,statuslist=statuslist, taglist=taglist,
+            plotTypeList=plotTypeList,
+            )
 
 
 @app.route('/update_batch')
@@ -152,13 +171,13 @@ def update_batch():
     batch = (
             session.query(NarfAnalysis.batch)
             .filter(NarfAnalysis.name == aSelected)
-            .first()[0]
+            .first()
             )
-    
-    if batch:
-        batch = batch[:3]
-    else:
-        batch = '271'
+    try:
+        batch = batch.batch
+    except Exception as e:
+        print(e)
+        batch = ''
     
     session.close()
     
@@ -211,12 +230,22 @@ def update_cells():
             .filter(NarfBatches.batch == bSelected[:3])
             .all()
             ]
+    
+    batchname = (
+            session.query(sBatch)
+            .filter(sBatch.id == bSelected[:3])
+            .first()
+            )
+    if batchname:
+        batch = str(bSelected[:3] + ': ' + batchname.name)
+    else:
+        batch = bSelected
     analysis = (
             session.query(NarfAnalysis)
             .filter(NarfAnalysis.name == aSelected)
-            .all()
+            .first()
             )
-    analysis[0].batch = bSelected
+    analysis.batch = batch
 
     session.commit()
     session.close()
@@ -277,7 +306,9 @@ def update_results():
             .limit(rowlimit).statement,
             session.bind
             )
-    resultstable = results.to_html(classes="table-hover table-condensed")
+    resultstable = results.to_html(
+            index=False, classes="table-hover table-condensed",
+            )
     
     session.close()
     
@@ -614,24 +645,47 @@ def get_preview():
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
 
-    paths = [
-            i[0] for i in
+    path = (
             session.query(NarfResults.figurefile)
             .filter(NarfResults.batch == bSelected)
             .filter(NarfResults.cellid.in_(cSelected))
             .filter(NarfResults.modelname.in_(mSelected))
-            .all()
-            ]
+            .first()
+            )
     
-    if not paths:
+    if not path:
         return jsonify(filepaths=['/missing_preview'])
     
-    return jsonify(filepaths=paths)
+    #return jsonify(filepaths=path.figurefile)
+    
+    try:
+        with open('/' + path.figurefile, 'r+b') as img:
+            image = str(b64encode(img.read()))[2:-1]
+        #return Response(image, mimetype="image/png")
+        return jsonify(image=image)
+    except:
+        #return Response(
+        #        """
+        #        Image path exists in DB but
+        #        image not in local storage
+        #        """
+        #        )
+        try:
+            with open(path.figurefile, 'r+b') as img:
+                image = str(b64encode(img.read()))[2:-1]
+            return jsonify(image=image)
+        except Exception as e:
+            print(e)
+            with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
+                image = str(b64encode(img.read()))[2:-1]
+            return jsonify(image=image)
         
 
 @app.route('/missing_preview')
 def missing_preview():
-    """Return an error message if no preview filepath has been stored
+    """
+    DEPRECATED
+    Return an error message if no preview filepath has been stored
     in the database.
     
     """
@@ -640,7 +694,9 @@ def missing_preview():
 
 @app.route('/preview/<path:filepath>')
 def preview(filepath):
-    """Open the .png preview image at the specified path, or display
+    """
+    DEPRECATED
+    Open the .png preview image at the specified path, or display
     an error message if the file is missing in local storage.
     
     """
@@ -648,13 +704,18 @@ def preview(filepath):
     try:
         with open('/' + filepath, 'r+b') as img:
             image = img.read()
-        return Response(image, mimetype="image/png")
+        #return Response(image, mimetype="image/png")
+        return jsonify(image=image)
     except:
-        return Response(
-                """
-                Image path exists in DB but
-                image not in local storage
-                """
+        #return Response(
+        #        """
+        #        Image path exists in DB but
+        #        image not in local storage
+        #        """
+        #        )
+        return jsonify(
+                "Image path exists in DB, "
+                "but image is not in local storage."
                 )
         
 #end
