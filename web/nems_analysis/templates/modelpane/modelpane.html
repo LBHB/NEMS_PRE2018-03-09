@@ -27,28 +27,71 @@
     <!-- Custom styles for this template -->
     <link href="{{ url_for('static', filename='css/modelpane/modelpane.css') }}" rel="stylesheet">
     
-    <!-- load jquery -->
-    <script type=text/javascript src=
-        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
-        
-    <!-- Bootstrap JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 
-    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
-    crossorigin="anonymous"></script>
-    
-    <!-- modelpane-specific javascript -->
-    <script type="text/javascript">
-        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
-    <script type="text/javascript" src=
-        "{{ url_for('static',filename='js/modelpane/modelpane.js') }}">
-    </script>
-    
   </head>
   <body>
     <div class="container-fluid">
     <div class="starter-template">
     
         <h2>{{ title }}</h2>
+        
+        <div class="row">
+        
+        <div class="col-xs-2">
+        <form class="form" id="removeModule" method="POST">
+            <div class="form-group">
+                <label for="moduleRemove"> Remove Module </label>
+                <select class="form-control" id="moduleRemove" name="r_module">
+                {% for module in modules %}
+                    <option value="{{ module }}"> {{ module }} </option>
+                {% endfor %}
+                </select>
+                
+                <input type="checkbox" name="all_idx" value="1" disabled> All
+                
+                <button class="form-group-btn" type="Submit" form="removeModule"
+                formaction="{{ url_for('remove_module') }}"> Submit
+                </button>
+            </div>
+        </form>
+        </div><!-- end col -->
+        
+        <div class="col-xs-2">
+        <form class="form"id="appendOrInsert" method="POST">
+        
+            <div class="form-group">
+                <label for="moduleSelect"> Select Module </label>
+                <select class="form-control" id="moduleSelect" name="a_module">
+                {% for mod in all_mods %}
+                    <option value="{{ mod }}"> {{ mod }} </option>
+                {% endfor %}
+                </select>
+            </div>
+                
+            <div class="form-group">
+                <label for="idx" id="idxLabel"> Insertion Index </label>
+                <input type="text" class="form-control" 
+                value={{ modules|length }} name="idx" id="idx" disabled>
+            </div>
+                
+            <div class="form-group">
+                <button class="form-group-btn" type="Submit" form="appendOrInsert"
+                formaction="{{ url_for('append_module') }}" name="append"> 
+                Append Module
+                </button>
+                <button class="form-group-btn" type="Submit" form="appendOrInsert"
+                formaction="{{ url_for('insert_module') }}" name="insert" disabled> 
+                Insert Module
+                </button>
+            </div>
+            
+        </form>
+        </div><!-- end col -->
+        
+        <div class="col-xs-8" id="blankDivForSpacing">
+        </div>
+        
+        </div><!-- end row -->
+        
         
     {% for module in modules %}
 
@@ -66,20 +109,37 @@
                     <label for="plotSelect{{ loop.index-1 }}"> Plot Type </label>
                     <select class="plotSelect form-control" id=
                     "plotSelect{{ loop.index-1 }}">
-                        {% for type in plottypes[loop.index-1] %}
-                            <option> {{ type }} </option>
-                        {% endfor %}
+                    {% for type in plottypes[loop.index-1] %}
+                        <option> {{ type }} </option>
+                    {% endfor %}
                     </select>
                 </div><!-- control-group -->
                 
-                <div class="control-group" align="left">
-                    <label for="testMulti"> Editable Fields </label>
-                    <select class="form-control" id="testMulti" size="5" multiple>
-                        {% for field in fields[loop.index-1] %}
-                            <option> {{ field }} </option>
-                        {% endfor %}
+                <br/>
+                <div class="control-group" align="left" id="editableFields">
+                    <!--   Discontinue this
+                    <label for="selectPreset"> Keyword Preset </label>
+                    <select class="form-control selectPreset">
+                        {#{% for kw in keywords[loop.index-1] %}
+                        <option value="{{ kw }}"> {{ kw }} </option>
+                        {% endfor %}#}
                     </select>
-                </div><!-- control-group -->
+                    -->
+                    <span class="lbl"> <strong>Editable Fields</strong> </span>
+                    {% for field in fields[loop.index-1] %}
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <input type="checkbox" checked>
+                        </span>
+                        <span class="input-group-addon"> {{ field }} </span>
+                        <div display="none" value="{{ field }}" class=
+                        "input-finder">
+                            <input type="text" class="form-control {{ field }}" 
+                            placeholder="{{ field }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
                 
                 <div class="control-group" align="right">     
                     <label class="checkbox">
@@ -106,6 +166,22 @@
     
     </div> <!-- end starter-template -->
     </div> <!-- end container -->
+
+    <!-- load jquery -->
+    <script type=text/javascript src=
+        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+        
+    <!-- Bootstrap JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" 
+    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
+    crossorigin="anonymous"></script>
+    
+    <!-- modelpane-specific javascript -->
+    <script type="text/javascript">
+        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
+    <script type="text/javascript" src=
+        "{{ url_for('static',filename='js/modelpane/modelpane.js') }}">
+    </script>
 
   </body>
 </html>

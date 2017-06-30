@@ -84,7 +84,7 @@ def main_view():
     
     batchlist = [
             i[0] for i in
-            session.query(NarfAnalysis.batch)
+            session.query(NarfBatches.batch)
             .distinct().all()
             ]
     batchlist.sort()
@@ -155,6 +155,11 @@ def update_batch():
             .first()[0]
             )
     
+    if batch:
+        batch = batch[:3]
+    else:
+        batch = '271'
+    
     session.close()
     
     return jsonify(batch=batch)
@@ -191,19 +196,29 @@ def update_cells():
     """Update the list of cells in the cell selector after a batch
     is selected (this will cascade from an analysis selection).
     
+    Also updates current batch in NarfAnalysis for current analysis.
+    
     """
     
     session = Session()
     # Only get the numerals for the selected batch, not the description.
-    bSelected = request.args.get('bSelected', type=str)[:3]
+    bSelected = request.args.get('bSelected')
+    aSelected = request.args.get('aSelected')
 
     celllist = [
             i[0] for i in 
             session.query(NarfBatches.cellid)
-            .filter(NarfBatches.batch == bSelected)
+            .filter(NarfBatches.batch == bSelected[:3])
             .all()
             ]
-               
+    analysis = (
+            session.query(NarfAnalysis)
+            .filter(NarfAnalysis.name == aSelected)
+            .all()
+            )
+    analysis[0].batch = bSelected
+
+    session.commit()
     session.close()
     
     return jsonify(celllist=celllist)
@@ -348,6 +363,46 @@ def update_analysis_details():
     return jsonify(details=detailsHTML)
 
 
+@app.route('/update_status_options')
+def update_status_options():
+    
+    session = Session()
+    
+    statuslist = [
+        i[0] for i in
+        session.query(NarfAnalysis.status)
+        .distinct().all()
+        ]
+
+    session.close()
+    
+    return jsonify(statuslist=statuslist)
+
+
+@app.route('/update_tag_options')
+def update_tag_options():
+    
+    session = Session()
+    
+    tags = [
+        i[0].split(",") for i in
+        session.query(NarfAnalysis.tags)
+        .distinct().all()
+        ]
+    # Flatten list of lists into a single list of all tag strings
+    # and remove leading and trailing whitespace.
+    taglistbldupspc = [i for sublist in tags for i in sublist]
+    taglistbldup = [t.strip() for t in taglistbldupspc]
+    # Reform the list with only unique tags
+    taglistbl = list(set(taglistbldup))
+    # Finally, remove any blank tags and sort the list.
+    taglist = [t for t in taglistbl if t != '']
+    taglist.sort()
+    
+    session.close()
+    
+    return jsonify(taglist=taglist)
+    
 
 ##############################################################################
 ################      edit/delete/new  functions for Analysis Editor #########
@@ -377,7 +432,6 @@ def edit_analysis():
     eQuestion = request.args.get('question')
     eAnswer = request.args.get('answer')
     eTree = request.args.get('tree')
-    eBatch = request.args.get('batch')
     #TODO: add checks to require input inside form fields
     #      or allow blank so that people can erase stuff?
     
@@ -408,7 +462,6 @@ def edit_analysis():
         a.question = eQuestion
         a.answer = eAnswer
         a.tags = eTags
-        a.batch = eBatch
         a.lastmod = modTime
         a.modeltree = eTree
     # If it doesn't exist, add new sql alchemy object with the
@@ -416,23 +469,22 @@ def edit_analysis():
     else:
         a = NarfAnalysis(
                 name=eName, status=eStatus, question=eQuestion,
-                answer=eAnswer, tags=eTags, batch=eBatch,
+                answer=eAnswer, tags=eTags, batch='',
                 lastmod=modTime, modeltree=eTree,
                 )
         session.add(a)
     
     # For verifying correct logging - comment these out 
     # when not needed for testing.
-    print("Added the following analysis to database:")
-    print("------------------")
-    print("name:"); print(a.name)
-    print("question:"); print(a.question)
-    print("answer:"); print(a.answer)
-    print("status:"); print(a.status)
-    print("tags:"); print(a.tags)
-    print("batch:"); print(a.batch)
-    print("model tree:"); print(a.modeltree)
-    print("-----------------\n\n")
+    #print("Added the following analysis to database:")
+    #print("------------------")
+    #print("name:"); print(a.name)
+    #print("question:"); print(a.question)
+    #print("answer:"); print(a.answer)
+    #print("status:"); print(a.status)
+    #print("tags:"); print(a.tags)
+    #print("model tree:"); print(a.modeltree)
+    #print("-----------------\n\n")
     addedName = a.name
     session.commit()
     session.close()
@@ -456,7 +508,7 @@ def get_current_analysis():
     # mimic 'New Analysis' behavior.
     if len(aSelected) == 0:
         return jsonify(
-                name='', status='', tags='', batch='', question='',
+                name='', status='', tags='', question='',
                 answer='', tree='',
                 )
         
@@ -469,7 +521,7 @@ def get_current_analysis():
     session.close()
     
     return jsonify(
-            name=a.name, status=a.status, tags=a.tags, batch=a.batch,
+            name=a.name, status=a.status, tags=a.tags,
             question=a.question, answer=a.answer, tree=a.modeltree,
             )
         
@@ -525,14 +577,14 @@ def delete_analysis():
     # or some other issue occurs.
     # That way, the prints can be copy pasted back into a new analysis
     # form to restore the database entry.
-    print("checking for correct deletion. Deleting:")
-    print("name:"); print(result.name)
-    print("question:"); print(result.question)
-    print("answer:"); print(result.answer)
-    print("status:"); print(result.status)
-    print("tags:"); print(result.tags)
-    print("batch:"); print(result.batch)
-    print("model tree:"); print(result.modeltree)
+    #print("checking for correct deletion. Deleting:")
+    #print("name:"); print(result.name)
+    #print("question:"); print(result.question)
+    #print("answer:"); print(result.answer)
+    #print("status:"); print(result.status)
+    #print("tags:"); print(result.tags)
+    #print("batch:"); print(result.batch)
+    #print("model tree:"); print(result.modeltree)
 
     session.delete(result)
     session.commit()

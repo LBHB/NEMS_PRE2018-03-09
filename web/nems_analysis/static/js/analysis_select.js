@@ -116,10 +116,11 @@ $(document).ready(function(){
         //       should cascade from change to analysis selection
         // if batch selection changes, get the value of the new selection
         var bSelected = $("#batchSelector").val();
+        var aSelected = $("#analysisSelector").val();
 
         $.ajax({
             url: $SCRIPT_ROOT + '/update_cells',
-            data: { bSelected:bSelected },
+            data: { bSelected:bSelected, aSelected:aSelected },
             type: 'GET',
             success: function(data) {
                 cells = $("#cellSelector");
@@ -307,14 +308,92 @@ $(document).ready(function(){
            }
         });
     }
-
+            
+    function updateTagOptions(){
+        $.ajax({
+           url: $SCRIPT_ROOT + '/update_tag_options',
+           type: 'GET',
+           success: function(data){
+               tags = $("#tagFilters")
+               tags.empty();
+               tags.append(
+                        "<ul class='list-unstyled col-sm-6'>"
+                        + "<li>"
+                        + "<input class='statusOption' name='statusOption[]' type="
+                        + "'radio' value='__any' checked>"
+                        + "<span class='lbl'> Any </span>"
+                        + "</li>"
+                        )
+               
+               $.each(data.taglist, function(tag){
+                   if (tag%12 == 0){
+                       tags.append(
+                                "</ul><ul class='list-unstyled col-sm-6'>"
+                                )        
+                   }
+                   
+                   tags.append(
+                           "<li>"
+                            + "<input class='tagOption'"
+                            + "name='tagOption[]' type='radio' value="
+                            + data.taglist[tag] + "'" + ">"
+                            + "<span class='lbl'>" + data.taglist[tag] + "</span>"
+                            + "</li>"
+                            )
+               });
+               tags.append("</ul>");    
+            
+           },
+           error: function(error){
+               console.log(error);
+           }        
+        });
+    }
+    
+    function updateStatusOptions(){
+        $.ajax({
+           url: $SCRIPT_ROOT + '/update_status_options',
+           type: 'GET',
+           success: function(data){
+               statuses = $("#statusFilters")
+               statuses.empty();
+               statuses.append(
+                        "<li>"
+                        + "<input class='statusOption' name='statusOption[]' type="
+                        + "'radio' value='__any' checked>"
+                        + "<span class='lbl'> Any </span>"
+                        + "</li>"
+                        )
+               
+               $.each(data.statuslist, function(status){
+                   if (status == 0){
+                       var checked = 'checked'
+                   } else{
+                       var checked = '' 
+                   }
+                   statuses.append(
+                            "<li>"
+                            + "<input class='tagOption'"
+                            + "name='tagOption[]' type='radio' value="
+                            + data.statuslist[status] + "'" + ">"
+                            + "<span class='lbl'>" + data.statuslist[status]
+                            + "</span>"
+                            + "</li>"
+                            )
+               });
+           },
+           error: function(error){
+               console.log(error);
+           }        
+        });
+    }
+    
     $("#newAnalysis").on('click',newAnalysis);
     
     function newAnalysis(){
         $("[name='editName']").val('');
         $("[name='editStatus']").val('');
         $("[name='editTags']").val('');
-        $("[name='editBatch']").val('');
         $("[name='editQuestion']").html('');
         $("[name='editAnswer']").html('');
         $("[name='editTree']").val('');
@@ -337,7 +416,6 @@ $(document).ready(function(){
                 $("[name='editName']").val(data.name);
                 $("[name='editStatus']").val(data.status);
                 $("[name='editTags']").val(data.tags);
-                $("[name='editBatch']").val(data.batch);
                 $("[name='editQuestion']").html(data.question);
                 $("[name='editAnswer']").html(data.answer);
                 $("[name='editTree']").val(data.tree);
@@ -389,20 +467,22 @@ $(document).ready(function(){
         var name = $("[name='editName']").val();
         var status = $("[name='editStatus']").val();
         var tags = $("[name='editTags']").val();
-        var batch = $("[name='editBatch']").val();
         var question = $("[name='editQuestion']").val();
         var answer = $("[name='editAnswer']").val();
         var tree = $("[name='editTree']").val();
         
         $.ajax({
            url: $SCRIPT_ROOT + '/edit_analysis',
-           data: { name:name, status:status, tags:tags, batch:batch,
+           data: { name:name, status:status, tags:tags,
                   question:question, answer:answer, tree:tree },
            type: 'GET',
            success: function(data){
                $("#analysisEditorModal").modal('hide')
                py_console_log(data.success);
                updateAnalysis();
+               //updateTagOptions();
+               //updateStatusOptions();
+               $("#analysisSelector").val(name);
            },
            error: function(error){
                console.log(error)
@@ -432,6 +512,8 @@ $(document).ready(function(){
                     if (data.success){
                         py_console_log(aSelected + " successfully deleted.");
                         updateAnalysis();
+                        //updateTagOptions();
+                        //updateStatusOptions();
                     } else{
                         py_console_log("Something went wrong - unable to delete:\n" + aSelected);
                         return false;
