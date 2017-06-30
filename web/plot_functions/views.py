@@ -5,9 +5,57 @@ import numpy as np
 from flask import render_template, jsonify, request, Response
 
 from nems_analysis import app, Session, NarfResults
-from plot_functions.PlotGenerator import Scatter_Plot, Bar_Plot, Pareto_Plot
+import plot_functions.PlotGenerator as pg
 
         
+@app.route('/generate_plot_html')
+def generate_plot_html():
+
+    session = Session()
+    
+    plotType = request.args.get('plotType')
+    bSelected = request.args.get('bSelected')[:3]
+    mSelected = request.args.getlist('mSelected[]')
+    cSelected = request.args.getlist('cSelected[]')
+    measure = request.args['measure']
+    onlyFair = request.args.get('onlyFair')
+    if onlyFair == "fair":
+        onlyFair = True
+    else:
+        onlyFair = False
+    includeOutliers = request.form.get('includeOutliers')
+    if includeOutliers == "outliers":
+        includeOutliers = True
+    else:
+        includeOutliers = False
+    
+    #useSNRorIso = (request.form.get('plotOption[]'),request.form.get('plotOpVal'))
+    
+    # TODO: filter results based on useSNRorIso before passing data to plot generator
+    # note: doing this here instead of in plot generator since it requires db access
+    #       make a list of cellids that fail snr/iso criteria
+    #       then remove all rows of results where cellid is in that list
+    
+    results = psql.read_sql_query(session.query(NarfResults).filter\
+              (NarfResults.batch == bSelected).filter\
+              (NarfResults.cellid.in_(cSelected)).filter\
+              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
+    
+    Plot_Class = getattr(pg, plotType)
+    plot = Plot_Class(
+            data=results, measure=measure, fair=onlyFair, 
+            outliers=includeOutliers,
+            )
+    if plot.emptycheck:
+        return jsonify(script='Empty',div='Plot')
+    else:
+        plot.generate_plot()
+        
+    session.close()
+    
+    return jsonify(script=plot.script, div=plot.div)
+    
+    
 @app.route('/scatter_plot', methods=['GET','POST'])
 def scatter_plot():
     """Pass user selections to a Scatter_Plot object, then display the results
@@ -129,8 +177,8 @@ def load_plot_args(request, session):
     """
     
     bSelected = request.form.get('batch')[:3]
-    mSelected = request.form.getlist('modelnames')
-    cSelected = request.form.getlist('celllist')
+    mSelected = request.form.getlist('modelnames[]')
+    cSelected = request.form.getlist('celllist[]')
     measure = request.form['measure']
     onlyFair = request.form.get('onlyFair')
     if onlyFair == "fair":
@@ -143,7 +191,7 @@ def load_plot_args(request, session):
     else:
         includeOutliers = False
     
-    useSNRorIso = (request.form.get('plotOption[]'),request.form.get('plotOpVal'))
+    #useSNRorIso = (request.form.get('plotOption[]'),request.form.get('plotOpVal'))
     
     # TODO: filter results based on useSNRorIso before passing data to plot generator
     # note: doing this here instead of in plot generator since it requires db access

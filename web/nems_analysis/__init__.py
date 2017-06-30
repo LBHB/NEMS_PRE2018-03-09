@@ -73,6 +73,7 @@ NarfBatches = Base.classes.NarfBatches
 NarfResults = Base.classes.NarfResults
 tQueue = Base.classes.tQueue
 sCellFile = Base.classes.sCellFile
+sBatch = Base.classes.sBatch
 
 # import this when another module needs to use the database connection.
 # used like a class - ex: 'session = Session()'
