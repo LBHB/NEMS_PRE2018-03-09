@@ -743,6 +743,8 @@ class nonlinearity(nems_module):
     nonlinearity - apply a static nonlinearity. TODO: use helper functions
     rather than a look-up table to determine which NL to apply. parameters can
     be saved in a generic vector self.phi - see NARF implementation for reference 
+    
+    @author: shofer
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
@@ -760,7 +762,7 @@ class nonlinearity(nems_module):
         setattr(self,nltype,phi0)
         #self.phi=phi0
         #self.do_trial_plot=self.plot_fns[1]
-        self.do_trial_plot=print('no plot yet')
+        #self.do_trial_plot=print('no plot yet')
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
@@ -786,7 +788,10 @@ class state_gain(nems_module):
     state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
     my not be able to use standard my_eval() because needs access to two 
     variables in the data stream rather than just one.
+    
+    @author: shofer
     """
+    #Changed to helper function based general module --njs June 29 2017
     name='state_gain'
     plot_fns=[nu.trial_prepost_psth,nu.non_plot]
     
@@ -868,6 +873,59 @@ class mean_square_error(nems_module):
         else:
             # placeholder for something that can distinguish between est and val
             return self.mse_val
+        
+class pseudo_huber(nems_module):
+    """
+    Pseudo-huber "error" to use with fitter cost functions. This is more robust to
+    ouliers than simple mean square error. Approximates L1 error at large
+    values of error, and MSE at low error values. Has the additional benefit (unlike L1)
+    of being convex and differentiable at all places.
+    
+    Pseudo-huber equation taken from Hartley & Zimmerman, "Multiple View Geometry
+    in Computer Vision," (Cambridge University Press, 2003), p619
+    
+    C(delta)=2(b^2)(sqrt(1+(delta/b)^2)-1)
+    
+    b mediates the value of error at which the the error is penalized linearly or quadratically
+    
+    @author: shofer, June 30 2017
+    """
+    #I think this is working (but I'm not positive). When fitting with a pseudo-huber
+    #cost function, the fitter tends to ignore areas of high spike rates, but does
+    #a good job finding the mean spike rate at different times during a stimulus. 
+    #This makes sense in that the huber error penalizes outliers, and could be 
+    #potentially useful, depending on what is being fit? --njs, June 30 2017
+    
+    
+    name='pseudo_huber'
+    plot_fns=[nu.pred_act_psth,nu.plot_trials,nu.pred_act_scatter]
+    input1='stim'
+    input2='resp'
+    b=0.9 #sets the value of error where fall-off goes from linear to quadratic\
+    huber_est=np.ones([1,1])
+    
+    def my_init(self, input1='stim',input2='resp',b=0.9):
+        self.input1=input1
+        self.input2=input2
+        self.b=b
+        self.do_trial_plot=self.plot_fns[1]
+        
+    def evaluate(self):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+    
+        for f in self.d_out:
+            delta=np.divide(np.sum(f[self.input1]-f[self.input2],axis=1),np.sum(f[self.input2],axis=1))
+            C=np.sum(2*np.square(self.b)*(np.sqrt(1+np.square(np.divide(delta,self.b)))-1))
+            C=np.array([C])
+        self.huber_est=C
+            
+    def error(self,est=True):
+        if est is True:
+            return(self.huber_est)
+        
+            
         
 class correlation(nems_module):
  

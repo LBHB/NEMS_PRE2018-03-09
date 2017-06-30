@@ -173,8 +173,10 @@ class anneal_min(nems_fitter):
     Also, note that since basinhopping (at least as implemented here) uses random jumps,
     the results my not be exactly the same every time, and the annealing may take a 
     different number of iterations each time it is called
+    @author: shofer, 30 June 2017
     """
 
+    
     name='anneal_min'
     anneal_iter=100
     stop=5
