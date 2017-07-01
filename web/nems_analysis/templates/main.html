@@ -75,7 +75,6 @@
 <!--            Left-hand-side, form selections       ---->
 
             <div class="col-xs-3">
-            <form class="form" id="selections" method="POST" target="_blank">
                 <div class="form-group" id="analysisGroup">
                 <label for="analysisSelector"> Select Analysis </label>
                 <select class="form-control plot-form" id="analysisSelector">
@@ -198,6 +197,7 @@
                     <button tabindex="-1" class="btn btn-default btn-xs" type="button"
                     id="enqueue"> Enqueue Models </button>
                 </div>
+                
                 <div class="input-group">
                     <input type="text" id="queuelimit" size="5" value="20">
                     <span class="lbl" for="queuelimit"> Queue Limit </span>
@@ -226,6 +226,9 @@
                     <option value="{{ type }}"> {{ type | replace('_',' ') }} </option>
                 {% endfor %}
                 </select>
+                
+                <button class="btn btn-default btn-xs" type="button"
+                    id="submitPlot"> Submit Plot </button>
                 </div>
                 
                 <!--
@@ -233,45 +236,30 @@
                 <p> Selection required for each option before submission </p>
                 </div>
                 -->
-                
-                <div id="plotOpAll">
-                
-                <div id="plotOpButtons">
-                <input type="checkbox" id="onlyFair" name="onlyFair" 
-                checked value="fair"> Fair? </input>
-                <input type="checkbox" id="includeOutliers" name="includeOutliers"
-                value="outliers"> Outliers? </input>
+
+                <div class="form-group form-inline" id="plotOpLabels">
+                    <label for="onlyFair"> Fair? </label>
+                    <label for="includeOutliers"> Outliers? </label>
+                    <label for="plotOpSelect"> Use </label>
+                    <label for="plotOpVal">&gt</label>
                 </div>
                 
-        <!--     TODO:  not set up yet                -->
-                <div id="plotOpDropOuter">
-                <div class="dropdown" id="plotOpDrop">
-                    <button type="button" class="btn btn-default dropdown-toggle" 
-                    tabindex="-1" data-toggle="dropdown">Use</button>
-                    <div class="dropdown-menu">
-                        <li>
-                        <input type="radio" name="plotOption[]" value="snri">
-                        <span class="lbl">SNRi</span>
-                        </li>
-                        <li>
-                        <input type="radio" name="plotOption[]" value="iso">
-                        <span class="lbl">Iso</span>
-                        </li>
-                        <li>
-                        <input type="radio" name="plotOption[]" value="snr">
-                        <span class="lbl">SNR</span>
-                        </li>
-                    </div>
-                </div>
-                <span id="plotOpGT">&gt</span>
-                <input type="text" id="plotOpVal" name="plotOpVal" value="0">
+                <div class="form-group form-inline" id="plotOpGroup">
+                    <input type="checkbox" id="onlyFair" name="onlyFair" 
+                    checked value="fair">
+
+                    <input type="checkbox" id="includeOutliers" name="includeOutliers"
+                    value="outliers">
+                    
+                    <select class="form-control" id="plotOpSelect">
+                        <option value="snri"> SNRi </option>
+                        <option value="iso"> Iso </option>
+                        <option value="snr"> SNR </option>
+                    </select>
+                    
+                    <input type="text" id="plotOpVal" name="plotOpVal" value="0">
                 </div>
 
-                <div class="input-group-btn">
-                    <button class="btn btn-default btn-sm" type="button"
-                    id="submitPlot"> Submit Plot </button>
-                </div>
-                
                 <!-- old plot submit buttons for form version
                 <div id="plotOpSubmits">
                 <button type="Submit" name="scatter" form="selections" formaction=
@@ -281,10 +269,7 @@
                 <button type="Submit" name="pareto" form="selections" formaction=
                         "{{ url_for('pareto_plot') }}" class="plotsub" disabled> Pareto
                 </div>
-                -->
-                
-                </div><!-- plotOpAll -->
-            </form>
+                -->      
             </div><!-- col -->
             
 <!--     Right-hand-side, table display and options ------------------>

@@ -54,7 +54,7 @@ def fit_single_model_view():
             cellid=cSelected[0], batch=bSelected, modelname=mSelected[0],
             autoplot=False,
             )
-    plotfile = nu.quick_plot_save(stack)
+    plotfile = stack.quick_plot_save(mode="png")
 
     r = (
             session.query(NarfResults)

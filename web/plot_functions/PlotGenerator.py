@@ -362,7 +362,7 @@ class Scatter_Plot(PlotGenerator):
             self.script,self.div = components(singleplot)
             return
         elif len(plots) > 1:            
-            grid = gridplot(plots, ncols=GRID_COLS)
+            grid = gridplot(plots, ncols=GRID_COLS, responsive=True)
             self.script,self.div = components(grid)
         else:
             self.script, self.div = (
@@ -462,7 +462,7 @@ class Bar_Plot(PlotGenerator):
                 x_range=xrange, x_axis_label='Model',
                 y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
                 title="Mean %s Performance By Model"%self.measure[0],
-                tools=tools,
+                tools=tools, responsive=True
                 )
         p.xaxis.major_label_orientation=(np.pi/4)
         glyph = VBar(
@@ -525,7 +525,7 @@ class Pareto_Plot(PlotGenerator):
         p = BoxPlot(
                 self.data, values=self.measure[0], label='n_parms',
                 title="Mean Performance (%s) vs Complexity"%self.measure[0],
-                tools=tools, color='n_parms',
+                tools=tools, color='n_parms', responsive=True,
                 )
             
         self.script,self.div = components(p)

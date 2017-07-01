@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.signal as sps
 import scipy.stats as spstats
@@ -365,7 +365,7 @@ Currently just one that replicates (mostly) the standard procedure from NARF
 class standard_est_val(nems_module):
  
     name='standard_est_val'
-    user_editable_fields=['output_name','valfrac','valmode']
+    user_editable_fields=['output_name','valfrac']
     valfrac=0.05
     
     def my_init(self, valfrac=0.05):
@@ -1179,6 +1179,71 @@ class nems_stack:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
     
+    def quick_plot_save(self, mode=None):
+        """Copy of quick_plot for easy save or embed.
+        
+        mode options:
+        -------------
+        "json" -- .json
+        "html" -- .html
+        "png" -- .png
+        default -- .png
+        
+        returns:
+        --------
+        filename : string
+            Path to saved file, currently of the form:
+            "/auto/data/code/nems_saved_models/batch{#}/{cell}_{modelname}.type"
+                        
+        @author: jacob
+        
+        """
+        batch = self.meta['batch']
+        cellid = self.meta['cellid']
+        modelname = self.meta['modelname']
+    
+        fig = plt.figure(figsize=(8,9))
+        for idx,m in enumerate(self.modules):
+        # skip first module
+            if idx>0:
+                plt.subplot(len(self.modules)-1,1,idx)
+                m.do_plot(m)
+    
+        file_root = (
+                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.",
+                [batch, cellid, modelname]
+                )
+        if mode is not None:
+            mode = mode.lower()
+        if mode is None:
+            #filename = (
+            #        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
+            #        .format(batch,cellid,modelname)
+            #        )
+            filename = (file_root[0] + 'png').format(*file_root[1])
+            fig.savefig(filename)
+        elif mode == "png":
+            filename = (file_root[0] + 'png').format(*file_root[1])
+            fig.savefig(filename)
+        elif mode == "pdf":
+            filename = (file_root[0] + 'pdf').format(*file_root[1])
+            fig.savefig(format="pdf")
+        elif mode == "svg":
+            filename = (file_root[0] + 'svg').format(*file_root[1])
+            fig.savefig(format="svg")
+        elif mode == "json":
+            filename = (file_root[0] + 'JSON').format(*file_root[1])
+            mpld3.save_json(fig, filename)
+        elif mode == "html":
+            filename = (file_root[0] + 'html').format(*file_root[1])
+            mpld3.save_html(fig, filename)
+        else:
+            print("%s is not a valid format -- saving as .png instead."%mode)
+            filename = (file_root[0] + 'png').format(*file_root[1])
+            fig.savefig(filename)
+        plt.close(fig)
+        return filename
+    
     def trial_quick_plot(self):
         """
         Plots several trials of a stimulus after fitting pupil data.
@@ -1215,7 +1280,6 @@ class nems_stack:
         un[0]=res
         nu.raster_plot(data=un,stims=idx,size=(12,6))
            
-
             
 # end nems_stack
 

@@ -11,15 +11,7 @@ import lib.nems_fitters as nf
 import lib.nems_utils as nu
 import lib.baphy_utils as baphy_utils
 
-# NOTE: Added list of keywords associated with each module, so that the kw
-#       options can be easily retrieved by the modelpane. If you add additional
-#       keywords please add them to the associated list as well, or make a new
-#       list if no keywords exist for a new module.
-#       --Jacob 6/28/17
-
 # loader keywords
-
-load_mat = ['fb24ch200', 'fb18ch100', 'loadlocal']
 
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
@@ -51,8 +43,6 @@ def ev(stack):
 # weight channels keywords
 ###############################################################################
 
-weight_channels = ['wc01', 'wc02', 'wc03', 'wc04']
-
 def wc01(stack):
     stack.append(nm.weight_channels,num_chans=1)
 
@@ -68,8 +58,6 @@ def wc04(stack):
 
 # fir filter keywords
 ###############################################################################
-
-fir_filter = ['fir10', 'fir15']
 
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
@@ -102,8 +90,6 @@ def fir15(stack):
 # static NL keywords
 ###############################################################################
 
-nonlinearity = ['dlog', 'exp', 'dexp']
-
 def dlog(stack):
     stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['dlog'],phi0=[1])
     
@@ -117,16 +103,12 @@ def dexp(stack):
 # state variable keyowrds
 ###############################################################################
 
-state_gain = ['pupgain', ]
-
 def pupgain(stack):
     stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['linpupgain'],phi0=[0,1,0,0])
 
 
 # fitter keywords
 ###############################################################################
-
-fitter = ['fit00', ]
 
 def fit00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')

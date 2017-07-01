@@ -1,7 +1,7 @@
 """Miscellaneous view functions.
 
 Contents so far:
-    error_log
+    error_log (file renamed todo_list)
     
 """
 
@@ -16,7 +16,7 @@ def error_log():
     
     # TODO: Add an interface to edit the text from the site, or submit
     #       suggestions some other way, so that users can report bugs etc.
-    return app.send_static_file('error_log.txt')
+    return app.send_static_file('todo_list.txt')
 
 
 
