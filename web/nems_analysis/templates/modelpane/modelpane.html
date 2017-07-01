@@ -40,7 +40,7 @@
         <form class="form" id="removeModule" method="POST">
             <div class="form-group">
                 <label for="moduleRemove"> Remove Module </label>
-                <select class="form-control" id="moduleRemove" name="r_module">
+                <select class="form-control" id="moduleRemove" name="r_module" disabled>
                 {% for module in modules %}
                     <option value="{{ module }}"> {{ module }} </option>
                 {% endfor %}
@@ -49,18 +49,18 @@
                 <input type="checkbox" name="all_idx" value="1" disabled> All
                 
                 <button class="form-group-btn" type="Submit" form="removeModule"
-                formaction="{{ url_for('remove_module') }}"> Submit
+                formaction="{{ url_for('remove_module') }}" disabled> Submit
                 </button>
             </div>
         </form>
         </div><!-- end col -->
         
         <div class="col-xs-2">
-        <form class="form"id="appendOrInsert" method="POST">
+        <form class="form" id="appendOrInsert" method="POST">
         
             <div class="form-group">
                 <label for="moduleSelect"> Select Module </label>
-                <select class="form-control" id="moduleSelect" name="a_module">
+                <select class="form-control" id="moduleSelect" name="a_module" disabled>
                 {% for mod in all_mods %}
                     <option value="{{ mod }}"> {{ mod }} </option>
                 {% endfor %}
@@ -75,7 +75,7 @@
                 
             <div class="form-group">
                 <button class="form-group-btn" type="Submit" form="appendOrInsert"
-                formaction="{{ url_for('append_module') }}" name="append"> 
+                formaction="{{ url_for('append_module') }}" name="append" disabled> 
                 Append Module
                 </button>
                 <button class="form-group-btn" type="Submit" form="appendOrInsert"
@@ -87,7 +87,26 @@
         </form>
         </div><!-- end col -->
         
-        <div class="col-xs-8" id="blankDivForSpacing">
+        <div class="col-xs-2">
+        <form class="form-inline" id="stimDataIdx">
+            <div class="input-group">
+                <label for="changeStimIdx"> Stim Index 0 to {{ plot_dataidx_max }} </label>
+                <input type="text" id="changeStimIdx" class="form-control"
+                value="{{ plot_stimidx }}">                                                            
+            </div>
+            <div class="input-group">
+                <label for="changeDataIdx"> Data Index 0 to {{ plot_dataidx_max }} </label>
+                <input type="text" class="form-control" id="changeDataIdx"
+                value="{{ plot_dataidx }}">                                                             
+            </div>
+            <div class="input-group">
+                <button type="button" class="btn btn-default" form="stimDataIdx"
+                id="updateIdx"> Update </button>
+            </div>
+        </form>
+        </div><!-- end col -->
+        
+        <div class="col-xs-6" id="blankDivForSpacing">
         </div>
         
         </div><!-- end row -->
@@ -116,7 +135,7 @@
                 </div><!-- control-group -->
                 
                 <br/>
-                <div class="control-group" align="left" id="editableFields">
+                <div class="control-group" align="left" class="editableFields">
                     <!--   Discontinue this
                     <label for="selectPreset"> Keyword Preset </label>
                     <select class="form-control selectPreset">
@@ -126,7 +145,7 @@
                     </select>
                     -->
                     <span class="lbl"> <strong>Editable Fields</strong> </span>
-                    {% for field in fields[loop.index-1] %}
+                    {% for field,value in fields_values[loop.index-1] %}
                     <div class="input-group">
                         <span class="input-group-addon">
                             <input type="checkbox" checked>
@@ -134,22 +153,22 @@
                         <span class="input-group-addon"> {{ field }} </span>
                         <div display="none" value="{{ field }}" class=
                         "input-finder">
-                            <input type="text" class="form-control {{ field }}" 
-                            placeholder="{{ field }}">
+                            <input type="text" class="form-control fieldValue" 
+                            value="{{ value }}">
                         </div>
                     </div>
                     {% endfor %}
                 </div>
                 
-                <div class="control-group" align="right">     
+                <div class="form-group form-inline">     
                     <label class="checkbox">
                         <input type="checkbox"> Test1
                     </label>
                     <label class="checkbox">
                         <input type="checkbox"> Test1
                     </label>
-                    <button type="button"
-                    class="submitModulesChanges"> Submit </button>
+                    <button type="button" id="update_{{ module }}"
+                    class="submitModulesChanges"> Update </button>
                 </div>
             </div><!-- end col -->
             

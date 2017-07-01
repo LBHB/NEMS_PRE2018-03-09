@@ -1,7 +1,6 @@
 $(document).ready(function(){
 
     $(".plotSelect").change(updatePlot);
-    
     function updatePlot(){
         var plotDiv = $(this).parents(".row").find(".plot-wrapper");
         var modAffected = $(this).parents(".row").attr('id');
@@ -21,6 +20,50 @@ $(document).ready(function(){
         
     }
     
+    $("#updateIdx").on('click', updateIdx);
+    function updateIdx(){
+        var plot_stimidx = $("#changeStimIdx").val();
+        var plot_dataidx = $("#changeDataIdx").val();
+        
+        $.ajax({
+            url: $SCRIPT_ROOT + '/update_idx',
+            data: { plot_stimidx:plot_stimidx, plot_dataidx:plot_dataidx },
+            type: 'GET',
+            success: function(data){
+                $(".plotSelect").each(updatePlot);
+            },
+            error: function(error){
+                console.log(error);       
+            }
+        });
+    }
+
+    $("#updateModule").on('click', updateModule);
+    function updateModule(){
+        var modAffected = $(this).parents(".row").attr('id');
+        var fields = $(this).parents(".row").find(".editableFields").find(".input-finder");
+        var values = $(this).parents(".row").find(".editableFields").find(".fieldValue");
+        var fields_values = {};
+        fields.each(function(i){
+            fields_values[field[i].val()] = values[i].val();
+        });
+
+        $.ajax({
+            url: $SCRIPT_ROOT + '/update_module',
+            data: { fields_values:fields_values, modAffected:modAffected },
+            type: 'GET',
+            success: function(data){
+                $(".plotSelect").each(updatePlot);
+                console.log('success')
+            },
+            failure: function(error){
+                console.log(error);    
+            }
+        })
+
+    }
+
+
     // Not used //
     /*
     $(".selectPreset").change(updatePresets);

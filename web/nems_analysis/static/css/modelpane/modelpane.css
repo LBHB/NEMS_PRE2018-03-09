@@ -5,6 +5,12 @@
 
 .form-group {
   text-align: left;
+  margin: 5px;
+}
+
+.input-group {
+  text-align: left;
+  margin: 5px;        
 }
 
 #testSelect {

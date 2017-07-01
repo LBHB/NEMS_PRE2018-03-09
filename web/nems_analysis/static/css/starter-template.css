@@ -81,46 +81,47 @@ textarea {
   width: 100% !important;      
 }
 
-#plotMeasureTypeGroup{
-  align: center;        
+#modelButtons button{
+  margin:2px;        
 }
 
-#plotMeasureTypeGroupLabels label{
+#plotMeasureTypeGroup {
+  align: center;
+  margin-top: 0px;     
+}
+
+#plotMeasureTypeGroupLabels label {
   width:40%;
   text-align: center;
 }
 
-#measureSelector{
+#measureSelector {
   width: 40%;        
 }
 
-#plotTypeSelector{
+#plotTypeSelector {
   width: 40%;        
 }
 
-#plotOpButtons {
-  float:left;        
+#plotOpLabels label {
+  width: 20%;
+  text-align: center;
 }
 
-#plotOpDropOuter {
-  float:left;        
+#onlyFair {
+  width: 20%;
 }
 
-#plotOpDrop {
-  float:left;        
+#includeOutliers {
+  width: 20%;        
 }
 
-#plotOpSubmits {
-  float:left;        
-}
-
-#plotOpGT {
-  padding:10px;        
+#plotOpSelect {
+  width: 20%;        
 }
 
 #plotOpVal {
-  float:right;
-  width: 50px;        
+  width: 20%;        
 }
 
 #tableWrapper {
@@ -132,11 +133,25 @@ textarea {
 }
 
 #displayWrapper {
+  text-align: center;
   margin-top: 1vh;
   height: 85vh;
   display: block;
   overflow: auto;
-  border: 1px solid #C8C8C8;      
+  border: 1px solid #C8C8C8;
+  vertical-align:center;      
+}
+
+#displayWrapper img{
+  max-width: 100%;      
+  margin: auto;
+  vertical-align: center;
+}
+
+#displayWrapper div{
+  max-width: 100%;        
+  margin: auto;
+  vertical-align: center;
 }
 
 .table-hover, .table-condensed {

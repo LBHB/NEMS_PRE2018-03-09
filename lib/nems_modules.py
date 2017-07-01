@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.signal as sps
 import scipy.stats as spstats
@@ -365,7 +365,7 @@ Currently just one that replicates (mostly) the standard procedure from NARF
 class standard_est_val(nems_module):
  
     name='standard_est_val'
-    user_editable_fields=['output_name','valfrac','valmode']
+    user_editable_fields=['output_name','valfrac']
     valfrac=0.05
     
     def my_init(self, valfrac=0.05):
@@ -743,6 +743,8 @@ class nonlinearity(nems_module):
     nonlinearity - apply a static nonlinearity. TODO: use helper functions
     rather than a look-up table to determine which NL to apply. parameters can
     be saved in a generic vector self.phi - see NARF implementation for reference 
+    
+    @author: shofer
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
@@ -760,7 +762,7 @@ class nonlinearity(nems_module):
         setattr(self,nltype,phi0)
         #self.phi=phi0
         #self.do_trial_plot=self.plot_fns[1]
-        self.do_trial_plot=print('no plot yet')
+        #self.do_trial_plot=print('no plot yet')
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
@@ -786,7 +788,10 @@ class state_gain(nems_module):
     state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
     my not be able to use standard my_eval() because needs access to two 
     variables in the data stream rather than just one.
+    
+    @author: shofer
     """
+    #Changed to helper function based general module --njs June 29 2017
     name='state_gain'
     plot_fns=[nu.trial_prepost_psth,nu.non_plot]
     
@@ -868,6 +873,59 @@ class mean_square_error(nems_module):
         else:
             # placeholder for something that can distinguish between est and val
             return self.mse_val
+        
+class pseudo_huber(nems_module):
+    """
+    Pseudo-huber "error" to use with fitter cost functions. This is more robust to
+    ouliers than simple mean square error. Approximates L1 error at large
+    values of error, and MSE at low error values. Has the additional benefit (unlike L1)
+    of being convex and differentiable at all places.
+    
+    Pseudo-huber equation taken from Hartley & Zimmerman, "Multiple View Geometry
+    in Computer Vision," (Cambridge University Press, 2003), p619
+    
+    C(delta)=2(b^2)(sqrt(1+(delta/b)^2)-1)
+    
+    b mediates the value of error at which the the error is penalized linearly or quadratically
+    
+    @author: shofer, June 30 2017
+    """
+    #I think this is working (but I'm not positive). When fitting with a pseudo-huber
+    #cost function, the fitter tends to ignore areas of high spike rates, but does
+    #a good job finding the mean spike rate at different times during a stimulus. 
+    #This makes sense in that the huber error penalizes outliers, and could be 
+    #potentially useful, depending on what is being fit? --njs, June 30 2017
+    
+    
+    name='pseudo_huber'
+    plot_fns=[nu.pred_act_psth,nu.plot_trials,nu.pred_act_scatter]
+    input1='stim'
+    input2='resp'
+    b=0.9 #sets the value of error where fall-off goes from linear to quadratic\
+    huber_est=np.ones([1,1])
+    
+    def my_init(self, input1='stim',input2='resp',b=0.9):
+        self.input1=input1
+        self.input2=input2
+        self.b=b
+        self.do_trial_plot=self.plot_fns[1]
+        
+    def evaluate(self):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+    
+        for f in self.d_out:
+            delta=np.divide(np.sum(f[self.input1]-f[self.input2],axis=1),np.sum(f[self.input2],axis=1))
+            C=np.sum(2*np.square(self.b)*(np.sqrt(1+np.square(np.divide(delta,self.b)))-1))
+            C=np.array([C])
+        self.huber_est=C
+            
+    def error(self,est=True):
+        if est is True:
+            return(self.huber_est)
+        
+            
         
 class correlation(nems_module):
  
@@ -1121,6 +1179,71 @@ class nems_stack:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
     
+    def quick_plot_save(self, mode=None):
+        """Copy of quick_plot for easy save or embed.
+        
+        mode options:
+        -------------
+        "json" -- .json
+        "html" -- .html
+        "png" -- .png
+        default -- .png
+        
+        returns:
+        --------
+        filename : string
+            Path to saved file, currently of the form:
+            "/auto/data/code/nems_saved_models/batch{#}/{cell}_{modelname}.type"
+                        
+        @author: jacob
+        
+        """
+        batch = self.meta['batch']
+        cellid = self.meta['cellid']
+        modelname = self.meta['modelname']
+    
+        fig = plt.figure(figsize=(8,9))
+        for idx,m in enumerate(self.modules):
+        # skip first module
+            if idx>0:
+                plt.subplot(len(self.modules)-1,1,idx)
+                m.do_plot(m)
+    
+        file_root = (
+                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.",
+                [batch, cellid, modelname]
+                )
+        if mode is not None:
+            mode = mode.lower()
+        if mode is None:
+            #filename = (
+            #        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
+            #        .format(batch,cellid,modelname)
+            #        )
+            filename = (file_root[0] + 'png').format(*file_root[1])
+            fig.savefig(filename)
+        elif mode == "png":
+            filename = (file_root[0] + 'png').format(*file_root[1])
+            fig.savefig(filename)
+        elif mode == "pdf":
+            filename = (file_root[0] + 'pdf').format(*file_root[1])
+            fig.savefig(format="pdf")
+        elif mode == "svg":
+            filename = (file_root[0] + 'svg').format(*file_root[1])
+            fig.savefig(format="svg")
+        elif mode == "json":
+            filename = (file_root[0] + 'JSON').format(*file_root[1])
+            mpld3.save_json(fig, filename)
+        elif mode == "html":
+            filename = (file_root[0] + 'html').format(*file_root[1])
+            mpld3.save_html(fig, filename)
+        else:
+            print("%s is not a valid format -- saving as .png instead."%mode)
+            filename = (file_root[0] + 'png').format(*file_root[1])
+            fig.savefig(filename)
+        plt.close(fig)
+        return filename
+    
     def trial_quick_plot(self):
         """
         Plots several trials of a stimulus after fitting pupil data.
@@ -1157,7 +1280,6 @@ class nems_stack:
         un[0]=res
         nu.raster_plot(data=un,stims=idx,size=(12,6))
            
-
             
 # end nems_stack
 

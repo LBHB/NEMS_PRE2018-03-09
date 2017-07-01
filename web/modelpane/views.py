@@ -72,21 +72,38 @@ def modelpane_view():
             plot_fns[i][j] = newf
     
     fields = [m.user_editable_fields for m in stackmods]
+    values = [
+            [getattr(mod, field) for field in fields[i]]
+            for i, mod in enumerate(stackmods)
+            ]
+    fields_values = []
+    for i, itr in enumerate(fields):
+        fields_values.append(zip(fields[i],values[i]))
+            
+            
     #keywords = [
     #        [m.name] + vars(nk)[m.name]
     #        for m in stackmods
     #        if m.name in vars(nk)
     #        ]
     
+    # TODO: how to calculate stim and data idx range from stack.data?
+    stim_max = 0
+    data_max = 1
+    
     return render_template(
             "/modelpane/modelpane.html", 
             modules=[m.name for m in stackmods],
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
-            fields=fields,
+            fields_values=fields_values,
             #keywords=keywords,
             plottypes=plot_fns,
             all_mods=all_mods,
+            plot_stimidx=mp_stack.plot_stimidx,
+            plot_dataidx=mp_stack.plot_dataidx,
+            plot_stimidx_max=stim_max,
+            plot_dataidx_max=data_max,
            )
    
 
@@ -172,6 +189,38 @@ def update_modelpane_plot():
     
     return jsonify(html=html)
                  
+
+@app.route('/update_idx')
+def update_idx():
+    
+    global mp_stack
+    plot_stimidx = request.args.get('plot_stimidx')
+    plot_dataidx = request.args.get('plot_dataidx')
+    
+    mp_stack.plot_stimidx = int(plot_stimidx)
+    mp_stack.plot_dataidx = int(plot_dataidx)
+    
+    return jsonify(success=True)
+    
+
+@app.route('/update_module')
+def update_module():
+    
+    global mp_stack
+    fields_values = request.args.get('fields_values')
+    modAffected = request.args.get('modAffected')
+    modIdx = nu.find_modules(mp_stack, modAffected)
+    
+    for field, value in fields_values:
+        if hasattr(mp_stack.modules[modIdx], field):
+            setattr(mp_stack.modules[modIdx], field, value)
+        else:
+            raise AttributeError("Couldn't find attribute for module")
+    mp_stack.evaluate(start=modIdx)
+    
+    return jsonify(success=True)
+    
+    
                     
 @app.route('/append_module', methods=['GET','POST'])
 def append_module():
