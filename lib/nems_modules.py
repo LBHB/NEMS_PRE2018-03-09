@@ -749,30 +749,41 @@ class nonlinearity(nems_module):
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
     plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth,nu.plot_spectrogram]
-    user_editable_fields = ['nltype', 'fit_fields']
+    user_editable_fields = ['nltype', 'fit_fields','phi']
+    phi=np.array([1])
     
-    
-    
-    def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog'],phi0=[1],premodel=False):
+    def my_init(self,d_in=None,my_eval=None,nltype='dlog',fit_fields=['phi'],phi=[1],premodel=False):
         if premodel is True:
             self.do_plot=self.plot_fns[2]
         self.fit_fields=fit_fields
         self.nltype=nltype
-        phi0=np.array([phi0])
-        setattr(self,nltype,phi0)
+        self.phi=np.array([phi])
+        #setattr(self,nltype,phi0)
+        if my_eval is None:
+            if nltype=='dlog':
+                self.my_eval=self.dlog_fn
+                self.plot_fns=[nu.plot_spectrogram]
+                self.do_plot=self.plot_fns[0]
+            elif nltype=='exp':
+                self.my_eval=self.exp_fn
+            elif nltype=='dexp':
+                self.my_eval=self.dexp_fn
+        else:
+            self.my_eval=my_eval
+            
         #self.phi=phi0
         #self.do_trial_plot=self.plot_fns[1]
         #self.do_trial_plot=print('no plot yet')
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
-        Y=np.log(X+self.dlog[0,0])
+        Y=np.log(X+self.phi[0,0])
         return(Y)
     def exp_fn(self,X):
-        Y=np.exp(self.exp[0,0]*(X-self.exp[0,1]))
+        Y=np.exp(self.phi[0,0]*(X-self.phi[0,1]))
         return(Y)
     def dexp_fn(self,X):
-        Y=self.dexp[0,0]-self.dexp[0,1]*np.exp(-np.exp(self.dexp[0,2]*(X-self.dexp[0,3])))
+        Y=self.phi[0,0]-self.phi[0,1]*np.exp(-np.exp(self.phi[0,2]*(X-self.phi[0,3])))
         return(Y)
         
     def my_eval(self,X):

@@ -46,10 +46,11 @@ nk.fb18ch100(stack)
 nk.ev(stack)
 
 # add fir filter module to stack & fit a little
-#nk.dlog(stack)
+nk.dlog(stack)
 stack.append(nm.normalize)
+#nk.dlog(stack)
 nk.wc02(stack)
-nk.fir10(stack)
+nk.fir15(stack)
 
 # add nonlinearity and refit
 nk.dexp(stack)
