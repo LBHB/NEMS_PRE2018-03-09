@@ -165,7 +165,7 @@ def non_plot(m):
     pass
     
 
-def raster_plot(data=None,stims='all',size=(12,6),**kwargs):
+def raster_plot(data=None,stims=0,size=(12,6),**kwargs):
     """
     This function generates a raster plot of the data for the specified stimuli.
     It shows the spikes that occur during the actual trial in green, and the background
@@ -227,17 +227,38 @@ def raster_plot(data=None,stims='all',size=(12,6),**kwargs):
     xpre,ypre,xdur,ydur,xpost,ypost=raster_data(ins,prestim,duration,poststim,freq)
     ran=[]
     rs=xpre.shape
-    if stims=='all':
-        ran=range(0,rs[0])
-    elif isinstance(stims,int):
-        ran=range(stims,stims+1)
+    #if stims=='all':
+    #    ran=range(0,rs[0])
+    #elif isinstance(stims,int):
+    #    ran=range(stims,stims+1)
+    #else:
+    #    ran=range(stims[0],stims[1]+1)
+    #for i in ran:
+    plt.figure(stims,figsize=size)
+    plt.scatter(xpre[stims],ypre[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
+    plt.scatter(xdur[stims],ydur[stims],color='g',s=(0.5*np.pi)*2,alpha=0.6)
+    plt.scatter(xpost[stims],ypost[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
+    plt.ylabel('Trial')
+    plt.xlabel('Time')
+    plt.title('Stimulus #'+str(stims))
+
+
+
+#
+# Other support functions
+#
+
+def shrinkage(mH,eH,sigrat=1,thresh=0):
+
+    smd=np.abs(mH)/(eH+np.finfo(float).eps*(eH==0)) / sigrat
+
+    if thresh:
+       hf=mH*(smd>1)
     else:
-        ran=range(stims[0],stims[1]+1)
-    for i in ran:
-        plt.figure(i,figsize=size)
-        plt.scatter(xpre[i],ypre[i],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
-        plt.scatter(xdur[i],ydur[i],color='g',s=(0.5*np.pi)*2,alpha=0.6)
-        plt.scatter(xpost[i],ypost[i],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
-        plt.ylabel('Trial')
-        plt.xlabel('Time')
-        plt.title('Stimulus #'+str(i))
+       smd=1-np.power(smd,-2)
+       smd=smd*(smd>0)
+       #smd[np.isnan(smd)]=0
+       hf=mH*smd
+    
+    return hf
+

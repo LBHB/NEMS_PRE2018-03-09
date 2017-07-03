@@ -59,10 +59,7 @@ def wc04(stack):
 # fir filter keywords
 ###############################################################################
 
-def fir10(stack):
-    stack.append(nm.fir_filter,num_coefs=10)
-    #stack.modules[-1].baseline=stack.data[-1][0]['resp'].mean()
-    
+def fir_mini_fit(stack):
     # mini fit
     stack.append(nm.mean_square_error)
     stack.error=stack.modules[-1].error
@@ -70,34 +67,33 @@ def fir10(stack):
     stack.fitter.tol=0.05
     #stack.fitter=nf.coordinate_descent(stack)
     #stack.fitter.tol=0.001
+    fitidx=nu.find_modules(stack,'weight_channels') + nu.find_modules(stack,'fir_filter')
+    stack.fitter.fit_modules=fitidx
     
     stack.fitter.do_fit()
     stack.popmodule()
+    
+    
+def fir10(stack):
+    stack.append(nm.fir_filter,num_coefs=10)
+    fir_mini_fit(stack)
     
     
 def fir15(stack):
     stack.append(nm.fir_filter,num_coefs=15)
-
-    # mini fit
-    stack.append(nm.mean_square_error)
-    stack.error=stack.modules[-1].error
-    stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.01
-    
-    stack.fitter.do_fit()
-    stack.popmodule()
+    fir_mini_fit(stack)
 
 # static NL keywords
 ###############################################################################
 
 def dlog(stack):
-    stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['dlog'],phi0=[1])
+    stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['phi'],phi=[1])
     
 def exp(stack):
-    stack.append(nm.nonlinearity,nltype='exp',fit_fields=['exp'],phi0=[1,1])
+    stack.append(nm.nonlinearity,nltype='exp',fit_fields=['phi'],phi=[1,1])
 
 def dexp(stack):
-    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'],phi0=[1,1,1,1])
+    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['phi'],phi=[1,1,1,1])
 
 
 # state variable keyowrds

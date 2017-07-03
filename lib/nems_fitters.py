@@ -306,8 +306,8 @@ class coordinate_descent(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         mse=self.stack.error()
         self.counter+=1
-        if self.counter % 100==0:
-            print('Eval #{0}: Error={1}'.format(self.counter,mse))
+        #if self.counter % 100==0:
+        #    print('Eval #{0}: Error={1}'.format(self.counter,mse))
         return(mse)
     
     def do_fit(self):
@@ -331,7 +331,7 @@ class coordinate_descent(nems_fitter):
         #print("{0}: phi0 intialized (start error={1}, {2} parameters)".format(self.name,s,len(self.phi0)))
         #print(x)
       
-        while s_delta>self.tol and n<self.maxit and step_size>self.step_min:
+        while (s_delta<0 or s_delta>self.tol) and n<self.maxit and step_size>self.step_min:
             for ii in range(0,n_params):
                 for ss in [0,1]:
                     x[:]=x_save[:]
@@ -344,19 +344,20 @@ class coordinate_descent(nems_fitter):
             x_opt=np.unravel_index(s_new.argmin(),(n_params,2))
             popt,sopt=x_opt
             s_delta=s-s_new[x_opt]
-            print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
             
             if s_delta<0:
                 step_size=step_size*self.step_change
-                print("Backwards, adjusting step size to {0}".format(step_size))
-            
+                print("{0}: Backwards (delta={1}), adjusting step size to {2}".format(n,s_delta,step_size))
+                
             elif s_delta<self.tol:
-                print("Error improvement too small. Iteration complete.")
+                print("{0}: Error improvement too small (delta={1}). Iteration complete.".format(n,s_delta))
                 
             elif sopt:
                 x_save[popt]-=step_size
+                print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
             else:
                 x_save[popt]+=step_size
+                print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
             
             x=x_save.copy()
             n+=1

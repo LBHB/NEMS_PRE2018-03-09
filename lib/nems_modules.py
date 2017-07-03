@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
+import matplotlib.pyplot as plt #, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.signal as sps
 import scipy.stats as spstats
@@ -749,30 +749,41 @@ class nonlinearity(nems_module):
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
     plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth,nu.plot_spectrogram]
-    user_editable_fields = ['nltype', 'fit_fields']
+    user_editable_fields = ['nltype', 'fit_fields','phi']
+    phi=np.array([1])
     
-    
-    
-    def my_init(self,d_in=None,nltype='dlog',fit_fields=['dlog'],phi0=[1],premodel=False):
+    def my_init(self,d_in=None,my_eval=None,nltype='dlog',fit_fields=['phi'],phi=[1],premodel=False):
         if premodel is True:
             self.do_plot=self.plot_fns[2]
         self.fit_fields=fit_fields
         self.nltype=nltype
-        phi0=np.array([phi0])
-        setattr(self,nltype,phi0)
+        self.phi=np.array([phi])
+        #setattr(self,nltype,phi0)
+        if my_eval is None:
+            if nltype=='dlog':
+                self.my_eval=self.dlog_fn
+                self.plot_fns=[nu.plot_spectrogram]
+                self.do_plot=self.plot_fns[0]
+            elif nltype=='exp':
+                self.my_eval=self.exp_fn
+            elif nltype=='dexp':
+                self.my_eval=self.dexp_fn
+        else:
+            self.my_eval=my_eval
+            
         #self.phi=phi0
         #self.do_trial_plot=self.plot_fns[1]
         #self.do_trial_plot=print('no plot yet')
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
-        Y=np.log(X+self.dlog[0,0])
+        Y=np.log(X+self.phi[0,0])
         return(Y)
     def exp_fn(self,X):
-        Y=np.exp(self.exp[0,0]*(X-self.exp[0,1]))
+        Y=np.exp(self.phi[0,0]*(X-self.phi[0,1]))
         return(Y)
     def dexp_fn(self,X):
-        Y=self.dexp[0,0]-self.dexp[0,1]*np.exp(-np.exp(self.dexp[0,2]*(X-self.dexp[0,3])))
+        Y=self.phi[0,0]-self.phi[0,1]*np.exp(-np.exp(self.phi[0,2]*(X-self.phi[0,3])))
         return(Y)
         
     def my_eval(self,X):
@@ -836,13 +847,15 @@ class mean_square_error(nems_module):
     input1='stim'
     input2='resp'
     norm=True
+    shrink=0
     mse_est=np.ones([1,1])
     mse_val=np.ones([1,1])
         
-    def my_init(self, input1='stim',input2='resp',norm=True):
+    def my_init(self, input1='stim',input2='resp',norm=True,shrink=0):
         self.input1=input1
         self.input2=input2
         self.norm=norm
+        self.shrink=shrink
         self.do_trial_plot=self.plot_fns[1]
         
     def evaluate(self):
@@ -850,18 +863,37 @@ class mean_square_error(nems_module):
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
             
-        E=np.zeros([1,1])
-        P=np.zeros([1,1])
-        N=0
-        for f in self.d_out:
-            E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
-            P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
-            N+=f[self.input2].size
-    
-        if self.norm:
-            mse=E/P
+        if self.shrink:
+            X1=self.unpack_data(self.input1,est=True)
+            X2=self.unpack_data(self.input2,est=True)
+            bounds=np.round(np.linspace(0,len(X1)+1,11)).astype(int)
+            E=np.zeros([10,1])
+            P=np.mean(np.square(X2))
+            for ii in range(0,10):
+                E[ii]=np.mean(np.square(X1[bounds[ii]:bounds[ii+1]]-X2[bounds[ii]:bounds[ii+1]]))
+            E=E/P
+            mE=E.mean()
+            sE=E.std()
+            if mE<1:
+                # apply shrinkage filter to 1-E with factors self.shrink
+                mse=1-nu.shrinkage(1-mE,sE,self.shrink)
+            else:
+                mse=mE
+                
         else:
-            mse=E/N
+            E=np.zeros([1,1])
+            P=np.zeros([1,1])
+            N=0
+            for f in self.d_out:
+                E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
+                P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
+                N+=f[self.input2].size
+        
+            if self.norm:
+                mse=E/P
+            else:
+                mse=E/N
+                
         self.mse_est=mse
         self.parent_stack.meta['mse_est']=mse
         
@@ -1279,6 +1311,7 @@ class nems_stack:
         res[:,:,idx]=res[:,bc,idx]
         un[0]=res
         nu.raster_plot(data=un,stims=idx,size=(12,6))
+        return(res)
            
             
 # end nems_stack

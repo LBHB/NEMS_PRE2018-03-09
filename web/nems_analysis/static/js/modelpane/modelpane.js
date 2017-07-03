@@ -30,7 +30,10 @@ $(document).ready(function(){
             data: { plot_stimidx:plot_stimidx, plot_dataidx:plot_dataidx },
             type: 'GET',
             success: function(data){
-                $(".plotSelect").each(updatePlot);
+                //$(".plotSelect").each(updatePlot);
+                $(".plot-wrapper").each(function(i){
+                    $(this).html(data.plots[i]);
+                });
             },
             error: function(error){
                 console.log(error);       
@@ -38,23 +41,33 @@ $(document).ready(function(){
         });
     }
 
-    $("#updateModule").on('click', updateModule);
+    $(".submitModuleChanges").on('click', updateModule);
     function updateModule(){
         var modAffected = $(this).parents(".row").attr('id');
-        var fields = $(this).parents(".row").find(".editableFields").find(".input-finder");
-        var values = $(this).parents(".row").find(".editableFields").find(".fieldValue");
-        var fields_values = {};
-        fields.each(function(i){
-            fields_values[field[i].val()] = values[i].val();
+        var fields = [];
+        var values = [];
+        var types = [];
+        var fieldValues = $(this).parents(".row")
+        .find(".fieldValue").each(function(i){
+            if ($(this).parents('.input-group').find('.check_box')
+            .is(':checked')){
+                fields.push($(this).attr('name'));
+                values.push($(this).val());
+                types.push($(this).attr('dtype'));
+            }
+            //fields_values[$(this).attr('name')] = $(this).val();
         });
 
         $.ajax({
             url: $SCRIPT_ROOT + '/update_module',
-            data: { fields_values:fields_values, modAffected:modAffected },
+            data: { fields:fields, values:values, types:types, 
+                   modAffected:modAffected },
             type: 'GET',
             success: function(data){
-                $(".plotSelect").each(updatePlot);
-                console.log('success')
+                //$(".plotSelect").each(updatePlot);
+                $(".plot-wrapper").each(function(i){
+                    $(this).html(data.plots[i]);
+                });
             },
             failure: function(error){
                 console.log(error);    
