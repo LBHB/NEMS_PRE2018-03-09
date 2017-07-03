@@ -76,7 +76,6 @@ def fir_mini_fit(stack):
     
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
-    #stack.modules[-1].baseline=stack.data[-1][0]['resp'].mean()
     fir_mini_fit(stack)
     
     
