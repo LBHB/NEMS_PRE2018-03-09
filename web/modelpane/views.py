@@ -73,14 +73,25 @@ def modelpane_view():
     
     fields = [m.user_editable_fields for m in stackmods]
     values = [
-            [getattr(mod, field) for field in fields[i]]
-            for i, mod in enumerate(stackmods)
+            [getattr(m, field) for field in fields[i]]
+            for i, m in enumerate(stackmods)
             ]
-    fields_values = []
+    types = [
+            [str(type(getattr(m, field)))
+            .replace("<class '","").replace("'>","")
+            for field in fields[i]]
+            for i, m in enumerate(stackmods)
+            ]
+    #for i, itr in enumerate(types):
+    #    for j, t in enumerate(itr):
+    #        t = t.replace("<class '","")
+    #        t = t.replace("'>","")
+    #        types[i][j] = t
+    fields_values_types = []
     for i, itr in enumerate(fields):
-        fields_values.append(zip(fields[i],values[i]))
+        fields_values_types.append(zip(fields[i], values[i], types[i]))
             
-            
+    
     #keywords = [
     #        [m.name] + vars(nk)[m.name]
     #        for m in stackmods
@@ -96,7 +107,7 @@ def modelpane_view():
             modules=[m.name for m in stackmods],
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
-            fields_values=fields_values,
+            fields_values_types=fields_values_types,
             #keywords=keywords,
             plottypes=plot_fns,
             all_mods=all_mods,
@@ -113,6 +124,10 @@ def refresh_modelpane():
     Returns dict of arguments for re-rendering the modelpane template.
     
     """
+    
+    # TODO: Better way to do this instead of copy-pasting updates from main
+    #        view function? Should convert to ajax eventually too instead of
+    #        full refresh.
     global mp_stack
     cell = mp_stack.meta['cellid']
     model = mp_stack.meta['modelname']
@@ -141,21 +156,49 @@ def refresh_modelpane():
             plot_fns[i][j] = newf
     
     fields = [m.user_editable_fields for m in stackmods]
+    values = [
+            [getattr(m, field) for field in fields[i]]
+            for i, m in enumerate(stackmods)
+            ]
+    types = [
+            [str(type(getattr(m, field)))
+            .replace("<class '","").replace("'>","")
+            for field in fields[i]]
+            for i, m in enumerate(stackmods)
+            ]
+    #for i, itr in enumerate(types):
+    #    for j, t in enumerate(itr):
+    #        t = t.replace("<class '","")
+    #        t = t.replace("'>","")
+    #        types[i][j] = t
+    fields_values_types = []
+    for i, itr in enumerate(fields):
+        fields_values_types.append(zip(fields[i], values[i], types[i]))
+            
+    
     #keywords = [
     #        [m.name] + vars(nk)[m.name]
     #        for m in stackmods
     #        if m.name in vars(nk)
     #        ]
     
+    # TODO: how to calculate stim and data idx range from stack.data?
+    stim_max = 0
+    data_max = 1
+    
     return render_template(
             "/modelpane/modelpane.html", 
             modules=[m.name for m in stackmods],
             plots=plots,
-            title="Cellid: %s --- Model: %s"%(cell, model),
-            fields=fields,
-            plottypes=plot_fns,
+            title="Cellid: %s --- Model: %s"%(cell ,model),
+            fields_values_types=fields_values_types,
             #keywords=keywords,
+            plottypes=plot_fns,
             all_mods=all_mods,
+            plot_stimidx=mp_stack.plot_stimidx,
+            plot_dataidx=mp_stack.plot_dataidx,
+            plot_stimidx_max=stim_max,
+            plot_dataidx_max=data_max,
            )
 
 
@@ -200,28 +243,94 @@ def update_idx():
     mp_stack.plot_stimidx = int(plot_stimidx)
     mp_stack.plot_dataidx = int(plot_dataidx)
     
-    return jsonify(success=True)
+    stackmods = mp_stack.modules[1:]
+    plots = []
+    for m in stackmods:
+        p = plt.figure(figsize=FIGSIZE)
+        m.do_plot(m)
+        html = mpld3.fig_to_html(p)
+        plots.append(html)
+        plt.close(p)
+    
+    return jsonify(plots=plots)
     
 
 @app.route('/update_module')
 def update_module():
     
     global mp_stack
-    fields_values = request.args.get('fields_values')
+    fields = request.args.getlist('fields[]')
+    values = request.args.getlist('values[]')
+    types = request.args.getlist('types[]')
+    if (not fields) or (not values) or (not types):
+        raise ValueError("No fields and/or values and/or types came through")
+    fields_values = zip(fields, values, types)
+    
     modAffected = request.args.get('modAffected')
     modIdx = nu.find_modules(mp_stack, modAffected)
-    
-    for field, value in fields_values:
-        if hasattr(mp_stack.modules[modIdx], field):
-            setattr(mp_stack.modules[modIdx], field, value)
+    if modIdx:
+        modIdx = modIdx[0]
+    else:
+        print("Module could not be found in stack.")
+        return jsonify(success=False)
+
+    for f, v, t in fields_values:
+        #TODO: figure out a good way to set type dynamically instead of trying
+        #      to think of every possible data type."
+        if not hasattr(mp_stack.modules[modIdx], f):
+            raise AttributeError("Couldn't find attribute for module.")
+        if t == "NoneType":
+            v = None
+        elif t == "str":
+            pass
+        elif t == "int":
+            v = int(v)
+        elif t == "float":
+            v = float(v)
+        elif t == "numpy.ndarray":
+            v = v.replace('[','').replace(']','')
+            try:
+                v = np.fromstring(v, dtype=float, sep=" ")
+            except Exception as e:
+                print("Error converting numpy.ndarray string back to array")
+                print(e)
         else:
-            raise AttributeError("Couldn't find attribute for module")
+            raise TypeError("Unexpected data type (" + t + ") for field: " + f)
+                
+        setattr(mp_stack.modules[modIdx], f, v)
+        
     mp_stack.evaluate(start=modIdx)
     
-    return jsonify(success=True)
+    # TODO: Only need to update plots starting at modIdx, figure out a good way
+    #       to specify this offset in js.
+    stackmods = mp_stack.modules[1:]
+    plots = []
+    for m in stackmods:
+        p = plt.figure(figsize=FIGSIZE)
+        m.do_plot(m)
+        html = mpld3.fig_to_html(p)
+        plots.append(html)
+        plt.close(p)
     
+    return jsonify(plots=plots)
     
-                    
+
+def convert(string, type_):
+    """Adapted from stackoverflow. Not quite working as desired.
+    Stopped using for now but wanted to retain for later use.
+    
+    """
+    import importlib
+    import builtins
+    try:
+        cls = getattr(builtins, type_)
+    except AttributeError:
+        module, type_ = type_.rsplit(".", 1)
+        module = importlib.import_module(module)
+        cls = getattr(module, type_)
+    return cls(string)
+    
+
 @app.route('/append_module', methods=['GET','POST'])
 def append_module():
 
