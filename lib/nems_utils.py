@@ -241,3 +241,24 @@ def raster_plot(data=None,stims=0,size=(12,6),**kwargs):
     plt.ylabel('Trial')
     plt.xlabel('Time')
     plt.title('Stimulus #'+str(stims))
+
+
+
+#
+# Other support functions
+#
+
+def shrinkage(mH,eH,sigrat=1,thresh=0):
+
+    smd=np.abs(mH)/(eH+np.finfo(float).eps*(eH==0)) / sigrat
+
+    if thresh:
+       hf=mH*(smd>1)
+    else:
+       smd=1-np.power(smd,-2)
+       smd=smd*(smd>0)
+       #smd[np.isnan(smd)]=0
+       hf=mH*smd
+    
+    return hf
+
