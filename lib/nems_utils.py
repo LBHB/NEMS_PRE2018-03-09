@@ -109,6 +109,18 @@ def pre_post_psth(m,size=(12,4),idx=None):
     plt.legend(handles=[pre,post])
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
+
+def plot_stim_psth(m,idx=None,size=(12,4)):
+    out1=m.d_out[m.parent_stack.plot_dataidx]
+    c=out1['repcount'][m.parent_stack.plot_stimidx]
+    h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    scl=int(h[0]/c)
+    plt.figure(num=str(idx),figsize=size)
+    s2=out1['stim'][m.parent_stack.plot_stimidx,0:scl]
+    resp, =plt.plot(s2,'r',label='Post-'+m.name)
+    plt.legend(handles=[resp])
+    plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
+  
 def plot_strf(m,idx=None,size=(12,4)):    
     if idx:
         plt.figure(num=idx,figsize=size)
@@ -234,7 +246,7 @@ def raster_plot(data=None,stims=0,size=(12,6),**kwargs):
     #else:
     #    ran=range(stims[0],stims[1]+1)
     #for i in ran:
-    plt.figure(stims,figsize=size)
+    plt.figure(num=str(stims)+str(100),figsize=size)
     plt.scatter(xpre[stims],ypre[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.scatter(xdur[stims],ydur[stims],color='g',s=(0.5*np.pi)*2,alpha=0.6)
     plt.scatter(xpost[stims],ypost[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)

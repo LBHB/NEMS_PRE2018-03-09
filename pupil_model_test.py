@@ -37,7 +37,9 @@ stack.fitter.do_fit()
 
 alldata=stack.data
 
-stack.plot_stimidx=0 #Choose which stimulus to plot
+stack.plot_stimidx=1 #Choose which stimulus to plot
 stack.trialidx=(10,12) #Choose which trials to display
-resout=stack.do_sorted_raster()
+
+stack.do_sorted_raster()
 stack.trial_quick_plot()
+#resout=stack.do_sorted_raster()

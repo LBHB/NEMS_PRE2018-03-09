@@ -481,6 +481,7 @@ class pupil_est_val(nems_module):
                     
 class pupil_model(nems_module):
     name='pupil_model'
+    plot_fns=[nu.plot_stim_psth]
     
     def my_init(self,tile_data=True):
         self.tile_data=tile_data
@@ -1304,13 +1305,13 @@ class nems_stack:
         un=copy.deepcopy(self.unresampled)
         res=un[0]
         pup=un[5]
-        idx=self.plot_stimidx
-        b=np.nanmean(pup[:,:,idx],axis=0)
+        ids=self.plot_stimidx
+        b=np.nanmean(pup[:,:,ids],axis=0)
         bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
         bc=bc[:,1]
-        res[:,:,idx]=res[:,bc,idx]
+        res[:,:,ids]=res[:,bc,ids]
         un[0]=res
-        nu.raster_plot(data=un,stims=idx,size=(12,6))
+        nu.raster_plot(data=un,stims=ids,size=(12,6))
         return(res)
            
             
