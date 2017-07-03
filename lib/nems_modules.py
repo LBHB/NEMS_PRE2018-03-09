@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
+import matplotlib.pyplot as plt #, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.signal as sps
 import scipy.stats as spstats
@@ -1290,6 +1290,7 @@ class nems_stack:
         res[:,:,idx]=res[:,bc,idx]
         un[0]=res
         nu.raster_plot(data=un,stims=idx,size=(12,6))
+        return(res)
            
             
 # end nems_stack
