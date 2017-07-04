@@ -344,7 +344,8 @@ class Scatter_Plot(PlotGenerator):
             p = figure(
                     x_range=[0,1], y_range=[0,1],
                     x_axis_label=modelX, y_axis_label=modelY,
-                    title=self.measure[0], tools=tools, responsive=True
+                    title=self.measure[0], tools=tools, responsive=True,
+                    toolbar_location='above',
                     )
             glyph = Circle(
                     x='x_values', y='y_values', size=CIRCLE_SIZE,
@@ -462,7 +463,7 @@ class Bar_Plot(PlotGenerator):
                 x_range=xrange, x_axis_label='Model',
                 y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
                 title="Mean %s Performance By Model"%self.measure[0],
-                tools=tools, responsive=True
+                tools=tools, responsive=True, toolbar_location='above'
                 )
         p.xaxis.major_label_orientation=(np.pi/4)
         glyph = VBar(
@@ -526,6 +527,7 @@ class Pareto_Plot(PlotGenerator):
                 self.data, values=self.measure[0], label='n_parms',
                 title="Mean Performance (%s) vs Complexity"%self.measure[0],
                 tools=tools, color='n_parms', responsive=True,
+                toolbar_location='above',
                 )
             
         self.script,self.div = components(p)

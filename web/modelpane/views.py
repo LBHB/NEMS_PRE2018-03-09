@@ -55,11 +55,17 @@ def modelpane_view():
     stackmods = mp_stack.modules[1:]
     plots = []
     for m in stackmods:
-        p = plt.figure(figsize=FIGSIZE)
-        m.do_plot(m)
-        html = mpld3.fig_to_html(p)
-        plots.append(html)
-        plt.close(p)
+        try:
+            p = plt.figure(figsize=FIGSIZE)
+            m.do_plot(m)
+            html = mpld3.fig_to_html(p)
+            plots.append(html)
+            plt.close(p)
+        except Exception as e:
+            print("Issue with plot for: " + m.name)
+            print(e)
+            plots.append("Couldn't generate plot for this module.")
+            continue
     # make double sure that all figures close after loop
     # to avoid excess memory usage.
     plt.close("all")
@@ -99,7 +105,7 @@ def modelpane_view():
     #        ]
     
     # TODO: how to calculate stim and data idx range from stack.data?
-    stim_max = 0
+    stim_max = 3
     data_max = 1
     
     return render_template(
@@ -129,9 +135,11 @@ def refresh_modelpane():
     #        view function? Should convert to ajax eventually too instead of
     #        full refresh.
     global mp_stack
+    
     cell = mp_stack.meta['cellid']
     model = mp_stack.meta['modelname']
     
+    stackmods = mp_stack.modules[1:]
     all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
     # remove any modules that shouldn't show up as an option in modelpane
     all_mods.remove('load_mat')
@@ -139,11 +147,17 @@ def refresh_modelpane():
     stackmods = mp_stack.modules[1:]
     plots = []
     for m in stackmods:
-        p = plt.figure(figsize=FIGSIZE)
-        m.do_plot(m)
-        html = mpld3.fig_to_html(p)
-        plots.append(html)
-        plt.close(p)
+        try:
+            p = plt.figure(figsize=FIGSIZE)
+            m.do_plot(m)
+            html = mpld3.fig_to_html(p)
+            plots.append(html)
+            plt.close(p)
+        except Exception as e:
+            print("Issue with plot for: " + m.name)
+            print(e)
+            plots.append("Couldn't generate plot for this module.")
+            continue
     # make double sure that all figures close after loop
     # to avoid excess memory usage.
     plt.close("all")
@@ -183,7 +197,7 @@ def refresh_modelpane():
     #        ]
     
     # TODO: how to calculate stim and data idx range from stack.data?
-    stim_max = 0
+    stim_max = 3
     data_max = 1
     
     return render_template(
@@ -200,7 +214,6 @@ def refresh_modelpane():
             plot_stimidx_max=stim_max,
             plot_dataidx_max=data_max,
            )
-
 
 @app.route('/update_modelpane_plot')
 def update_modelpane_plot():
@@ -246,11 +259,17 @@ def update_idx():
     stackmods = mp_stack.modules[1:]
     plots = []
     for m in stackmods:
-        p = plt.figure(figsize=FIGSIZE)
-        m.do_plot(m)
-        html = mpld3.fig_to_html(p)
-        plots.append(html)
-        plt.close(p)
+        try:
+            p = plt.figure(figsize=FIGSIZE)
+            m.do_plot(m)
+            html = mpld3.fig_to_html(p)
+            plots.append(html)
+            plt.close(p)
+        except Exception as e:
+            print("Issue with plot for: " + m.name)
+            print(e)
+            plots.append("Couldn't generate plot for this module.")
+            continue
     
     return jsonify(plots=plots)
     
@@ -265,20 +284,22 @@ def update_module():
     if (not fields) or (not values) or (not types):
         raise ValueError("No fields and/or values and/or types came through")
     fields_values = zip(fields, values, types)
-    
-    modAffected = request.args.get('modAffected')
-    modIdx = nu.find_modules(mp_stack, modAffected)
-    if modIdx:
-        modIdx = modIdx[0]
-    else:
-        print("Module could not be found in stack.")
-        return jsonify(success=False)
 
+    modIdx = request.args.get('modIdx')
+    if modIdx:
+        modIdx = int(modIdx) + 1
+    else:
+        raise ValueError("No module index came through")
+    
     for f, v, t in fields_values:
         #TODO: figure out a good way to set type dynamically instead of trying
         #      to think of every possible data type."
         if not hasattr(mp_stack.modules[modIdx], f):
-            raise AttributeError("Couldn't find attribute for module.")
+            raise AttributeError(
+                    "Couldn't find attribute (%s)"
+                    "for module at index (%d)."
+                    %(f, modIdx)
+                    )
         if t == "NoneType":
             v = None
         elif t == "str":
@@ -287,8 +308,17 @@ def update_module():
             v = int(v)
         elif t == "float":
             v = float(v)
+        elif t == "list":
+            v = v.strip('[').strip(']').replace(' ','')
+            v = v.split(',')
+        elif t == "bool":
+            v = v.lower()
+            if v == "true":
+                v = True
+            else:
+                v = False
         elif t == "numpy.ndarray":
-            v = v.replace('[','').replace(']','')
+            v = v.replace('[','').replace(']','').strip()
             try:
                 v = np.fromstring(v, dtype=float, sep=" ")
             except Exception as e:
@@ -301,19 +331,8 @@ def update_module():
         
     mp_stack.evaluate(start=modIdx)
     
-    # TODO: Only need to update plots starting at modIdx, figure out a good way
-    #       to specify this offset in js.
-    stackmods = mp_stack.modules[1:]
-    plots = []
-    for m in stackmods:
-        p = plt.figure(figsize=FIGSIZE)
-        m.do_plot(m)
-        html = mpld3.fig_to_html(p)
-        plots.append(html)
-        plt.close(p)
-    
-    return jsonify(plots=plots)
-    
+    return jsonify(success=True)
+
 
 def convert(string, type_):
     """Adapted from stackoverflow. Not quite working as desired.

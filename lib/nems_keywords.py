@@ -94,14 +94,34 @@ def exp(stack):
 
 def dexp(stack):
     stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['phi'],phi=[1,1,1,1])
+    
+def poly01(stack):
+    stack.append(nm.nonlinearity,nltype='poly',fit_fields=['phi'],phi=[0,1])
+    
+def poly02(stack):
+    stack.append(nm.nonlinearity,nltype='poly',fit_fields=['phi'],phi=[0,1,0])
+    
+def poly03(stack):
+    stack.append(nm.nonlinearity,nltype='poly',fit_fields=['phi'],phi=[0,1,0,0])
 
 
 # state variable keyowrds
 ###############################################################################
 
 def pupgain(stack):
-    stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['linpupgain'],phi0=[0,1,0,0])
+    stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
 
+def polypupgain04(stack): #4th degree polynomial gain fn
+    stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,0,1])
+    
+def polypupgain03(stack): #3rd degree polynomial gain fn
+    stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
+    
+def exppupgain(stack):
+    stack.append(nm.state_gain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
+
+def logpupgain(stack):
+    stack.append(nm.state_gain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,1,0,1])
 
 # fitter keywords
 ###############################################################################

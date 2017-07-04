@@ -118,7 +118,7 @@ def enqueue_models_view():
             print(e)
             failures += combo
             continue
-        plotfile = nu.quick_plot_save(stack)
+        plotfile = stack.quick_plot_save()
         r = (
                 session.query(NarfResults)
                 .filter(NarfResults.cellid == cell)
@@ -146,18 +146,18 @@ def enqueue_models_view():
 
     session.close()
     
-    if queuelimit:
+    if queuelimit and (queuelimit >= len(combos)):
         data = (
                 "Queue limit present. The first %d "
                 "cell/model combinations have been fitted (all)."%queuelimit
                 )
-    elif queuelimit < len(combos):
+    elif queuelimit and (queuelimit < len(combos)):
         data = (
                 "Queue limit exceeded. Some cell/model combinations were "
                 "not fit (%d out of %d fit)."%(queuelimit, len(combos))
                 )
     else:
-        data = "All cell/model combinations have been fitted (no limit)."
+        data = "All cell/model combinations have been fit (no limit)."
         
     if failures:
         failures = ["%s, %s\n"%(c[0],c[1]) for c in failures]

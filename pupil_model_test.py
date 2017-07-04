@@ -19,14 +19,17 @@ import copy
 stack=nm.nems_stack()
 
 stack.meta['batch']=294
-stack.meta['cellid']='eno050c-b1_nat_export'
+stack.meta['cellid']='eno024d-b2_nat_export'
 
 file='/Users/HAL-9000/Desktop/CompNeuro/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
 print("Initializing load_mat with file {0}".format(file))
 
 stack.append(nm.load_mat,est_files=[file],fs=100,formpup=False)
 stack.append(nm.pupil_model,tile_data=True)
-stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['linpupgain'],phi0=[0,1,0,0])
+#stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
+stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
+#stack.append(nm.state_gain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
+#stack.append(nm.state_gain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,0,0,1])
 stack.append(nm.mean_square_error)
 
 stack.error=stack.modules[-1].error
@@ -38,6 +41,8 @@ stack.fitter.do_fit()
 alldata=stack.data
 
 stack.plot_stimidx=0 #Choose which stimulus to plot
-stack.trialidx=(10,12) #Choose which trials to display
-resout=stack.do_sorted_raster()
+stack.plot_trialidx=(10,11) #Choose which trials to display
+
+stack.do_sorted_raster()
 stack.trial_quick_plot()
+#resout=stack.do_sorted_raster()
