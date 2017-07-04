@@ -6,6 +6,7 @@ Only used for testing the template right now.
 
 import copy
 import inspect
+import pickle
 
 from flask import (
         request, render_template, Session, Response, jsonify, redirect, 
@@ -88,25 +89,24 @@ def modelpane_view():
             for field in fields[i]]
             for i, m in enumerate(stackmods)
             ]
-    #for i, itr in enumerate(types):
-    #    for j, t in enumerate(itr):
-    #        t = t.replace("<class '","")
-    #        t = t.replace("'>","")
-    #        types[i][j] = t
+    arrays = [[] for m in stackmods]
+    for i, itr in enumerate(values):
+        for value in itr:
+            if isinstance(value, np.ndarray):
+                array = pickle.dumps(value)
+                arrays[i].append(array)
+            else:
+                arrays[i].append("")
     fields_values_types = []
     for i, itr in enumerate(fields):
-        fields_values_types.append(zip(fields[i], values[i], types[i]))
-            
-    
-    #keywords = [
-    #        [m.name] + vars(nk)[m.name]
-    #        for m in stackmods
-    #        if m.name in vars(nk)
-    #        ]
-    
+        fields_values_types.append(zip(
+                fields[i], values[i], types[i], arrays[i]
+                ))
+
     # TODO: how to calculate stim and data idx range from stack.data?
-    stim_max = 3
-    data_max = 1
+    dummy_mod = stackmods[0]
+    data_max = (len(dummy_mod.d_out) - 1)
+    stim_max = (dummy_mod.d_out[data_max]['stim'].shape[1])
     
     return render_template(
             "/modelpane/modelpane.html", 
@@ -114,7 +114,6 @@ def modelpane_view():
             plots=plots,
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
             fields_values_types=fields_values_types,
-            #keywords=keywords,
             plottypes=plot_fns,
             all_mods=all_mods,
             plot_stimidx=mp_stack.plot_stimidx,
@@ -124,7 +123,7 @@ def modelpane_view():
            )
    
 
-@app.route('/refresh_modelpane')
+#@app.route('/refresh_modelpane')
 def refresh_modelpane():
     """Copy of modelpane_view code after loading model.
     Returns dict of arguments for re-rendering the modelpane template.
@@ -139,7 +138,6 @@ def refresh_modelpane():
     cell = mp_stack.meta['cellid']
     model = mp_stack.meta['modelname']
     
-    stackmods = mp_stack.modules[1:]
     all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
     # remove any modules that shouldn't show up as an option in modelpane
     all_mods.remove('load_mat')
@@ -180,21 +178,20 @@ def refresh_modelpane():
             for field in fields[i]]
             for i, m in enumerate(stackmods)
             ]
-    #for i, itr in enumerate(types):
-    #    for j, t in enumerate(itr):
-    #        t = t.replace("<class '","")
-    #        t = t.replace("'>","")
-    #        types[i][j] = t
+    arrays = [[] for m in stackmods]
+    for i, itr in enumerate(values):
+        for value in itr:
+            if isinstance(value, np.ndarray):
+                array = pickle.dumps(value)
+                arrays[i].append(array)
+            else:
+                arrays[i].append("")
+                
     fields_values_types = []
     for i, itr in enumerate(fields):
-        fields_values_types.append(zip(fields[i], values[i], types[i]))
-            
-    
-    #keywords = [
-    #        [m.name] + vars(nk)[m.name]
-    #        for m in stackmods
-    #        if m.name in vars(nk)
-    #        ]
+        fields_values_types.append(zip(
+                fields[i], values[i], types[i], arrays[i]
+                ))
     
     # TODO: how to calculate stim and data idx range from stack.data?
     stim_max = 3
@@ -204,9 +201,8 @@ def refresh_modelpane():
             "/modelpane/modelpane.html", 
             modules=[m.name for m in stackmods],
             plots=plots,
-            title="Cellid: %s --- Model: %s"%(cell ,model),
+            title="Cellid: %s --- Model: %s"%(cell, model),
             fields_values_types=fields_values_types,
-            #keywords=keywords,
             plottypes=plot_fns,
             all_mods=all_mods,
             plot_stimidx=mp_stack.plot_stimidx,
@@ -215,11 +211,67 @@ def refresh_modelpane():
             plot_dataidx_max=data_max,
            )
 
+
+@app.route('/refresh_modelpane')
+def refresh_modelpane_json(modIdx):
+    
+    global mp_stack
+
+    stackmods = mp_stack.modules[modIdx:]
+    plots = []
+    for m in stackmods:
+        try:
+            p = plt.figure(figsize=FIGSIZE)
+            m.do_plot(m)
+            html = mpld3.fig_to_html(p)
+            plots.append(html)
+            plt.close(p)
+        except Exception as e:
+            print("Issue with plot for: " + m.name)
+            print(e)
+            plots.append("Couldn't generate plot for this module.")
+            continue
+    # make double sure that all figures close after loop
+    # to avoid excess memory usage.
+    plt.close("all")
+
+    fields = [m.user_editable_fields for m in stackmods]
+    values = [
+            [getattr(m, field) for field in fields[i]]
+            for i, m in enumerate(stackmods)
+            ]
+    types = [
+            [str(type(getattr(m, field)))
+            .replace("<class '","").replace("'>","")
+            for field in fields[i]]
+            for i, m in enumerate(stackmods)
+            ]
+    arrays = [[] for m in stackmods]
+    for i, itr in enumerate(values):
+        for value in itr:
+            if isinstance(value, np.ndarray):
+                array = pickle.dumps(value)
+                arrays[i].append(array)
+            else:
+                arrays[i].append("")
+    
+    return render_template(
+            "/modelpane/modelpane.html", 
+            plots=plots,
+            fields=fields,
+            values=values,
+            types=types,
+            arrays=arrays,
+            modIdx=(modIdx-1),
+           )
+    
+
 @app.route('/update_modelpane_plot')
 def update_modelpane_plot():
     #"""Placeholder functions. Update some parameter/attribute of a module?"""
     
     global mp_stack
+    
     modAffected = request.args.get('modAffected')
     plotType = request.args.get('plotType')
     if not modAffected:
@@ -281,17 +333,19 @@ def update_module():
     fields = request.args.getlist('fields[]')
     values = request.args.getlist('values[]')
     types = request.args.getlist('types[]')
+    arrays = request.args.getlist('arrays[]')
     if (not fields) or (not values) or (not types):
         raise ValueError("No fields and/or values and/or types came through")
-    fields_values = zip(fields, values, types)
+    fields_values_types = zip(fields, values, types, arrays)
 
-    modIdx = request.args.get('modIdx')
+    modAffected = request.args.get('modAffected')
+    modIdx = nu.find_modules(mp_stack, modAffected)
     if modIdx:
-        modIdx = int(modIdx) + 1
+        modIdx = modIdx[0]
     else:
-        raise ValueError("No module index came through")
+        raise ValueError("No module index found for: %s"%modAffected)
     
-    for f, v, t in fields_values:
+    for f, v, t, a in fields_values_types:
         #TODO: figure out a good way to set type dynamically instead of trying
         #      to think of every possible data type."
         if not hasattr(mp_stack.modules[modIdx], f):
@@ -318,11 +372,11 @@ def update_module():
             else:
                 v = False
         elif t == "numpy.ndarray":
-            v = v.replace('[','').replace(']','').strip()
             try:
-                v = np.fromstring(v, dtype=float, sep=" ")
+                a = pickle.loads(a)
+                v = np.fromstring(v, dtype=a.dtype).reshape(a.shape)
             except Exception as e:
-                print("Error converting numpy.ndarray string back to array")
+                print("Error converting numpy.ndarray pickle-string back to array")
                 print(e)
         else:
             raise TypeError("Unexpected data type (" + t + ") for field: " + f)
@@ -331,8 +385,8 @@ def update_module():
         
     mp_stack.evaluate(start=modIdx)
     
-    return jsonify(success=True)
-
+    #return jsonify(success=True)
+    return refresh_modelpane_json(modIdx)
 
 def convert(string, type_):
     """Adapted from stackoverflow. Not quite working as desired.

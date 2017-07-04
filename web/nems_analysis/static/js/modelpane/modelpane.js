@@ -43,10 +43,11 @@ $(document).ready(function(){
 
     $(".submitModuleChanges").on('click', updateModule);
     function updateModule(){
-        var modIdx = $(this).parents(".row").attr('name');
+        var modAffected = $(this).parents(".row").attr('id');
         var fields = [];
         var values = [];
         var types = [];
+        var arrays = [];
         var fieldValues = $(this).parents(".row")
         .find(".fieldValue").each(function(i){
             if ($(this).parents('.input-group').find('.check_box')
@@ -54,34 +55,38 @@ $(document).ready(function(){
                 fields.push($(this).attr('name'));
                 values.push($(this).val());
                 types.push($(this).attr('dtype'));
+                arrays.push($(this).attr('array'));
             }
             //fields_values[$(this).attr('name')] = $(this).val();
         });
 
         $.ajax({
             url: $SCRIPT_ROOT + '/update_module',
-            data: { fields:fields, values:values, types:types, modIdx:modIdx },
+            data: { fields:fields, values:values, types:types,
+                   modAffected:modAffected },
             type: 'GET',
             success: function(data){
-                if (data.success){
-                    window.location.href = ($SCRIPT_ROOT + '/refresh_modelpane')
-                }
-                /*
+                //if (data.success){
+                //    window.location.href = ($SCRIPT_ROOT + '/refresh_modelpane')
+                //}
+                
                 //$(".plotSelect").each(updatePlot);
                 var i = 0;
                 $(".moduleRow").each(function(i){
                     var row = $(this);
-                    if (row.attr('name') >= modIdx){
+                    if (row.attr('name') >= data.modIdx){
                         row.find('plot-wrapper').html(data.plots[i]);
                         $.each(data.fields[i], function(j){
                             var field = $(this);
                             row.find('input[name=field]')
-                            .val(data.values[i][j]).attr('name', data.types[i][j]);
+                            .val(data.values[i][j])
+                            .attr('name', data.types[i][j])
+                            .attr('array', data.arrays[i][j]);
                         });
                         i++;
                     }
                 })
-                */
+                
             },
             failure: function(error){
                 console.log(error);    

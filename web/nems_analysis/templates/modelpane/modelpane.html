@@ -91,13 +91,13 @@
         <form class="form-inline" id="stimDataIdx">
             <div class="input-group">
                 <label for="changeStimIdx">
-                Stim Index 0 to {{ plot_dataidx_max }}(placeholder) </label>
+                Stim Index 0 to {{ plot_dataidx_max }} </label>
                 <input type="text" id="changeStimIdx" class="form-control"
                 value="{{ plot_stimidx }}">                                                            
             </div>
             <div class="input-group">
                 <label for="changeDataIdx">
-                Data Index 0 to {{ plot_dataidx_max }}(placeholder) </label>
+                Data Index 0 to {{ plot_dataidx_max }} </label>
                 <input type="text" class="form-control" id="changeDataIdx"
                 value="{{ plot_dataidx }}">                                                             
             </div>
@@ -148,14 +148,15 @@
                     </select>
                     -->
                     <span class="lbl"> <strong>Editable Fields</strong> </span>
-                    {% for field, value, type in fields_values_types[loop.index-1] %}
+                    {% for field, value, type, array in fields_values_types[loop.index-1] %}
                     <div class="input-group">
                         <span class="input-group-addon checkboxLabel">
                             <input type="checkbox" class="check_box" checked>
                         </span>
                         <span class="input-group-addon"> {{ field }} </span>
                         <input type="text" class="form-control fieldValue" 
-                            name="{{ field }}" value="{{ value }}" dtype="{{ type }}">
+                            name="{{ field }}" value="{{ value }}" dtype="{{ type }}"
+                            array="{{ array }}">
                     </div>
                     {% endfor %}
                 </div>
