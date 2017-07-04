@@ -16,3 +16,8 @@
 #testSelect {
   margin: 0px;   
 }
+
+.moduleRow {
+  border:  1px solid #C8C8C8;
+  background: rgb(0,0,175,.1);
+}

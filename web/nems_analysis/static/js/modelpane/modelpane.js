@@ -43,7 +43,7 @@ $(document).ready(function(){
 
     $(".submitModuleChanges").on('click', updateModule);
     function updateModule(){
-        var modAffected = $(this).parents(".row").attr('id');
+        var modIdx = $(this).parents(".row").attr('name');
         var fields = [];
         var values = [];
         var types = [];
@@ -60,14 +60,28 @@ $(document).ready(function(){
 
         $.ajax({
             url: $SCRIPT_ROOT + '/update_module',
-            data: { fields:fields, values:values, types:types, 
-                   modAffected:modAffected },
+            data: { fields:fields, values:values, types:types, modIdx:modIdx },
             type: 'GET',
             success: function(data){
+                if (data.success){
+                    window.location.href = ($SCRIPT_ROOT + '/refresh_modelpane')
+                }
+                /*
                 //$(".plotSelect").each(updatePlot);
-                $(".plot-wrapper").each(function(i){
-                    $(this).html(data.plots[i]);
-                });
+                var i = 0;
+                $(".moduleRow").each(function(i){
+                    var row = $(this);
+                    if (row.attr('name') >= modIdx){
+                        row.find('plot-wrapper').html(data.plots[i]);
+                        $.each(data.fields[i], function(j){
+                            var field = $(this);
+                            row.find('input[name=field]')
+                            .val(data.values[i][j]).attr('name', data.types[i][j]);
+                        });
+                        i++;
+                    }
+                })
+                */
             },
             failure: function(error){
                 console.log(error);    
