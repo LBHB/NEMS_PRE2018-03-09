@@ -772,9 +772,6 @@ class nonlinearity(nems_module):
         else:
             self.my_eval=my_eval
             
-        #self.phi=phi0
-        #self.do_trial_plot=self.plot_fns[1]
-        #self.do_trial_plot=print('no plot yet')
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
@@ -785,6 +782,12 @@ class nonlinearity(nems_module):
         return(Y)
     def dexp_fn(self,X):
         Y=self.phi[0,0]-self.phi[0,1]*np.exp(-np.exp(self.phi[0,2]*(X-self.phi[0,3])))
+        return(Y)
+    def poly_fn(self,X):
+        deg=self.phi.shape[1]
+        Y=0
+        for i in range(0,deg):
+            Y+=self.phi[0,i]*np.power(X,i)
         return(Y)
         
     def my_eval(self,X):
@@ -807,21 +810,34 @@ class state_gain(nems_module):
     name='state_gain'
     plot_fns=[nu.trial_prepost_psth,nu.non_plot]
     
-    def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['linpupgain'],phi0=[0,1,0,0],premodel=False):
+    def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False):
         if premodel is True:
             self.do_trial_plot=self.plot_fns[1]
         #self.linpupgain=np.zeros([1,4])
         #self.linpupgain[0][1]=0
         self.fit_fields=fit_fields
         self.gain_type=gain_type
-        phi0=np.array([phi0])
-        setattr(self,gain_type,phi0)
+        theta=np.array([theta])
+        self.theta=theta
         self.do_trial_plot=self.plot_fns[0]
         #self.data_setup(d_in)
         print('state_gain parameters created')
         
     def linpupgain_fn(self,X,Xp):
-        Y=self.linpupgain[0,0]+(self.linpupgain[0,2]*Xp)+(self.linpupgain[0,1]*X)+self.linpupgain[0,3]*np.multiply(Xp,X)
+        Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
+        return(Y)
+    def exppupgain_fn(self,X,Xp):
+        Y=self.theta[0,0]+self.theta[0,1]*X*np.exp(self.theta[0,2]*Xp+self.theta[0,3])
+        return(Y)
+    def logpupgain_fn(self,X,Xp):
+        Y=self.theta[0,0]+self.theta[0,1]*X*np.log(self.theta[0,2]+Xp+self.theta[0,3])
+        return(Y)
+    def polypupgain_fn(self,X,Xp):
+        deg=self.theta.shape[1]
+        Y=0
+        for i in range(0,deg-2):
+            Y+=self.theta[0,i]*np.power(Xp,i+1)
+        Y+=self.theta[0,-2]+self.theta[0,-1]*X
         return(Y)
     
     
@@ -907,7 +923,7 @@ class mean_square_error(nems_module):
             # placeholder for something that can distinguish between est and val
             return self.mse_val
         
-class pseudo_huber(nems_module):
+class pseudo_huber_error(nems_module):
     """
     Pseudo-huber "error" to use with fitter cost functions. This is more robust to
     ouliers than simple mean square error. Approximates L1 error at large
@@ -919,7 +935,8 @@ class pseudo_huber(nems_module):
     
     C(delta)=2(b^2)(sqrt(1+(delta/b)^2)-1)
     
-    b mediates the value of error at which the the error is penalized linearly or quadratically
+    b mediates the value of error at which the the error is penalized linearly or quadratically.
+    Note that setting b=1 is the soft l1 loss
     
     @author: shofer, June 30 2017
     """
@@ -930,7 +947,7 @@ class pseudo_huber(nems_module):
     #potentially useful, depending on what is being fit? --njs, June 30 2017
     
     
-    name='pseudo_huber'
+    name='pseudo_huber_error'
     plot_fns=[nu.pred_act_psth,nu.plot_trials,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
