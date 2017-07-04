@@ -118,12 +118,12 @@ class basic_min(nems_fitter):
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
         self.stack.evaluate(self.fit_modules[0])
-        mse=self.stack.error()
+        err=self.stack.error()
         self.counter+=1
         if self.counter % 1000==0:
             print('Eval #'+str(self.counter))
-            print('MSE='+str(mse))
-        return(mse)
+            print('Error='+str(err))
+        return(err)
     
     def do_fit(self):
         
@@ -143,7 +143,7 @@ class basic_min(nems_fitter):
         #print("maxiter: {0}".format(opt['maxiter']))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
                              constraints=cons,options=opt,tol=self.tol)
-        print("Final MSE: {0}".format(self.stack.error()))
+        print("Final {0}: {1}".format(self.stack.modules[-1].name,self.stack.error()))
         return(self.stack.error())
     
 #TODO: implement scipy basinhopping routine. Note that this is scipy's implementation 
@@ -197,24 +197,18 @@ class anneal_min(nems_fitter):
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
         self.stack.evaluate(self.fit_modules[0])
-        mse=self.stack.error()
+        err=self.stack.error()
         self.counter+=1
         if self.counter % 1000==0:
             print('Eval #'+str(self.counter))
-            print('MSE='+str(mse))
-        return(mse)
+            print('Error='+str(err))
+        return(err)
     
     def do_fit(self,verb=False):
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(self.maxiter)
         opt['eps']=1e-7
         min_kwargs=dict(method=self.min_method,tol=self.tol,bounds=self.bounds,options=opt)
-        #if function=='tanhON':
-            #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
-            #routine='COBYLA'
-        #else:
-            #
-        #cons=()
         self.phi0=self.fit_to_phi() 
         self.counter=0
         print("anneal_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
