@@ -18,6 +18,11 @@ def fb24ch200(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=200)
     
+def fb24ch100(stack):
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=100) #Data not preprocessed to 100 Hz, internally converts
+    
 def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -108,6 +113,9 @@ def poly03(stack):
 # state variable keyowrds
 ###############################################################################
 
+def nopupgain(stack):
+    stack.append(nm.state_gain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
+    
 def pupgain(stack):
     stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
 
@@ -170,7 +178,8 @@ def perfectpupil(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,formpup=False)
-    stack.append(nm.pupil_est_val,valfrac=0)
+    stack.append(nm.pupil_est_val,valfrac=0.05)
+    #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model,tile_data=True)
     
     

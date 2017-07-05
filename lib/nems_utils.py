@@ -111,12 +111,13 @@ def pre_post_psth(m,size=(12,4),idx=None):
 
 
 def plot_stim_psth(m,idx=None,size=(12,4)):
+    if idx:
+        plt.figure(num=str(idx),figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
-    c=out1['repcount'][m.parent_stack.plot_stimidx]
+    #c=out1['repcount'][m.parent_stack.plot_stimidx]
     h=out1['stim'][m.parent_stack.plot_stimidx].shape
-    scl=int(h[0]/c)
-    plt.figure(num=str(idx),figsize=size)
-    s2=out1['stim'][m.parent_stack.plot_stimidx,0:scl]
+    #scl=int(h[0]/c)
+    s2=out1['stim'][m.parent_stack.plot_stimidx,:]
     resp, =plt.plot(s2,'r',label='Post-'+m.name)
     plt.legend(handles=[resp])
     plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
@@ -130,11 +131,9 @@ def plot_strf(m,idx=None,size=(12,4)):
     plt.clim(-mmax,mmax)
     plt.colorbar()
     plt.title(m.name)
-    
+"""
+Potentially useful trial plotting stuff...not currently in use, however --njs July 5 2017   
 def plot_trials(m,idx=None,size=(12,4)):
-    """
-    plots individual trials of a stimulus, specified by parent_stack.plot_trialidx
-    """
     out1=m.d_out[m.parent_stack.plot_dataidx]
     u=0
     c=out1['repcount'][m.parent_stack.plot_stimidx]
@@ -172,7 +171,7 @@ def trial_prepost_psth(m,idx=None,size=(12,4)):
         plt.legend(handles=[pred,resp])
         plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
         u=u+scl
-    
+"""
 def non_plot(m):
     pass
     
