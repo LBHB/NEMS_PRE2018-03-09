@@ -6,7 +6,7 @@ Only used for testing the template right now.
 
 import copy
 import inspect
-import pickle
+import json
 
 from flask import (
         request, render_template, Session, Response, jsonify, redirect, 
@@ -25,7 +25,8 @@ from nems_analysis import app
 
 FIGSIZE = (12,4) # width, height for matplotlib figures
 mp_stack = None
-          
+
+
 @app.route('/modelpane_view', methods=['GET','POST'])
 def modelpane_view():
     """Launches Modelpane window to inspect the model fit to the selected
@@ -54,19 +55,7 @@ def modelpane_view():
     all_mods.remove('load_mat')
     
     stackmods = mp_stack.modules[1:]
-    plots = []
-    for m in stackmods:
-        try:
-            p = plt.figure(figsize=FIGSIZE)
-            m.do_plot(m)
-            html = mpld3.fig_to_html(p)
-            plots.append(html)
-            plt.close(p)
-        except Exception as e:
-            print("Issue with plot for: " + m.name)
-            print(e)
-            plots.append("Couldn't generate plot for this module.")
-            continue
+    plots = re_render_plots()
     # make double sure that all figures close after loop
     # to avoid excess memory usage.
     plt.close("all")
@@ -89,24 +78,34 @@ def modelpane_view():
             for field in fields[i]]
             for i, m in enumerate(stackmods)
             ]
-    arrays = [[] for m in stackmods]
     for i, itr in enumerate(values):
-        for value in itr:
+        for j, value in enumerate(itr):
             if isinstance(value, np.ndarray):
-                array = pickle.dumps(value)
-                arrays[i].append(array)
-            else:
-                arrays[i].append("")
+                a = str(value.tolist())
+                values[i][j] = a
     fields_values_types = []
     for i, itr in enumerate(fields):
         fields_values_types.append(zip(
-                fields[i], values[i], types[i], arrays[i]
+                fields[i], values[i], types[i],
                 ))
 
-    # TODO: how to calculate stim and data idx range from stack.data?
-    dummy_mod = stackmods[0]
-    data_max = (len(dummy_mod.d_out) - 1)
-    stim_max = (dummy_mod.d_out[data_max]['stim'].shape[1])
+    # TODO: dummy_mod selection is assuming that there's something in the stack
+    #       other than load_mat and standard_est_eval.
+    #       Is this a good assumption?
+    try:
+        dummy_mod = stackmods[1]
+    except IndexError:
+        dummy_mod = stackmods[0]
+        print("Stack only has data loader and standard eval?")
+    data_max = (len(dummy_mod.d_in) - 1)
+    shape_len = len(dummy_mod.d_in[0]['stim'].shape)
+    if shape_len == 3:
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1])
+    elif shape_len == 2:
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0])
+    else:
+        # TODO: Would shape length ever be anything other than 2 or 3?
+        stim_max = "N/A"
     
     return render_template(
             "/modelpane/modelpane.html", 
@@ -123,114 +122,13 @@ def modelpane_view():
            )
    
 
-#@app.route('/refresh_modelpane')
-def refresh_modelpane():
-    """Copy of modelpane_view code after loading model.
-    Returns dict of arguments for re-rendering the modelpane template.
-    
-    """
-    
-    # TODO: Better way to do this instead of copy-pasting updates from main
-    #        view function? Should convert to ajax eventually too instead of
-    #        full refresh.
-    global mp_stack
-    
-    cell = mp_stack.meta['cellid']
-    model = mp_stack.meta['modelname']
-    
-    all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
-    # remove any modules that shouldn't show up as an option in modelpane
-    all_mods.remove('load_mat')
-    
-    stackmods = mp_stack.modules[1:]
-    plots = []
-    for m in stackmods:
-        try:
-            p = plt.figure(figsize=FIGSIZE)
-            m.do_plot(m)
-            html = mpld3.fig_to_html(p)
-            plots.append(html)
-            plt.close(p)
-        except Exception as e:
-            print("Issue with plot for: " + m.name)
-            print(e)
-            plots.append("Couldn't generate plot for this module.")
-            continue
-    # make double sure that all figures close after loop
-    # to avoid excess memory usage.
-    plt.close("all")
-    
-    # Need to use copy to avoid overriding modules' attributes
-    plot_fns = copy.deepcopy([m.plot_fns for m in stackmods])
-    for i, pf in enumerate(plot_fns):
-        for j, f in enumerate(pf):
-            newf = printable_plot_name(f)
-            plot_fns[i][j] = newf
-    
-    fields = [m.user_editable_fields for m in stackmods]
-    values = [
-            [getattr(m, field) for field in fields[i]]
-            for i, m in enumerate(stackmods)
-            ]
-    types = [
-            [str(type(getattr(m, field)))
-            .replace("<class '","").replace("'>","")
-            for field in fields[i]]
-            for i, m in enumerate(stackmods)
-            ]
-    arrays = [[] for m in stackmods]
-    for i, itr in enumerate(values):
-        for value in itr:
-            if isinstance(value, np.ndarray):
-                array = pickle.dumps(value)
-                arrays[i].append(array)
-            else:
-                arrays[i].append("")
-                
-    fields_values_types = []
-    for i, itr in enumerate(fields):
-        fields_values_types.append(zip(
-                fields[i], values[i], types[i], arrays[i]
-                ))
-    
-    # TODO: how to calculate stim and data idx range from stack.data?
-    stim_max = 3
-    data_max = 1
-    
-    return render_template(
-            "/modelpane/modelpane.html", 
-            modules=[m.name for m in stackmods],
-            plots=plots,
-            title="Cellid: %s --- Model: %s"%(cell, model),
-            fields_values_types=fields_values_types,
-            plottypes=plot_fns,
-            all_mods=all_mods,
-            plot_stimidx=mp_stack.plot_stimidx,
-            plot_dataidx=mp_stack.plot_dataidx,
-            plot_stimidx_max=stim_max,
-            plot_dataidx_max=data_max,
-           )
-
-
 @app.route('/refresh_modelpane')
 def refresh_modelpane_json(modIdx):
     
     global mp_stack
 
     stackmods = mp_stack.modules[modIdx:]
-    plots = []
-    for m in stackmods:
-        try:
-            p = plt.figure(figsize=FIGSIZE)
-            m.do_plot(m)
-            html = mpld3.fig_to_html(p)
-            plots.append(html)
-            plt.close(p)
-        except Exception as e:
-            print("Issue with plot for: " + m.name)
-            print(e)
-            plots.append("Couldn't generate plot for this module.")
-            continue
+    plots = re_render_plots(modIdx)
     # make double sure that all figures close after loop
     # to avoid excess memory usage.
     plt.close("all")
@@ -246,29 +144,30 @@ def refresh_modelpane_json(modIdx):
             for field in fields[i]]
             for i, m in enumerate(stackmods)
             ]
-    arrays = [[] for m in stackmods]
     for i, itr in enumerate(values):
-        for value in itr:
+        for j, value in enumerate(itr):
             if isinstance(value, np.ndarray):
-                array = pickle.dumps(value)
-                arrays[i].append(array)
-            else:
-                arrays[i].append("")
+                v = str(value.tolist())
+                values[i][j] = v
+            if isinstance(value, type(None)):
+                v = "None"
+                values[i][j] = v
     
-    return render_template(
-            "/modelpane/modelpane.html", 
+    return jsonify(
             plots=plots,
             fields=fields,
             values=values,
             types=types,
-            arrays=arrays,
             modIdx=(modIdx-1),
            )
     
 
 @app.route('/update_modelpane_plot')
 def update_modelpane_plot():
-    #"""Placeholder functions. Update some parameter/attribute of a module?"""
+    """Re-render the plot for the affected module after changing
+    the selected plot type.
+    
+    """
     
     global mp_stack
     
@@ -298,33 +197,45 @@ def update_modelpane_plot():
     return jsonify(html=html)
                  
 
-@app.route('/update_idx')
-def update_idx():
+@app.route('/update_data_idx')
+def update_data_idx():
+    
+    global mp_stack
+    plot_dataidx = request.args.get('plot_dataidx')
+
+    mp_stack.plot_dataidx = int(plot_dataidx)
+    # reset stim idx to 0 when data idx changes, since max will likely change
+    mp_stack.plot_stimidx = 0
+    plots = re_render_plots()
+    
+    stackmods = mp_stack.modules[1:]
+    dummy_mod = stackmods[1]
+    shape_len = len(dummy_mod.d_in[0]['stim'].shape)
+    if shape_len == 3:
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1]) - 1
+    elif shape_len == 2:
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0]) - 1
+    else:
+        # TODO: Would shape length ever be anything other than 2 or 3?
+        stim_max = "N/A"
+    
+    return jsonify(plots=plots, stim_max=stim_max)
+    
+@app.route('/update_stim_idx')
+def update_stim_idx():
     
     global mp_stack
     plot_stimidx = request.args.get('plot_stimidx')
-    plot_dataidx = request.args.get('plot_dataidx')
     
+    # data idx stays the same
     mp_stack.plot_stimidx = int(plot_stimidx)
-    mp_stack.plot_dataidx = int(plot_dataidx)
     
-    stackmods = mp_stack.modules[1:]
-    plots = []
-    for m in stackmods:
-        try:
-            p = plt.figure(figsize=FIGSIZE)
-            m.do_plot(m)
-            html = mpld3.fig_to_html(p)
-            plots.append(html)
-            plt.close(p)
-        except Exception as e:
-            print("Issue with plot for: " + m.name)
-            print(e)
-            plots.append("Couldn't generate plot for this module.")
-            continue
+    print("stim idx:")
+    print(str(int(plot_stimidx)))
+    
+    plots = re_render_plots()
     
     return jsonify(plots=plots)
-    
 
 @app.route('/update_module')
 def update_module():
@@ -333,10 +244,9 @@ def update_module():
     fields = request.args.getlist('fields[]')
     values = request.args.getlist('values[]')
     types = request.args.getlist('types[]')
-    arrays = request.args.getlist('arrays[]')
     if (not fields) or (not values) or (not types):
         raise ValueError("No fields and/or values and/or types came through")
-    fields_values_types = zip(fields, values, types, arrays)
+    fields_values_types = zip(fields, values, types)
 
     modAffected = request.args.get('modAffected')
     modIdx = nu.find_modules(mp_stack, modAffected)
@@ -345,7 +255,7 @@ def update_module():
     else:
         raise ValueError("No module index found for: %s"%modAffected)
     
-    for f, v, t, a in fields_values_types:
+    for f, v, t in fields_values_types:
         #TODO: figure out a good way to set type dynamically instead of trying
         #      to think of every possible data type."
         if not hasattr(mp_stack.modules[modIdx], f):
@@ -373,8 +283,8 @@ def update_module():
                 v = False
         elif t == "numpy.ndarray":
             try:
-                a = pickle.loads(a)
-                v = np.fromstring(v, dtype=a.dtype).reshape(a.shape)
+                a = json.loads(v)
+                v = np.array(a)
             except Exception as e:
                 print("Error converting numpy.ndarray pickle-string back to array")
                 print(e)
@@ -387,6 +297,31 @@ def update_module():
     
     #return jsonify(success=True)
     return refresh_modelpane_json(modIdx)
+    
+
+def re_render_plots(modIdx=1):
+    
+    global mp_stack
+    
+    stackmods = mp_stack.modules[modIdx:]
+    plot_list = []
+    for m in stackmods:
+        try:
+            p = plt.figure(figsize=FIGSIZE)
+            m.do_plot(m)
+            html = mpld3.fig_to_html(p)
+            plot_list.append(html)
+            plt.close(p)
+        except Exception as e:
+            print("Issue with plot for: " + m.name)
+            print(e)
+            plot_list.append(
+                    "Couldn't generate plot for this module."
+                    "Make sure data and stim idx are within the listed range."
+                    )
+            continue
+
+    return plot_list
 
 def convert(string, type_):
     """Adapted from stackoverflow. Not quite working as desired.
@@ -566,4 +501,98 @@ def get_kw_args(function, editables):
         values[field] = source[j:k+1]
         
     return values
+
+#@app.route('/refresh_modelpane')
+def refresh_modelpane():
+    """
+    DEPRECATED VERSION -- keeping for now incase switch back
+    
+    Copy of modelpane_view code after loading model.
+    Returns dict of arguments for re-rendering the modelpane template.
+    
+    """
+    
+    # TODO: Better way to do this instead of copy-pasting updates from main
+    #        view function? Should convert to ajax eventually too instead of
+    #        full refresh.
+    global mp_stack
+    
+    cell = mp_stack.meta['cellid']
+    model = mp_stack.meta['modelname']
+    
+    all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
+    # remove any modules that shouldn't show up as an option in modelpane
+    all_mods.remove('load_mat')
+    
+    stackmods = mp_stack.modules[1:]
+    plots = re_render_plots()
+    # make double sure that all figures close after loop
+    # to avoid excess memory usage.
+    plt.close("all")
+    
+    # Need to use copy to avoid overriding modules' attributes
+    plot_fns = copy.deepcopy([m.plot_fns for m in stackmods])
+    for i, pf in enumerate(plot_fns):
+        for j, f in enumerate(pf):
+            newf = printable_plot_name(f)
+            plot_fns[i][j] = newf
+    
+    fields = [m.user_editable_fields for m in stackmods]
+    values = [
+            [getattr(m, field) for field in fields[i]]
+            for i, m in enumerate(stackmods)
+            ]
+    types = [
+            [str(type(getattr(m, field)))
+            .replace("<class '","").replace("'>","")
+            for field in fields[i]]
+            for i, m in enumerate(stackmods)
+            ]
+    arrays = [[] for m in stackmods]
+    for i, itr in enumerate(values):
+        for value in itr:
+            if isinstance(value, np.ndarray):
+                array = pickle.dumps(value)
+                arrays[i].append(array)
+            else:
+                arrays[i].append("")
+                
+    fields_values_types = []
+    for i, itr in enumerate(fields):
+        fields_values_types.append(zip(
+                fields[i], values[i], types[i], arrays[i]
+                ))
+    
+    # TODO: dummy_mod selection is assuming that there's something in the stack
+    #       other than load_mat and standard_est_eval.
+    #       Is this a good assumption?
+    try:
+        dummy_mod = stackmods[1]
+    except IndexError:
+        dummy_mod = stackmods[0]
+        print("Stack only has data loader and standard eval?")
+    data_max = (len(dummy_mod.d_in) - 1)
+    shape_len = len(dummy_mod.d_in[0]['stim'].shape)
+    if shape_len == 3:
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1]) - 1
+    elif shape_len == 2:
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0]) - 1
+    else:
+        # TODO: Would shape length ever be anything other than 2 or 3?
+        stim_max = "N/A"
+
+    
+    return render_template(
+            "/modelpane/modelpane.html", 
+            modules=[m.name for m in stackmods],
+            plots=plots,
+            title="Cellid: %s --- Model: %s"%(cell, model),
+            fields_values_types=fields_values_types,
+            plottypes=plot_fns,
+            all_mods=all_mods,
+            plot_stimidx=mp_stack.plot_stimidx,
+            plot_dataidx=mp_stack.plot_dataidx,
+            plot_stimidx_max=stim_max,
+            plot_dataidx_max=data_max,
+           )
     

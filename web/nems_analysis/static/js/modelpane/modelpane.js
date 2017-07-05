@@ -20,25 +20,45 @@ $(document).ready(function(){
         
     }
     
-    $("#updateIdx").on('click', updateIdx);
-    function updateIdx(){
-        var plot_stimidx = $("#changeStimIdx").val();
-        var plot_dataidx = $("#changeDataIdx").val();
+    $("#changeDataIdx").change(updateDataIdx);
+    function updateDataIdx(){
+        var plot_dataidx = $(this).val();
         
         $.ajax({
-            url: $SCRIPT_ROOT + '/update_idx',
-            data: { plot_stimidx:plot_stimidx, plot_dataidx:plot_dataidx },
+            url: $SCRIPT_ROOT + '/update_data_idx',
+            data: { plot_dataidx:plot_dataidx },
             type: 'GET',
             success: function(data){
                 //$(".plotSelect").each(updatePlot);
                 $(".plot-wrapper").each(function(i){
                     $(this).html(data.plots[i]);
                 });
+                $("#stimIdxLabel").html("Stim Index 0 to " + data.stim_max);
+                $("#changeStimIdx").val("0")
             },
             error: function(error){
                 console.log(error);       
             }
         });
+    }
+                
+    $("#changeStimIdx").change(updateStimIdx);
+    function updateStimIdx(){
+        var plot_stimidx = $(this).val();
+    
+        $.ajax({
+            url: $SCRIPT_ROOT + '/update_stim_idx',
+            data: { plot_stimidx:plot_stimidx },
+            type: 'GET',
+            success: function(data){
+                $(".plot-wrapper").each(function(i){
+                    $(this).html(data.plots[i]);        
+                });        
+            },
+            error: function(error){
+                console.log(error);        
+            }        
+        })        
     }
 
     $(".submitModuleChanges").on('click', updateModule);
@@ -47,7 +67,6 @@ $(document).ready(function(){
         var fields = [];
         var values = [];
         var types = [];
-        var arrays = [];
         var fieldValues = $(this).parents(".row")
         .find(".fieldValue").each(function(i){
             if ($(this).parents('.input-group').find('.check_box')
@@ -55,7 +74,6 @@ $(document).ready(function(){
                 fields.push($(this).attr('name'));
                 values.push($(this).val());
                 types.push($(this).attr('dtype'));
-                arrays.push($(this).attr('array'));
             }
             //fields_values[$(this).attr('name')] = $(this).val();
         });
@@ -66,26 +84,21 @@ $(document).ready(function(){
                    modAffected:modAffected },
             type: 'GET',
             success: function(data){
-                //if (data.success){
-                //    window.location.href = ($SCRIPT_ROOT + '/refresh_modelpane')
-                //}
-                
-                //$(".plotSelect").each(updatePlot);
                 var i = 0;
-                $(".moduleRow").each(function(i){
+                $(".moduleRow").each(function(e){
                     var row = $(this);
-                    if (row.attr('name') >= data.modIdx){
-                        row.find('plot-wrapper').html(data.plots[i]);
+                    if (parseInt(row.attr('name')) >= parseInt(data.modIdx)){
+                        row.find('.plot-wrapper').html(data.plots[i]);
                         $.each(data.fields[i], function(j){
-                            var field = $(this);
-                            row.find('input[name=field]')
+                            var field = data.fields[i][j];
+                            row.find("input[name='" + field + "']")
                             .val(data.values[i][j])
-                            .attr('name', data.types[i][j])
-                            .attr('array', data.arrays[i][j]);
+                            .attr('dtype', data.types[i][j])
                         });
-                        i++;
+                    i++;
                     }
                 })
+                
                 
             },
             failure: function(error){
