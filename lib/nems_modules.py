@@ -19,7 +19,7 @@ class nems_module:
     #
     name='pass-through'
     user_editable_fields=['input_name','output_name']
-    plot_fns=[nu.plot_spectrogram,nu.plot_trials]
+    plot_fns=[nu.plot_spectrogram]
     
     input_name='stim'  # name of input matrix in d_in
     output_name='stim' # name of output matrix in d_out
@@ -312,7 +312,6 @@ class load_mat(nems_module):
                 #-njs June 16, 2017
                     
                 # average across trials
-                print(np.isnan(data['resp'][0,:,:]).shape)
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 
                 #print(data['stim'].shape)
@@ -425,8 +424,8 @@ class standard_est_val(nems_module):
                     
 class pupil_est_val(nems_module):
     """
-    Breaks imported data into est/val. Needed for batch 294-like data, where there is no est/val data
-    flagged and low numbers of stimuli
+    Breaks imported data into est/val. Use with pupil_model and batch 294 data, where 
+    there are only 2 stimuli, so takes some trials from both stimuli as "validation" data.
     """
  
     name='pupil_est_val'
@@ -451,8 +450,8 @@ class pupil_est_val(nems_module):
             except:
                 st=d['stim'].shape
                 re=d['resp'].shape
-                stspl=mt.ceil(st[1]*(1-self.valfrac))
-                respl=mt.ceil(re[0]*(1-self.valfrac))
+                #stspl=mt.ceil(st[1]*(1-self.valfrac))
+                respl=mt.ceil(re[1]*(1-self.valfrac))
                 
                 
                 d_est=d.copy()
@@ -460,16 +459,16 @@ class pupil_est_val(nems_module):
                 
 
                 d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
-                d_est['resp']=copy.deepcopy(d['resp'][:respl,:])
-                d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
+                d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
+                #d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
                 d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
-                d_val['resp']=copy.deepcopy(d['resp'][respl:,:])
-                d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+                d_val['resp']=copy.deepcopy(d['resp'][:,respl:,:])
+                #d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
                 
                 #if 'pupil' in d.keys():
                 if d['pupil'] is not None:
-                    d_est['pupil']=copy.deepcopy(d['pupil'][:respl,:])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][respl:,:])
+                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
                 
                 d_est['est']=True
                 d_val['est']=False
@@ -496,12 +495,15 @@ class pupil_model(nems_module):
             Xp=copy.deepcopy(f_in['pupil'])
             Xa=np.nanmean(X,axis=1)
             if self.tile_data is True:
-                s=Xp.shape
-                Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F')
+                s=Xp.shape 
+                #Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
+                Z=np.reshape(Xp,(s[0],s[1]*s[2]),order='F')  #Comment out to have long "stimuli"
                 Z=np.transpose(Z,(1,0))
-                Q=np.reshape(X,(s[0]*s[1],s[2]),order='F')
+                #Q=np.reshape(X,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
+                Q=np.reshape(X,(s[0],s[1]*s[2]),order='F') #Comment out to have long "stimuli"
                 Q=np.transpose(Q,(1,0))
-                Y=np.tile(Xa,(s[1],1))
+                #Y=np.tile(Xa,(s[1],1)) #Uncomment to have long "stimuli"
+                Y=np.tile(Xa,(1,s[1])) #Comment out to have long "stimuli"
                 Y=np.transpose(Y,(1,0))
             else:
                 Y=X
@@ -628,7 +630,7 @@ class weight_channels(nems_module):
     """
     name='weight_channels'
     user_editable_fields=['output_name','num_dims','coefs','baseline','phi','parm_fun']
-    plot_fns=[nu.plot_strf,nu.plot_trials,nu.plot_spectrogram]
+    plot_fns=[nu.plot_strf,nu.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_chans=1
@@ -749,7 +751,7 @@ class nonlinearity(nems_module):
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
-    plot_fns=[nu.pre_post_psth,nu.trial_prepost_psth,nu.plot_spectrogram]
+    plot_fns=[nu.pre_post_psth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
     
@@ -808,21 +810,28 @@ class state_gain(nems_module):
     """
     #Changed to helper function based general module --njs June 29 2017
     name='state_gain'
-    plot_fns=[nu.trial_prepost_psth,nu.non_plot]
+    plot_fns=[nu.pre_post_psth,nu.non_plot]
     
     def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False):
         if premodel is True:
-            self.do_trial_plot=self.plot_fns[1]
+            self.do_plot=self.plot_fns[1]
         #self.linpupgain=np.zeros([1,4])
         #self.linpupgain[0][1]=0
         self.fit_fields=fit_fields
         self.gain_type=gain_type
         theta=np.array([theta])
         self.theta=theta
-        self.do_trial_plot=self.plot_fns[0]
+        self.do_plot=self.plot_fns[0]
         #self.data_setup(d_in)
         print('state_gain parameters created')
         
+    def nopupgain_fn(self,X,Xp):
+        """
+        Applies a simple dc gain & offset to the stim data. Does not actually involve 
+        state variable. This is the "control" for the state_gain exploration.
+        """
+        Y=self.theta[0,0]+self.theta[0,1]*X
+        return(Y)   
     def linpupgain_fn(self,X,Xp):
         Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
         return(Y)
@@ -860,7 +869,7 @@ class mean_square_error(nems_module):
  
     name='mean_square_error'
     user_editable_fields=['input1','input2','norm']
-    plot_fns=[nu.pred_act_psth,nu.plot_trials,nu.pred_act_scatter]
+    plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
     norm=True
@@ -948,7 +957,7 @@ class pseudo_huber_error(nems_module):
     
     
     name='pseudo_huber_error'
-    plot_fns=[nu.pred_act_psth,nu.plot_trials,nu.pred_act_scatter]
+    plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
     b=0.9 #sets the value of error where fall-off goes from linear to quadratic\
@@ -1300,12 +1309,13 @@ class nems_stack:
         This is to make it easier to visualize the fits on individual trials,
         as opposed to over the entire length of the fitted vector.
         """
-        
+        plt.figure(figsize=(12,15))
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
-                print('idx= '+str(idx))
+                plt.subplot(len(self.modules)-1,1,idx)
                 m.do_trial_plot(m,idx)
+
                 
     def do_raster_plot(self):
         """
