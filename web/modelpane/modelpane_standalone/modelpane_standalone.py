@@ -20,6 +20,21 @@ import lib.nems_keywords as nk
 import lib.nems_utils as nu
 import lib.nems_main as nems
 
+# When copy-pasting updates from other modelpane:
+#  --replace 'from nems_analysis import app' with 'app = Flask(__name__)
+#  --add    
+#           if __name__ == '__main__':
+#               app.run(host="0.0.0.0", port=8000, debug=True)
+#
+#    to the bottom of the file
+# --change bSelected, cSelected and mSelected to be assigned manually
+#      instead of pulling from request.args
+# --make sure to copy changes to .js, .css and .html files as well
+# --Everything else should stay the same, as of 7/5/2017
+#
+# -Jacob
+
+
 app = Flask(__name__)
 
 FIGSIZE = (12,4) # width, height for matplotlib figures
@@ -47,8 +62,11 @@ def modelpane_view():
     global mp_stack
     mp_stack = None
 
+    #batch (as string, not int)
     bSelected = "291"
+    #cellid
     cSelected = "bbl061h-a1"
+    #modelname
     mSelected = "fb18ch100_ev_wc01_fir10_dexp_fit00"
 
     try:

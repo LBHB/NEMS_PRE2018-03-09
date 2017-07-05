@@ -1,5 +1,12 @@
 $(document).ready(function(){
 
+    function addLoad(){
+        $('#loadingPopup').css('display', 'block');
+    }
+    function removeLoad(){
+        $('#loadingPopup').css('display', 'none');
+    }
+    
     $(".plotSelect").change(updatePlot);
     function updatePlot(){
         var plotDiv = $(this).parents(".row").find(".plot-wrapper");
@@ -23,6 +30,7 @@ $(document).ready(function(){
     $("#changeDataIdx").change(updateDataIdx);
     function updateDataIdx(){
         var plot_dataidx = $(this).val();
+        addLoad();
         
         $.ajax({
             url: $SCRIPT_ROOT + '/update_data_idx',
@@ -35,9 +43,11 @@ $(document).ready(function(){
                 });
                 $("#stimIdxLabel").html("Stim Index 0 to " + data.stim_max);
                 $("#changeStimIdx").val("0")
+                removeLoad();
             },
             error: function(error){
-                console.log(error);       
+                console.log(error);     
+                removeLoad();
             }
         });
     }
@@ -45,7 +55,8 @@ $(document).ready(function(){
     $("#changeStimIdx").change(updateStimIdx);
     function updateStimIdx(){
         var plot_stimidx = $(this).val();
-    
+        addLoad();
+        
         $.ajax({
             url: $SCRIPT_ROOT + '/update_stim_idx',
             data: { plot_stimidx:plot_stimidx },
@@ -53,10 +64,12 @@ $(document).ready(function(){
             success: function(data){
                 $(".plot-wrapper").each(function(i){
                     $(this).html(data.plots[i]);        
-                });        
+                });
+                removeLoad();
             },
             error: function(error){
-                console.log(error);        
+                console.log(error);
+                removeLoad();
             }        
         })        
     }
@@ -77,7 +90,8 @@ $(document).ready(function(){
             }
             //fields_values[$(this).attr('name')] = $(this).val();
         });
-
+        addLoad();
+        
         $.ajax({
             url: $SCRIPT_ROOT + '/update_module',
             data: { fields:fields, values:values, types:types,
@@ -98,11 +112,11 @@ $(document).ready(function(){
                     i++;
                     }
                 })
-                
-                
+                removeLoad();
             },
             failure: function(error){
-                console.log(error);    
+                console.log(error);
+                removeLoad();
             }
         })
 

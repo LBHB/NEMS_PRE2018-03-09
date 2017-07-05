@@ -21,3 +21,18 @@
   border:  1px solid #C8C8C8;
   background: #E5E5F7;
 }
+
+#loadingPopup {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  color: white;
+  background: rgba( 0, 0, 0, .3)
+              url('http://imgur.com/qnRTMK6.gif')
+              50% 50%
+              no-repeat;
+}
