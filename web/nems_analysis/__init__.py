@@ -1,6 +1,5 @@
 import sys
 from io import StringIO
-import datetime
 
 from flask import Flask
 from flask_socketio import SocketIO

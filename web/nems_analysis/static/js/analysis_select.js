@@ -679,7 +679,7 @@ $(document).ready(function(){
                 //window.open('preview/' + data.preview,'width=520','height=910')
             },
             error: function(error){
-                py_console_log("Fit failed.");
+                console.log("Fit failed");
                 console.log(error);
                 removeLoad();
             },

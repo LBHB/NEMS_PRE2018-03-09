@@ -50,10 +50,17 @@ def fit_single_model_view():
             "Beginning model fit -- this may take several minutes.",
             "Please wait for a success/failure response.",
             )
-    stack = nems.fit_single_model(
-            cellid=cSelected[0], batch=bSelected, modelname=mSelected[0],
-            autoplot=False,
-            )
+    try:
+        stack = nems.fit_single_model(
+                cellid=cSelected[0], batch=bSelected, modelname=mSelected[0],
+                autoplot=False,
+                )
+    except Exception as e:
+        print("Error when calling nems_main.fit_single_model")
+        print(e)
+        print("Fit failed.")
+        raise e
+        
     plotfile = stack.quick_plot_save(mode="png")
 
     r = (
@@ -115,6 +122,7 @@ def enqueue_models_view():
                     modelname=model, autoplot=False,
                     )
         except Exception as e:
+            print("Error when calling nems.fit_single_model for " + mSelected)
             print(e)
             failures += combo
             continue
