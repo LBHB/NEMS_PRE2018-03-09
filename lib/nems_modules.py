@@ -312,7 +312,6 @@ class load_mat(nems_module):
                 #-njs June 16, 2017
                     
                 # average across trials
-                print(np.isnan(data['resp'][0,:,:]).shape)
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 
                 #print(data['stim'].shape)
@@ -425,8 +424,8 @@ class standard_est_val(nems_module):
                     
 class pupil_est_val(nems_module):
     """
-    Breaks imported data into est/val. Needed for batch 294-like data, where there is no est/val data
-    flagged and low numbers of stimuli
+    Breaks imported data into est/val. Use with pupil_model and batch 294 data, where 
+    there are only 2 stimuli, so takes some trials from both stimuli as "validation" data.
     """
  
     name='pupil_est_val'
@@ -451,8 +450,9 @@ class pupil_est_val(nems_module):
             except:
                 st=d['stim'].shape
                 re=d['resp'].shape
-                stspl=mt.ceil(st[1]*(1-self.valfrac))
-                respl=mt.ceil(re[0]*(1-self.valfrac))
+                #stspl=mt.ceil(st[1]*(1-self.valfrac))
+                respl=mt.ceil(re[1]*(1-self.valfrac))
+                print(respl)
                 
                 
                 d_est=d.copy()
@@ -460,16 +460,18 @@ class pupil_est_val(nems_module):
                 
 
                 d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
-                d_est['resp']=copy.deepcopy(d['resp'][:respl,:])
-                d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
+                d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
+                print(d_est['resp'].shape)
+                #d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
                 d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
-                d_val['resp']=copy.deepcopy(d['resp'][respl:,:])
-                d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+                d_val['resp']=copy.deepcopy(d['resp'][:,respl:,:])
+                print(d_val['resp'].shape)
+                #d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
                 
                 #if 'pupil' in d.keys():
                 if d['pupil'] is not None:
-                    d_est['pupil']=copy.deepcopy(d['pupil'][:respl,:])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][respl:,:])
+                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
                 
                 d_est['est']=True
                 d_val['est']=False
@@ -497,6 +499,7 @@ class pupil_model(nems_module):
             Xa=np.nanmean(X,axis=1)
             if self.tile_data is True:
                 s=Xp.shape 
+                print(s)
                 #Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
                 Z=np.reshape(Xp,(s[0],s[1]*s[2]),order='F')  #Comment out to have long "stimuli"
                 Z=np.transpose(Z,(1,0))

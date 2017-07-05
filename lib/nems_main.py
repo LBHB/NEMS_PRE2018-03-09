@@ -65,10 +65,8 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,pupilspec=False):
         
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
-    if autoplot and pupilspec is False:
+    if autoplot:
         stack.quick_plot()
-    elif pupilspec is True:
-        stack.trial_quick_plot()
     
     # save
     filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
