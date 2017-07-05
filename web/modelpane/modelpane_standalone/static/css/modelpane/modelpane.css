@@ -1,0 +1,23 @@
+.starter-template {
+  text-align: center;
+  padding: 20px;
+}
+
+.form-group {
+  text-align: left;
+  margin: 5px;
+}
+
+.input-group {
+  text-align: left;
+  margin: 5px;        
+}
+
+#testSelect {
+  margin: 0px;   
+}
+
+.moduleRow {
+  border:  1px solid #C8C8C8;
+  background: #E5E5F7;
+}
