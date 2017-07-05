@@ -826,6 +826,13 @@ class state_gain(nems_module):
         #self.data_setup(d_in)
         print('state_gain parameters created')
         
+    def nopupgain_fn(self,X,Xp):
+        """
+        Applies a simple dc gain & offset to the stim data. Does not actually involve 
+        state variable. This is the "control" for the state_gain exploration.
+        """
+        Y=self.theta[0,0]+self.theta[0,1]*X
+        return(Y)   
     def linpupgain_fn(self,X,Xp):
         Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
         return(Y)
