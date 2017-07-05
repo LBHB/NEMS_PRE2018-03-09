@@ -452,7 +452,6 @@ class pupil_est_val(nems_module):
                 re=d['resp'].shape
                 #stspl=mt.ceil(st[1]*(1-self.valfrac))
                 respl=mt.ceil(re[1]*(1-self.valfrac))
-                print(respl)
                 
                 
                 d_est=d.copy()
@@ -461,11 +460,9 @@ class pupil_est_val(nems_module):
 
                 d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
                 d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
-                print(d_est['resp'].shape)
                 #d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
                 d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
                 d_val['resp']=copy.deepcopy(d['resp'][:,respl:,:])
-                print(d_val['resp'].shape)
                 #d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
                 
                 #if 'pupil' in d.keys():
@@ -499,7 +496,6 @@ class pupil_model(nems_module):
             Xa=np.nanmean(X,axis=1)
             if self.tile_data is True:
                 s=Xp.shape 
-                print(s)
                 #Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
                 Z=np.reshape(Xp,(s[0],s[1]*s[2]),order='F')  #Comment out to have long "stimuli"
                 Z=np.transpose(Z,(1,0))
