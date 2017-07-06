@@ -14,9 +14,9 @@ import lib.baphy_utils as baphy_utils
 import os
 import datetime
 
-#from sqlalchemy import create_engine
-#from sqlalchemy.orm import sessionmaker
-#from sqlalchemy.ext.automap import automap_base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.automap import automap_base
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -108,23 +108,44 @@ def load_single_model(cellid,batch,modelname):
 # Copy-paste from nems_analysis > __init__.py for db setup
 
 # sets how often sql alchemy attempts to re-establish connection engine
-# TODO: query db for time-out variable and set this based on some fraction of that
-#POOL_RECYCLE = 7200;
+POOL_RECYCLE = 7200;
 
 #create base class to mirror existing database schema
-#Base = automap_base()
+Base = automap_base()
 # create a database connection engine
-#engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],pool_recycle=POOL_RECYCLE)
-#Base.prepare(engine, reflect=True)
 
-#tQueue = Base.classes.tQueue
+# this points to copy of database, not lab database
+# TODO: set up second connection for lab db? jobs added to lab db, but
+#       results saved to copy
+
+# get correct path to db info file
+libmod_path = os.path.abspath(nm.__file__)
+i = libmod_path.find('nems')
+nems_path = libmod_path[:i+5]
+
+db = {}
+with open (nems_path + "web/instance/database_info.txt","r") as f:
+    for line in f:
+        key,val = line.split()
+        db[key] = val
+
+SQLALCHEMY_DATABASE_URI = (
+        'mysql+pymysql://%s:%s@%s/%s'
+        %(db['user'],db['passwd'],db['host'],db['database'])
+        )
+
+engine = create_engine(SQLALCHEMY_DATABASE_URI, pool_recycle=POOL_RECYCLE)
+Base.prepare(engine, reflect=True)
+
+tQueue = Base.classes.tQueue
+NarfResults = Base.classes.NarfResults
 
 # import this when another module needs to use the database connection.
 # used like a class - ex: 'session = Session()'
-#Session = sessionmaker(bind=engine)
+Session = sessionmaker(bind=engine)
 
 
-def enqueue_models(celllist,batch,modellist):
+def enqueue_models(celllist, batch, modellist, force_rerun=False):
     """Call enqueue_single_model for every combination of cellid and modelname
     contained in the user's selections.
     
@@ -153,13 +174,13 @@ def enqueue_models(celllist,batch,modellist):
     # functions with the model queuer.
     for model in modellist:
         for cell in celllist:
-            enqueue_single_model(cell,batch,model)
+            enqueue_single_model(cell, batch, model, force_rerun)
     
     data = 'Placeholder success/failure messsage for user if any.'
     return data
 
 
-def enqueue_single_model(cellid,batch,modelname):
+def enqueue_single_model(cellid, batch, modelname, force_rerun):
     """Not yet developed, likely to change a lot.
     
     Returns:
@@ -176,8 +197,8 @@ def enqueue_single_model(cellid,batch,modelname):
     session = Session()
     tQueueId = -1
     
-    # TODO: what needs to go here so that queuer knows to run this
-    #       as a python script?
+    # TODO: anything else needed here? this is syntax for nems_fit_single
+    #       command prompt wrapper in main nems folder.
     commandPrompt = (
             "nems_fit_single %s %s %s"
             %(cellid,batch,modelname)
@@ -185,38 +206,57 @@ def enqueue_single_model(cellid,batch,modelname):
 
     note = "%s/%s/%s"%(cellid,batch,modelname)
     
+    result = (
+            session.query(NarfResults)
+            .filter(NarfResults.cellid == cellid)
+            .filter(NarfResults.batch == batch)
+            .filter(NarfResults.modelname == modelname)
+            .all()
+            )
+    if result and not force_rerun:
+        print("Entry in NarfResults already exists for: %s, skipping.\n"%note)
+        return -1
+    
     #query tQueue to check if entry with same cell/batch/model already exists
-    result = session.query(tQueue).filter(tQueue.note == note).all()
+    qdata = session.query(tQueue).filter(tQueue.note == note).all()
     
     # if it does, check its 'complete' status and take different action based on
     # status
     
-    if result and result['complete'] <= 0:
+    if qdata and (int(qdata[0].complete) <= 0):
         #TODO:
         #incomplete entry for note already exists, skipping
         #update entry with same note? what does this accomplish?
         #moves it back into queue maybe?
-        pass
-    elif result and result['complete'] == 2:
+        print("Incomplete entry for: %s already exists, skipping.\n"%note)
+        return -1
+    elif qdata and (int(qdata[0].complete) == 2):
         #TODO:
         #dead queue entry for note exists, resetting
         #update complete and progress status each to 0
         #what does this do? doesn't look like the sql is sent right away,
         #instead gets assigned to [res,r]
-        pass
-    elif result and result['complete'] == 1:
+        print("Dead queue entry for: %s already exists, resetting.\n"%note)
+        qdata[0].complete = 0
+        qdata[0].progress = 0
+        return -1
+    elif qdata and (int(qdata[0].complete) == 1):
         #TODO:
         #resetting existing queue entry for note
         #update complete and progress status each to 0
         #same as above, what does this do?
-        pass
+        print("Resetting existing queue entry for: %s\n"%note)
+        qdata[0].complete = 0
+        qdata[0].progress = 0
+        return -1
     else: #result must not have existed? or status value was greater than 2
         # add new entry
+        print("Adding job to queue for: %s\n"%note)
         job = tQueue()
         session.add(add_model_to_queue(commandPrompt,note,job))
     
     # uncomment session.commit() when ready to test saving to database
-    #session.commit()
+    session.commit()
     tQueueId = job.id
     session.close()
     return tQueueId
