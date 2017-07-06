@@ -21,16 +21,18 @@ if __name__ == '__main__':
 
     
     if len(sys.argv)<4:
-        print('syntax: nems_fit_single cellid, batch, modelname')
+        print('syntax: nems_fit_single cellid batch modelname')
         exit(-1)
 
     cellid=sys.argv[1]
     batch=sys.argv[2]
     modelname=sys.argv[3]
-
+    
     print("Running fit_single_model({0},{1},{2})".format(cellid,batch,modelname))
-    nems.fit_single_model(cellid,batch,modelname)
+    stack = nems.fit_single_model(cellid,batch,modelname)
 
-    print("Done with fit. To do: Code to generate and save figure for preview")
+    print("Done with fit.")
     
-    
+    # Edit: added code to save preview image. -Jacob 7/6/2017
+    path = stack.quick_plot_save(mode="png")
+    print("Preview saved to: {0}".format(path))
