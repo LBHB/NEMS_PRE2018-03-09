@@ -245,10 +245,12 @@ $(document).ready(function(){
             //$("#form-warning").html("")
         }   
     });
+    
 
     ////////////////////////////////////////////////////////////////////////
     //         Analysis details, tags/status, edit/delete/new             //
     ////////////////////////////////////////////////////////////////////////
+
 
     $("#analysisSelector").change(updateAnalysisDetails);
             
@@ -782,31 +784,48 @@ $(document).ready(function(){
     //////////////////////  PLOTS //////////////////////////////////////
     ////////////////////////////////////////////////////////////////////
         
-    
-    // from modelpane for reference
-    $(".plotSelect").change(updatePlot);
-    
-    function updatePlot(){
-        var plotDiv = $(this).parents(".row").find(".plot-wrapper");
-        var modAffected = $(this).parents(".row").attr('id');
-        var plotType = $(this).val();
+    // Default values -- based on 'good' from NarfAnalysis > filter_cells
+    var snr = 0.0;
+    var iso = 85.0;
+    var snri = 0.1;        
+            
+    $("#plotOpSelect").change(updatePlotOpVal);
+    function updatePlotOpVal(){
+        var select = $("#plotOpSelect");
+        var opVal = $("#plotOpVal");
+        var getVal = 0.0;
         
-        $.ajax({
-            url: $SCRIPT_ROOT + '/update_modelpane_plot',
-            data: { modAffected:modAffected, plotType:plotType },
-            type: 'GET',
-            success: function(data){
-                plotDiv.html(data.html);
-            },
-            error: function(error){
-                console.log(error);
-            }
-        });
-        
+        if (select.val() === 'snr'){
+            getVal = snr;        
+        }
+        if (select.val() === 'iso'){
+            getVal = iso;                
+        }
+        if (select.val() === 'snri'){
+            getVal = snri;        
+        }
+        opVal.val(getVal);
     }
+
+    $("#plotOpVal").change(updateOpVariable);
+    function updateOpVariable(){
+        var select = $("#plotOpSelect");
+        var opVal = $("#plotOpVal");
+        var setVal = opVal.val();
+        
+        if (select.val() === 'snr'){
+            snr = setVal;       
+        }
+        if (select.val() === 'iso'){
+            iso = setVal;                
+        }
+        if (select.val() === 'snri'){
+            snri = setVal;       
+        }
+    }
+     
         
     $("#submitPlot").on('click', getNewPlot);
-    
     function getNewPlot(){
         var plotDiv = $("#displayWrapper");
         
@@ -817,15 +836,14 @@ $(document).ready(function(){
         var measure = $("#measureSelector").val();
         var onlyFair = $("#onlyFair").val();
         var includeOutliers = $("#includeOutliers").val();
-        //TODO: add this
-        //var useSNRorISO = $()
         
         addLoad();
         $.ajax({
             url: $SCRIPT_ROOT + '/generate_plot_html',
             data: { plotType:plotType, bSelected:bSelected, cSelected:cSelected,
                     mSelected:mSelected, measure:measure, onlyFair:onlyFair,
-                    includeOutliers:includeOutliers },
+                    includeOutliers:includeOutliers,
+                    iso:iso, snr:snr, snri:snri },
             type: 'GET',
             success: function(data){
                 plotDiv.empty();
