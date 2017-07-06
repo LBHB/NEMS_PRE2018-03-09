@@ -495,6 +495,7 @@ class pupil_model(nems_module):
             X=copy.deepcopy(f_in['resp'])
             Xp=copy.deepcopy(f_in['pupil'])
             Xa=np.nanmean(X,axis=1)
+            print(Xa.shape)
             if self.tile_data is True:
                 s=Xp.shape 
                 #Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
@@ -504,8 +505,14 @@ class pupil_model(nems_module):
                 Q=np.reshape(X,(s[0],s[1]*s[2]),order='F') #Comment out to have long "stimuli"
                 Q=np.transpose(Q,(1,0))
                 #Y=np.tile(Xa,(s[1],1)) #Uncomment to have long "stimuli"
-                Y=np.tile(Xa,(1,s[1])) #Comment out to have long "stimuli"
-                Y=np.transpose(Y,(1,0))
+                print(Xa[:,0].shape)
+                Y=np.tile(Xa[:,0],(s[1],1))
+                print(Y.shape)
+                for i in range(1,Xa.shape[1]):
+                    print(i)
+                    Y=np.append(Y,np.tile(Xa[:,i],(s[1],1)),axis=0) #Comment out to have long "stimuli"  
+                print(Y.shape)
+                #Y=np.transpose(Y,(1,0))
             else:
                 Y=X
             f_out[self.output_name]=Y  

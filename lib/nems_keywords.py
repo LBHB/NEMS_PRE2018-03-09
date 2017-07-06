@@ -143,6 +143,9 @@ def butterworth01(stack):
 def butterworth02(stack):
     stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=2)
     
+def butterworth03(stack):
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=3)
+    
 def butterworth04(stack):
     stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=4)
 
