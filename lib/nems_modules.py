@@ -6,6 +6,7 @@ import scipy.stats as spstats
 import copy
 import lib.nems_utils as nu
 import math as mt
+import scipy.special as sx
 
 class nems_module:
     """nems_module
@@ -448,7 +449,7 @@ class pupil_est_val(nems_module):
                     self.d_out.append(d)
                     
             except:
-                st=d['stim'].shape
+                #st=d['stim'].shape
                 re=d['resp'].shape
                 #stspl=mt.ceil(st[1]*(1-self.valfrac))
                 respl=mt.ceil(re[1]*(1-self.valfrac))
@@ -812,7 +813,8 @@ class state_gain(nems_module):
     name='state_gain'
     plot_fns=[nu.pre_post_psth,nu.non_plot]
     
-    def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False):
+    def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False,
+                order=None):
         if premodel is True:
             self.do_plot=self.plot_fns[1]
         #self.linpupgain=np.zeros([1,4])
@@ -821,6 +823,7 @@ class state_gain(nems_module):
         self.gain_type=gain_type
         theta=np.array([theta])
         self.theta=theta
+        self.order=order
         self.do_plot=self.plot_fns[0]
         #self.data_setup(d_in)
         print('state_gain parameters created')
@@ -845,8 +848,17 @@ class state_gain(nems_module):
         deg=self.theta.shape[1]
         Y=0
         for i in range(0,deg-2):
-            Y+=self.theta[0,i]*np.power(Xp,i+1)
+            Y+=self.theta[0,i]*X*np.power(Xp,i+1)
         Y+=self.theta[0,-2]+self.theta[0,-1]*X
+        return(Y)
+    def Poissonpupgain_fn(self,X,Xp):
+        u=self.theta[0,1]
+        Y=self.theta[0,0]*X*np.divide(np.exp(-u)*np.power(u,Xp),sx.factorial(Xp))
+        return(Y)
+    def butterworthHP_fn(self,X,Xp):
+        n=self.order
+        Y=self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
+                    np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
     
     
@@ -962,6 +974,7 @@ class pseudo_huber_error(nems_module):
     input2='resp'
     b=0.9 #sets the value of error where fall-off goes from linear to quadratic\
     huber_est=np.ones([1,1])
+    huber_val=np.ones([1,1])
     
     def my_init(self, input1='stim',input2='resp',b=0.9):
         self.input1=input1
@@ -983,6 +996,8 @@ class pseudo_huber_error(nems_module):
     def error(self,est=True):
         if est is True:
             return(self.huber_est)
+        else: 
+            return(self.huber_val)
         
             
         
@@ -1231,11 +1246,14 @@ class nems_stack:
         return np.zeros([1,1])
     
     def quick_plot(self):
-        plt.figure(figsize=(12,15))
+        plt.figure(figsize=(12,24))
+        plt.subplot(len(self.modules),1,1)
+        #self.do_raster_plot()
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
                 plt.subplot(len(self.modules)-1,1,idx)
+                #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
     
     def quick_plot_save(self, mode=None):
@@ -1303,18 +1321,18 @@ class nems_stack:
         plt.close(fig)
         return filename
     
-    def trial_quick_plot(self):
-        """
-        Plots several trials of a stimulus after fitting pupil data.
-        This is to make it easier to visualize the fits on individual trials,
-        as opposed to over the entire length of the fitted vector.
-        """
-        plt.figure(figsize=(12,15))
-        for idx,m in enumerate(self.modules):
-            # skip first module
-            if idx>0:
-                plt.subplot(len(self.modules)-1,1,idx)
-                m.do_trial_plot(m,idx)
+#    def trial_quick_plot(self):
+#        """
+#        Plots several trials of a stimulus after fitting pupil data.
+#        This is to make it easier to visualize the fits on individual trials,
+#        as opposed to over the entire length of the fitted vector.
+#        """
+#        plt.figure(figsize=(12,15))
+#        for idx,m in enumerate(self.modules):
+#            # skip first module
+#            if idx>0:
+#                plt.subplot(len(self.modules)-1,1,idx)
+#                m.do_trial_plot(m,idx)
 
                 
     def do_raster_plot(self):
