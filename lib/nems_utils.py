@@ -56,6 +56,9 @@ def load_model(file_path):
 #
 # PLOTTING FUNCTIONS
 #
+#TODO: find some way to get the stimuli to resolve correctly for the pupil model stacks,
+#since stack.data[1] will have ~2 stimuli, but it is subsequently reshaped to ~240 stimuli
+# ---fixed, see except statement in plot_spectrogram --njs 6 July 2017
 
 def plot_spectrogram(m,idx=None,size=(12,4)):
     #Moved from pylab to pyplot module in all do_plot functions, changed plots 
@@ -64,7 +67,17 @@ def plot_spectrogram(m,idx=None,size=(12,4)):
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
     if out1['stim'].ndim==3:
-        plt.imshow(out1['stim'][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower', interpolation='none')
+        try:
+            plt.imshow(out1['stim'][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower', interpolation='none')
+        except:
+            reps=out1['repcount']
+            ids=m.parent_stack.plot_stimidx
+            r=reps.shape[0]
+            lis=[]
+            for i in range(0,r):
+                lis.extend([i]*reps[i])
+            new_id=lis[ids]
+            plt.imshow(out1['stim'][:,new_id,:], aspect='auto', origin='lower', interpolation='none')
         plt.colorbar()
     else:
         s=out1['stim'][m.parent_stack.plot_stimidx,:]
@@ -176,7 +189,7 @@ def non_plot(m):
     pass
     
 
-def raster_plot(data=None,stims=0,size=(12,6),**kwargs):
+def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
     """
     This function generates a raster plot of the data for the specified stimuli.
     It shows the spikes that occur during the actual trial in green, and the background
@@ -236,21 +249,13 @@ def raster_plot(data=None,stims=0,size=(12,6),**kwargs):
         ypost[ypost==0]=None
         return(xpre,ypre,xdur,ydur,xpost,ypost)
     xpre,ypre,xdur,ydur,xpost,ypost=raster_data(ins,prestim,duration,poststim,freq)
-    ran=[]
-    rs=xpre.shape
-    #if stims=='all':
-    #    ran=range(0,rs[0])
-    #elif isinstance(stims,int):
-    #    ran=range(stims,stims+1)
-    #else:
-    #    ran=range(stims[0],stims[1]+1)
-    #for i in ran:
-    plt.figure(num=str(stims)+str(100),figsize=size)
+    if idx:
+        plt.figure(num=str(stims)+str(100),figsize=size)
     plt.scatter(xpre[stims],ypre[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.scatter(xdur[stims],ydur[stims],color='g',s=(0.5*np.pi)*2,alpha=0.6)
     plt.scatter(xpost[stims],ypost[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.ylabel('Trial')
-    plt.xlabel('Time')
+    #plt.xlabel('Time')
     plt.title('Stimulus #'+str(stims))
 
 
