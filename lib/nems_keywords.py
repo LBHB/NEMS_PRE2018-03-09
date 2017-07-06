@@ -118,18 +118,37 @@ def nopupgain(stack):
     
 def pupgain(stack):
     stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
-
+ #Note that polypupgain was changed
 def polypupgain04(stack): #4th degree polynomial gain fn
     stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,0,1])
     
 def polypupgain03(stack): #3rd degree polynomial gain fn
     stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
     
+def polypupgain02(stack): #2nd degree polynomial gain fn
+    stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,1])
+    
 def exppupgain(stack):
     stack.append(nm.state_gain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
 
 def logpupgain(stack):
     stack.append(nm.state_gain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,1,0,1])
+
+def poissonpupgain(stack):
+    stack.append(nm.state_gain,gain_type='Poissonpupgain',fit_fields=['theta'],theta=[10,20])
+    
+def butterworth01(stack):
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=1)
+    
+def butterworth02(stack):
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=2)
+    
+def butterworth03(stack):
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=3)
+    
+def butterworth04(stack):
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=4)
+
 
 # fitter keywords
 ###############################################################################
@@ -148,6 +167,22 @@ def fit00(stack):
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
+    
+def fit00h1(stack):
+    hubidx=nu.find_modules(stack,'pseudo_huber_error')
+    if not hubidx:
+        stack.append(nm.pseudo_huber_error,b=1.0)
+        stack.error=stack.modules[-1].error
+    stack.evaluate(1)
+    
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.001
+    stack.fitter.do_fit()
+    
+    #So that the Huber error can be compared again MSE cost fn performance
+    stack.popmodule()
+    stack.append(nm.mean_square_error)
+        
     
 def fitannl00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')

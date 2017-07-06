@@ -174,8 +174,13 @@ class anneal_min(nems_fitter):
     the results my not be exactly the same every time, and the annealing may take a 
     different number of iterations each time it is called
     @author: shofer, 30 June 2017
+    
+    Further note: this is currently set up to take small jumps, as might be useful 
+    for fitting FIR filters or small nonlinearities. To use this fitter effectively,
+    the "expected" value of the coefficients must be taken into account.
+    --njs, 5 July 2017
     """
-
+    
     
     name='anneal_min'
     anneal_iter=100

@@ -4,6 +4,8 @@ In no particular order:
 
 - Link to details for cellid/modelname etc when click on results table rows.
 
+- Add SNRi/SNR/iso filtering for plots
+
 - Finish implementing plot types from NARF Analysis
 
 - Add significance info to bar plot

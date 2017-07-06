@@ -12,16 +12,6 @@ the server, potentially causing harm.
 
 """
 
-# Add any specified paths to sys.path for importing.
-# TODO: This works for now, but a better solution likely exists.
-#       Can also just export path to PYTHONPATH env variable, but
-#       then every new user has to do that step from the command line.
-import sys
-with open ("instance/nems_path.txt","r") as nems:
-    for path in nems:
-        sys.path.insert(0,path)
-del sys
-
 from nems_analysis import app, socketio
 
 socketio.run(

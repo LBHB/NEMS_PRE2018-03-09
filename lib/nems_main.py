@@ -12,6 +12,11 @@ import lib.nems_utils as nu
 import lib.nems_keywords as nk
 import lib.baphy_utils as baphy_utils
 import os
+import datetime
+
+#from sqlalchemy import create_engine
+#from sqlalchemy.orm import sessionmaker
+#from sqlalchemy.ext.automap import automap_base
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -96,9 +101,28 @@ def load_single_model(cellid,batch,modelname):
     
 
 
+
+
 #TODO: Re-work queue functions for use with cluster
-#TODO: Add in engine, classes & Sessionmaker separate from app for db
-#      connection (if want to use sqlalchemy)
+
+# Copy-paste from nems_analysis > __init__.py for db setup
+
+# sets how often sql alchemy attempts to re-establish connection engine
+# TODO: query db for time-out variable and set this based on some fraction of that
+#POOL_RECYCLE = 7200;
+
+#create base class to mirror existing database schema
+#Base = automap_base()
+# create a database connection engine
+#engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],pool_recycle=POOL_RECYCLE)
+#Base.prepare(engine, reflect=True)
+
+#tQueue = Base.classes.tQueue
+
+# import this when another module needs to use the database connection.
+# used like a class - ex: 'session = Session()'
+#Session = sessionmaker(bind=engine)
+
 
 def enqueue_models(celllist,batch,modellist):
     """Call enqueue_single_model for every combination of cellid and modelname
@@ -154,9 +178,10 @@ def enqueue_single_model(cellid,batch,modelname):
     
     # TODO: what needs to go here so that queuer knows to run this
     #       as a python script?
-    commandPrompt = "fit_single_model(%s,%s,%s,autoplot=False)"%(
-                                     cellid,batch,modelname,
-                                     )
+    commandPrompt = (
+            "nems_fit_single %s %s %s"
+            %(cellid,batch,modelname)
+            )
 
     note = "%s/%s/%s"%(cellid,batch,modelname)
     
