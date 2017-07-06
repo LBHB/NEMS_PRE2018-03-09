@@ -5,11 +5,10 @@ Only used for testing the template right now.
 """
 
 import copy
-import inspect
 import json
 
 from flask import (
-        request, render_template, Session, Response, jsonify, redirect, 
+        Flask, request, render_template, Session, Response, jsonify, redirect, 
         url_for,
         )
 import matplotlib.pyplot as plt, mpld3
@@ -21,24 +20,54 @@ import lib.nems_keywords as nk
 import lib.nems_utils as nu
 import lib.nems_main as nems
 
-from nems_analysis import app
+# When copy-pasting updates from other modelpane:
+#  --replace 'from nems_analysis import app' with 'app = Flask(__name__)
+#  --add    
+#           if __name__ == '__main__':
+#               app.run(host="0.0.0.0", port=8000, debug=True)
+#
+#    to the bottom of the file
+# --change bSelected, cSelected and mSelected to be assigned manually
+#      instead of pulling from request.args
+# --make sure to copy changes to .js, .css and .html files as well
+# --Everything else should stay the same, as of 7/5/2017
+#
+# -Jacob
+
+
+app = Flask(__name__)
 
 FIGSIZE = (12,4) # width, height for matplotlib figures
 mp_stack = None
 
-
-@app.route('/modelpane_view', methods=['GET','POST'])
+@app.route('/')
 def modelpane_view():
     """Launches Modelpane window to inspect the model fit to the selected
     cell and model."""
 
+    """
+    copy-paste from nems_main for testing
+    
+    if model has not been fitted, will need to run the script below in
+    i-python to fit the model, then refresh browser.
+    
+    import lib.nems_main as nems
+    cellid='bbl061h-a1'
+    batch=291
+    modelname='fb18ch100_ev_wc01_fir10_dexp_fit00'
+    nems.fit_single_model(cellid,batch,modelname)
+    """
+    
     # reset stack if modelpane is restarted
     global mp_stack
     mp_stack = None
 
-    bSelected = request.form.get('batch')[:3]
-    cSelected = request.form.get('cellid')
-    mSelected = request.form.get('modelname')
+    #batch (as string, not int)
+    bSelected = "291"
+    #cellid
+    cSelected = "bbl061h-a1"
+    #modelname
+    mSelected = "fb18ch100_ev_wc01_fir10_dexp_fit00"
 
     try:
         mp_stack = nems.load_single_model(
@@ -421,178 +450,6 @@ def printable_plot_name(plot_fn):
     return p
 
 
-@app.route('/get_kw_defaults')
-def get_kw_defaults():
-    """DEPRECATED"""
-    
-    global mp_stack
-    kw = request.args.get('kSelected')
-    mod = request.args.get('modAffected')
-    module = getattr(nm, mod)
-    editable_fields = module.user_editable_fields
-    
-    # TODO: still getting ndarray type error when trying to jsonify.
-    #       looks like it's b/c there are some times multi-dim nd arrays
-    #       as editable fields, which can't be serialized.
-    #if hasattr(nm, kw):
-    #    # if above passed w/o exception, kw must have been the
-    #    # base class default
-    #    inst = module(mp_stack)
-    #    defaults = {
-    #            field: getattr(inst, field)
-    #            for field in editable_fields
-    #            }
-    #    # convert any np types to scalar equivalents
-    #    for key in defaults.keys():
-    #        x = defaults[key]
-    #        if isinstance(x, float) or isinstance(x, int) or isinstance(x, str):
-    #            pass
-    #        elif isinstance(x, list):
-    #            #flatten list into string
-    #            defaults[key] = ','.join(x)
-    #        else:
-    #            try:
-    #                x = defaults[key][0]
-    #            except:
-    #                x = defaults[key]
-    #            finally:
-    #                try:
-    #                    x = np.asscalar(x)
-    #                except Exception as e:
-    #                    print("couldn't convert to np.scalar")
-    #                    print(type(x))
-    #                   print(e)
-    #else:
-    if hasattr(nk, kw):
-        fn = getattr(nk, kw)
-        if isinstance(fn, list):
-            defaults = {
-                field: value for value, field
-                in enumerate(editable_fields)
-                }
-        else:
-            defaults = get_kw_args(fn, editable_fields)
-    else:
-        print("Default values could not be found for: " + kw)
-        defaults = {
-                field: value for value, field
-                in enumerate(editable_fields)
-                }
-        
-    return jsonify(**defaults)
-   
 
-def get_kw_args(function, editables):
-    """DEPRECATED"""
-    source = inspect.getsource(function)
-    values = {}
-    for field in source:
-        # find index of first character of field arg
-        i = source.find(field + "=")
-        # find index of first character of assigned value
-        # IMPORTANT: this assumes that field and value are separated by
-        #            single '=' character.
-        j = i + len(field) + 2
-        # get the last index of the assigned value
-        k = source[j:].find(',')
-        if k == -1:
-            k = source[j:].find(')')
-        # get the value
-        values[field] = source[j:k+1]
-        
-    return values
-
-#@app.route('/refresh_modelpane')
-def refresh_modelpane():
-    """
-    DEPRECATED VERSION -- keeping for now incase switch back
-    
-    Copy of modelpane_view code after loading model.
-    Returns dict of arguments for re-rendering the modelpane template.
-    
-    """
-    
-    # TODO: Better way to do this instead of copy-pasting updates from main
-    #        view function? Should convert to ajax eventually too instead of
-    #        full refresh.
-    global mp_stack
-    
-    cell = mp_stack.meta['cellid']
-    model = mp_stack.meta['modelname']
-    
-    all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
-    # remove any modules that shouldn't show up as an option in modelpane
-    all_mods.remove('load_mat')
-    
-    stackmods = mp_stack.modules[1:]
-    plots = re_render_plots()
-    # make double sure that all figures close after loop
-    # to avoid excess memory usage.
-    plt.close("all")
-    
-    # Need to use copy to avoid overriding modules' attributes
-    plot_fns = copy.deepcopy([m.plot_fns for m in stackmods])
-    for i, pf in enumerate(plot_fns):
-        for j, f in enumerate(pf):
-            newf = printable_plot_name(f)
-            plot_fns[i][j] = newf
-    
-    fields = [m.user_editable_fields for m in stackmods]
-    values = [
-            [getattr(m, field) for field in fields[i]]
-            for i, m in enumerate(stackmods)
-            ]
-    types = [
-            [str(type(getattr(m, field)))
-            .replace("<class '","").replace("'>","")
-            for field in fields[i]]
-            for i, m in enumerate(stackmods)
-            ]
-    arrays = [[] for m in stackmods]
-    for i, itr in enumerate(values):
-        for value in itr:
-            if isinstance(value, np.ndarray):
-                array = pickle.dumps(value)
-                arrays[i].append(array)
-            else:
-                arrays[i].append("")
-                
-    fields_values_types = []
-    for i, itr in enumerate(fields):
-        fields_values_types.append(zip(
-                fields[i], values[i], types[i], arrays[i]
-                ))
-    
-    # TODO: dummy_mod selection is assuming that there's something in the stack
-    #       other than load_mat and standard_est_eval.
-    #       Is this a good assumption?
-    try:
-        dummy_mod = stackmods[1]
-    except IndexError:
-        dummy_mod = stackmods[0]
-        print("Stack only has data loader and standard eval?")
-    data_max = (len(dummy_mod.d_in) - 1)
-    shape_len = len(dummy_mod.d_in[0]['stim'].shape)
-    if shape_len == 3:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1]) - 1
-    elif shape_len == 2:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0]) - 1
-    else:
-        # TODO: Would shape length ever be anything other than 2 or 3?
-        stim_max = "N/A"
-
-    
-    return render_template(
-            "/modelpane/modelpane.html", 
-            modules=[m.name for m in stackmods],
-            plots=plots,
-            title="Cellid: %s --- Model: %s"%(cell, model),
-            fields_values_types=fields_values_types,
-            plottypes=plot_fns,
-            all_mods=all_mods,
-            plot_stimidx=mp_stack.plot_stimidx,
-            plot_dataidx=mp_stack.plot_dataidx,
-            plot_stimidx_max=stim_max,
-            plot_dataidx_max=data_max,
-           )
-    
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=8000, debug=True)
