@@ -109,6 +109,9 @@ def poly02(stack):
 def poly03(stack):
     stack.append(nm.nonlinearity,nltype='poly',fit_fields=['phi'],phi=[0,1,0,0])
 
+def tanhsig(stack):
+    stack.append(nm.nonlinearity,nltype='tanh',fit_fields=['phi'],phi=[1,1,0])
+
 
 # state variable keyowrds
 ###############################################################################

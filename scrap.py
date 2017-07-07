@@ -12,107 +12,64 @@ import lib.nems_modules as nm
 import lib.nems_fitters as nf
 import lib.nems_keywords as nk
 import lib.nems_utils as nu
-import lib.baphy_utils as baphy_utils
+import lib.baphy_utils as bu
 import sys
 sys.path.append('/auto/users/shofer/scikit-optimize')
 import skopt.optimizer.gp as skgp
 import copy
 
-
+"""
 stack=nm.nems_stack()
 
-stack.meta['batch']=294
-stack.meta['cellid']='eno052b-a1_nat_export'
-#stack.meta['batch']=283
-#stack.meta['cellid']='BOL005c-07-1_nat_export'
+stack.meta['batch']=267
+stack.meta['cellid']='mag009a-c1'
 
 
 
-file='/auto/users/shofer/data/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
+
+file=bu.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
 print("Initializing load_mat with file {0}".format(file))
 stack.append(nm.load_mat,est_files=[file],fs=100,formpup=False)
-#print(stack.data[1]['repcount'])
-#stack.append(nm.pupil_est_val,valfrac=0.5)
+stack.append(nm.standard_est_val,valfrac=0.5)
 alldats=copy.deepcopy(stack.data)
-stack.append(nm.pupil_model,tile_data=True)
+
 
 alldata=stack.data
+stack.append(nm.weight_channels,num_chans=3)
+#stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['phi'],phi=[1])
+stack.append(nm.fir_filter,num_coefs=15)
 
-#stack.append(nm.fir_filter,num_coefs=10)
-
-#stack.append(nm.mean_square_error)
-
-#stack.error=stack.modules[-1].error
-                         
-
-#stack.fitter=nf.basic_min(stack)
-
-#stack.fitter.tol=0.1
-#stack.fitter.do_fit()
-
-#stack.popmodule()
-stack.append(nm.linpupgain)
-#stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
 stack.append(nm.mean_square_error)
 stack.error=stack.modules[-1].error
-                         
+                      
 stack.fitter=nf.basic_min(stack)
+
 stack.fitter.tol=0.01
 stack.fitter.do_fit()
 
-stack.plot_trialidx=(10,14)
-stack.trial_quick_plot()
+stack.popmodule()
+
+stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['phi'],phi=[1,1,1,1])
+stack.append(nm.mean_square_error)
+stack.error=stack.modules[-1].error
+                       
+#stack.fitter=nf.basic_min(stack)
+#stack.fitter.tol=0.001
+#stack.fitter.do_fit()
+
+stack.fitter=nf.fit_by_type(stack,min_kwargs={'basic_min':{'routine':'L-BFGS-B','maxit':10000},'anneal_min':
+            {'min_method':'L-BFGS-B','anneal_iter':50,'stop':5,'maxiter':10000,'up_int':5,'bounds':None,
+                'temp':0.1,'stepsize':0.25,'verb':False}})
+stack.fitter.tol=0.001
+stack.fitter.do_fit()
+"""
+stack.plot_stimidx=8
+stack.quick_plot(size=(9,18))
 
 reps=stack.data[-1][0]['repcount']
 unres=stack.unresampled
 
-"""
 
-stack=nm.nems_stack()
-
-stack.meta['batch']=291
-stack.meta['cellid']='bbl031f-a1'
-
-#stack.append(nm.dummy_data,data_len=200)
-file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
-print("Initializing load_mat with file {0}".format(file))
-stack.append(nm.load_mat,est_files=[file],fs=100)
-stack.append(nm.standard_est_val,valfrac=0.5)
-
-alldat=stack.data
-
-#stack.append(nm.dc_gain,g=1,d=0)
-#stack.append(nm.sum_dim)
-stack.append(nm.fir_filter,num_coefs=10)
-stack.append(nm.mean_square_error)
-
-stack.error=stack.modules[-1].error
-stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.005
-stack.fitter.do_fit()
-
-a=[0.1]*181
-b=[-0.1]*181
-c=list(zip(b,a))
-
-
-stack.fitter=nf.forest_min(stack,dims=c)
-stack.fitter.do_fit()
-#stack.popmodule()
-
-
-#stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['dexp'])
-#stack.append(nm.mean_square_error)
-#stack.error=stack.modules[-1].error
-                         
-#stack.fitter=nf.basic_min(stack)
-#stack.fitter.tol=0.0001
-#stack.fitter.do_fit()
-
-stack.quick_plot()
-
-
-"""
 
 
 

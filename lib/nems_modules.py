@@ -794,6 +794,9 @@ class nonlinearity(nems_module):
         for i in range(0,deg):
             Y+=self.phi[0,i]*np.power(X,i)
         return(Y)
+    def tanh_fn(self,X):
+        Y=self.phi[0,0]*np.tanh(self.phi[0,1]*X-self.phi[0,2])+self.phi[0,0]
+        return(Y)
         
     def my_eval(self,X):
         Z=getattr(self,self.nltype+'_fn')(X)
@@ -1247,8 +1250,8 @@ class nems_stack:
     def default_error(self):
         return np.zeros([1,1])
     
-    def quick_plot(self):
-        plt.figure(figsize=(12,24))
+    def quick_plot(self,size=(12,24)):
+        plt.figure(figsize=size)
         plt.subplot(len(self.modules),1,1)
         #self.do_raster_plot()
         for idx,m in enumerate(self.modules):
