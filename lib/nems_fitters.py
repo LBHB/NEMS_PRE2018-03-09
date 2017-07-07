@@ -166,6 +166,7 @@ class anneal_min(nems_fitter):
     maxiter=maximum iterations for each round of minimization
     tol=tolerance for each round of minimization
     min_method=method used for each round of minimization. 'L-BFGS-B' works well
+    bounds should be [(xmin,xmax),(ymin,ymax),(zmin,zmax),etc]
     
     WARNING: this fitter takes a ~~long~~ time. It is usually better to try basic_min
     first, and then use this method if basic_min fails.
@@ -190,14 +191,17 @@ class anneal_min(nems_fitter):
     maxiter=10000
     tol=0.01
     
-    def my_init(self,min_method='L-BFGS-B',anneal_iter=100,stop=5,maxiter=10000,up_int=10,bounds=None):
+    def my_init(self,min_method='L-BFGS-B',anneal_iter=100,stop=5,maxiter=10000,up_int=10,bounds=None,
+                temp=0.01,stepsize=0.01):
         print("initializing anneal_min")
         self.anneal_iter=anneal_iter
         self.min_method=min_method
         self.stop=stop
         self.maxiter=10000
-        self.bounds=None
+        self.bounds=bounds
         self.up_int=up_int
+        self.temp=temp
+        self.step=stepsize
                     
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
@@ -219,7 +223,7 @@ class anneal_min(nems_fitter):
         print("anneal_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
         #print("maxiter: {0}".format(opt['maxiter']))
         opt_res=sp.optimize.basinhopping(self.cost_fn,self.phi0,niter=self.anneal_iter,
-                                         T=0.01,stepsize=0.01,minimizer_kwargs=min_kwargs,
+                                         T=self.temp,stepsize=self.step,minimizer_kwargs=min_kwargs,
                                          interval=self.up_int,disp=verb,niter_success=self.stop)
         phi_final=opt_res.lowest_optimization_result.x
         self.cost_fn(phi_final)
@@ -400,6 +404,49 @@ class fit_iteratively(nems_fitter):
             err=new_err
             
         return(self.stack.error())
+    
+
+
+class fit_by_type(nems_fitter):
+    """
+    Iterate through modules, fitting each module with a different sub fitter 
+    that depends on the type of each module, i.e. if it is a nonlinearity, fir filter,
+    etc...
+    
+    min_kwargs should be a dictionary of dictionaries:
+        min_kwargs={'basic_min':{'routine':'L-BFGS','maxit':10000},'anneal_min':
+            {'min_method':'L-BFGS-B','anneal_iter':100,'stop':5,'maxiter':10000,'up_int':10,'bounds':None,
+                'temp':0.01,'stepsize':0.01}, etc...}
+    """
+    
+    name='fit_by_type'
+    maxiter=5
+    fir_filter_sfit=None
+    nonlinearity_sfit=None
+    weight_channels_sfit=None
+    state_gain_sfit=None
+    
+    def my_init(self, fir_filter_sfit=basic_min, nonlinearity_sfit=anneal_min, weight_channel_sfit=basic_min,
+                state_gain_sfit=basic_min, maxiter=5, min_kwargs={'basic_min':{'routine':'L-BFGS','maxit':10000},'anneal_min':
+            {'min_method':'L-BFGS-B','anneal_iter':100,'stop':5,'maxiter':10000,'up_int':10,'bounds':None,
+                'temp':0.01,'stepsize':0.01}}):
+        #TODO: finish this
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 
     

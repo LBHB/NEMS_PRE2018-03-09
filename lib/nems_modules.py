@@ -314,7 +314,7 @@ class load_mat(nems_module):
                     
                 # average across trials
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
-                
+                self.parent_stack.unresampled.append(data['repcount'])
                 #print(data['stim'].shape)
                 #print(data['resp'].shape)
                 #print(data['pupil'].shape)

@@ -118,7 +118,7 @@ def nopupgain(stack):
     
 def pupgain(stack):
     stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
- #Note that polypupgain was changed
+
 def polypupgain04(stack): #4th degree polynomial gain fn
     stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,0,1])
     
