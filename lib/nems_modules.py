@@ -531,14 +531,15 @@ class normalize(nems_module):
     IMPORTANT NOTE: normalization factors are computed from estimation data 
     only but applied to both estimation and validation data streams
     """
-    name='standard_est_val'
+    name='normalize'
     user_editable_fields=['output_name','valfrac','valmode']
     force_positive=True
     d=0
     g=1
     
-    def my_init(self, force_positive=True):
+    def my_init(self, force_positive=True,data='stim'):
         self.force_positive=force_positive
+        self.input_name=data
     
     def evaluate(self):
         X=self.unpack_data()

@@ -27,17 +27,19 @@ print("Initializing load_mat with file {0}".format(file))
 
 stack.append(nm.load_mat,est_files=[file],fs=100,formpup=False)
 stack.append(nm.pupil_est_val,valfrac=0.05)
-
+stack.append(nm.normalize)
 
 stack.append(nm.pupil_model,tile_data=True)
+
 #smalldata=copy.deepcopy(stack.data)
 
 #stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
 #stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
-#stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,10],order=4)
+#stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=2)
 stack.append(nm.state_gain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
 #stack.append(nm.state_gain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,0,0,1])
 #stack.append(nm.state_gain,gain_type='Poissonpupgain',fit_fields=['theta'],theta=[10,20])
+
 #stack.append(nm.pseudo_huber_error,b=0.3)
 stack.append(nm.mean_square_error)
 
@@ -46,19 +48,20 @@ stack.error=stack.modules[-1].error
 stack.fitter=nf.basic_min(stack)
 stack.fitter.tol=0.000001
 stack.fitter.do_fit()
-
-#stack.popmodule()
-#stack.append(nm.mean_square_error)
-#print(stack.modules[-1].mse_est)
+"""
+stack.popmodule()
+stack.append(nm.mean_square_error)
+print(stack.modules[-1].mse_est)
+"""
 
 alldata=copy.deepcopy(stack.data)
 reps=stack.data[1][0]['repcount']
 #smalldata=copy.deepcopy(stack.data)
-
+unres=stack.unresampled
 stack.plot_stimidx=150 #Choose which stimulus to plot
 #stack.plot_trialidx=(10,11) #Choose which trials to display
 
-print(stack.modules[3].theta)                   
+#print(stack.modules[3].theta)                   
 #stack.do_sorted_raster()
 #stack.trial_quick_plot()
 stack.quick_plot()
