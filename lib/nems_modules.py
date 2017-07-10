@@ -314,7 +314,7 @@ class load_mat(nems_module):
                     
                 # average across trials
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
-                
+                self.parent_stack.unresampled.append(data['repcount'])
                 #print(data['stim'].shape)
                 #print(data['resp'].shape)
                 #print(data['pupil'].shape)
@@ -430,7 +430,7 @@ class pupil_est_val(nems_module):
     """
  
     name='pupil_est_val'
-    user_editable_fields=['output_name','valfrac','valmode']
+    user_editable_fields=['output_name','valfrac']
     valfrac=0.05
     
     def my_init(self, valfrac=0.05):
@@ -531,14 +531,15 @@ class normalize(nems_module):
     IMPORTANT NOTE: normalization factors are computed from estimation data 
     only but applied to both estimation and validation data streams
     """
-    name='standard_est_val'
+    name='normalize'
     user_editable_fields=['output_name','valfrac','valmode']
     force_positive=True
     d=0
     g=1
     
-    def my_init(self, force_positive=True):
+    def my_init(self, force_positive=True,data='stim'):
         self.force_positive=force_positive
+        self.input_name=data
     
     def evaluate(self):
         X=self.unpack_data()
@@ -794,6 +795,9 @@ class nonlinearity(nems_module):
         for i in range(0,deg):
             Y+=self.phi[0,i]*np.power(X,i)
         return(Y)
+    def tanh_fn(self,X):
+        Y=self.phi[0,0]*np.tanh(self.phi[0,1]*X-self.phi[0,2])+self.phi[0,0]
+        return(Y)
         
     def my_eval(self,X):
         Z=getattr(self,self.nltype+'_fn')(X)
@@ -859,7 +863,7 @@ class state_gain(nems_module):
         return(Y)
     def butterworthHP_fn(self,X,Xp):
         n=self.order
-        Y=self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
+        Y=self.theta[0,3]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
     
@@ -925,8 +929,10 @@ class mean_square_error(nems_module):
             P=np.zeros([1,1])
             N=0
             for f in self.d_out:
-                E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
-                P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
+                #E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
+                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+                #P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
+                P+=np.sum(np.square(f[self.input2]))
                 N+=f[self.input2].size
         
             if self.norm:
@@ -1247,8 +1253,8 @@ class nems_stack:
     def default_error(self):
         return np.zeros([1,1])
     
-    def quick_plot(self):
-        plt.figure(figsize=(12,24))
+    def quick_plot(self,size=(12,24)):
+        plt.figure(figsize=size)
         plt.subplot(len(self.modules),1,1)
         #self.do_raster_plot()
         for idx,m in enumerate(self.modules):

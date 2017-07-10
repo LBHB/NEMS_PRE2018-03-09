@@ -31,10 +31,17 @@ $(document).ready(function(){
         trigger: 'click',
     });
     
+    $("#displayWrapper").resizable();
+    $("#py_console").resizable();
+    $("#tableWrapper").resizable();
+    $("#displayWrapper").draggable();
+    $("#py_console").draggable();
+    $("#tableWrapper").draggable();
+
     function initTable(table){
         // Called any time results is updated -- set table options here
         table.DataTable({
-            paging: false,
+            paging: true,
             search: {
                 "caseInsensitive": true,
             },
@@ -219,7 +226,11 @@ $(document).ready(function(){
             success: function(data) {
                 //grabs whole div - replace inner html with new table?
                 results = $("#tableWrapper");
+                results.resizable("destroy");
+                results.draggable("destroy");
                 results.html(data.resultstable)
+                results.resizable();
+                results.draggable();
                 initTable(results.children("table"));
             },
             error: function(error) {
@@ -584,17 +595,14 @@ $(document).ready(function(){
                    bSelected:bSelected },
             type: 'GET',
             success: function(data){
-                // TODO: get this to open multiple windows. currently just
-                // opens the first one then stops.
-                //for (var i=0;i<data.filepaths.length;i++){
-                //    window.open('preview' + data.filepaths[i],
-                //                'width=520','height=910');
-                //}
-                $("#displayWrapper").empty();
+                $("#displayWrapper").resizable("destroy");
+                $("displayWrapper").draggable("destroy");
                 $("#displayWrapper").html(
                         '<img id="preview_image" src="data:image/png;base64,'
                         + data.image + '" />'
                         );
+                $("#displayWrapper").resizable();
+                $("#displayWrapper").draggable();
             },
             error: function(error){
                 console.log(error);        
@@ -783,11 +791,15 @@ $(document).ready(function(){
     ////////////////////////////////////////////////////////////////////
     //////////////////////  PLOTS //////////////////////////////////////
     ////////////////////////////////////////////////////////////////////
-        
+    
+    
     // Default values -- based on 'good' from NarfAnalysis > filter_cells
     var snr = 0.0;
     var iso = 85.0;
-    var snri = 0.1;        
+    var snri = 0.1;     
+    
+    $("#plotOpSelect").val('snri');
+    $("#plotOpVal").val(snri);
             
     $("#plotOpSelect").change(updatePlotOpVal);
     function updatePlotOpVal(){
@@ -846,8 +858,11 @@ $(document).ready(function(){
                     iso:iso, snr:snr, snri:snri },
             type: 'GET',
             success: function(data){
-                plotDiv.empty();
+                plotDiv.resizable("destroy");
+                plotDiv.draggable("destroy");
                 plotDiv.html(data.script + data.div);
+                plotDiv.resizable();
+                plotDiv.draggable();
                 removeLoad();
             },
             error: function(error){

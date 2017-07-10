@@ -146,8 +146,6 @@ class basic_min(nems_fitter):
         print("Final {0}: {1}".format(self.stack.modules[-1].name,self.stack.error()))
         return(self.stack.error())
     
-#TODO: implement scipy basinhopping routine. Note that this is scipy's implementation 
-#of simulated annealing
 
 
 class anneal_min(nems_fitter):
@@ -166,6 +164,7 @@ class anneal_min(nems_fitter):
     maxiter=maximum iterations for each round of minimization
     tol=tolerance for each round of minimization
     min_method=method used for each round of minimization. 'L-BFGS-B' works well
+    bounds should be [(xmin,xmax),(ymin,ymax),(zmin,zmax),etc]
     
     WARNING: this fitter takes a ~~long~~ time. It is usually better to try basic_min
     first, and then use this method if basic_min fails.
@@ -190,14 +189,18 @@ class anneal_min(nems_fitter):
     maxiter=10000
     tol=0.01
     
-    def my_init(self,min_method='L-BFGS-B',anneal_iter=100,stop=5,maxiter=10000,up_int=10,bounds=None):
+    def my_init(self,min_method='L-BFGS-B',anneal_iter=100,stop=5,maxiter=10000,up_int=10,bounds=None,
+                temp=0.01,stepsize=0.01,verb=False):
         print("initializing anneal_min")
         self.anneal_iter=anneal_iter
         self.min_method=min_method
         self.stop=stop
         self.maxiter=10000
-        self.bounds=None
+        self.bounds=bounds
         self.up_int=up_int
+        self.temp=temp
+        self.step=stepsize
+        self.verb=verb
                     
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
@@ -209,7 +212,7 @@ class anneal_min(nems_fitter):
             print('Error='+str(err))
         return(err)
     
-    def do_fit(self,verb=False):
+    def do_fit(self):
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(self.maxiter)
         opt['eps']=1e-7
@@ -219,8 +222,8 @@ class anneal_min(nems_fitter):
         print("anneal_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
         #print("maxiter: {0}".format(opt['maxiter']))
         opt_res=sp.optimize.basinhopping(self.cost_fn,self.phi0,niter=self.anneal_iter,
-                                         T=0.01,stepsize=0.01,minimizer_kwargs=min_kwargs,
-                                         interval=self.up_int,disp=verb,niter_success=self.stop)
+                                         T=self.temp,stepsize=self.step,minimizer_kwargs=min_kwargs,
+                                         interval=self.up_int,disp=self.verb,niter_success=self.stop)
         phi_final=opt_res.lowest_optimization_result.x
         self.cost_fn(phi_final)
         print("Final MSE: {0}".format(self.stack.error()))
@@ -379,27 +382,104 @@ class fit_iteratively(nems_fitter):
     sub_fitter=None
     max_iter=5
     
-    def my_init(self,sub_fitter=basic_min,max_iter=5):
-        self.sub_fitter=sub_fitter(self.stack)
+    def my_init(self,sub_fitter=basic_min,max_iter=5,min_kwargs={'routine':'L-BFGS-B','maxit':10000}):
+        self.sub_fitter=sub_fitter(self.stack,**min_kwargs)
         self.max_iter=max_iter
             
     def do_fit(self):
-        self.sub_fitter.tol=self.sub_fitter.tol
-        iter=0
+        self.sub_fitter.tol=self.tol
+        itr=0
         err=self.stack.error()
-        while iter<self.max_iter:
+        while itr<self.max_iter:
             for i in self.fit_modules:
-                print("Begin sub_fitter on mod {0}/iter {1}/tol={2}".format(i,iter,self.sub_fitter.tol))
+                print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i].name,itr,self.sub_fitter.tol))
                 self.sub_fitter.fit_modules=[i]
                 new_err=self.sub_fitter.do_fit()
             if err-new_err<self.sub_fitter.tol:
                 print("")
                 print("error improvement less than tol, starting new outer iteration")
-                iter+=1
+                itr+=1
                 self.sub_fitter.tol=self.sub_fitter.tol/2
             err=new_err
             
         return(self.stack.error())
+    
+
+
+class fit_by_type(nems_fitter):
+    """
+    Iterate through modules, fitting each module with a different sub fitter 
+    that depends on the type of each module, i.e. if it is a nonlinearity, fir filter,
+    etc...
+    
+    min_kwargs should be a dictionary of dictionaries:
+        min_kwargs={'basic_min':{'routine':'L-BFGS','maxit':10000},'anneal_min':
+            {'min_method':'L-BFGS-B','anneal_iter':100,'stop':5,'maxiter':10000,'up_int':10,'bounds':None,
+                'temp':0.01,'stepsize':0.01}, etc...}
+    Note that all of these fields need not be filled out, but if this is the case the
+    subfitters will use their default settings.
+    """
+    
+    name='fit_by_type'
+    maxiter=5
+    fir_filter_sfit=None
+    nonlinearity_sfit=None
+    weight_channels_sfit=None
+    state_gain_sfit=None
+    
+    def my_init(self, fir_filter_sfit=basic_min, nonlinearity_sfit=anneal_min, weight_channels_sfit=basic_min,
+                state_gain_sfit=basic_min, maxiter=5, min_kwargs={'basic_min':{'routine':'L-BFGS-B','maxit':10000},'anneal_min':
+            {'min_method':'L-BFGS-B','anneal_iter':100,'stop':5,'maxiter':10000,'up_int':10,'bounds':None,
+                'temp':0.01,'stepsize':0.01,'verb':False}}):
+        self.fir_filter_sfit=fir_filter_sfit(self.stack,**min_kwargs[fir_filter_sfit.name])
+        self.nonlinearity_sfit=nonlinearity_sfit(self.stack,**min_kwargs[nonlinearity_sfit.name])
+        self.weight_channels_sfit=weight_channels_sfit(self.stack,**min_kwargs[weight_channels_sfit.name])
+        self.state_gain_sfit=state_gain_sfit(self.stack,**min_kwargs[state_gain_sfit.name])
+        self.maxiter=maxiter
+        
+    def do_fit(self):
+        itr=0
+        err=self.stack.error()
+        while itr<self.maxiter:
+            self.fir_filter_sfit.tol=self.tol
+            self.nonlinearity_sfit.tol=self.tol
+            self.weight_channels_sfit.tol=self.tol
+            self.state_gain_sfit.tol=self.tol
+            for i in self.fit_modules:
+                name=self.stack.modules[i].name
+                print('Sub-fitting on {0} module with {1}'.format(name,getattr(getattr(self,name+'_sfit'),'name')))
+                print('Current iter: {0}'.format(itr))
+                print('Current tol: {0}'.format(self.tol))
+                setattr(getattr(self,name+'_sfit'),'fit_modules',[i])
+                new_err=getattr(self,name+'_sfit').do_fit()
+            if err-new_err<self.tol:
+                print("")
+                print("error improvement less than tol, starting new outer iteration")
+                itr+=1
+                self.tol=self.tol/2
+            err=new_err
+        return(self.stack.error())
+                    
+                
+
+        
+
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 
     

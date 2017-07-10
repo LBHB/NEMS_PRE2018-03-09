@@ -69,13 +69,20 @@ def modelpane_view():
     
     fields = [m.user_editable_fields for m in stackmods]
     values = [
-            [getattr(m, field) for field in fields[i]]
+                [
+                getattr(m, field)
+                if hasattr(m, field) else "None"
+                for field in fields[i]
+                ]
             for i, m in enumerate(stackmods)
             ]
     types = [
-            [str(type(getattr(m, field)))
-            .replace("<class '","").replace("'>","")
-            for field in fields[i]]
+                [
+                str(type(getattr(m, field)))
+                .replace("<class '","").replace("'>","")
+                if hasattr(m, field) else "NoneType"
+                for field in fields[i]
+                ]
             for i, m in enumerate(stackmods)
             ]
     for i, itr in enumerate(values):
@@ -135,13 +142,20 @@ def refresh_modelpane_json(modIdx):
 
     fields = [m.user_editable_fields for m in stackmods]
     values = [
-            [getattr(m, field) for field in fields[i]]
+                [
+                getattr(m, field) if hasattr(m, field) else "None"
+                for field in fields[i]
+                ]
             for i, m in enumerate(stackmods)
             ]
     types = [
-            [str(type(getattr(m, field)))
-            .replace("<class '","").replace("'>","")
-            for field in fields[i]]
+                [
+                str(type(getattr(m, field)))
+                .replace("<class '","").replace("'>","")
+                if hasattr(m, field)
+                else "NoneType"
+                for field in fields[i]
+                ]
             for i, m in enumerate(stackmods)
             ]
     for i, itr in enumerate(values):
@@ -259,11 +273,12 @@ def update_module():
         #TODO: figure out a good way to set type dynamically instead of trying
         #      to think of every possible data type."
         if not hasattr(mp_stack.modules[modIdx], f):
-            raise AttributeError(
+            print(
                     "Couldn't find attribute (%s)"
                     "for module at index (%d)."
                     %(f, modIdx)
                     )
+            continue
         if t == "NoneType":
             v = None
         elif t == "str":
