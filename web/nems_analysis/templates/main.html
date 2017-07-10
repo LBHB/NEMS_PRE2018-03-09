@@ -11,6 +11,9 @@
 
     <title>NEMS Analysis</title>
 
+    <!-- jquery ui plugin (resizeable divs) -->
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
     <!-- Bootstrap css -->
     <link rel="stylesheet" href=
     "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" 
@@ -21,8 +24,8 @@
     <link rel="stylesheet" href=
     "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" 
     integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" 
-    crossorigin="anonymous">
-    
+    crossorigin="anonymous">    
+
     <!-- DataTables jQuery plugin -->
     <link rel="stylesheet" href=
     "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
@@ -340,8 +343,10 @@
                 </div>
                 </div><!-- outer input group -->
                 
-                <div id="tableWrapper">
+                
+                <div id="tableWrapper" class="ui-widget-content">
                 </div>
+                
                 
                 <div class="input-group" id="tableBottom">
                 
@@ -381,17 +386,12 @@
                 </div><!-- outer input group -->
                 
                 
-                <div class="jumbotron">
-                    <div id="py_console">
-                    </div>
+                <div class="jumbotron ui-widget-content" id="py_console">
                 </div>
                 
             </div><!-- resultsArea  col -->
             
-            <div class="col-xs-4">
-                <!-- preview/plot display here? -->
-                <div id="displayWrapper">
-                </div>
+            <div class="col-xs-4 ui-widget-content" id="displayWrapper">
             </div><!-- preview/plot area col -->
             
         </div><!-- row -->
@@ -514,6 +514,10 @@
     <script type=text/javascript src=
         "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
         
+    <!-- load jquery ui -->
+    <script src=
+        "https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
     <!-- DataTables jQuery plugin -->    
     <script src=
     "https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
