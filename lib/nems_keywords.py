@@ -141,16 +141,16 @@ def poissonpupgain(stack):
     stack.append(nm.state_gain,gain_type='Poissonpupgain',fit_fields=['theta'],theta=[10,20])
     
 def butterworth01(stack):
-    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=1)
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=1)
     
 def butterworth02(stack):
-    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=2)
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=2)
     
 def butterworth03(stack):
-    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=3)
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=3)
     
 def butterworth04(stack):
-    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=4)
+    stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=4)
 
 
 # fitter keywords
@@ -200,6 +200,22 @@ def fitannl00(stack):
     
     stack.fitter=nf.anneal_min(stack,anneal_iter=50,stop=5,up_int=10,bounds=None)
     stack.fitter.tol=0.001
+    stack.fitter.do_fit()
+    
+    
+def fitannl01(stack):
+    mseidx=nu.find_modules(stack,'mean_square_error')
+    if not mseidx:
+        # add MSE calculator module to stack if not there yet
+        stack.append(nm.mean_square_error)
+        
+        # set error (for minimization) for this stack to be output of last module
+        stack.error=stack.modules[-1].error
+    
+    stack.evaluate(1)
+    
+    stack.fitter=nf.anneal_min(stack,anneal_iter=100,stop=10,up_int=5,bounds=None)
+    stack.fitter.tol=0.000001
     stack.fitter.do_fit()
     
 
