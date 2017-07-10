@@ -4,9 +4,6 @@ import db_connection
 db = db_connection.db
 SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://%s:%s@%s/%s'%(db['user'],db['passwd'],db['host'],\
                                                  db['database'])
-
-THREADS_PER_PAGE = 2
-
 # "Enable protection against cross-site request forgery"
 CSRF_ENABLED = True
 

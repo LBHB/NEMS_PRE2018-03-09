@@ -99,17 +99,14 @@ def modelpane_view():
     # TODO: dummy_mod selection is assuming that there's something in the stack
     #       other than load_mat and standard_est_eval.
     #       Is this a good assumption?
-    try:
-        dummy_mod = stackmods[1]
-    except IndexError:
-        dummy_mod = stackmods[0]
-        print("Stack only has data loader and standard eval?")
+    
+    dummy_mod = stackmods[-1]
     data_max = (len(dummy_mod.d_in) - 1)
-    shape_len = len(dummy_mod.d_in[0]['stim'].shape)
+    shape_len = dummy_mod.d_in[0]['stim'].ndim
     if shape_len == 3:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1])
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1] - 1)
     elif shape_len == 2:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0])
+        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0] - 1)
     else:
         # TODO: Would shape length ever be anything other than 2 or 3?
         stim_max = "N/A"
@@ -243,10 +240,7 @@ def update_stim_idx():
     
     # data idx stays the same
     mp_stack.plot_stimidx = int(plot_stimidx)
-    
-    print("stim idx:")
-    print(str(int(plot_stimidx)))
-    
+
     plots = re_render_plots()
     
     return jsonify(plots=plots)
@@ -304,8 +298,9 @@ def update_module():
                 print("Error converting numpy.ndarray pickle-string back to array")
                 print(e)
         else:
-            raise TypeError("Unexpected data type (" + t + ") for field: " + f)
-                
+            print("Unexpected data type (" + t + ") for field: " + f)
+            continue    
+            
         setattr(mp_stack.modules[modIdx], f, v)
         
     mp_stack.evaluate(start=modIdx)
