@@ -99,11 +99,8 @@ def modelpane_view():
     # TODO: dummy_mod selection is assuming that there's something in the stack
     #       other than load_mat and standard_est_eval.
     #       Is this a good assumption?
-    try:
-        dummy_mod = stackmods[1]
-    except IndexError:
-        dummy_mod = stackmods[0]
-        print("Stack only has data loader and standard eval?")
+    
+    dummy_mod = stackmods[-1]
     data_max = (len(dummy_mod.d_in) - 1)
     shape_len = len(dummy_mod.d_in[0]['stim'].shape)
     if shape_len == 3:
