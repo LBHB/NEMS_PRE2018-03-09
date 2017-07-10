@@ -430,7 +430,7 @@ class pupil_est_val(nems_module):
     """
  
     name='pupil_est_val'
-    user_editable_fields=['output_name','valfrac','valmode']
+    user_editable_fields=['output_name','valfrac']
     valfrac=0.05
     
     def my_init(self, valfrac=0.05):
@@ -863,7 +863,7 @@ class state_gain(nems_module):
         return(Y)
     def butterworthHP_fn(self,X,Xp):
         n=self.order
-        Y=self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
+        Y=self.theta[0,3]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
     
@@ -929,8 +929,10 @@ class mean_square_error(nems_module):
             P=np.zeros([1,1])
             N=0
             for f in self.d_out:
-                E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
-                P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
+                #E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
+                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+                #P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
+                P+=np.sum(np.square(f[self.input2]))
                 N+=f[self.input2].size
         
             if self.norm:
