@@ -132,14 +132,18 @@ textarea {
   border: 1px solid #C8C8C8;
 }
 
-#displayWrapper {
-  text-align: center;
+#displayOuter {
   margin-top: 1vh;
   height: 85vh;
   display: block;
-  overflow: auto;
+  text-align: center;
   border: 1px solid #C8C8C8;
-  vertical-align:center;      
+}
+
+#displayWrapper {
+  height: 100%;
+  overflow: auto;
+  position: relative;
 }
 
 #displayWrapper img{

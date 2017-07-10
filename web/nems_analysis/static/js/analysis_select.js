@@ -30,14 +30,37 @@ $(document).ready(function(){
     $('[data-toggle="popover"]').popover({
         trigger: 'click',
     });
-    
-    $("#displayWrapper").resizable();
-    $("#py_console").resizable();
-    $("#tableWrapper").resizable();
-    $("#displayWrapper").draggable();
-    $("#py_console").draggable();
-    $("#tableWrapper").draggable();
+     
+    function sizeDragDisplay(){
+        display = $("#displayOuter");
+        display.resizable({
+            handles: "nw, ne, se, sw"
+        });
+        //display.draggable({
+                
+        //});
+    }
+        
+    function sizeDragTable(){
+        table = $("#resultsArea");
+        table.resizable({
+            handles: "nw, ne, se, sw"     
+        });
+        //table.draggable({
+                 
+        //});
+    }
 
+    $("#selectArea").resizable({
+        handles: "nw, ne, se, sw"        
+    });
+    //$("#py_console").resizable({
+    //    handles: "nw, ne, se, sw"        
+    //});
+    //$("#py_console").draggable();
+    sizeDragDisplay();
+    sizeDragTable();
+                 
     function initTable(table){
         // Called any time results is updated -- set table options here
         table.DataTable({
@@ -226,11 +249,10 @@ $(document).ready(function(){
             success: function(data) {
                 //grabs whole div - replace inner html with new table?
                 results = $("#tableWrapper");
-                results.resizable("destroy");
-                results.draggable("destroy");
+                //results.resizable("destroy");
+                //results.draggable("destroy");
                 results.html(data.resultstable)
-                results.resizable();
-                results.draggable();
+                //sizeDragTable();
                 initTable(results.children("table"));
             },
             error: function(error) {
@@ -595,14 +617,13 @@ $(document).ready(function(){
                    bSelected:bSelected },
             type: 'GET',
             success: function(data){
-                $("#displayWrapper").resizable("destroy");
-                $("displayWrapper").draggable("destroy");
+                //$("#displayWrapper").resizable("destroy");
+                //$("displayWrapper").draggable("destroy");
                 $("#displayWrapper").html(
                         '<img id="preview_image" src="data:image/png;base64,'
                         + data.image + '" />'
                         );
-                $("#displayWrapper").resizable();
-                $("#displayWrapper").draggable();
+                //sizeDragDisplay();
             },
             error: function(error){
                 console.log(error);        
@@ -858,11 +879,10 @@ $(document).ready(function(){
                     iso:iso, snr:snr, snri:snri },
             type: 'GET',
             success: function(data){
-                plotDiv.resizable("destroy");
-                plotDiv.draggable("destroy");
+                //plotDiv.resizable("destroy");
+                //plotDiv.draggable("destroy");
                 plotDiv.html(data.script + data.div);
-                plotDiv.resizable();
-                plotDiv.draggable();
+                //sizeDragDisplay();
                 removeLoad();
             },
             error: function(error){
