@@ -34,10 +34,29 @@ def save_model(stack, file_path):
         os.stat(directory)
     except:
         os.mkdir(directory)       
-        
+    
+    try:
     # Store data (serialize)
-    with open(file_path, 'wb') as handle:
-        pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(file_path, 'wb') as handle:
+            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    except FileExistsError:
+        print("Removing existing model at: {0}".format(file_path))
+        os.remove(file_path)
+        with open(file_path, 'wb') as handle:
+            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
+    #orig_umask = os.umask(0)
+    #try:
+    #    file=os.open(
+    #            path=file_path,
+    #            flags=os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+    #            mode=0o777,
+    #            )
+    #finally:
+    #    os.umask(orig_umask)
+
+    #with os.fdopen(file, 'wb') as handle:
+    #    pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     print("Saved model to {0}".format(file_path))
 

@@ -81,7 +81,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     # save
     filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
     nu.save_model(stack,filename)
-    os.chmod(filename, 0o666)
+    #os.chmod(filename, 0o666)
     return stack
 
 """
