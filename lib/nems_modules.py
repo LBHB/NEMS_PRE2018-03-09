@@ -435,48 +435,46 @@ class pupil_est_val(nems_module):
     
     def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
+        self.crossval=self.parent_stack.cross_val
+        self.iter=int(1/valfrac)
     
     def evaluate(self):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
             #self.d_out.append(d)
-            try:
-                if d['est']:
-                    # flagged as est data
-                    self.d_out.append(d)
-                elif self.parent_stack.valmode:
-                    self.d_out.append(d)
-                    
-            except:
-                #st=d['stim'].shape
-                re=d['resp'].shape
-                #stspl=mt.ceil(st[1]*(1-self.valfrac))
-                respl=mt.ceil(re[1]*(1-self.valfrac))
+            #st=d['stim'].shape
+            re=d['resp'].shape
+            #stspl=mt.ceil(st[1]*(1-self.valfrac))
+            respl=mt.ceil(re[1]*(1-self.valfrac))
+            spl=mt.ceil(re[1]*self.valfrac)
+            
+            if self.crossval is True:
+                count=self.parent_stack.cv_counter
+            else:
+                count=0
                 
                 
-                d_est=d.copy()
-                d_val=d.copy()
+            d_est=d.copy()
+            d_val=d.copy()
                 
 
-                d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
-                d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
-                #d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
-                d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
-                d_val['resp']=copy.deepcopy(d['resp'][:,respl:,:])
-                #d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+            d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
+            d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
+            #d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
+            d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
+            d_val['resp']=copy.deepcopy(d['resp'][:,respl:,:])
+            #d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+
+            d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
+            d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
                 
-                #if 'pupil' in d.keys():
-                if d['pupil'] is not None:
-                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
+            d_est['est']=True
+            d_val['est']=False
                 
-                d_est['est']=True
-                d_val['est']=False
-                
-                self.d_out.append(d_est)
-                if self.parent_stack.valmode:
-                    self.d_out.append(d_val)
+            self.d_out.append(d_est)
+            if self.parent_stack.valmode:
+                self.d_out.append(d_val)
                     
                     
 class pupil_model(nems_module):
@@ -851,11 +849,23 @@ class state_gain(nems_module):
         Y=self.theta[0,0]+self.theta[0,1]*X*np.log(self.theta[0,2]+Xp+self.theta[0,3])
         return(Y)
     def polypupgain_fn(self,X,Xp):
+        """
+        Fits a polynomial gain function: 
+        Y = g0 + g*X + d1*X*Xp^1 + d2*X*Xp^2 + ... + d(n-1)*X*Xp^(n-1) + dn*X*Xp^n
+        """
         deg=self.theta.shape[1]
         Y=0
         for i in range(0,deg-2):
             Y+=self.theta[0,i]*X*np.power(Xp,i+1)
         Y+=self.theta[0,-2]+self.theta[0,-1]*X
+        return(Y)
+    def powerpupgain_fn(self,X,Xp):
+        """
+        Slightly different than polypugain. Y = g0 + g*X + d0*Xp^n + d*X*Xp^n
+        """
+        deg=self.order
+        v=self.theta
+        Y=v[0,0] + v[0,1]*X + v[0,2]*np.power(Xp,deg) + v[0,3]*np.multiply(X,np.power(Xp,deg))
         return(Y)
     def Poissonpupgain_fn(self,X,Xp):
         u=self.theta[0,1]
@@ -1068,6 +1078,7 @@ class nems_stack:
     meta={}
     fitter=None
     valmode=False
+    cross_val=False
     
     plot_dataidx=0
     plot_stimidx=0
@@ -1357,11 +1368,15 @@ class nems_stack:
             lis.extend([i]*reps[i])
         new_id=lis[ids]
         nu.raster_plot(data=un,stims=new_id,size=size,idx=new_id)
-        
+    
+    
     def do_sorted_raster(self,size=(12,6)):
         """
         Generates a raster plot sorted by average pupil diameter for the stimulus
         specified by self.plot_stimidx
+        
+        This function is deprecated, as the default plot for the pupil_model module
+         is now a specific raster plot function in nems_utils
         """
         un=copy.deepcopy(self.unresampled)
         res=un['resp']

@@ -29,7 +29,7 @@ example fit on nice IC cell:
     nems.fit_single_model(cellid,batch,modelname)
 
 """
-def fit_single_model(cellid, batch, modelname, autoplot=True):
+def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     """
     Fits a single NEMS model.
     Note that setting pupilspec=True will ignore evaluating validation data, 
@@ -41,31 +41,37 @@ def fit_single_model(cellid, batch, modelname, autoplot=True):
     stack.meta['batch']=batch
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
-
+    stack.cross_val=crossval
+    
     # extract keywords from modelname    
     keywords=modelname.split("_")
     
-    # evaluate each keyword in order
-    for k in keywords:
-        f = getattr(nk, k)
-        f(stack)
-
-    # measure performance on both estimation and validation data
-    stack.valmode=True
-    stack.evaluate(1)
-    corridx=nu.find_modules(stack,'correlation')
-    if not corridx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.correlation)
+    if stack.cross_val is not True:
         
-    print("Final r_est={0} r_val={1}".format(stack.meta['r_est'],stack.meta['r_val']))
-        
-    # default results plot, show validation data if exists
-    valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-    if valdata:
-        stack.plot_dataidx=valdata[0]
+        # evaluate each keyword in order
+        for k in keywords:
+            f = getattr(nk, k)
+            f(stack)
+            
+        # stack.cross_val
+        # measure performance on both estimation and validation data
+        stack.valmode=True
+        stack.evaluate(1)
+        corridx=nu.find_modules(stack,'correlation')
+        if not corridx:
+            # add MSE calculator module to stack if not there yet
+            stack.append(nm.correlation)
+            
+        print("Final r_est={0} r_val={1}".format(stack.meta['r_est'],stack.meta['r_val']))
+            
+        # default results plot, show validation data if exists
+        valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+        if valdata:
+            stack.plot_dataidx=valdata[0]
+        else:
+            stack.plot_dataidx=0
     else:
-        stack.plot_dataidx=0
+        stack.cv_counter=0
         
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
