@@ -46,6 +46,5 @@
 .plot-wrapper svg{
   display: block;
   margin: auto;
-  position: relative;
-  border: 1px solid #C8C8C8;     
+  position: relative;    
 }

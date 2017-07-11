@@ -54,9 +54,9 @@ $(document).ready(function(){
     $("#selectArea").resizable({
         handles: "nw, ne, se, sw"        
     });
-    //$("#py_console").resizable({
-    //    handles: "nw, ne, se, sw"        
-    //});
+    $("#py_console").resizable({
+        handles: "s"        
+    });
     //$("#py_console").draggable();
     sizeDragDisplay();
     sizeDragTable();
@@ -82,28 +82,26 @@ $(document).ready(function(){
     
     
     $("#selectAllCells").on('click', selectCellsCheck);
-    
     function selectCellsCheck(){
         var cellOptions = document.getElementsByName("cellOption[]");
         for (var i=0;i<cellOptions.length;i++){
             if (document.getElementById("selectAllCells").checked){
-                cellOptions[i].setAttribute("selected",true);
+                cellOptions[i].selected = true;
             } else{
-                cellOptions[i].removeAttribute("selected");
+                cellOptions[i].selected = false;
             }
         }
         updateResults();                           
     }
-    
+
     $("#selectAllModels").on('click', selectModelsCheck);
-    
     function selectModelsCheck(){
         var modelOptions = document.getElementsByName("modelOption[]");
         for (var i=0;i<modelOptions.length;i++){
             if (document.getElementById("selectAllModels").checked){
-                modelOptions[i].setAttribute("selected",true);
+                modelOptions[i].selected = true;
             } else{
-                modelOptions[i].removeAttribute("selected");
+                modelOptions[i].selected = false;
             }
         }
         updateResults();
@@ -584,11 +582,34 @@ $(document).ready(function(){
     ///////////////////////////////////////////////////////////////////////
     
     
+    CTRL = false;
+    // TODO: implement shift select
+    SHIFT = false;
+    UPPER = -1;
     
-    $(document).on('click','.dataframe tr',function(){
+    $(document).keydown(function(event){
+        if (event.ctrlKey){
+            CTRL = true;        
+        }
+        if (event.shiftKey){
+            SHIFT = true;
+        }
+    });
+    $(document).keyup(function(event){
+        CTRL = false;
+        SHIFT = false;
+    });
+    
+    $(document).on('click','.dataframe tbody tr',function(){
         if ($(this).hasClass('selectedRow')){
             $(this).removeClass('selectedRow');
         } else{
+            //comment this out for multi-select
+            if (!CTRL){
+                $(this).parents('tbody').find('.selectedRow').each(function(){
+                    $(this).removeClass('selectedRow');
+                });
+            }
             $(this).addClass('selectedRow');
         }
     });
