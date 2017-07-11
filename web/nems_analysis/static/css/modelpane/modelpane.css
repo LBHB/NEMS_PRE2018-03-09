@@ -36,3 +36,16 @@
               50% 50%
               no-repeat;
 }
+
+.plot-wrapper{
+  text-align: center;
+  height: 90%;
+  display: block;     
+}
+
+.plot-wrapper svg{
+  display: block;
+  margin: auto;
+  position: relative;
+  border: 1px solid #C8C8C8;     
+}

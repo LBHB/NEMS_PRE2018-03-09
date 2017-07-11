@@ -7,6 +7,20 @@ $(document).ready(function(){
         $('#loadingPopup').css('display', 'none');
     }
     
+    /*
+    function resizeSVG(modRow){
+        svg = $(this).find('.mpld3-figure');
+        svg.attr('width','100%');
+        svg.attr('height','100%');
+        svg.attr('viewBox','0 0 1200 400');
+        svg.attr('preserveAspectRatio','xMaxYMax');
+    }
+
+    $(".moduleRow").each(function(){
+        resizeSVG($(this).parents(".row"));
+    });
+    */
+    
     $(".plotSelect").change(updatePlot);
     function updatePlot(){
         var plotDiv = $(this).parents(".row").find(".plot-wrapper");
@@ -19,6 +33,7 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data){
                 plotDiv.html(data.html);
+                //resizeSVG(plotDiv.parents('.row'));
             },
             error: function(error){
                 console.log(error);
@@ -37,9 +52,9 @@ $(document).ready(function(){
             data: { plot_dataidx:plot_dataidx },
             type: 'GET',
             success: function(data){
-                //$(".plotSelect").each(updatePlot);
                 $(".plot-wrapper").each(function(i){
                     $(this).html(data.plots[i]);
+                    //resizeSVG($(this).parents('.row'));
                 });
                 $("#stimIdxLabel").html("Stim Index 0 to " + data.stim_max);
                 $("#changeStimIdx").val("0")
@@ -63,7 +78,8 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data){
                 $(".plot-wrapper").each(function(i){
-                    $(this).html(data.plots[i]);        
+                    $(this).html(data.plots[i]);
+                    //resizeSVG($(this).parents('.row'));
                 });
                 removeLoad();
             },
@@ -103,6 +119,7 @@ $(document).ready(function(){
                     var row = $(this);
                     if (parseInt(row.attr('name')) >= parseInt(data.modIdx)){
                         row.find('.plot-wrapper').html(data.plots[i]);
+                        //resizeSVG(row);
                         $.each(data.fields[i], function(j){
                             var field = data.fields[i][j];
                             row.find("input[name='" + field + "']")

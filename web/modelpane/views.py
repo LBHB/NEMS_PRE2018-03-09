@@ -23,7 +23,10 @@ import lib.nems_main as nems
 
 from nems_analysis import app
 
-FIGSIZE = (12,4) # width, height for matplotlib figures
+# TODO: reduced size from 12,4 to fit better on smaller res screens, but
+#       need to figure out a good way to resize svgs dynamically for screen size.
+#       (css/js solutions didn't work so far)
+FIGSIZE = (9,3) # width, height for matplotlib figures
 mp_stack = None
 
 
