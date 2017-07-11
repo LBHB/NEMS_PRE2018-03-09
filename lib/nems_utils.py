@@ -187,7 +187,37 @@ def trial_prepost_psth(m,idx=None,size=(12,4)):
 """
 def non_plot(m):
     pass
-    
+
+def raster_data(data,pres,dura,posts,fr):
+    s=data.shape
+    pres=int(pres)
+    dura=int(dura)
+    posts=int(posts)
+    xpre=np.zeros((s[2],pres*s[1]))
+    ypre=np.zeros((s[2],pres*s[1]))
+    xdur=np.zeros((s[2],dura*s[1]))
+    ydur=np.zeros((s[2],dura*s[1]))
+    xpost=np.zeros((s[2],posts*s[1]))
+    ypost=np.zeros((s[2],posts*s[1]))
+    for i in range(0,s[2]):
+        spre=0
+        sdur=0
+        spost=0
+        for j in range(0,s[1]):
+            ypre[i,spre:(spre+pres)]=(j+1)*np.clip(data[:pres,j,i],0,1)
+            xpre[i,spre:(spre+pres)]=np.divide(np.array(list(range(0,pres))),fr)
+            ydur[i,sdur:(sdur+dura)]=(j+1)*np.clip(data[pres:(pres+dura),j,i],0,1)
+            xdur[i,sdur:(sdur+dura)]=np.divide(np.array(list(range(pres,(pres+dura)))),fr)
+            ypost[i,spost:(spost+posts)]=(j+1)*np.clip(data[(pres+dura):(pres+dura+posts),j,i],0,1)
+            xpost[i,spost:(spost+posts)]=np.divide(
+                    np.array(list(range((pres+dura),(pres+dura+posts)))),fr)
+            spre+=pres
+            sdur+=dura
+            spost+=posts
+    ypre[ypre==0]=None
+    ydur[ydur==0]=None
+    ypost[ypost==0]=None
+    return(xpre,ypre,xdur,ydur,xpost,ypost)
 
 def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
     """
@@ -204,11 +234,11 @@ def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
         frequency= sampling frequency
     """
     if data is not None:
-        ins=data[0]
-        pre=data[4]
-        dur=data[2]
-        post=data[3]
-        freq=data[1]
+        ins=data['resp']
+        pre=data['prestim']
+        dur=data['duration']
+        post=data['poststim']
+        freq=data['respFs']
     else:
         ins=kwargs['data']
         pre=kwargs['pre_time']
@@ -218,38 +248,8 @@ def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
     prestim=float(pre)*freq
     duration=float(dur)*freq
     poststim=float(post)*freq
-    def raster_data(data,pres,dura,posts,fr):
-        s=data.shape
-        pres=int(pres)
-        dura=int(dura)
-        posts=int(posts)
-        xpre=np.zeros((s[2],pres*s[1]))
-        ypre=np.zeros((s[2],pres*s[1]))
-        xdur=np.zeros((s[2],dura*s[1]))
-        ydur=np.zeros((s[2],dura*s[1]))
-        xpost=np.zeros((s[2],posts*s[1]))
-        ypost=np.zeros((s[2],posts*s[1]))
-        for i in range(0,s[2]):
-            spre=0
-            sdur=0
-            spost=0
-            for j in range(0,s[1]):
-                ypre[i,spre:(spre+pres)]=(j+1)*np.clip(data[:pres,j,i],0,1)
-                xpre[i,spre:(spre+pres)]=np.divide(np.array(list(range(0,pres))),fr)
-                ydur[i,sdur:(sdur+dura)]=(j+1)*np.clip(data[pres:(pres+dura),j,i],0,1)
-                xdur[i,sdur:(sdur+dura)]=np.divide(np.array(list(range(pres,(pres+dura)))),fr)
-                ypost[i,spost:(spost+posts)]=(j+1)*np.clip(data[(pres+dura):(pres+dura+posts),j,i],0,1)
-                xpost[i,spost:(spost+posts)]=np.divide(
-                        np.array(list(range((pres+dura),(pres+dura+posts)))),fr)
-                spre+=pres
-                sdur+=dura
-                spost+=posts
-        ypre[ypre==0]=None
-        ydur[ydur==0]=None
-        ypost[ypost==0]=None
-        return(xpre,ypre,xdur,ydur,xpost,ypost)
     xpre,ypre,xdur,ydur,xpost,ypost=raster_data(ins,prestim,duration,poststim,freq)
-    if idx:
+    if idx is not None:
         plt.figure(num=str(stims)+str(100),figsize=size)
     plt.scatter(xpre[stims],ypre[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.scatter(xdur[stims],ydur[stims],color='g',s=(0.5*np.pi)*2,alpha=0.6)
@@ -258,7 +258,37 @@ def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
     #plt.xlabel('Time')
     plt.title('Stimulus #'+str(stims))
 
-
+def sorted_raster(m,idx=None,size=(12,4)):
+    resp=m.parent_stack.unresampled['resp']
+    pre=m.parent_stack.unresampled['prestim']
+    dur=m.parent_stack.unresampled['duration']
+    post=m.parent_stack.unresampled['poststim']
+    freq=m.parent_stack.unresampled['respFs']
+    reps=m.parent_stack.unresampled['repcount']
+    r=reps.shape[0]
+    prestim=float(pre)*freq
+    duration=float(dur)*freq
+    poststim=float(post)*freq
+    pup=m.parent_stack.unresampled['pupil']
+    idi=m.parent_stack.plot_stimidx
+    lis=[]
+    for i in range(0,r):
+            lis.extend([i]*reps[i])
+    ids=lis[idi]
+    b=np.nanmean(pup[:,:,ids],axis=0)
+    bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
+    bc=bc[:,1]
+    resp[:,:,ids]=resp[:,bc,ids]
+    xpre,ypre,xdur,ydur,xpost,ypost=raster_data(resp,prestim,duration,poststim,freq)
+    if idx is not None:
+        plt.figure(num=str(ids)+str(100),figsize=size)
+    plt.scatter(xpre[ids],ypre[ids],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
+    plt.scatter(xdur[ids],ydur[ids],color='g',s=(0.5*np.pi)*2,alpha=0.6)
+    plt.scatter(xpost[ids],ypost[ids],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
+    plt.ylabel('Trial')
+    #plt.xlabel('Time')
+    plt.title('Stimulus #'+str(ids))
+    
 
 #
 # Other support functions

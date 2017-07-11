@@ -171,6 +171,37 @@ def fit00(stack):
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
     
+def fit01(stack):
+    mseidx=nu.find_modules(stack,'mean_square_error')
+    if not mseidx:
+        # add MSE calculator module to stack if not there yet
+        stack.append(nm.mean_square_error)
+        
+        # set error (for minimization) for this stack to be output of last module
+        stack.error=stack.modules[-1].error
+        
+    stack.evaluate(1)
+
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.000001
+    stack.fitter.do_fit()
+    
+def fit02(stack):
+    mseidx=nu.find_modules(stack,'mean_square_error')
+    if not mseidx:
+        # add MSE calculator module to stack if not there yet
+        stack.append(nm.mean_square_error)
+        
+        # set error (for minimization) for this stack to be output of last module
+        stack.error=stack.modules[-1].error
+        
+    stack.evaluate(1)
+
+    stack.fitter=nf.basic_min(stack,routine='SLSQP')
+    stack.fitter.tol=0.000001
+    stack.fitter.do_fit()
+    
+    
 def fit00h1(stack):
     hubidx=nu.find_modules(stack,'pseudo_huber_error')
     if not hubidx:
