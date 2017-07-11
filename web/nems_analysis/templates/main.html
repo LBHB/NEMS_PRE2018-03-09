@@ -171,7 +171,7 @@
                 </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="cellDiv">
                 <label for="cellSelector"> Cell(s) </label>
                 <select multiple="multiple" class="form-control plot-form" name="celllist" size="8"
                     id="cellSelector">
@@ -180,7 +180,7 @@
                 <input type="checkbox" id="selectAllCells" checked> Select All</input>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="modelDiv">
                 <label for="modelSelector"> Model(s) </label>
                 <select multiple="multiple" class="form-control plot-form" name="modelnames" size="8"
                     id="modelSelector">
@@ -278,13 +278,13 @@
 <!--     Right-hand-side, table display and options ------------------>
 
             <div class="col-xs-5" id="resultsArea">
-                <div class="input-group">
+                <div class="input-group form-inline" id="tableButtonsTop">
                 
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type=
-                        "button">Columns</button>
+                    <button tabindex="-1" class="btn btn-default btn-sm" type=
+                        "button">Show</button>
                     <button tabindex="-1" data-toggle="dropdown" class=
-                        "btn btn-default dropdown-toggle" type="button">
+                        "btn btn-default btn-sm dropdown-toggle" type="button">
                     <span class="caret"></span></button>
                     <div id="tableColumns" class="dropdown-menu">
                         {% for col in collist %}
@@ -305,10 +305,10 @@
                 </div>
                 
                 <div class="input-group-btn">       
-                    <button tabindex="-1" class="btn btn-default" type=
-                    "button">Sort By</button>
+                    <button tabindex="-1" class="btn btn-default btn-sm" type=
+                    "button">Sort</button>
                     <button tabindex="-1" data-toggle="dropdown" class=
-                    "btn btn-default dropdown-toggle" type="button">
+                    "btn btn-default btn-sm dropdown-toggle" type="button">
                     <span class="caret"></span></button>
                     <div id="tableSort" class="dropdown-menu">
                         <li>
@@ -336,10 +336,10 @@
                 </div>
                 
                 <div class="input-group">
-                    <span class="input-group-addon" id="row-limit-label">
-                                Row Limit</span>
+                    <span class="input-group-addon input-sm" id="row-limit-label">
+                                Limit</span>
                     <input type="text" id="rowLimit" value="{{ defaultrowlimit }}"
-                                class="form-control">
+                                class="form-control input-sm">
                 </div>
                 </div><!-- outer input group -->
                 
@@ -348,11 +348,11 @@
                 </div>
                 
                 
-                <div class="input-group" id="tableBottom">
+                <div class="input-group" id="tableButtonsBottom">
                 
                 <!-- open modelpane view for result(s) selected on table -->
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
+                    <button tabindex="-1" class="btn btn-default btn-sm" type="button"
                     id="inspect"> Inspect </button>
                 </div>
                 
@@ -361,7 +361,7 @@
                 
                 <!-- open preview file for result(s) selected on table -->
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
+                    <button tabindex="-1" class="btn btn-default btn-sm" type="button"
                     id="preview"> Preview </button>
                 </div>
                 
@@ -370,7 +370,7 @@
                 
                 <!-- open STRF file for result(s) selected on table -->
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
+                    <button tabindex="-1" class="btn btn-default btn-sm" type="button"
                     id="strf"> STRF </button>
                 </div>
                 
@@ -379,8 +379,8 @@
                 
                                 <!-- clear selected rows -->
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default" type="button"
-                    id="clearSelected"> Clear Selections </button>
+                    <button tabindex="-1" class="btn btn-default btn-sm" type="button"
+                    id="clearSelected"> Clear </button>
                 </div>
                 
                 </div><!-- outer input group -->

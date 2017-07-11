@@ -18,8 +18,6 @@ In no particular order:
 
 - switch analysis editor to use id instead of name for querying
 
-- make results table, console and dipslay area resizeable
-
 - make table columns resizeable
 
 - switch table selection to DataTables implementation instead of custom JS
