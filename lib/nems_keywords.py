@@ -183,7 +183,7 @@ def fit01(stack):
     stack.evaluate(1)
 
     stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.000001
+    stack.fitter.tol=0.00000001
     stack.fitter.do_fit()
     
 def fit02(stack):

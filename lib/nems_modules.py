@@ -281,7 +281,7 @@ class load_mat(nems_module):
                 if stim_resamp_factor != 1:
                     s=data['stim'].shape
                     #new_stim_size=np.round(s[2]*stim_resamp_factor)
-                    print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    #print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
@@ -292,7 +292,7 @@ class load_mat(nems_module):
                 if resp_resamp_factor != 1:
                     s=data['resp'].shape
                     #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    #print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
@@ -302,7 +302,7 @@ class load_mat(nems_module):
                 if data['pupil'] is not None and resp_resamp_factor != 1:
                     s=data['pupil'].shape
                     #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    #print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
@@ -436,7 +436,7 @@ class pupil_est_val(nems_module):
     def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
         self.crossval=self.parent_stack.cross_val
-        self.iter=int(1/valfrac)
+        self.iter=int(1/valfrac)-1
     
     def evaluate(self):
         del self.d_out[:]
@@ -453,28 +453,35 @@ class pupil_est_val(nems_module):
                 count=self.parent_stack.cv_counter
             else:
                 count=0
-                
-                
+            count=count*spl
+            #print('count='+str(count))
             d_est=d.copy()
             d_val=d.copy()
-                
+            
+            d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+            d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
+            d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
+            d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+            d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
+            d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
 
-            d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
-            d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
-            #d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
-            d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
-            d_val['resp']=copy.deepcopy(d['resp'][:,respl:,:])
-            #d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+            #d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
+            #d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
+            ##d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
+            ##d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
 
             d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
             d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
                 
             d_est['est']=True
             d_val['est']=False
-                
+            
             self.d_out.append(d_est)
             if self.parent_stack.valmode:
                 self.d_out.append(d_val)
+                
+        if self.parent_stack.cv_counter==self.iter:
+            self.parent_stack.cond=True
                     
                     
 class pupil_model(nems_module):
@@ -1258,6 +1265,10 @@ class nems_stack:
     def popmodule(self, mod=nems_module()):
         del self.modules[-1]
         del self.data[-1]
+        
+    def clear(self):
+        del self.modules[1:]
+        del self.data[1:]
         
     def output(self):
         return self.data[-1]

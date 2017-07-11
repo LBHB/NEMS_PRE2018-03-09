@@ -5,7 +5,7 @@ Created on Sun Jun 18 20:16:37 2017
 
 @author: svd
 """
-
+import numpy as np
 import lib.nems_modules as nm
 import lib.nems_fitters as nf
 import lib.nems_utils as nu
@@ -32,9 +32,10 @@ example fit on nice IC cell:
 def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     """
     Fits a single NEMS model.
-    Note that setting pupilspec=True will ignore evaluating validation data, 
-    and will plot individual trials. Added for dealing with batch 294 data
-    --njs, June 29 2017
+    
+    Working on getting cross-validation working. Currently works with crossval 
+    set to False.
+    --njs July 11 2017
     """
     stack=nm.nems_stack()
     
@@ -45,7 +46,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     
     # extract keywords from modelname    
     keywords=modelname.split("_")
-    
+    stack.cv_counter=0
     if stack.cross_val is not True:
         
         # evaluate each keyword in order
@@ -71,8 +72,37 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
         else:
             stack.plot_dataidx=0
     else:
-        stack.cv_counter=0
+        stack.cond=False
+        mselist=[]
+        r_est_list=[]
+        r_val_list=[]
+        while stack.cond is False:
+            print('iter loop='+str(stack.cv_counter))
+            stack.clear()
+            stack.valmode=False
+            for k in keywords:
+                f = getattr(nk, k)
+                f(stack)
+            
+            # measure performance on both estimation and validation data
+            stack.valmode=True
+            stack.evaluate(1)
+            corridx=nu.find_modules(stack,'correlation')
+            if not corridx:
+                # add MSE calculator module to stack if not there yet
+                stack.append(nm.correlation)
+            print("mse_est={0}, r_est={1}, r_val={2}".format(stack.meta['mse_est'],stack.meta['r_est'],stack.meta['r_val']))
+            mselist.append(stack.meta['mse_est'])
+            r_est_list.append(stack.meta['r_est'])
+            r_val_list.append(stack.meta['r_val'])
+            
+            
+            stack.cv_counter+=1
+        stack.meta['mse_est']=np.median(np.array(mselist))
+        stack.meta['r_est']=np.median(np.array(r_est_list))
+        stack.meta['r_val']=np.median(np.array(r_val_list))
         
+        print("Median: mse_est={0}, r_est={1}, r_val={2}".format(stack.meta['mse_est'],stack.meta['r_est'],stack.meta['r_val']))    
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
     if autoplot:

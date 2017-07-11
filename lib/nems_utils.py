@@ -238,36 +238,27 @@ def raster_data(data,pres,dura,posts,fr):
     ypost[ypost==0]=None
     return(xpre,ypre,xdur,ydur,xpost,ypost)
 
-def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
+def raster_plot(m,idx=None,size=(12,6)):
     """
     This function generates a raster plot of the data for the specified stimuli.
     It shows the spikes that occur during the actual trial in green, and the background
     spikes in grey. 
-    
-    Can be called either from nems_stack attr do_raster_plot,
-    or by manually inputing keyworded data:
-        data= response raster
-        pre_time= prestim silence time
-        dur_time= stimulus duration
-        post_time= poststim silence
-        frequency= sampling frequency
     """
-    if data is not None:
-        ins=data['resp']
-        pre=data['prestim']
-        dur=data['duration']
-        post=data['poststim']
-        freq=data['respFs']
-    else:
-        ins=kwargs['data']
-        pre=kwargs['pre_time']
-        dur=kwargs['dur_time']
-        post=kwargs['post_time']
-        freq=kwargs['frequency']
+    resp=m.parent_stack.unresampled['resp']
+    pre=m.parent_stack.unresampled['prestim']
+    dur=m.parent_stack.unresampled['duration']
+    post=m.parent_stack.unresampled['poststim']
+    freq=m.parent_stack.unresampled['respFs']
+    reps=m.parent_stack.unresampled['repcount']
+    r=reps.shape[0]
     prestim=float(pre)*freq
     duration=float(dur)*freq
     poststim=float(post)*freq
-    xpre,ypre,xdur,ydur,xpost,ypost=raster_data(ins,prestim,duration,poststim,freq)
+    lis=[]
+    for i in range(0,r):
+        lis.extend([i]*reps[i])
+    stims=lis[ids]
+    xpre,ypre,xdur,ydur,xpost,ypost=raster_data(resp,prestim,duration,poststim,freq)
     if idx is not None:
         plt.figure(num=str(stims)+str(100),figsize=size)
     plt.scatter(xpre[stims],ypre[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
