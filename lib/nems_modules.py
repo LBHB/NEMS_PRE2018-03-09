@@ -29,7 +29,7 @@ class nems_module:
     d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
     d_out=None # pointer to output, parent_stack.d[i+!]
     fit_fields=[]  # what fields should be fed to phi for fitting
-    
+
     #
     # Begin standard functions
     #
@@ -272,8 +272,8 @@ class load_mat(nems_module):
                 stim_resamp_factor=int(data['stimFs']/self.fs)
                 resp_resamp_factor=int(data['respFs']/self.fs)
                 
-                self.parent_stack.unresampled=[data['resp'],data['respFs'],data['duration'],
-                                               data['poststim'],data['prestim'],data['pupil']]
+                self.parent_stack.unresampled={'resp':data['resp'],'respFs':data['respFs'],'duration':data['duration'],
+                                               'poststim':data['poststim'],'prestim':data['prestim'],'pupil':data['pupil']}
                 
                 
                 # reshape stimulus to be channel X time
@@ -314,7 +314,7 @@ class load_mat(nems_module):
                     
                 # average across trials
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
-                self.parent_stack.unresampled.append(data['repcount'])
+                self.parent_stack.unresampled['repcount']=data['repcount']
                 #print(data['stim'].shape)
                 #print(data['resp'].shape)
                 #print(data['pupil'].shape)
@@ -481,8 +481,8 @@ class pupil_est_val(nems_module):
                     
 class pupil_model(nems_module):
     name='pupil_model'
-    plot_fns=[nu.plot_stim_psth]
-    
+    plot_fns=[nu.sorted_raster]
+
     def my_init(self,tile_data=True):
         self.tile_data=tile_data
    
@@ -863,7 +863,7 @@ class state_gain(nems_module):
         return(Y)
     def butterworthHP_fn(self,X,Xp):
         n=self.order
-        Y=self.theta[0,3]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
+        Y=self.theta[0,2]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
     
@@ -1044,6 +1044,7 @@ class correlation(nems_module):
         
             return r_val
         else:
+            print('r_est')
             return r_est
     
         
@@ -1343,28 +1344,41 @@ class nems_stack:
 #                m.do_trial_plot(m,idx)
 
                 
-    def do_raster_plot(self):
+    def do_raster_plot(self,size=(12,6)):
         """
         Generates a raster plot for the stimulus specified by self.plot_stimidx
         """
         un=self.unresampled
-        nu.raster_plot(data=un,stims=self.plot_stimidx,size=(12,6))
+        reps=un['repcount']
+        ids=self.plot_stimidx
+        r=reps.shape[0]
+        lis=[]
+        for i in range(0,r):
+            lis.extend([i]*reps[i])
+        new_id=lis[ids]
+        nu.raster_plot(data=un,stims=new_id,size=size,idx=new_id)
         
-    def do_sorted_raster(self):
+    def do_sorted_raster(self,size=(12,6)):
         """
         Generates a raster plot sorted by average pupil diameter for the stimulus
         specified by self.plot_stimidx
         """
         un=copy.deepcopy(self.unresampled)
-        res=un[0]
-        pup=un[5]
-        ids=self.plot_stimidx
+        res=un['resp']
+        pup=un['pupil']
+        reps=un['repcount']
+        r=reps.shape[0]
+        idz=self.plot_stimidx
+        lis=[]
+        for i in range(0,r):
+            lis.extend([i]*reps[i])
+        ids=lis[idz]
         b=np.nanmean(pup[:,:,ids],axis=0)
         bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
         bc=bc[:,1]
         res[:,:,ids]=res[:,bc,ids]
-        un[0]=res
-        nu.raster_plot(data=un,stims=ids,size=(12,6))
+        un['resp']=res
+        nu.raster_plot(data=un,stims=ids,size=size,idx=ids)
         return(res)
            
             

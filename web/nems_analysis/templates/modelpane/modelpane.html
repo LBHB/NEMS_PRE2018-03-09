@@ -175,12 +175,8 @@
                 </div>
             </div><!-- end col -->
             
-            <div class="col-xs-8">
-            
-                <div class="plot-wrapper" id="plot{{ loop.index-1 }}">
-                    {{ plots[loop.index-1]|safe }}
-                </div> <!-- plot-wrapper -->
-
+            <div class="col-xs-8 plot-wrapper" id="plot{{ loop.index-1 }}">
+                {{ plots[loop.index-1] | safe }}
             </div><!-- end col -->
         </div><!-- end row -->
   
