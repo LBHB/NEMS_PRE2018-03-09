@@ -120,6 +120,9 @@ textarea {
 }
 */
 
+#queuelimitDiv {
+  display: none;      
+}
 
 #modelButtons button{
   margin:2px;        

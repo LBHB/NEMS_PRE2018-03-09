@@ -109,8 +109,17 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     if autoplot:
         stack.quick_plot()
     
+    # add tag to end of modelname if crossvalidated
+    if crossval:
+        xval = "_xval"
+    else:
+        xval = ""
+    
     # save
-    filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
+    filename=(
+            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}{3}.pkl"
+            .format(batch, cellid, modelname, xval)
+            )
     nu.save_model(stack,filename)
     #os.chmod(filename, 0o666)
     return stack
@@ -129,7 +138,14 @@ example:
 """
 def load_single_model(cellid,batch,modelname):
     
-    filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
+    filename=(
+            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
+            .format(batch, cellid, modelname)
+            )
+    # For now don't do anything different to cross validated models.
+    # TODO: should these be loaded differently in the future?
+    filename = filename.strip('_xval')
+    
     stack=nu.load_model(filename)
     stack.evaluate()
     
