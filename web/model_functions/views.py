@@ -43,20 +43,28 @@ def fit_single_model_view():
     cSelected = request.args.getlist('cSelected[]')
     bSelected = request.args.get('bSelected')[:3]
     mSelected = request.args.getlist('mSelected[]')
-
+    crossval = request.args.get('crossVal')
+    
     # Disallow multiple cell/model selections for a single fit.
     if (len(cSelected) > 1) or (len(mSelected) > 1):
         return jsonify(r_est='error',r_val='more than 1 cell and/or model')
-        
+    if int(crossval):
+        crossval = True
+    else:
+        crossval = False
+    
     print(
             "Beginning model fit -- this may take several minutes.",
             "Please wait for a success/failure response.",
             )
     try:
         stack = nems.fit_single_model(
-                cellid=cSelected[0], batch=bSelected, modelname=mSelected[0],
-                autoplot=False,
-                )
+                        cellid=cSelected[0],
+                        batch=bSelected,
+                        modelname=mSelected[0],
+                        autoplot=False,
+                        crossval=crossval,
+                        )
     except Exception as e:
         print("Error when calling nems_main.fit_single_model")
         print(e)
@@ -107,6 +115,12 @@ def enqueue_models_view():
     bSelected = request.args.get('bSelected')[:3]
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
+    crossval = request.args.get('crossVal')
+    
+    if int(crossval):
+        crossval = True
+    else:
+        crossval = False
     
     # TODO: What should this return? What does the user need to see?
     # data = enqueue_models(celllist=cSelected,batch=bSelected,
@@ -120,9 +134,12 @@ def enqueue_models_view():
         model = combo[1]
         try:
             stack = nems.fit_single_model(
-                    cellid=cell, batch=bSelected,
-                    modelname=model, autoplot=False,
-                    )
+                            cellid=cell,
+                            batch=bSelected,
+                            modelname=model,
+                            autoplot=False,
+                            crossval=crossval,
+                            )
         except Exception as e:
             print("Error when calling nems.fit_single_model for " + mSelected)
             print(e)

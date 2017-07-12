@@ -202,11 +202,19 @@
                 </div>
                 
                 <div class="input-group">
-                    <input type="text" id="queuelimit" size="5" value="20">
-                    <span class="lbl" for="queuelimit"> Queue Limit </span>
+                    <button type="button" class="btn btn-default btn-xs"
+                    id="toggleQueueLimit">Q Limit</button>
                 </div>
                 
+                <div class="input-group" id="queuelimitDiv">
+                    <input type="text" id="queuelimit" size="5" value="20">
                 </div>
+                
+                <div class="input-group">
+                    <input type="checkbox" id="crossVal" value="1"> Cross Val
+                </div>
+                
+                </div><!-- model buttons end -->
                 
                 <div class="form-group form-inline" id="plotMeasureTypeGroupLabels">
                     <label for="measureSelector"> Performance Measure </label>

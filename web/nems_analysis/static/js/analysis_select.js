@@ -680,11 +680,25 @@ $(document).ready(function(){
         $('#loadingPopup').css('display', 'none');
     }
     
+    $("#toggleQueueLimit").on('click',function(){
+        var qld = $('#queuelimitDiv');
+        if (qld.css('display') === 'block'){
+            qld.css('display', 'none');
+        } else if (qld.css('display') === 'none'){
+            qld.css('display', 'block');
+        } else{
+            return false;        
+        }
+    })
     
     $("#fitSingle").on('click',function(){   
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
+        var crossVal = 0;
+        if (document.getElementById('crossVal').checked){
+            crossVal = 1;
+        }
         
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
@@ -714,7 +728,7 @@ $(document).ready(function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/fit_single_model',
             data: { bSelected:bSelected, cSelected:cSelected,
-                       mSelected:mSelected },
+                       mSelected:mSelected, crossVal:crossVal },
             // TODO: should use POST maybe in this case?
             type: 'GET',
             timeout: 0,
@@ -744,6 +758,10 @@ $(document).ready(function(){
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
         var queuelimit = $("#queuelimit").val();
+        var crossVal = 0;
+        if (document.getElementById('crossVal').checked){
+            crossVal = 1;
+        }
                           
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
@@ -774,7 +792,8 @@ $(document).ready(function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/enqueue_models',
             data: { bSelected:bSelected, cSelected:cSelected,
-                   mSelected:mSelected, queuelimit:queuelimit },
+                   mSelected:mSelected, queuelimit:queuelimit,
+                   crossVal:crossVal },
             // TODO: should POST be used in this case?
             type: 'GET',
             success: function(data){
