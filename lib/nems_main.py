@@ -111,7 +111,10 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     
     # add tag to end of modelname if crossvalidated
     if crossval:
-        xval = "_xval"
+        # took tag out for now, realized it would cause issues with loader.
+        # TODO: how should load model handle the tag? Or don't bother wih tag?
+        xval = ""
+        #xval = "_xval"
     else:
         xval = ""
     
@@ -136,7 +139,7 @@ example:
     stack.quick_plot()
     
 """
-def load_single_model(cellid,batch,modelname):
+def load_single_model(cellid, batch, modelname):
     
     filename=(
             "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
@@ -144,7 +147,7 @@ def load_single_model(cellid,batch,modelname):
             )
     # For now don't do anything different to cross validated models.
     # TODO: should these be loaded differently in the future?
-    filename = filename.strip('_xval')
+    #filename = filename.strip('_xval')
     
     stack=nu.load_model(filename)
     stack.evaluate()
