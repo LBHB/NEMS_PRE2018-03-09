@@ -13,6 +13,7 @@ import lib.nems_keywords as nk
 import lib.baphy_utils as baphy_utils
 import os
 import datetime
+import copy
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -77,6 +78,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
         mselist=[]
         r_est_list=[]
         r_val_list=[]
+        stack_list=[]
         while stack.cond is False:
             print('iter loop='+str(stack.cv_counter))
             stack.clear()
@@ -96,6 +98,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             mselist.append(stack.meta['mse_est'])
             r_est_list.append(stack.meta['r_est'])
             r_val_list.append(stack.meta['r_val'])
+            stack_list.append(copy.deepcopy(stack))
             
             
             stack.cv_counter+=1
@@ -113,7 +116,10 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
     nu.save_model(stack,filename)
     #os.chmod(filename, 0o666)
-    return stack
+    if stack.cross_val is not True:
+        return(stack)
+    else:
+        return(stack_list)
 
 """
 load_single_model - load and evaluate a model, specified by cellid, batch and modelname
