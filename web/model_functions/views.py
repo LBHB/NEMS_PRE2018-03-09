@@ -24,6 +24,8 @@ import matplotlib.pyplot as plt, mpld3
 
 from nems_analysis import app, NarfResults, Session
 #from model_functions.modelfit import fit_single_model, enqueue_models
+import sys
+sys.path.append('/auto/users/shofer/nems')
 import lib.nems_utils as nu
 import lib.nems_modules as nm
 import lib.nems_keywords as nk
