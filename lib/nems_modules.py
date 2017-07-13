@@ -455,7 +455,7 @@ class pupil_est_val(nems_module):
             
             count=self.parent_stack.cv_counter
             count=count*spl
-            
+
             avg=np.nanmean(d['resp'],axis=1)
             #print('count='+str(count))
             d_est=d.copy()
@@ -475,8 +475,8 @@ class pupil_est_val(nems_module):
             ##d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
             ##d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
 
-            d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
-            d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
+            #d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
+            #d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
                 
             d_est['est']=True
             d_val['est']=False
