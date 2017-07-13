@@ -51,10 +51,11 @@ $(document).ready(function(){
         handles: "n, w, e, s"        
     });
     $("#py_console").resizable({
-        handles: "n, s, e, w"        
+        handles: "n, s"        
     });
     $("#py_console").draggable();
     $("#selectArea").draggable();
+
     sizeDragDisplay();
     sizeDragTable();
     //drags start out disabld until alt is pressed

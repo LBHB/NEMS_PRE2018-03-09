@@ -22,7 +22,7 @@ from bokeh.models import (
         ColumnDataSource, HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
         PanTool, ResetTool, Range1d, FactorRange,
         )
-from bokeh.charts import Bar, BoxPlot
+from bokeh.charts import BoxPlot
 from bokeh.models.glyphs import VBar,Circle
 import pandas as pd
 import numpy as np
@@ -469,7 +469,10 @@ class Bar_Plot(PlotGenerator):
                 ResetTool(), self.create_hover()
                 ]
         xrange = FactorRange(factors=modelnames)
-        yrange = Range1d(start=0, end=max(newData['mean'])*1.5)
+        yrange = Range1d(
+                start=0,
+                end=(max(newData['mean'])*1.5)
+                )
         p = figure(
                 x_range=xrange, x_axis_label='Model',
                 y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
