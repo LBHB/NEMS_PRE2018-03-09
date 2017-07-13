@@ -115,7 +115,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     if stack.cross_val is not True:
         return(stack)
     else:
-        #TODO: Something funky is happening here
+        #TODO: Figure out best way to output data
         E=0
         P=0
         val_stim=np.concatenate(val_stim_list,axis=0)
@@ -130,7 +130,6 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
         stack.meta['r_est']=np.median(np.array(r_est_list))
         val_stim=val_stim.reshape([-1,1],order='C')
         val_resp=val_resp.reshape([-1,1],order='C')
-        print(val_stim.shape,val_resp.shape)
         
         stack.meta['r_val'],p=spstats.pearsonr(val_stim,val_resp)
         #stack.meta['r_val']=np.median(np.array(r_val_list))

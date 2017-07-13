@@ -267,14 +267,18 @@ def raster_plot(m,idx=None,size=(12,6)):
     post=m.parent_stack.unresampled['poststim']
     freq=m.parent_stack.unresampled['respFs']
     reps=m.parent_stack.unresampled['repcount']
+    ids=m.parent_stack.plot_stimidx
     r=reps.shape[0]
     prestim=float(pre)*freq
     duration=float(dur)*freq
     poststim=float(post)*freq
-    lis=[]
-    for i in range(0,r):
-        lis.extend([i]*reps[i])
-    stims=lis[ids]
+    if m.parent_stack.unresampled['pupil'] is not None:
+        lis=[]
+        for i in range(0,r):
+            lis.extend([i]*reps[i])
+        stims=lis[ids]
+    else:
+        stims=ids
     xpre,ypre,xdur,ydur,xpost,ypost=raster_data(resp,prestim,duration,poststim,freq)
     if idx is not None:
         plt.figure(num=str(stims)+str(100),figsize=size)

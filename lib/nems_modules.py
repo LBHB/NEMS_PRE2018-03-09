@@ -358,11 +358,12 @@ class load_mat(nems_module):
             #PostStimSilence=data['PostStimSilence'][0,0]
 
     
-"""
-Special module(s) for organizing/splitting estimation and validation data.
-Currently just one that replicates (mostly) the standard procedure from NARF
-"""
+
 class standard_est_val(nems_module):
+    """
+    Special module(s) for organizing/splitting estimation and validation data.
+    Currently just one that replicates (mostly) the standard procedure from NARF
+    """
  
     name='standard_est_val'
     user_editable_fields=['output_name','valfrac']
@@ -423,10 +424,58 @@ class standard_est_val(nems_module):
                 if self.parent_stack.valmode:
                     self.d_out.append(d_val)
                     
+class xval_est_val(nems_module):
+    
+    name='xval_est_val'
+    user_editable_fields=['output_name','valfrac']
+    valfrac=0.05
+    
+    def my_init(self,valfrac=0.05):
+        self.valfrac=valfrac
+        self.crossval=self.parent_stack.cross_val
+        try:
+            self.iter=int(1/valfrac)-1
+        except:
+            self.iter=0
+            
+    def evaluate(self):
+        del self.d_out[:]
+         # for each data file:
+        for i, d in enumerate(self.d_in):
+            re=d['resp'].shape
+            spl=mt.ceil(re[0]*self.valfrac)
+            
+            count=self.parent_stack.cv_counter
+            count=count*spl
+            
+            d_est=d.copy()
+            d_val=d.copy()
+            
+            d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+            d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+            d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+            
+            d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+            d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+            d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+
+            
+            d_est['est']=True
+            d_val['est']=False
+                 
+            self.d_out.append(d_est)
+            if self.parent_stack.valmode:
+                self.d_out.append(d_val)
+                
+        if self.parent_stack.cv_counter==self.iter:
+            self.parent_stack.cond=True
+            
 class pupil_est_val(nems_module):
     """
     Breaks imported data into est/val. Use with pupil_model and batch 294 data, where 
     there are only 2 stimuli, so takes some trials from both stimuli as "validation" data.
+    
+    Compatible with cross-validation.
     """
  
     name='pupil_est_val'
@@ -816,9 +865,6 @@ class nonlinearity(nems_module):
         return(Z)
 
                  
-
-#TODO: might change this to accommodate multiple pupil gain functions (nonlinear?). Will see 
-#how easy this is to do with nonlinearity module before proceeding --njs, June 29 2017
 class state_gain(nems_module): 
     """
     state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
@@ -881,11 +927,17 @@ class state_gain(nems_module):
         v=self.theta
         Y=v[0,0] + v[0,1]*X + v[0,2]*np.power(Xp,deg) + v[0,3]*np.multiply(X,np.power(Xp,deg))
         return(Y)
-    def Poissonpupgain_fn(self,X,Xp):
+    def Poissonpupgain_fn(self,X,Xp): #Kinda useless, might delete ---njs
         u=self.theta[0,1]
         Y=self.theta[0,0]*X*np.divide(np.exp(-u)*np.power(u,Xp),sx.factorial(Xp))
         return(Y)
     def butterworthHP_fn(self,X,Xp):
+        """
+        Applies a Butterworth high pass filter to the pupil data, with a DC offset.
+        Pupil diameter is treated here as analogous to frequency, and the fitted 
+        parameters are DC offset, overall gain, and f3dB. Order is specified, and
+        controls how fast the rolloff is.
+        """
         n=self.order
         Y=self.theta[0,2]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
@@ -1088,6 +1140,9 @@ class nems_stack:
                   that takes place at each modules step
 
     """
+    #TODO: maybe in the future we want to put nems_stack into its own file? Would 
+    #probably take some work, but might reduce clutter in this file ---njs 13 July 2017
+    
     modelname=None
     modules=[]  # stack of modules
     mod_names=[]
