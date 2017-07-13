@@ -25,19 +25,24 @@ file=bu.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt=
 print("Initializing load_mat with file {0}".format(file))
 
 stack.append(nm.load_mat,est_files=[file],fs=50,formpup=False)
-stack.append(nm.pupil_est_val,valfrac=0.05)
+stack.cv_counter=0
+stack.append(nm.pupil_est_val,valfrac=0.00)
+
 #stack.append(nm.normalize)
 
 stack.append(nm.pupil_model,tile_data=True)
+unpacked=stack.modules[-1].unpack_data()
+unpackresp=stack.modules[-1].unpack_data(name='resp')
+
 
 #smalldata=copy.deepcopy(stack.data)
-#stack.append(nm.state_gain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
+stack.append(nm.state_gain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
 #stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,10,10])
 #stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1]) #polypup03
 #stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=4)
 #stack.append(nm.state_gain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
 #stack.append(nm.state_gain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,0,0,1])
-stack.append(nm.state_gain,gain_type='powerpupgain',fit_fields=['theta'],theta=[0,1,0,0],order=2)
+#stack.append(nm.state_gain,gain_type='powerpupgain',fit_fields=['theta'],theta=[0,1,0,0],order=2)
 
 #stack.append(nm.pseudo_huber_error,b=0.3)
 stack.append(nm.mean_square_error)
@@ -50,20 +55,19 @@ stack.fitter.tol=0.000000001
 stack.fitter.do_fit()
 print(stack.error())
 
+stack.valmode=False
+#stack.evaluate(1)
+corridx=nu.find_modules(stack,'correlation')
+if not corridx:
+    stack.append(nm.correlation)
 
-stack.append(nm.correlation)
-a=stack.modules[-1].evaluate()
-print(a)
-stack.valmode=True
-b=stack.modules[-1].evaluate()
-print(b)
 #alldata=copy.deepcopy(stack.data)
 #reps=stack.data[1][0]['repcount']
 #smalldata=copy.deepcopy(stack.data)
 unres=stack.unresampled
 stack.plot_stimidx=130 #Choose which stimulus to plot
 #stack.plot_trialidx=(10,11) #Choose which trials to display
-
+datas=stack.data
 #print(stack.modules[3].theta)                   
 #stack.do_sorted_raster(size=(12,4))
 stack.quick_plot()

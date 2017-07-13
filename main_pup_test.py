@@ -5,7 +5,7 @@ Created on Wed Jul  5 12:02:27 2017
 
 @author: shofer
 """
-
+import numpy as np
 import lib.nems_keywords as nk
 import lib.nems_utils as nu
 import lib.baphy_utils as bu
@@ -27,7 +27,17 @@ for i in filelist:
 """modlist=['nopupgain','pupgain','polypupgain02','polypupgain03','polypupgain04','exppupgain','logpupgain',
          'butterworth01','butterworth02','butterworth03','butterworth04','poissonpupgain']"""
 
-stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil100_powergain02_fit01', autoplot=True,crossval=True)
+stack=mn.fit_single_model('eno052b-a1', 294, 'perfectpupil50_nopupgain_fit01', autoplot=True,crossval=False)
+#stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_nopupgain_fit01', autoplot=True,crossval=False)
+#print(slist.__len__())
+#dat1=slist[1].data
+#dat2=slist[19].data[-1][1]['repcount'].shape[0]
 
-alldata=copy.deepcopy(stack.data)
-
+#valarr=np.split(slist[0].data[-1][1]['stim'],slist[0].data[-1][1]['repcount'].shape[0],0)
+#for i in slist[1:]:
+    #valarr=np.append(valarr,i.data[-1][1]['stim'],axis=0)
+    
+    
+    
+#alldata=copy.deepcopy(stack.data[0])
+#allmods=copy.deepcopy(stack.modules)

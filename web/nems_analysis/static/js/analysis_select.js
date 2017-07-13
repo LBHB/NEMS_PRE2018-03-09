@@ -70,6 +70,8 @@ $(document).ready(function(){
     });
                  
     function initTable(table){
+        // turned off DataTable for now since it wasn't being used for much.
+        return false;
         // Called any time results is updated -- set table options here
         table.DataTable({
             paging: false,

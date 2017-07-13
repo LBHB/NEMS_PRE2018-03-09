@@ -82,7 +82,7 @@ class nems_module:
     
     def unpack_data(self,name='stim',est=True):
         """
-        unpack_data - extact a data variable from all files into a single
+        unpack_data - extract a data variable from all files into a single
         matrix (concatenated across files)
         """
         m=self
@@ -95,19 +95,19 @@ class nems_module:
         for i, d in enumerate(m.d_in):
             if not 'est' in d.keys():
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1])))
+                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
                 else:
-                    X=np.concatenate((X,d[name].reshape([s[0],-1])),axis=1)
+                    X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
             elif (est and d['est']):
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1])))
+                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
                 else:
-                    X=np.concatenate((X,d[name].reshape([s[0],-1])),axis=1)
+                    X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
             elif not est and not d['est']:
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1])))
+                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
                 else:
-                    X=np.concatenate((X,d[name].reshape([s[0],-1])),axis=1)
+                    X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
                 
         return X
     
@@ -431,12 +431,16 @@ class pupil_est_val(nems_module):
  
     name='pupil_est_val'
     user_editable_fields=['output_name','valfrac']
+    #plot_fns=[nu.non_plot]
     valfrac=0.05
     
     def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
         self.crossval=self.parent_stack.cross_val
-        self.iter=int(1/valfrac)-1
+        try:
+            self.iter=int(1/valfrac)-1
+        except:
+            self.iter=0
     
     def evaluate(self):
         del self.d_out[:]
@@ -449,20 +453,21 @@ class pupil_est_val(nems_module):
             respl=mt.ceil(re[1]*(1-self.valfrac))
             spl=mt.ceil(re[1]*self.valfrac)
             
-            if self.crossval is True:
-                count=self.parent_stack.cv_counter
-            else:
-                count=0
+            count=self.parent_stack.cv_counter
             count=count*spl
+            
+            avg=np.nanmean(d['resp'],axis=1)
             #print('count='+str(count))
             d_est=d.copy()
             d_val=d.copy()
             
-            d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+            d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64')
             d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
+            d_val['stim']=avg
             d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
-            d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+            d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
             d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
+            d_est['stim']=avg
             d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
 
             #d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
@@ -482,11 +487,12 @@ class pupil_est_val(nems_module):
                 
         if self.parent_stack.cv_counter==self.iter:
             self.parent_stack.cond=True
+        
                     
                     
 class pupil_model(nems_module):
     name='pupil_model'
-    plot_fns=[nu.sorted_raster]
+    plot_fns=[nu.sorted_raster,nu.raster_plot]
 
     def my_init(self,tile_data=True):
         self.tile_data=tile_data
@@ -499,7 +505,8 @@ class pupil_model(nems_module):
         for f_in,f_out in zip(self.d_in,self.d_out):
             X=copy.deepcopy(f_in['resp'])
             Xp=copy.deepcopy(f_in['pupil'])
-            Xa=np.nanmean(X,axis=1)
+            #Xa=np.nanmean(X,axis=1)
+            Xa=copy.deepcopy(f_in['stim'])
             if self.tile_data is True:
                 s=Xp.shape 
                 #Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
@@ -957,8 +964,13 @@ class mean_square_error(nems_module):
             else:
                 mse=E/N
                 
-        self.mse_est=mse
-        self.parent_stack.meta['mse_est']=mse
+        if self.parent_stack.valmode is True:   
+            self.mse_val=mse
+            self.parent_stack.meta['mse_val']=mse
+        else:
+            self.mse_est=mse
+            self.parent_stack.meta['mse_est']=mse
+        
         
         return mse
 
@@ -1051,7 +1063,7 @@ class correlation(nems_module):
         r_est,p=spstats.pearsonr(X1,X2)
         self.r_est=r_est
         self.parent_stack.meta['r_est']=r_est
-
+                              
         X1=self.unpack_data(self.input1,est=False)            
         if X1.size:
             X2=self.unpack_data(self.input2,est=False)
@@ -1061,8 +1073,7 @@ class correlation(nems_module):
         
             return r_val
         else:
-            print('r_est')
-            return r_est
+            return (r_est)
     
         
 class nems_stack:
@@ -1283,10 +1294,13 @@ class nems_stack:
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
+                print(self.mod_names[idx])
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
         plt.tight_layout()
+        #TODO: Use gridspec to fix spacing issue? Addition of labels makes
+        #      the subplots look "scrunched" vertically.
     
     def quick_plot_save(self, mode=None):
         """Copy of quick_plot for easy save or embed.
