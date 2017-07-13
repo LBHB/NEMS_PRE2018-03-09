@@ -1287,6 +1287,8 @@ class nems_stack:
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
         plt.tight_layout()
+        #TODO: Use gridspec to fix spacing issue? Addition of labels makes
+        #      the subplots look "scrunched" vertically.
     
     def quick_plot_save(self, mode=None):
         """Copy of quick_plot for easy save or embed.
