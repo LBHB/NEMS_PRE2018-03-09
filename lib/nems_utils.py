@@ -88,17 +88,17 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
+    reps=out1['repcount']
+    ids=m.parent_stack.plot_stimidx
+    r=reps.shape[0]
+    lis=[]
+    for i in range(0,r):
+        lis.extend([i]*reps[i])
+    new_id=lis[ids]
     if out1['stim'].ndim==3:
         try:
             plt.imshow(out1['stim'][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower', interpolation='none')
         except:
-            reps=out1['repcount']
-            ids=m.parent_stack.plot_stimidx
-            r=reps.shape[0]
-            lis=[]
-            for i in range(0,r):
-                lis.extend([i]*reps[i])
-            new_id=lis[ids]
             plt.imshow(out1['stim'][:,new_id,:], aspect='auto', origin='lower', interpolation='none')
         cbar = plt.colorbar()
         #cbar.set_label('???')
@@ -106,14 +106,13 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
         plt.xlabel('Trial')
         plt.ylabel('Channel')
     else:
-        s=out1['stim'][m.parent_stack.plot_stimidx,:]
-        r=out1['resp'][m.parent_stack.plot_stimidx,:]
-        pred, =plt.plot(s,label='Predicted')
-        resp, =plt.plot(r,'r',label='Response')
-        plt.legend(handles=[pred,resp])
-        plt.xlabel('Trial')
-        # TODO: plt.ylabel('???')
-        
+        s=out1['stim'][:,new_id]
+        #r=out1['resp'][m.parent_stack.plot_stimidx,:]
+        pred, =plt.plot(s,label='Average Model')
+        #resp, =plt.plot(r,'r',label='Response')
+        plt.legend(handles=[pred])
+        plt.xlabel('Time Step')
+        plt.ylabel('Firing rate (unitless)')
             
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
@@ -139,7 +138,8 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     plt.legend(handles=[pred,act])
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Trial')
-    # TODO: plt.ylabel('???')
+    plt.ylabel('Firing rate (unitless)')
+
 
 def pre_post_psth(m,size=FIGSIZE,idx=None):
     if idx:
@@ -153,7 +153,7 @@ def pre_post_psth(m,size=FIGSIZE,idx=None):
     plt.legend(handles=[pre,post])
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Trial')
-    # TODO: plt.ylabel('???')
+    plt.ylabel('Firing rate (unitless)')
 
 def plot_stim_psth(m,idx=None,size=FIGSIZE):
     if idx:
@@ -178,8 +178,8 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     #TODO: cbar.set_label('???')
     plt.title(m.name)
     plt.xlabel('Channel') #or kHz?
-    # Is this correct?
-    #TODO: plt.ylabel('Latency?')
+    # Is this correct? I think so...
+    plt.ylabel('Latency') 
 """
 Potentially useful trial plotting stuff...not currently in use, however --njs July 5 2017   
 def plot_trials(m,idx=None,size=(12,4)):
