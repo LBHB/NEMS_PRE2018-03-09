@@ -35,13 +35,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     """
     Fits a single NEMS model.
     
-    Working on getting cross-validation working. Currently work with or without crossval,
-    but I need to update exactly what is calculated for the cross validated mse and R, 
-    as well as find a way to preserve the previously fitted parameters.
-    --njs July 11 2017
-    
-    Without crossval works fine, something funky is going on with crossval though
-    ---njs July 12 2017
+    Crossval should be working now! At least for pupil stuff ---njs July 13 2017
     """
     stack=nm.nems_stack()
     
@@ -143,7 +137,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
         print("Median: mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
               stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
         #return(stack_list)
-        return(val_stim,val_resp)
+        return(stack)
 
 """
 load_single_model - load and evaluate a model, specified by cellid, batch and modelname

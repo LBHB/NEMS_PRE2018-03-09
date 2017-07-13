@@ -278,7 +278,7 @@ def perfectpupil50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,formpup=False)
-    stack.append(nm.pupil_est_val,valfrac=0.02)
+    stack.append(nm.pupil_est_val,valfrac=0.05)
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model,tile_data=True)
     
