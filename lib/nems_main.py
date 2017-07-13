@@ -14,6 +14,7 @@ import lib.baphy_utils as baphy_utils
 import os
 import datetime
 import copy
+import scipy.stats as spstats
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -38,6 +39,9 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     but I need to update exactly what is calculated for the cross validated mse and R, 
     as well as find a way to preserve the previously fitted parameters.
     --njs July 11 2017
+    
+    Without crossval works fine, something funky is going on with crossval though
+    ---njs July 12 2017
     """
     stack=nm.nems_stack()
     
@@ -49,14 +53,22 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     # extract keywords from modelname    
     keywords=modelname.split("_")
     stack.cv_counter=0
-    if stack.cross_val is not True:
-        
-        # evaluate each keyword in order
+    stack.cond=False
+    mse_estlist=[]
+    mse_vallist=[]
+    r_est_list=[]
+    r_val_list=[]
+    stack_list=[]
+    val_stim_list=[]
+    val_resp_list=[]
+    while stack.cond is False:
+        print('iter loop='+str(stack.cv_counter))
+        stack.clear()
+        stack.valmode=False
         for k in keywords:
             f = getattr(nk, k)
             f(stack)
             
-        # stack.cross_val
         # measure performance on both estimation and validation data
         stack.valmode=True
         stack.evaluate(1)
@@ -64,49 +76,27 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
         if not corridx:
             # add MSE calculator module to stack if not there yet
             stack.append(nm.correlation)
-            
-        print("Final r_est={0} r_val={1}".format(stack.meta['r_est'],stack.meta['r_val']))
-            
-        # default results plot, show validation data if exists
-        valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-        if valdata:
-            stack.plot_dataidx=valdata[0]
+                
+        print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+              stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+        if stack.cross_val is not True:
+            stack.cond=True
+            valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+            if valdata:
+                stack.plot_dataidx=valdata[0]
+            else:
+                stack.plot_dataidx=0
         else:
-            stack.plot_dataidx=0
-    else:
-        stack.cond=False
-        mselist=[]
-        r_est_list=[]
-        r_val_list=[]
-        stack_list=[]
-        while stack.cond is False:
-            print('iter loop='+str(stack.cv_counter))
-            stack.clear()
-            stack.valmode=False
-            for k in keywords:
-                f = getattr(nk, k)
-                f(stack)
-            
-            # measure performance on both estimation and validation data
-            stack.valmode=True
-            stack.evaluate(1)
-            corridx=nu.find_modules(stack,'correlation')
-            if not corridx:
-                # add MSE calculator module to stack if not there yet
-                stack.append(nm.correlation)
-            print("mse_est={0}, r_est={1}, r_val={2}".format(stack.meta['mse_est'],stack.meta['r_est'],stack.meta['r_val']))
-            mselist.append(stack.meta['mse_est'])
+            mse_vallist.append(stack.meta['mse_val'])
+            mse_estlist.append(stack.meta['mse_est'])
             r_est_list.append(stack.meta['r_est'])
             r_val_list.append(stack.meta['r_val'])
             stack_list.append(copy.deepcopy(stack))
-            
-            
+            val_stim_list.append(copy.deepcopy(stack.data[-1][1]['stim']))
+            val_resp_list.append(copy.deepcopy(stack.data[-1][1]['resp']))
             stack.cv_counter+=1
-        stack.meta['mse_est']=np.median(np.array(mselist))
-        stack.meta['r_est']=np.median(np.array(r_est_list))
-        stack.meta['r_val']=np.median(np.array(r_val_list))
         
-        print("Median: mse_est={0}, r_est={1}, r_val={2}".format(stack.meta['mse_est'],stack.meta['r_est'],stack.meta['r_val']))    
+        
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
     if autoplot:
@@ -131,7 +121,29 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     if stack.cross_val is not True:
         return(stack)
     else:
-        return(stack_list)
+        #TODO: Something funky is happening here
+        E=0
+        P=0
+        val_stim=np.concatenate(val_stim_list,axis=0)
+        val_resp=np.concatenate(val_resp_list,axis=0)
+        
+        E=np.sum(np.square(val_stim-val_resp))
+        P=np.sum(np.square(val_resp))
+        mse=E/P
+        stack.meta['mse_val']=mse
+        #stack.meta['mse_val']=np.median(np.array(mse_vallist))
+        stack.meta['mse_est']=np.median(np.array(mse_estlist))
+        stack.meta['r_est']=np.median(np.array(r_est_list))
+        val_stim=val_stim.reshape([-1,1],order='C')
+        val_resp=val_resp.reshape([-1,1],order='C')
+        print(val_stim.shape,val_resp.shape)
+        
+        stack.meta['r_val'],p=spstats.pearsonr(val_stim,val_resp)
+        #stack.meta['r_val']=np.median(np.array(r_val_list))
+        print("Median: mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+              stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+        #return(stack_list)
+        return(val_stim,val_resp)
 
 """
 load_single_model - load and evaluate a model, specified by cellid, batch and modelname
