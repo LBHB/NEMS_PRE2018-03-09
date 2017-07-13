@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt #, mpld3 #mpld3 alias needed for quick_plot_save
+import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.signal as sps
 import scipy.stats as spstats
@@ -1298,6 +1298,7 @@ class nems_stack:
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
+        plt.tight_layout()
     
     def quick_plot_save(self, mode=None):
         """Copy of quick_plot for easy save or embed.
@@ -1328,7 +1329,8 @@ class nems_stack:
             if idx>0:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
-    
+        plt.tight_layout()
+        
         file_root = (
                 "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.",
                 [batch, cellid, modelname]

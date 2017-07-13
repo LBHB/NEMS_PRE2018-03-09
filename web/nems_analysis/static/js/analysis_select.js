@@ -34,37 +34,45 @@ $(document).ready(function(){
     function sizeDragDisplay(){
         display = $("#displayOuter");
         display.resizable({
-            handles: "nw, ne, se, sw"
+            handles: "n, w, e, s"
         });
-        //display.draggable({
-                
-        //});
+        display.draggable();
     }
         
     function sizeDragTable(){
         table = $("#resultsArea");
         table.resizable({
-            handles: "nw, ne, se, sw"     
+            handles: "n, w, e, s"     
         });
-        //table.draggable({
-                 
-        //});
+        table.draggable();
     }
 
     $("#selectArea").resizable({
-        handles: "nw, ne, se, sw"        
+        handles: "n, w, e, s"        
     });
     $("#py_console").resizable({
-        handles: "s"        
+        handles: "n, s, e, w"        
     });
-    //$("#py_console").draggable();
+    $("#py_console").draggable();
+    $("#selectArea").draggable();
     sizeDragDisplay();
     sizeDragTable();
+    //drags start out disabld until alt is pressed
+    $(".dragToggle").draggable('disable');
+    
+    $("#enableDraggable").on('click', function(){
+        $(".dragToggle").draggable('enable');
+        return false;
+    });
+    $("#disableDraggable").on('click', function(){
+        $(".dragToggle").draggable('disable');
+        return false;
+    });
                  
     function initTable(table){
         // Called any time results is updated -- set table options here
         table.DataTable({
-            paging: true,
+            paging: false,
             search: {
                 "caseInsensitive": true,
             },
@@ -680,12 +688,15 @@ $(document).ready(function(){
         $('#loadingPopup').css('display', 'none');
     }
     
-    $("#toggleQueueLimit").on('click',function(){
-        var qld = $('#queuelimitDiv');
-        if (qld.css('display') === 'block'){
-            qld.css('display', 'none');
-        } else if (qld.css('display') === 'none'){
-            qld.css('display', 'block');
+    $("#toggleFitOp").on('click',function(){
+        var fod = $('#fitOpDiv');
+        
+        if (fod.css('display') === 'block'){
+            fod.css('display', 'none');
+            
+        } else if (fod.css('display') === 'none'){
+            fod.css('display', 'block');
+            
         } else{
             return false;        
         }
@@ -854,14 +865,28 @@ $(document).ready(function(){
     ////////////////////////////////////////////////////////////////////
     
     
+    $("#togglePlotOp").on('click',function(){
+        var pow = $('#plotOpWrapper');
+        
+        if (pow.css('display') === 'block'){
+            pow.css('display', 'none');
+            
+        } else if (pow.css('display') === 'none'){
+            pow.css('display', 'block');
+            
+        } else{
+            return false;        
+        }
+    })
+    
     // Default values -- based on 'good' from NarfAnalysis > filter_cells
     var snr = 0.0;
     var iso = 85.0;
     var snri = 0.1;     
     
     $("#plotOpSelect").val('snri');
-    $("#plotOpVal").val(snri);
-            
+    $("#plotOpVal").val(snri); 
+    
     $("#plotOpSelect").change(updatePlotOpVal);
     function updatePlotOpVal(){
         var select = $("#plotOpSelect");
