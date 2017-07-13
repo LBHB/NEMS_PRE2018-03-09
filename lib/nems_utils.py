@@ -103,7 +103,7 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
         cbar = plt.colorbar()
         #cbar.set_label('???')
         # TODO: colorbar is intensity of response? but how is it measured?
-        plt.xlabel('Time(ms)')
+        plt.xlabel('Trial')
         plt.ylabel('Channel')
     else:
         s=out1['stim'][m.parent_stack.plot_stimidx,:]
