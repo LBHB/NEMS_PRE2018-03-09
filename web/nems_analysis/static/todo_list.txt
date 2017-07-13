@@ -12,9 +12,14 @@ In no particular order:
 
 - Get bokeh to save grid plots as one file instead of individuals
 
+- fix issues w/ positioning of bokeh toolbar - it either sit way off to the right
+  or mashes into title/whatever axis it sits on. waiting on fix from bokeh
+  for non-sticky toolbar.
+  
+- clean up quickplot and other mpl plots - add axis titles, spacing between
+  subplots etc.
+  
 - link up enqueue models to cluster
-
-- polish up interface appearance (especially for modelpane)
 
 - switch analysis editor to use id instead of name for querying
 
@@ -22,10 +27,6 @@ In no particular order:
 
 - switch table selection to DataTables implementation instead of custom JS
   to add in ctrl/shift select etc.
+  (added ctrl select with current implementation for now)
       
 - interface for uploading and running data from outside lab
-
-- replace fixed css/html values with viewport units, and in general make
-  interface more responsive to different screen sizes (bootstrap *should* help)
-  
-- 
