@@ -143,7 +143,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
         print("Median: mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
               stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
         #return(stack_list)
-        return(val_stim,val_resp)
+        return(stack)
 
 """
 load_single_model - load and evaluate a model, specified by cellid, batch and modelname
