@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt #, mpld3 #mpld3 alias needed for quick_plot_save
+import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.signal as sps
 import scipy.stats as spstats
@@ -281,7 +281,7 @@ class load_mat(nems_module):
                 if stim_resamp_factor != 1:
                     s=data['stim'].shape
                     #new_stim_size=np.round(s[2]*stim_resamp_factor)
-                    print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    #print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
@@ -292,7 +292,7 @@ class load_mat(nems_module):
                 if resp_resamp_factor != 1:
                     s=data['resp'].shape
                     #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    #print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
@@ -302,7 +302,7 @@ class load_mat(nems_module):
                 if data['pupil'] is not None and resp_resamp_factor != 1:
                     s=data['pupil'].shape
                     #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
+                    #print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
@@ -435,48 +435,53 @@ class pupil_est_val(nems_module):
     
     def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
+        self.crossval=self.parent_stack.cross_val
+        self.iter=int(1/valfrac)-1
     
     def evaluate(self):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
             #self.d_out.append(d)
-            try:
-                if d['est']:
-                    # flagged as est data
-                    self.d_out.append(d)
-                elif self.parent_stack.valmode:
-                    self.d_out.append(d)
-                    
-            except:
-                #st=d['stim'].shape
-                re=d['resp'].shape
-                #stspl=mt.ceil(st[1]*(1-self.valfrac))
-                respl=mt.ceil(re[1]*(1-self.valfrac))
-                
-                
-                d_est=d.copy()
-                d_val=d.copy()
-                
+            #st=d['stim'].shape
+            re=d['resp'].shape
+            #stspl=mt.ceil(st[1]*(1-self.valfrac))
+            respl=mt.ceil(re[1]*(1-self.valfrac))
+            spl=mt.ceil(re[1]*self.valfrac)
+            
+            if self.crossval is True:
+                count=self.parent_stack.cv_counter
+            else:
+                count=0
+            count=count*spl
+            #print('count='+str(count))
+            d_est=d.copy()
+            d_val=d.copy()
+            
+            d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+            d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
+            d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
+            d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+            d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
+            d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
 
-                d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
-                d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
-                #d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
-                d_val['repcount']=copy.deepcopy(d['repcount'][respl:])
-                d_val['resp']=copy.deepcopy(d['resp'][:,respl:,:])
-                #d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+            #d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
+            #d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
+            ##d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
+            ##d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
+
+            d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
+            d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
                 
-                #if 'pupil' in d.keys():
-                if d['pupil'] is not None:
-                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
+            d_est['est']=True
+            d_val['est']=False
+            
+            self.d_out.append(d_est)
+            if self.parent_stack.valmode:
+                self.d_out.append(d_val)
                 
-                d_est['est']=True
-                d_val['est']=False
-                
-                self.d_out.append(d_est)
-                if self.parent_stack.valmode:
-                    self.d_out.append(d_val)
+        if self.parent_stack.cv_counter==self.iter:
+            self.parent_stack.cond=True
                     
                     
 class pupil_model(nems_module):
@@ -851,11 +856,23 @@ class state_gain(nems_module):
         Y=self.theta[0,0]+self.theta[0,1]*X*np.log(self.theta[0,2]+Xp+self.theta[0,3])
         return(Y)
     def polypupgain_fn(self,X,Xp):
+        """
+        Fits a polynomial gain function: 
+        Y = g0 + g*X + d1*X*Xp^1 + d2*X*Xp^2 + ... + d(n-1)*X*Xp^(n-1) + dn*X*Xp^n
+        """
         deg=self.theta.shape[1]
         Y=0
         for i in range(0,deg-2):
             Y+=self.theta[0,i]*X*np.power(Xp,i+1)
         Y+=self.theta[0,-2]+self.theta[0,-1]*X
+        return(Y)
+    def powerpupgain_fn(self,X,Xp):
+        """
+        Slightly different than polypugain. Y = g0 + g*X + d0*Xp^n + d*X*Xp^n
+        """
+        deg=self.order
+        v=self.theta
+        Y=v[0,0] + v[0,1]*X + v[0,2]*np.power(Xp,deg) + v[0,3]*np.multiply(X,np.power(Xp,deg))
         return(Y)
     def Poissonpupgain_fn(self,X,Xp):
         u=self.theta[0,1]
@@ -1068,6 +1085,7 @@ class nems_stack:
     meta={}
     fitter=None
     valmode=False
+    cross_val=False
     
     plot_dataidx=0
     plot_stimidx=0
@@ -1248,6 +1266,10 @@ class nems_stack:
         del self.modules[-1]
         del self.data[-1]
         
+    def clear(self):
+        del self.modules[1:]
+        del self.data[1:]
+        
     def output(self):
         return self.data[-1]
     
@@ -1264,6 +1286,7 @@ class nems_stack:
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
+        plt.tight_layout()
     
     def quick_plot_save(self, mode=None):
         """Copy of quick_plot for easy save or embed.
@@ -1294,7 +1317,8 @@ class nems_stack:
             if idx>0:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
-    
+        plt.tight_layout()
+        
         file_root = (
                 "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.",
                 [batch, cellid, modelname]
@@ -1357,11 +1381,15 @@ class nems_stack:
             lis.extend([i]*reps[i])
         new_id=lis[ids]
         nu.raster_plot(data=un,stims=new_id,size=size,idx=new_id)
-        
+    
+    
     def do_sorted_raster(self,size=(12,6)):
         """
         Generates a raster plot sorted by average pupil diameter for the stimulus
         specified by self.plot_stimidx
+        
+        This function is deprecated, as the default plot for the pupil_model module
+         is now a specific raster plot function in nems_utils
         """
         un=copy.deepcopy(self.unresampled)
         res=un['resp']

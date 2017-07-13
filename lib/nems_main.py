@@ -5,7 +5,7 @@ Created on Sun Jun 18 20:16:37 2017
 
 @author: svd
 """
-
+import numpy as np
 import lib.nems_modules as nm
 import lib.nems_fitters as nf
 import lib.nems_utils as nu
@@ -13,6 +13,7 @@ import lib.nems_keywords as nk
 import lib.baphy_utils as baphy_utils
 import os
 import datetime
+import copy
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -29,54 +30,108 @@ example fit on nice IC cell:
     nems.fit_single_model(cellid,batch,modelname)
 
 """
-def fit_single_model(cellid, batch, modelname, autoplot=True):
+def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     """
     Fits a single NEMS model.
-    Note that setting pupilspec=True will ignore evaluating validation data, 
-    and will plot individual trials. Added for dealing with batch 294 data
-    --njs, June 29 2017
+    
+    Working on getting cross-validation working. Currently work with or without crossval,
+    but I need to update exactly what is calculated for the cross validated mse and R, 
+    as well as find a way to preserve the previously fitted parameters.
+    --njs July 11 2017
     """
     stack=nm.nems_stack()
     
     stack.meta['batch']=batch
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
-
+    stack.cross_val=crossval
+    
     # extract keywords from modelname    
     keywords=modelname.split("_")
-    
-    # evaluate each keyword in order
-    for k in keywords:
-        f = getattr(nk, k)
-        f(stack)
-
-    # measure performance on both estimation and validation data
-    stack.valmode=True
-    stack.evaluate(1)
-    corridx=nu.find_modules(stack,'correlation')
-    if not corridx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.correlation)
+    stack.cv_counter=0
+    if stack.cross_val is not True:
         
-    print("Final r_est={0} r_val={1}".format(stack.meta['r_est'],stack.meta['r_val']))
-        
-    # default results plot, show validation data if exists
-    valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-    if valdata:
-        stack.plot_dataidx=valdata[0]
+        # evaluate each keyword in order
+        for k in keywords:
+            f = getattr(nk, k)
+            f(stack)
+            
+        # stack.cross_val
+        # measure performance on both estimation and validation data
+        stack.valmode=True
+        stack.evaluate(1)
+        corridx=nu.find_modules(stack,'correlation')
+        if not corridx:
+            # add MSE calculator module to stack if not there yet
+            stack.append(nm.correlation)
+            
+        print("Final r_est={0} r_val={1}".format(stack.meta['r_est'],stack.meta['r_val']))
+            
+        # default results plot, show validation data if exists
+        valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+        if valdata:
+            stack.plot_dataidx=valdata[0]
+        else:
+            stack.plot_dataidx=0
     else:
-        stack.plot_dataidx=0
+        stack.cond=False
+        mselist=[]
+        r_est_list=[]
+        r_val_list=[]
+        stack_list=[]
+        while stack.cond is False:
+            print('iter loop='+str(stack.cv_counter))
+            stack.clear()
+            stack.valmode=False
+            for k in keywords:
+                f = getattr(nk, k)
+                f(stack)
+            
+            # measure performance on both estimation and validation data
+            stack.valmode=True
+            stack.evaluate(1)
+            corridx=nu.find_modules(stack,'correlation')
+            if not corridx:
+                # add MSE calculator module to stack if not there yet
+                stack.append(nm.correlation)
+            print("mse_est={0}, r_est={1}, r_val={2}".format(stack.meta['mse_est'],stack.meta['r_est'],stack.meta['r_val']))
+            mselist.append(stack.meta['mse_est'])
+            r_est_list.append(stack.meta['r_est'])
+            r_val_list.append(stack.meta['r_val'])
+            stack_list.append(copy.deepcopy(stack))
+            
+            
+            stack.cv_counter+=1
+        stack.meta['mse_est']=np.median(np.array(mselist))
+        stack.meta['r_est']=np.median(np.array(r_est_list))
+        stack.meta['r_val']=np.median(np.array(r_val_list))
         
+        print("Median: mse_est={0}, r_est={1}, r_val={2}".format(stack.meta['mse_est'],stack.meta['r_est'],stack.meta['r_val']))    
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
     if autoplot:
         stack.quick_plot()
     
+    # add tag to end of modelname if crossvalidated
+    if crossval:
+        # took tag out for now, realized it would cause issues with loader.
+        # TODO: how should load model handle the tag? Or don't bother wih tag?
+        xval = ""
+        #xval = "_xval"
+    else:
+        xval = ""
+    
     # save
-    filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
+    filename=(
+            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}{3}.pkl"
+            .format(batch, cellid, modelname, xval)
+            )
     nu.save_model(stack,filename)
     #os.chmod(filename, 0o666)
-    return stack
+    if stack.cross_val is not True:
+        return(stack)
+    else:
+        return(stack_list)
 
 """
 load_single_model - load and evaluate a model, specified by cellid, batch and modelname
@@ -90,9 +145,16 @@ example:
     stack.quick_plot()
     
 """
-def load_single_model(cellid,batch,modelname):
+def load_single_model(cellid, batch, modelname):
     
-    filename="/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl".format(batch,cellid,modelname)
+    filename=(
+            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
+            .format(batch, cellid, modelname)
+            )
+    # For now don't do anything different to cross validated models.
+    # TODO: should these be loaded differently in the future?
+    #filename = filename.strip('_xval')
+    
     stack=nu.load_model(filename)
     stack.evaluate()
     

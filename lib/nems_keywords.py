@@ -137,8 +137,8 @@ def exppupgain(stack):
 def logpupgain(stack):
     stack.append(nm.state_gain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,1,0,1])
 
-def poissonpupgain(stack):
-    stack.append(nm.state_gain,gain_type='Poissonpupgain',fit_fields=['theta'],theta=[10,20])
+def powergain02(stack): #This is equivalent ot what Zach is using
+    stack.append(nm.state_gain,gain_type='powerpupgain',fit_fields=['theta'],theta=[0,1,0,0],order=2)
     
 def butterworth01(stack):
     stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=1)
@@ -183,7 +183,7 @@ def fit01(stack):
     stack.evaluate(1)
 
     stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.000001
+    stack.fitter.tol=0.00000001
     stack.fitter.do_fit()
     
 def fit02(stack):

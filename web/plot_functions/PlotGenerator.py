@@ -48,6 +48,15 @@ CIRCLE_ALPHA = 0.5
 # Appearance options for virtical bar glyphs (ex. bar plot)
 VBAR_FILL = '#FF5740'
 VBAR_WIDTH = 0.5
+# Position of toolbar around plot area
+# (above, below, left, right)
+TOOL_LOC = 'above'
+# Should the toolbar be inside the axis?
+# TODO: check back on bokeh issue. currently cannot combine tool_loc above
+#       with tool_stick false due to a conflict with responsive mode.
+#       -jacob 7/12/17
+TOOL_STICK = True
+
 
 class PlotGenerator():
     """Base class for plot generators."""
@@ -345,7 +354,7 @@ class Scatter_Plot(PlotGenerator):
                     x_range=[0,1], y_range=[0,1],
                     x_axis_label=modelX, y_axis_label=modelY,
                     title=self.measure[0], tools=tools, responsive=True,
-                    toolbar_location='above',
+                    toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
                     )
             glyph = Circle(
                     x='x_values', y='y_values', size=CIRCLE_SIZE,
@@ -363,7 +372,9 @@ class Scatter_Plot(PlotGenerator):
             self.script,self.div = components(singleplot)
             return
         elif len(plots) > 1:            
-            grid = gridplot(plots, ncols=GRID_COLS, responsive=True)
+            grid = gridplot(
+                    plots, ncols=GRID_COLS, responsive=True,
+                    )
             self.script,self.div = components(grid)
         else:
             self.script, self.div = (
@@ -463,9 +474,10 @@ class Bar_Plot(PlotGenerator):
                 x_range=xrange, x_axis_label='Model',
                 y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
                 title="Mean %s Performance By Model"%self.measure[0],
-                tools=tools, responsive=True, toolbar_location='above'
+                tools=tools, responsive=True, toolbar_location=TOOL_LOC,
+                toolbar_sticky=TOOL_STICK
                 )
-        p.xaxis.major_label_orientation=(np.pi/4)
+        p.xaxis.major_label_orientation=-(np.pi/4)
         glyph = VBar(
                 x='index', top='mean', bottom=0, width=VBAR_WIDTH,
                 fill_color=VBAR_FILL, line_color='black'
@@ -527,7 +539,7 @@ class Pareto_Plot(PlotGenerator):
                 self.data, values=self.measure[0], label='n_parms',
                 title="Mean Performance (%s) vs Complexity"%self.measure[0],
                 tools=tools, color='n_parms', responsive=True,
-                toolbar_location='above',
+                toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
                 )
             
         self.script,self.div = components(p)

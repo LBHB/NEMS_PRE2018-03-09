@@ -34,37 +34,45 @@ $(document).ready(function(){
     function sizeDragDisplay(){
         display = $("#displayOuter");
         display.resizable({
-            handles: "nw, ne, se, sw"
+            handles: "n, w, e, s"
         });
-        //display.draggable({
-                
-        //});
+        display.draggable();
     }
         
     function sizeDragTable(){
         table = $("#resultsArea");
         table.resizable({
-            handles: "nw, ne, se, sw"     
+            handles: "n, w, e, s"     
         });
-        //table.draggable({
-                 
-        //});
+        table.draggable();
     }
 
     $("#selectArea").resizable({
-        handles: "nw, ne, se, sw"        
+        handles: "n, w, e, s"        
     });
     $("#py_console").resizable({
-        handles: "s"        
+        handles: "n, s, e, w"        
     });
-    //$("#py_console").draggable();
+    $("#py_console").draggable();
+    $("#selectArea").draggable();
     sizeDragDisplay();
     sizeDragTable();
+    //drags start out disabld until alt is pressed
+    $(".dragToggle").draggable('disable');
+    
+    $("#enableDraggable").on('click', function(){
+        $(".dragToggle").draggable('enable');
+        return false;
+    });
+    $("#disableDraggable").on('click', function(){
+        $(".dragToggle").draggable('disable');
+        return false;
+    });
                  
     function initTable(table){
         // Called any time results is updated -- set table options here
         table.DataTable({
-            paging: true,
+            paging: false,
             search: {
                 "caseInsensitive": true,
             },
@@ -680,11 +688,28 @@ $(document).ready(function(){
         $('#loadingPopup').css('display', 'none');
     }
     
+    $("#toggleFitOp").on('click',function(){
+        var fod = $('#fitOpDiv');
+        
+        if (fod.css('display') === 'block'){
+            fod.css('display', 'none');
+            
+        } else if (fod.css('display') === 'none'){
+            fod.css('display', 'block');
+            
+        } else{
+            return false;        
+        }
+    })
     
     $("#fitSingle").on('click',function(){   
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
+        var crossVal = 0;
+        if (document.getElementById('crossVal').checked){
+            crossVal = 1;
+        }
         
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
@@ -714,7 +739,7 @@ $(document).ready(function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/fit_single_model',
             data: { bSelected:bSelected, cSelected:cSelected,
-                       mSelected:mSelected },
+                       mSelected:mSelected, crossVal:crossVal },
             // TODO: should use POST maybe in this case?
             type: 'GET',
             timeout: 0,
@@ -744,6 +769,10 @@ $(document).ready(function(){
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
         var queuelimit = $("#queuelimit").val();
+        var crossVal = 0;
+        if (document.getElementById('crossVal').checked){
+            crossVal = 1;
+        }
                           
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
@@ -774,7 +803,8 @@ $(document).ready(function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/enqueue_models',
             data: { bSelected:bSelected, cSelected:cSelected,
-                   mSelected:mSelected, queuelimit:queuelimit },
+                   mSelected:mSelected, queuelimit:queuelimit,
+                   crossVal:crossVal },
             // TODO: should POST be used in this case?
             type: 'GET',
             success: function(data){
@@ -835,14 +865,28 @@ $(document).ready(function(){
     ////////////////////////////////////////////////////////////////////
     
     
+    $("#togglePlotOp").on('click',function(){
+        var pow = $('#plotOpWrapper');
+        
+        if (pow.css('display') === 'block'){
+            pow.css('display', 'none');
+            
+        } else if (pow.css('display') === 'none'){
+            pow.css('display', 'block');
+            
+        } else{
+            return false;        
+        }
+    })
+    
     // Default values -- based on 'good' from NarfAnalysis > filter_cells
     var snr = 0.0;
     var iso = 85.0;
     var snri = 0.1;     
     
     $("#plotOpSelect").val('snri');
-    $("#plotOpVal").val(snri);
-            
+    $("#plotOpVal").val(snri); 
+    
     $("#plotOpSelect").change(updatePlotOpVal);
     function updatePlotOpVal(){
         var select = $("#plotOpSelect");

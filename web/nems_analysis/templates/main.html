@@ -65,6 +65,8 @@
             CellDB</a></li>
             <li><a href="{{ url_for('error_log') }}" target="_blank">
             TODO</a></li>
+            <li><a href="#" id="enableDraggable">Enable Draggable</a></li>
+            <li><a href="#" id="disableDraggable">Disable Draggable</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -77,7 +79,7 @@
         
 <!--            Left-hand-side, form selections       ---->
 
-            <div class="col-xs-3" id="selectArea">
+            <div class="col-xs-3 dragToggle ui-widget-content" id="selectArea">
                 <div class="form-group" id="analysisGroup">
                 <label for="analysisSelector"> Select Analysis </label>
                 <select class="form-control plot-form" id="analysisSelector">
@@ -173,43 +175,60 @@
 
                 <div class="form-group" id="cellDiv">
                 <label for="cellSelector"> Cell(s) </label>
-                <select multiple="multiple" class="form-control plot-form" name="celllist" size="8"
+                <select multiple="multiple" class="form-control plot-form" 
+                name="celllist" size="7"
                     id="cellSelector">
-                    <option disabled value=""> Select a batch to populate cells. </option>
+                    <option disabled value=""> Select a batch to populate cells.
+                    </option>
                 </select>
-                <input type="checkbox" id="selectAllCells" checked> Select All</input>
+                <input type="checkbox" id="selectAllCells" checked> Select All
+                </input>
                 </div>
 
                 <div class="form-group" id="modelDiv">
                 <label for="modelSelector"> Model(s) </label>
-                <select multiple="multiple" class="form-control plot-form" name="modelnames" size="8"
+                <select multiple="multiple" class="form-control plot-form" 
+                name="modelnames" size="7"
                     id="modelSelector">
-                    <option disabled value=""> Select an analysis to populate models. </option>
+                    <option disabled value="">
+                    Select an analysis to populate models.
+                    </option>
                 </select>
                 
-                <input type="checkbox" id="selectAllModels" checked> Select All</input> 
+                <input type="checkbox" id="selectAllModels" checked>
+                    Select All
+                </input> 
                 </div>
                 
-                <div class="input-group" id="modelButtons">
+                <div class="input-group form-inline" id="modelButtons">
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default btn-xs" type="button"
+                    <button tabindex="-1" class="btn btn-default btn-xs" type=
+                    "button"
                     id="fitSingle"> Fit Single Now </button>
                 </div>
                 
                 <div class="input-group-btn">
-                    <button tabindex="-1" class="btn btn-default btn-xs" type="button"
+                    <button tabindex="-1" class="btn btn-default btn-xs" type=
+                    "button"
                     id="enqueue"> Enqueue Models </button>
                 </div>
                 
-                <div class="input-group">
-                    <input type="text" id="queuelimit" size="5" value="20">
-                    <span class="lbl" for="queuelimit"> Queue Limit </span>
+                <div class="input-group-btn">
+                    <button tabindex="-1" type="button" class=
+                    "btn btn-default btn-xs"
+                    id="toggleFitOp">Fit Options</button>
                 </div>
+                </div><!-- model buttons end -->
                 
+                <div class="input-group form-inline" id="fitOpDiv">
+                    Queue Limit
+                    <input type="text" id="queuelimit" value="20" size="6">
+                    Cross Val
+                    <input tabindex="-1" type="checkbox" id="crossVal" value="1">
                 </div>
                 
                 <div class="form-group form-inline" id="plotMeasureTypeGroupLabels">
-                    <label for="measureSelector"> Performance Measure </label>
+                    <label for="measureSelector"> Measure </label>
                     <label for="plotTypeSelector"> Plot Type </label>
                 </div>
                 
@@ -229,9 +248,6 @@
                     <option value="{{ type }}"> {{ type | replace('_',' ') }} </option>
                 {% endfor %}
                 </select>
-                
-                <button class="btn btn-default btn-xs" type="button"
-                    id="submitPlot"> Submit Plot </button>
                 </div>
                 
                 <!--
@@ -239,7 +255,21 @@
                 <p> Selection required for each option before submission </p>
                 </div>
                 -->
-
+                <div class="input-group form-inline" id="plotButtons">
+                    <div class="input-group-btn">
+                        <button type="button" class="btn btn-default btn-xs"
+                            tabindex="-1" id="togglePlotOp">
+                            Plot Options
+                        </button>
+                    </div>
+                    <div class="input-group-btn">
+                        <button class="btn btn-default btn-xs" type="button"
+                            id="submitPlot"> Submit Plot
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="plotOpWrapper">
                 <div class="form-group form-inline" id="plotOpLabels">
                     <label for="onlyFair"> Fair? </label>
                     <label for="includeOutliers"> Outliers? </label>
@@ -262,6 +292,7 @@
                     
                     <input type="text" id="plotOpVal" name="plotOpVal" value="0">
                 </div>
+                </div><!-- plotOpWrapper -->
 
                 <!-- old plot submit buttons for form version
                 <div id="plotOpSubmits">
@@ -277,7 +308,7 @@
             
 <!--     Right-hand-side, table display and options ------------------>
 
-            <div class="col-xs-5" id="resultsArea">
+            <div class="col-xs-5 dragToggle ui-widget-content" id="resultsArea">
                 <div class="input-group form-inline" id="tableButtonsTop">
                 
                 <div class="input-group-btn">
@@ -344,7 +375,7 @@
                 </div><!-- outer input group -->
                 
                 
-                <div id="tableWrapper" class="ui-widget-content">
+                <div id="tableWrapper">
                 </div>
                 
                 
@@ -386,12 +417,13 @@
                 </div><!-- outer input group -->
                 
                 
-                <div class="jumbotron ui-widget-content" id="py_console">
+                <div class="jumbotron ui-widget-content dragToggle" id="py_console">
                 </div>
                 
             </div><!-- resultsArea  col -->
             
-            <div class="col-xs-4 ui-widget-content" id="displayOuter">
+            <div class="col-xs-4 ui-widget-content dragToggle" id="displayOuter">
+                <!--<label for="displayWrapper"> Plot Display </label>-->
                 <div id="displayWrapper">
                 </div>
             </div><!-- preview/plot area col -->

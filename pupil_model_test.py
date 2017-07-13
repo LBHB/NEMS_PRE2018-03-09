@@ -15,7 +15,6 @@ import sys
 
 import copy
 
-
 stack=nm.nems_stack()
 
 stack.meta['batch']=294
@@ -33,34 +32,40 @@ stack.append(nm.pupil_model,tile_data=True)
 
 #smalldata=copy.deepcopy(stack.data)
 #stack.append(nm.state_gain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
-stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,10,10])
-#stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
-#stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25],order=2)
+#stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,10,10])
+#stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1]) #polypup03
+#stack.append(nm.state_gain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=4)
 #stack.append(nm.state_gain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
 #stack.append(nm.state_gain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,0,0,1])
-#stack.append(nm.state_gain,gain_type='Poissonpupgain',fit_fields=['theta'],theta=[10,20])
+stack.append(nm.state_gain,gain_type='powerpupgain',fit_fields=['theta'],theta=[0,1,0,0],order=2)
 
 #stack.append(nm.pseudo_huber_error,b=0.3)
 stack.append(nm.mean_square_error)
 
 stack.error=stack.modules[-1].error
                          
-#stack.fitter=nf.anneal_min(stack,anneal_iter=250,stop=25,up_int=5,bounds=None)
-stack.fitter=nf.basic_min(stack)
-stack.fitter.tol=0.00000001
+#stack.fitter=nf.anneal_min(stack,min_method='SLSQP',anneal_iter=250,stop=25,up_int=5,bounds=None)
+stack.fitter=nf.basic_min(stack,routine='SLSQP')
+stack.fitter.tol=0.000000001
 stack.fitter.do_fit()
 print(stack.error())
 
 
+stack.append(nm.correlation)
+a=stack.modules[-1].evaluate()
+print(a)
+stack.valmode=True
+b=stack.modules[-1].evaluate()
+print(b)
 #alldata=copy.deepcopy(stack.data)
 #reps=stack.data[1][0]['repcount']
 #smalldata=copy.deepcopy(stack.data)
-#unres=stack.unresampled
-stack.plot_stimidx=20 #Choose which stimulus to plot
+unres=stack.unresampled
+stack.plot_stimidx=130 #Choose which stimulus to plot
 #stack.plot_trialidx=(10,11) #Choose which trials to display
 
 #print(stack.modules[3].theta)                   
-#stack.do_raster_plot()
+#stack.do_sorted_raster(size=(12,4))
 stack.quick_plot()
 
 

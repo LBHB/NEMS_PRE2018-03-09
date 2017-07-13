@@ -13,6 +13,9 @@ import pickle
 import os
 import copy
 
+# set default figsize for pyplots (so we don't have to change each function)
+FIGSIZE=(12,4)
+
 #
 # random utilties
 #
@@ -79,7 +82,7 @@ def load_model(file_path):
 #since stack.data[1] will have ~2 stimuli, but it is subsequently reshaped to ~240 stimuli
 # ---fixed, see except statement in plot_spectrogram --njs 6 July 2017
 
-def plot_spectrogram(m,idx=None,size=(12,4)):
+def plot_spectrogram(m,idx=None,size=FIGSIZE):
     #Moved from pylab to pyplot module in all do_plot functions, changed plots 
     #to be individual large figures, added other small details -njs June 16, 2017
     if idx:
@@ -97,17 +100,24 @@ def plot_spectrogram(m,idx=None,size=(12,4)):
                 lis.extend([i]*reps[i])
             new_id=lis[ids]
             plt.imshow(out1['stim'][:,new_id,:], aspect='auto', origin='lower', interpolation='none')
-        plt.colorbar()
+        cbar = plt.colorbar()
+        #cbar.set_label('???')
+        # TODO: colorbar is intensity of response? but how is it measured?
+        plt.xlabel('Trial')
+        plt.ylabel('Channel')
     else:
         s=out1['stim'][m.parent_stack.plot_stimidx,:]
         r=out1['resp'][m.parent_stack.plot_stimidx,:]
         pred, =plt.plot(s,label='Predicted')
         resp, =plt.plot(r,'r',label='Response')
         plt.legend(handles=[pred,resp])
+        plt.xlabel('Trial')
+        # TODO: plt.ylabel('???')
+        
             
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
-def pred_act_scatter(m,idx=None,size=(12,4)):
+def pred_act_scatter(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
@@ -118,7 +128,7 @@ def pred_act_scatter(m,idx=None,size=(12,4)):
     plt.ylabel('Actual')
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
-def pred_act_psth(m,size=(12,4),idx=None):
+def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
@@ -128,8 +138,10 @@ def pred_act_psth(m,size=(12,4),idx=None):
     act, =plt.plot(r,'r',label='Actual')
     plt.legend(handles=[pred,act])
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Trial')
+    # TODO: plt.ylabel('???')
 
-def pre_post_psth(m,size=(12,4),idx=None):
+def pre_post_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
     in1=m.d_in[m.parent_stack.plot_dataidx]
@@ -140,9 +152,10 @@ def pre_post_psth(m,size=(12,4),idx=None):
     post, =plt.plot(s2,'r',label='Post-nonlinearity')
     plt.legend(handles=[pre,post])
     plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Trial')
+    # TODO: plt.ylabel('???')
 
-
-def plot_stim_psth(m,idx=None,size=(12,4)):
+def plot_stim_psth(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=str(idx),figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
@@ -154,15 +167,19 @@ def plot_stim_psth(m,idx=None,size=(12,4)):
     plt.legend(handles=[resp])
     plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
   
-def plot_strf(m,idx=None,size=(12,4)):    
+def plot_strf(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
     h=m.coefs
     mmax=np.max(np.abs(h.reshape(-1)))
     plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
     plt.clim(-mmax,mmax)
-    plt.colorbar()
+    cbar = plt.colorbar()
+    #TODO: cbar.set_label('???')
     plt.title(m.name)
+    plt.xlabel('Channel') #or kHz?
+    # Is this correct?
+    #TODO: plt.ylabel('Latency?')
 """
 Potentially useful trial plotting stuff...not currently in use, however --njs July 5 2017   
 def plot_trials(m,idx=None,size=(12,4)):
@@ -238,36 +255,27 @@ def raster_data(data,pres,dura,posts,fr):
     ypost[ypost==0]=None
     return(xpre,ypre,xdur,ydur,xpost,ypost)
 
-def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
+def raster_plot(m,idx=None,size=(12,6)):
     """
     This function generates a raster plot of the data for the specified stimuli.
     It shows the spikes that occur during the actual trial in green, and the background
     spikes in grey. 
-    
-    Can be called either from nems_stack attr do_raster_plot,
-    or by manually inputing keyworded data:
-        data= response raster
-        pre_time= prestim silence time
-        dur_time= stimulus duration
-        post_time= poststim silence
-        frequency= sampling frequency
     """
-    if data is not None:
-        ins=data['resp']
-        pre=data['prestim']
-        dur=data['duration']
-        post=data['poststim']
-        freq=data['respFs']
-    else:
-        ins=kwargs['data']
-        pre=kwargs['pre_time']
-        dur=kwargs['dur_time']
-        post=kwargs['post_time']
-        freq=kwargs['frequency']
+    resp=m.parent_stack.unresampled['resp']
+    pre=m.parent_stack.unresampled['prestim']
+    dur=m.parent_stack.unresampled['duration']
+    post=m.parent_stack.unresampled['poststim']
+    freq=m.parent_stack.unresampled['respFs']
+    reps=m.parent_stack.unresampled['repcount']
+    r=reps.shape[0]
     prestim=float(pre)*freq
     duration=float(dur)*freq
     poststim=float(post)*freq
-    xpre,ypre,xdur,ydur,xpost,ypost=raster_data(ins,prestim,duration,poststim,freq)
+    lis=[]
+    for i in range(0,r):
+        lis.extend([i]*reps[i])
+    stims=lis[ids]
+    xpre,ypre,xdur,ydur,xpost,ypost=raster_data(resp,prestim,duration,poststim,freq)
     if idx is not None:
         plt.figure(num=str(stims)+str(100),figsize=size)
     plt.scatter(xpre[stims],ypre[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
@@ -277,7 +285,7 @@ def raster_plot(data=None,stims=0,size=(12,6),idx=None,**kwargs):
     #plt.xlabel('Time')
     plt.title('Stimulus #'+str(stims))
 
-def sorted_raster(m,idx=None,size=(12,4)):
+def sorted_raster(m,idx=None,size=FIGSIZE):
     resp=m.parent_stack.unresampled['resp']
     pre=m.parent_stack.unresampled['prestim']
     dur=m.parent_stack.unresampled['duration']
