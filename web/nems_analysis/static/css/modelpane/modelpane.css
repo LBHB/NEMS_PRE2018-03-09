@@ -3,6 +3,10 @@
   padding: 20px;
 }
 
+body {
+  background: #E5E5F7;      
+}
+
 .form-group {
   text-align: left;
   margin: 5px;
@@ -17,9 +21,18 @@
   margin: 0px;   
 }
 
+.rowToggle {
+  box-shadow: 4px 4px 2px #888888;    
+}
+
 .moduleRow {
+  padding: 15px;
   border:  1px solid #C8C8C8;
-  background: #E5E5F7;
+  background: #FFFFFF;
+  box-shadow: 7px 7px 5px #888888;
+  margin-top: 12px;
+  margin-bottom: 30px;
+  border-radius: 10px;
 }
 
 #loadingPopup {
