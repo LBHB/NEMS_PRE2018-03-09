@@ -110,7 +110,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}{3}.pkl"
             .format(batch, cellid, modelname, xval)
             )
-    nu.save_model(stack,filename)
+    nu.save_model(stack,filename) 
     #os.chmod(filename, 0o666)
     if stack.cross_val is not True:
         return(stack)

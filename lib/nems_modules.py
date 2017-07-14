@@ -330,17 +330,15 @@ class load_mat(nems_module):
 
                 if self.avg_resp is True: 
                     data['resp']=np.nanmean(data['resp'],axis=1) 
-                    data['resp']=np.transpose(data['resp'],(1,0))
-                    print('why')
-                else:
-                    if self.perfect_model is True:
-                        avg=np.nanmean(data['resp'],axis=1)
-                        data['stim']=avg
-                        print(data['stim'].shape)
-                    else:
-                        sr=data['resp'].shape
-                        data['stim']=np.tile(data['stim'],(1,sr[1],1))
-                        print(data['stim'].shape)
+                    #data['resp']=np.transpose(data['resp'],(1,0))
+                elif self.perfect_model is True:
+                    avg=np.nanmean(data['resp'],axis=1)
+                    data['stim']=avg
+                    
+                    #else:
+                        #sr=data['resp'].shape
+                        #data['stim']=np.tile(data['stim'],(1,sr[1],1))
+                        #print(data['stim'].shape)
                     #for i in ('resp','pupil'):
                         #s=data[i].shape
                         #print(s)
@@ -355,19 +353,6 @@ class load_mat(nems_module):
                 print('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
 
-            # spectrogram of TORC stimuli. 15 frequency bins X 300 time samples X 30 different TORCs
-            #stim=data['stim']
-            #FrequencyBins=data['FrequencyBins'][0,:]
-            #stimFs=data['stimFs'][0,0]
-            #StimCyclesPerSec=data['StimCyclesPerSec'][0,0]
-            #StimCyclesPerSec=np.float(StimCyclesPerSec)
-            
-            # response matrix. sampled at 1kHz. value of 1 means a spike occured
-            # in a particular time bin. 0 means no spike. shape: [3000 time bins X 2
-            # repetitions X 30 different TORCs]
-                                                                  
-            #resp=data['resp']
-            #respFs=data['respFs'][0,0]
             
             # each trial is (PreStimSilence + Duration + PostStimSilence) sec long
             #Duration=data['Duration'][0,0] # Duration of TORC sounds
@@ -441,9 +426,12 @@ class standard_est_val(nems_module):
                 if self.parent_stack.valmode:
                     self.d_out.append(d_val)
                     
-class xval_est_val(nems_module):
+class stim_est_val(nems_module):
+    """
+    Use with datasets that have large numbers of stimuli with few trials
+    """
     
-    name='xval_est_val'
+    name='stim_est_val'
     user_editable_fields=['output_name','valfrac']
     valfrac=0.05
     
@@ -488,13 +476,17 @@ class xval_est_val(nems_module):
                 
         if self.parent_stack.cv_counter==self.iter:
             self.parent_stack.cond=True
-            
-class pupil_est_val(nems_module):
+
+#TODO: Need to define some sort of overall crossval module that can deal with either trial or
+#stimulus data sorting
+class trial_est_val(nems_module):
     """
     Breaks imported data into est/val. Use with pupil_model and batch 294 data, where 
     there are only 2 stimuli, so takes some trials from both stimuli as validation data.
     This module is specfically for looking at just pupil gain, without other 
     model fitting.
+    
+    Use with batch 294-like data sets with high numbers of trials but low number of stimuli.
     
     Compatible with cross-validation.
     """
@@ -516,10 +508,7 @@ class pupil_est_val(nems_module):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
-            #self.d_out.append(d)
-            #st=d['stim'].shape
             re=d['resp'].shape
-            #stspl=mt.ceil(st[1]*(1-self.valfrac))
             respl=mt.ceil(re[1]*(1-self.valfrac))
             spl=mt.ceil(re[1]*self.valfrac)
             
@@ -558,8 +547,89 @@ class pupil_est_val(nems_module):
                 
         if self.parent_stack.cv_counter==self.iter:
             self.parent_stack.cond=True
+            
+class crossval(nems_module):
+    """
+    Cross-validation est/val module that replaces trial_est_val and stim_est_val.
+    """
+    name='crossval'
+    valfrac=0.05
+    
+    def my_init(self,valfrac=0.05,use_trials=False):
+        self.valfrac=valfrac
+        self.crossval=self.parent_stack.cross_val
+        self.use_trials=use_trials
+        try:
+            self.iter=int(1/valfrac)-1
+        except:
+            self.iter=0
         
+    def evaluate(self):
+        del self.d_out[:]
+         # for each data file:
+        for i, d in enumerate(self.d_in):    
+            count=self.parent_stack.cv_counter
+        
+            d_est=d.copy()
+            d_val=d.copy()
+            
+            if self.use_trials is True:
+                re=d['resp'].shape
+                respl=mt.ceil(re[1]*(1-self.valfrac))
+                spl=mt.ceil(re[1]*self.valfrac)
+                count=count*spl
+                print('Creating estimation/validation datasets using trials')
+                try:
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
+                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
+                except TypeError:
+                    print('No pupil data')
+                    d_val['pupil']=None
+                    d_est['pupil']=None
+                d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
+                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
+                d_val['stim']=copy.deepcopy(d['stim'])
+                d_est['stim']=copy.deepcopy(d['stim'])
+                d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64')
+                d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
+            else:
+                re=d['resp'].shape
+                spl=mt.ceil(re[-1]*self.valfrac)
+                count=count*spl
+                print('Creating estimation/validation datasets using stimuli')
+                try:
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
+                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
+                except TypeError:
+                    print('No pupil data')
+                    d_val['pupil']=None
+                    d_est['pupil']=None
+                try:
+                    d_val['resp']=copy.deepcopy(d['resp'][:,:,count:(count+spl)])
+                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],2)
+                except IndexError:
+                    d['resp']=np.transpose(d['resp'],(1,0))
+                    d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                try:
+                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                except IndexError:
+                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl)])
+                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+                d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
                     
+            d_est['est']=True
+            d_val['est']=False
+            
+            self.d_out.append(d_est)
+            if self.parent_stack.valmode:
+                self.d_out.append(d_val)
+                
+        if self.parent_stack.cv_counter==self.iter:
+            self.parent_stack.cond=True
+            
                     
 class pupil_model(nems_module):
     name='pupil_model'

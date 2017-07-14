@@ -16,22 +16,22 @@ import lib.baphy_utils as baphy_utils
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=200)
+    stack.append(nm.load_mat,est_files=[file],fs=200,avg_resp=True,perfect_model=False)
     
 def fb24ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=100) #Data not preprocessed to 100 Hz, internally converts
+    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True,perfect_model=False) #Data not preprocessed to 100 Hz, internally converts
     
 def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=100)
+    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True,perfect_model=False)
     
 def fb18ch50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=50)
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True,perfect_model=False)
 
 def loadlocal(stack):
     """
@@ -49,11 +49,14 @@ standard_est_val = ['ev', ]
 def ev(stack):
     stack.append(nm.standard_est_val, valfrac=0.05)
     
-def xval10(stack):
-    stack.append(nm.xval_est_val,valfrac=0.1)
+def xvals10(stack):
+    stack.append(nm.crossval,valfrac=0.1,use_trials=False)
     
-def xval05(stack):
-    stack.append(nm.xval_est_val,valfrac=0.05)
+def xvals05(stack):
+    stack.append(nm.xval_est_val,valfrac=0.05,use_trials=False)
+    
+def xvalt05(stack):
+    stack.append(nm.xval_est_val,valfrac=0.05,use_trials=True)
 
 
 # weight channels keywords
@@ -273,8 +276,8 @@ def perfectpupil100(stack):
     """
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=100,formpup=False)
-    stack.append(nm.pupil_est_val,valfrac=0.05)
+    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False,perfect_model=True)
+    stack.append(nm.crossval,valfrac=0.05,use_trials=True)
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model,tile_data=True)
     
@@ -288,8 +291,8 @@ def perfectpupil50(stack):
     """
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=50,formpup=False)
-    stack.append(nm.pupil_est_val,valfrac=0.05)
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False,perfect_model=True)
+    stack.append(nm.crossval,valfrac=0.05,use_trials=True)
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model,tile_data=True)
     
