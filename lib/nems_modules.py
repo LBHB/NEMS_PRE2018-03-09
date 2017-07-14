@@ -212,7 +212,13 @@ class dummy_data(nems_module):
         self.d_out[0]['repcount']=np.sum(np.isnan(self.d_out[0]['resp'])==False,axis=0)
 
 class load_mat(nems_module):
-
+    """
+    avg_resp tells load_mat to average the response raster trials. Don't use with pupil 
+    data.
+    
+    perfect_model tells load_mat to use the averaged response raster as the stimulus. Use
+    this to just look at pupil effects without fitting the rest of a model.
+    """
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
     plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
@@ -220,11 +226,12 @@ class load_mat(nems_module):
     est_files=[]
     fs=100
     
-    def my_init(self,est_files=[],fs=100,formpup=True):
+    def my_init(self,est_files=[],fs=100,avg_resp=True,perfect_model=False):
         self.est_files=est_files.copy()
         self.do_trial_plot=self.plot_fns[0]
         self.fs=fs
-        self.formpup=formpup
+        self.avg_resp=avg_resp
+        self.perfect_model=perfect_model
 
     def evaluate(self):
         del self.d_out[:]
@@ -309,28 +316,38 @@ class load_mat(nems_module):
                     data['pupil']=resamp
                     #data['pupil']=scipy.signal.resample(data['pupil'],new_resp_size,axis=0)
                     
-                #Changed resmaple to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
+                #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
                     
                 # average across trials
+                #TODO: need to fix repcount for data with varying trial numbers (in pupil_est_val)
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 self.parent_stack.unresampled['repcount']=data['repcount']
                 #print(data['stim'].shape)
                 #print(data['resp'].shape)
                 #print(data['pupil'].shape)
                 
-                if data['pupil'] is None: 
+
+                if self.avg_resp is True: 
                     data['resp']=np.nanmean(data['resp'],axis=1) 
                     data['resp']=np.transpose(data['resp'],(1,0))
-                elif data['pupil'] is not None and self.formpup is True:
-                    for i in ('resp','pupil'):
-                        s=data[i].shape
-                        data[i]=np.reshape(data[i],(s[0]*s[1],s[2]),order='F')
-                        data[i]=np.transpose(data[i],(1,0))
-                    data['stim']=np.tile(data['stim'],(1,1,s[1]))
-               #else:
+                    print('why')
+                else:
+                    if self.perfect_model is True:
+                        avg=np.nanmean(data['resp'],axis=1)
+                        data['stim']=avg
+                        print(data['stim'].shape)
+                    else:
+                        sr=data['resp'].shape
+                        data['stim']=np.tile(data['stim'],(1,sr[1],1))
+                        print(data['stim'].shape)
                     #for i in ('resp','pupil'):
+                        #s=data[i].shape
+                        #print(s)
+                        #data[i]=np.reshape(data[i],(s[0],s[1]*s[2]),order='F')
                         #data[i]=np.transpose(data[i],(1,0))
+                        #print(data[i].shape)
+
 
                     
                 # append contents of file to data, assuming data is a dictionary
@@ -453,10 +470,12 @@ class xval_est_val(nems_module):
             
             d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
             d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+            d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
             d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
             
             d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
             d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+            d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
             d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
 
             
@@ -473,7 +492,9 @@ class xval_est_val(nems_module):
 class pupil_est_val(nems_module):
     """
     Breaks imported data into est/val. Use with pupil_model and batch 294 data, where 
-    there are only 2 stimuli, so takes some trials from both stimuli as "validation" data.
+    there are only 2 stimuli, so takes some trials from both stimuli as validation data.
+    This module is specfically for looking at just pupil gain, without other 
+    model fitting.
     
     Compatible with cross-validation.
     """
@@ -505,18 +526,19 @@ class pupil_est_val(nems_module):
             count=self.parent_stack.cv_counter
             count=count*spl
 
-            avg=np.nanmean(d['resp'],axis=1)
             #print('count='+str(count))
             d_est=d.copy()
             d_val=d.copy()
             
-            d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64')
+            #TODO: need to fixed repcounts for batches with different trial numbers for different stims
+            #TODO: want to create a way to delete using mask for varying trial numbers
+            d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64') 
             d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
-            d_val['stim']=avg
+            d_val['stim']=copy.deepcopy(d['stim'])
             d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
             d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
             d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
-            d_est['stim']=avg
+            d_est['stim']=copy.deepcopy(d['stim'])
             d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
 
             #d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
@@ -542,7 +564,10 @@ class pupil_est_val(nems_module):
 class pupil_model(nems_module):
     name='pupil_model'
     plot_fns=[nu.sorted_raster,nu.raster_plot]
-
+    """
+    Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
+    Will probably incorporate into pupil_est_val later.
+    """
     def my_init(self,tile_data=True):
         self.tile_data=tile_data
    

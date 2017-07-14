@@ -27,6 +27,11 @@ def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100)
+    
+def fb18ch50(stack):
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=50)
 
 def loadlocal(stack):
     """
@@ -43,6 +48,12 @@ standard_est_val = ['ev', ]
 
 def ev(stack):
     stack.append(nm.standard_est_val, valfrac=0.05)
+    
+def xval10(stack):
+    stack.append(nm.xval_est_val,valfrac=0.1)
+    
+def xval05(stack):
+    stack.append(nm.xval_est_val,valfrac=0.05)
 
 
 # weight channels keywords
