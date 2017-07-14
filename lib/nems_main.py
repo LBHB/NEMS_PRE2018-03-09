@@ -7,6 +7,7 @@ Created on Sun Jun 18 20:16:37 2017
 """
 import numpy as np
 import lib.nems_modules as nm
+import lib.nems_stack as ns
 import lib.nems_fitters as nf
 import lib.nems_utils as nu
 import lib.nems_keywords as nk
@@ -37,7 +38,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     
     Crossval should be working now! At least for pupil stuff ---njs July 13 2017
     """
-    stack=nm.nems_stack()
+    stack=ns.nems_stack()
     
     stack.meta['batch']=batch
     stack.meta['cellid']=cellid
