@@ -9,14 +9,13 @@ import inspect
 import json
 
 from flask import (
-        request, render_template, Session, Response, jsonify, redirect, 
+        request, render_template, Response, jsonify, redirect, 
         url_for,
         )
 import matplotlib.pyplot as plt, mpld3
 import numpy as np
 
 import lib.nems_modules as nm
-import lib.nems_fitters as nf
 import lib.nems_keywords as nk
 import lib.nems_utils as nu
 import lib.nems_main as nems

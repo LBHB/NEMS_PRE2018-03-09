@@ -15,8 +15,9 @@ an html document.
 import math
 import itertools
 
-from bokeh.plotting import figure
 from bokeh.io import gridplot
+from bokeh.plotting import figure
+#from bokeh.layouts import widgetbox
 from bokeh.embed import components
 from bokeh.models import (
         ColumnDataSource, HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
@@ -24,12 +25,16 @@ from bokeh.models import (
         )
 from bokeh.charts import BoxPlot
 from bokeh.models.glyphs import VBar,Circle
+#from bokeh.models.widgets import DataTable, TableColumn
 import pandas as pd
 import numpy as np
 
 #NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
 #      list for use with web interface
-PLOT_TYPES = ['Scatter_Plot', 'Bar_Plot', 'Pareto_Plot']
+PLOT_TYPES = [
+        'Scatter_Plot', 'Bar_Plot', 'Pareto_Plot', 'Difference_Plot',
+        'Tabular_Plot',
+        ]
 
 # Setting default tools as global variable was causing issues with scatter
 # plot. They're included here for copy-paste as needed instead.
@@ -67,12 +72,12 @@ class PlotGenerator():
         # Force measure to be interpreted as a list for
         # forward-compatibility with specifying multiple measures.
         if isinstance(measure, list):
-            self.measure = measure
+            self.measure = measure + extra_cols
         else:
-            self.measure = [str(measure)]
+            self.measure = [measure] + extra_cols
         self.fair = fair
         self.outliers = outliers
-        self.extra_cols = extra_cols
+        print("Re-formatting data array...")
         self.data = self.form_data_array(data)
         
         # Use this inside views function to check whether generate_plot
@@ -101,7 +106,7 @@ class PlotGenerator():
         
         """
         
-        self.script, self.div = ('','')
+        self.script, self.div = ('Plot type is','not yet implemented')
     
     def create_hover(self):
         """Returns a Bokeh HoverTool() object, possibly with generated 
@@ -119,7 +124,7 @@ class PlotGenerator():
     def form_data_array(self, data):
         """Formats data into a multi-indexed DataFrame for plotting.
         
-        Takes a DataFrame (typically a full NarfResults query) and converts it
+        Takes a DataFrame (built from a full NarfResults query) and converts it
         to a new multi-indexed DataFrame (cellid level 0, modelname level 1)
         with a column for each performance measure, plus any other columns
         needed for specific plots.
@@ -153,8 +158,9 @@ class PlotGenerator():
                 [celllist,modellist], names=['cellid','modelname'],
                 )
         newData = pd.DataFrame(
-                index = multiIndex, columns = self.measure+self.extra_cols,
+                index = multiIndex, columns = self.measure,
                 )
+        
         newData.sort_index()
 
         for c in celllist:
@@ -163,22 +169,22 @@ class PlotGenerator():
                 
                 # Add column values for any additional columns specificed
                 # in plot class (ex: n_parms for pareto plot)
-                if self.extra_cols:
-                    for col in self.extra_cols:
-                        try:
-                            colval = dataRow[col].values.tolist()[0]
-                        except Exception as e:
-                            # TODO: Is this a good way to do this?
-                            #       This requires that all extra columns also 
-                            #       have values for every cell/model
-                            #       if fair is checked.
-                            colval = math.nan
-                            print(e)
-                        finally:
-                            newData[col].loc[c,m] = colval
+                #if self.extra_cols:
+                #    for col in self.extra_cols:
+                #        try:
+                #            colval = dataRow[col].values.tolist()[0]
+                #        except Exception as e:
+                #            # TODO: Is this a good way to do this?
+                #            #       This requires that all extra columns also 
+                #            #       have values for every cell/model
+                #            #       if fair is checked.
+                #            colval = math.nan
+                #            print(e)
+                #        finally:
+                #            newData[col].loc[c,m] = colval
                 
                 for meas in self.measure:
-                    value = math.nan 
+                    value = np.nan 
                     newData[meas].loc[c,m] = value
                     # If loop hits a continue, value will be left as NaN.
                     # Otherwise, will be assigned a value from data 
@@ -189,7 +195,7 @@ class PlotGenerator():
                         # Error should mean no value was recorded,
                         # so leave as NaN.
                         # No need to run outlier checks if value is missing.
-                        print(e)
+                        print("No %s recorded for %s,%s"%(meas,c,m))
                         continue
                     
                     if not self.outliers:
@@ -273,7 +279,7 @@ class PlotGenerator():
         #print(self.fair)
         #print("does the data look different or contain nans?")
         #print(newData[self.measure[0]].values)
-        
+
         return newData
     
         
@@ -355,6 +361,7 @@ class Scatter_Plot(PlotGenerator):
                     x_axis_label=modelX, y_axis_label=modelY,
                     title=self.measure[0], tools=tools, responsive=True,
                     toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
+                    webgl=True,
                     )
             glyph = Circle(
                     x='x_values', y='y_values', size=CIRCLE_SIZE,
@@ -548,11 +555,106 @@ class Pareto_Plot(PlotGenerator):
         self.script,self.div = components(p)
             
             
+class Difference_Plot(PlotGenerator):
+    def form_data_array(self, data):
+        return pd.DataFrame(index=['A','B'], columns=['1','2'])
+    # TODO: implement this from NARF
             
-            
-            
-            
-            
+    
+class Tabular_Plot(PlotGenerator):
+    # TODO: implement this from NARF
+    def __init__(self, data, measure, fair=True, outliers=False, extra_cols=[]):
+        # Use blank measure since tabular has a fixed set of columns
+        _measure=[]
+        _extra_cols=[
+                'r_test', 'mse_test', 'nlogl_test',
+                'mi_test', 'cohere_test', 'n_parms',
+                ]
+        PlotGenerator.__init__(
+                self, data=data, measure=_measure, fair=fair,
+                outliers=outliers, extra_cols=_extra_cols
+                )
+        
+    def generate_plot(self):
+        # After __init__ self.measure should contain everything that
+        # was passed in extra_cols
+        
+        if self.fair:
+            self.script, self.div = (
+                    "Uncheck 'only fair' ",
+                    "to use this plot"
+                    )
+            return
+        
+        columns = []
+        for m in self.measure:
+            if m == 'n_parms':
+                columns.append(m)
+                break
+            mean = 'mean_%s'%m
+            median = 'median_%s'%m
+            columns.append(mean)
+            columns.append(median)
+        table = pd.DataFrame(
+                    # index = list of model names
+                    index=self.data.index.levels[0].tolist(),
+                    # columns = list of measures, both mean and median
+                    columns=columns
+                    )
+        self.data.replace(0, np.nan, inplace=True)
+        
+        for i, model in enumerate(table.index.tolist()):
+            for j, meas in enumerate(self.measure):
+                series = self.data[meas]
+                if j%2 == 0:
+                    col = 'mean_%s'%meas
+                else:
+                    col = 'median_%s'%meas
+                    
+                if 'n_parms' in meas:
+                    table.at[model, 'n_parms'] = (
+                            series.loc[model].values.tolist()[0]
+                            )
+                    break
+                else:
+                    table.at[model, col] = np.nanmean(series.loc[model])
+                    table.at[model, col] = np.nanmedian(series.loc[model])
+        
+        table.sort_values('mean_r_test', axis=0, ascending=False, inplace=True)
+        
+        # see pandas style attribute for more options
+        positives = [
+                'mean_r_test', 'median_r_test',
+                'mean_mi_test', 'median_mi_test',
+                'mean_cohere_test', 'median_cohere_test',
+                ]
+        negatives = [
+                'mean_mse_test', 'median_mse_test',
+                'mean_nlogl_test', 'median_nlogl_test',
+                ]
+        table.style.highlight_max(subset=positives, axis=0, color='darkorange')
+        table.style.highlight_min(subset=negatives, axis=0, color='darkorange')
+        self.html = table.to_html(
+            index=True, classes="table-hover table-condensed",
+            )
+        
+        #source = ColumnDataSource(table)
+        #cols = table.columns.tolist()
+        #columns = []
+        #for c in cols:
+        #    columns.append(
+        #            TableColumn(field='index', title='Model')
+        #            )
+        #    columns.append(
+        #            TableColumn(field=c, title=c)
+        #            )
+        #data_table = DataTable(
+        #        source=source, columns=columns, editable=False,
+        #        reorderable=True, sortable=True,
+        #        )
+        
+        #self.script, self.div = components(data_table)
+
             
             
             
