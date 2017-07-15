@@ -12,7 +12,7 @@ import lib.baphy_utils as bu
 import lib.nems_modules as nm
 import lib.nems_stack as ns
 import lib.nems_fitters as nf
-import lib.nems_main as mn
+import lib.nems_main2 as mn
 import os
 import os.path
 import copy

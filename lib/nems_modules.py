@@ -182,7 +182,7 @@ class nems_module:
     #    plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
         
     
-# end nems_module
+#### end nems_module ##########################################################
 
 """
 Data loader modules, typically first entry in the stack
@@ -673,9 +673,6 @@ class pupil_model(nems_module):
             f_out['pupil']=Z
             f_out['resp']=Q
             
-    
-    
-    
 
 """
 Modules that actually transform the data stream
@@ -863,47 +860,7 @@ class fir_filter(nems_module):
         return Y
 
 
-#class dexp(nems_module):
-    #"""
-    #dexp - static sigmoid. TODO : wrapped into the standard static nonlinearity
-    #"""
-    
-    #name='dexp'
-    #user_editable_fields=['output_name','dexp']
-    #plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
-    #dexp=np.ones([1,4])
 
-        
-    #def my_init(self,dexp=np.ones([1,4]),fit_fields=['dexp']):
-        #self.dexp=dexp 
-        #self.fit_fields=fit_fields
-
-    #def my_eval(self,X):
-        #v1=self.dexp[0,0]
-        #v2=self.dexp[0,1]
-        #v3=self.dexp[0,2]
-        #v4=self.dexp[0,3]
-        #Y=v1-v2*np.exp(-np.exp(v3*(X-v4)))
-        #return Y
-    
-#    def do_plot(self,size=(12,4),idx=None):
-#        #if ax is None:
-#            #pl.set_cmap('jet')
-#            #pl.figure()
-#            #ax=pl.subplot(1,1,1)
-#            
-#        if idx:
-#            plt.figure(num=idx,figsize=size)
-#        in1=self.d_in[self.parent_stack.plot_dataidx]
-#        out1=self.d_out[self.parent_stack.plot_dataidx]
-#        s1=in1['stim'][self.parent_stack.plot_stimidx,:]
-#        s2=out1['stim'][self.parent_stack.plot_stimidx,:]
-#        pre, =plt.plot(s1,label='Pre-nonlinearity')
-#        post, =plt.plot(s2,'r',label='Post-nonlinearity')
-#        plt.legend(handles=[pre,post])
-#        plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
-
-#TODO: make sure that this module is adding parameters to fit?
 class nonlinearity(nems_module): 
     """
     nonlinearity - apply a static nonlinearity. TODO: use helper functions

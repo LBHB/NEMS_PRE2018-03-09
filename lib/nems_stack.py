@@ -362,6 +362,5 @@ class nems_stack:
         nu.raster_plot(data=un,stims=ids,size=size,idx=ids)
         return(res)
          
-            
-# end nems_stack
+
 
