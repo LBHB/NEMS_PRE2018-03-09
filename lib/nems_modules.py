@@ -212,7 +212,13 @@ class dummy_data(nems_module):
         self.d_out[0]['repcount']=np.sum(np.isnan(self.d_out[0]['resp'])==False,axis=0)
 
 class load_mat(nems_module):
-
+    """
+    avg_resp tells load_mat to average the response raster trials. Don't use with pupil 
+    data.
+    
+    perfect_model tells load_mat to use the averaged response raster as the stimulus. Use
+    this to just look at pupil effects without fitting the rest of a model.
+    """
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
     plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
@@ -220,11 +226,12 @@ class load_mat(nems_module):
     est_files=[]
     fs=100
     
-    def my_init(self,est_files=[],fs=100,formpup=True):
+    def my_init(self,est_files=[],fs=100,avg_resp=True,perfect_model=False):
         self.est_files=est_files.copy()
         self.do_trial_plot=self.plot_fns[0]
         self.fs=fs
-        self.formpup=formpup
+        self.avg_resp=avg_resp
+        self.perfect_model=perfect_model
 
     def evaluate(self):
         del self.d_out[:]
@@ -309,28 +316,36 @@ class load_mat(nems_module):
                     data['pupil']=resamp
                     #data['pupil']=scipy.signal.resample(data['pupil'],new_resp_size,axis=0)
                     
-                #Changed resmaple to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
+                #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
                     
                 # average across trials
+                #TODO: need to fix repcount for data with varying trial numbers (in pupil_est_val)
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 self.parent_stack.unresampled['repcount']=data['repcount']
                 #print(data['stim'].shape)
                 #print(data['resp'].shape)
                 #print(data['pupil'].shape)
                 
-                if data['pupil'] is None: 
+
+                if self.avg_resp is True: 
                     data['resp']=np.nanmean(data['resp'],axis=1) 
-                    data['resp']=np.transpose(data['resp'],(1,0))
-                elif data['pupil'] is not None and self.formpup is True:
-                    for i in ('resp','pupil'):
-                        s=data[i].shape
-                        data[i]=np.reshape(data[i],(s[0]*s[1],s[2]),order='F')
-                        data[i]=np.transpose(data[i],(1,0))
-                    data['stim']=np.tile(data['stim'],(1,1,s[1]))
-               #else:
+                    #data['resp']=np.transpose(data['resp'],(1,0))
+                elif self.perfect_model is True:
+                    avg=np.nanmean(data['resp'],axis=1)
+                    data['stim']=avg
+                    
+                    #else:
+                        #sr=data['resp'].shape
+                        #data['stim']=np.tile(data['stim'],(1,sr[1],1))
+                        #print(data['stim'].shape)
                     #for i in ('resp','pupil'):
+                        #s=data[i].shape
+                        #print(s)
+                        #data[i]=np.reshape(data[i],(s[0],s[1]*s[2]),order='F')
                         #data[i]=np.transpose(data[i],(1,0))
+                        #print(data[i].shape)
+
 
                     
                 # append contents of file to data, assuming data is a dictionary
@@ -338,19 +353,6 @@ class load_mat(nems_module):
                 print('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
 
-            # spectrogram of TORC stimuli. 15 frequency bins X 300 time samples X 30 different TORCs
-            #stim=data['stim']
-            #FrequencyBins=data['FrequencyBins'][0,:]
-            #stimFs=data['stimFs'][0,0]
-            #StimCyclesPerSec=data['StimCyclesPerSec'][0,0]
-            #StimCyclesPerSec=np.float(StimCyclesPerSec)
-            
-            # response matrix. sampled at 1kHz. value of 1 means a spike occured
-            # in a particular time bin. 0 means no spike. shape: [3000 time bins X 2
-            # repetitions X 30 different TORCs]
-                                                                  
-            #resp=data['resp']
-            #respFs=data['respFs'][0,0]
             
             # each trial is (PreStimSilence + Duration + PostStimSilence) sec long
             #Duration=data['Duration'][0,0] # Duration of TORC sounds
@@ -358,11 +360,12 @@ class load_mat(nems_module):
             #PostStimSilence=data['PostStimSilence'][0,0]
 
     
-"""
-Special module(s) for organizing/splitting estimation and validation data.
-Currently just one that replicates (mostly) the standard procedure from NARF
-"""
+
 class standard_est_val(nems_module):
+    """
+    Special module(s) for organizing/splitting estimation and validation data.
+    Currently just one that replicates (mostly) the standard procedure from NARF
+    """
  
     name='standard_est_val'
     user_editable_fields=['output_name','valfrac']
@@ -423,10 +426,72 @@ class standard_est_val(nems_module):
                 if self.parent_stack.valmode:
                     self.d_out.append(d_val)
                     
-class pupil_est_val(nems_module):
+class stim_est_val(nems_module):
     """
+    DEPRECATED, use crossval with use_trials=False
+    
+    Use with datasets that have large numbers of stimuli with few trials
+    """
+    
+    name='stim_est_val'
+    user_editable_fields=['output_name','valfrac']
+    valfrac=0.05
+    
+    def my_init(self,valfrac=0.05):
+        self.valfrac=valfrac
+        self.crossval=self.parent_stack.cross_val
+        try:
+            self.iter=int(1/valfrac)-1
+        except:
+            self.iter=0
+            
+    def evaluate(self):
+        del self.d_out[:]
+         # for each data file:
+        for i, d in enumerate(self.d_in):
+            re=d['resp'].shape
+            spl=mt.ceil(re[0]*self.valfrac)
+            
+            count=self.parent_stack.cv_counter
+            count=count*spl
+            
+            d_est=d.copy()
+            d_val=d.copy()
+            
+            d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+            d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+            d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
+            d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+            
+            d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+            d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+            d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
+            d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+
+            
+            d_est['est']=True
+            d_val['est']=False
+                 
+            self.d_out.append(d_est)
+            if self.parent_stack.valmode:
+                self.d_out.append(d_val)
+                
+        if self.parent_stack.cv_counter==self.iter:
+            self.parent_stack.cond=True
+
+
+class trial_est_val(nems_module):
+    """
+    DEPRECATED, use crossval with use_trials=True
+    
     Breaks imported data into est/val. Use with pupil_model and batch 294 data, where 
-    there are only 2 stimuli, so takes some trials from both stimuli as "validation" data.
+    there are only 2 stimuli, so takes some trials from both stimuli as validation data.
+    This module is specfically for looking at just pupil gain, without other 
+    model fitting.
+    
+    Use with batch 294-like data sets with high numbers of trials but low number of stimuli.
+    
+    Compatible with cross-validation. 
     """
  
     name='pupil_est_val'
@@ -446,28 +511,26 @@ class pupil_est_val(nems_module):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
-            #self.d_out.append(d)
-            #st=d['stim'].shape
             re=d['resp'].shape
-            #stspl=mt.ceil(st[1]*(1-self.valfrac))
             respl=mt.ceil(re[1]*(1-self.valfrac))
             spl=mt.ceil(re[1]*self.valfrac)
             
             count=self.parent_stack.cv_counter
             count=count*spl
 
-            avg=np.nanmean(d['resp'],axis=1)
             #print('count='+str(count))
             d_est=d.copy()
             d_val=d.copy()
             
-            d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64')
+            #TODO: need to fixed repcounts for batches with different trial numbers for different stims
+            #TODO: want to create a way to delete using mask for varying trial numbers
+            d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64') 
             d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
-            d_val['stim']=avg
+            d_val['stim']=copy.deepcopy(d['stim'])
             d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
             d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
             d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
-            d_est['stim']=avg
+            d_est['stim']=copy.deepcopy(d['stim'])
             d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
 
             #d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
@@ -487,13 +550,97 @@ class pupil_est_val(nems_module):
                 
         if self.parent_stack.cv_counter==self.iter:
             self.parent_stack.cond=True
+            
+class crossval(nems_module):
+    """
+    Cross-validation est/val module that replaces trial_est_val and stim_est_val.
+    """
+    name='crossval'
+    valfrac=0.05
+    
+    def my_init(self,valfrac=0.05,use_trials=False):
+        self.valfrac=valfrac
+        self.crossval=self.parent_stack.cross_val
+        self.use_trials=use_trials
+        try:
+            self.iter=int(1/valfrac)-1
+        except:
+            self.iter=0
         
+    def evaluate(self):
+        del self.d_out[:]
+         # for each data file:
+        for i, d in enumerate(self.d_in):    
+            count=self.parent_stack.cv_counter
+        
+            d_est=d.copy()
+            d_val=d.copy()
+            
+            if self.use_trials is True:
+                re=d['resp'].shape
+                respl=mt.ceil(re[1]*(1-self.valfrac))
+                spl=mt.ceil(re[1]*self.valfrac)
+                count=count*spl
+                print('Creating estimation/validation datasets using trials')
+                try:
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
+                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
+                except TypeError:
+                    print('No pupil data')
+                    d_val['pupil']=None
+                    d_est['pupil']=None
+                d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
+                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
+                d_val['stim']=copy.deepcopy(d['stim'])
+                d_est['stim']=copy.deepcopy(d['stim'])
+                d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64')
+                d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
+            else:
+                re=d['resp'].shape
+                spl=mt.ceil(re[-1]*self.valfrac)
+                count=count*spl
+                print('Creating estimation/validation datasets using stimuli')
+                try:
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
+                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
+                except TypeError:
+                    print('No pupil data')
+                    d_val['pupil']=None
+                    d_est['pupil']=None
+                try:
+                    d_val['resp']=copy.deepcopy(d['resp'][:,:,count:(count+spl)])
+                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],2)
+                except IndexError:
+                    d['resp']=np.transpose(d['resp'],(1,0))
+                    d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                try:
+                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                except IndexError:
+                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl)])
+                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+                d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
                     
+            d_est['est']=True
+            d_val['est']=False
+            
+            self.d_out.append(d_est)
+            if self.parent_stack.valmode:
+                self.d_out.append(d_val)
+                
+        if self.parent_stack.cv_counter==self.iter:
+            self.parent_stack.cond=True
+            
                     
 class pupil_model(nems_module):
     name='pupil_model'
     plot_fns=[nu.sorted_raster,nu.raster_plot]
-
+    """
+    Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
+    Will probably incorporate into pupil_est_val later.
+    """
     def my_init(self,tile_data=True):
         self.tile_data=tile_data
    
@@ -816,9 +963,6 @@ class nonlinearity(nems_module):
         return(Z)
 
                  
-
-#TODO: might change this to accommodate multiple pupil gain functions (nonlinear?). Will see 
-#how easy this is to do with nonlinearity module before proceeding --njs, June 29 2017
 class state_gain(nems_module): 
     """
     state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
@@ -881,11 +1025,17 @@ class state_gain(nems_module):
         v=self.theta
         Y=v[0,0] + v[0,1]*X + v[0,2]*np.power(Xp,deg) + v[0,3]*np.multiply(X,np.power(Xp,deg))
         return(Y)
-    def Poissonpupgain_fn(self,X,Xp):
+    def Poissonpupgain_fn(self,X,Xp): #Kinda useless, might delete ---njs
         u=self.theta[0,1]
         Y=self.theta[0,0]*X*np.divide(np.exp(-u)*np.power(u,Xp),sx.factorial(Xp))
         return(Y)
     def butterworthHP_fn(self,X,Xp):
+        """
+        Applies a Butterworth high pass filter to the pupil data, with a DC offset.
+        Pupil diameter is treated here as analogous to frequency, and the fitted 
+        parameters are DC offset, overall gain, and f3dB. Order is specified, and
+        controls how fast the rolloff is.
+        """
         n=self.order
         Y=self.theta[0,2]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
@@ -1076,353 +1226,3 @@ class correlation(nems_module):
             return (r_est)
     
         
-class nems_stack:
-        
-    """
-    Key components:
-     modules = list of nems_modules in sequence of execution
-     data = stream of data as it is evaluated through the sequence
-            of modules
-     fitter = pointer to the fit module
-     quick_plot = generates a plot of something about the transformation
-                  that takes place at each modules step
-
-    """
-    modelname=None
-    modules=[]  # stack of modules
-    mod_names=[]
-    mod_ids=[]
-    data=[]     # corresponding stack of data in/out for each module
-    meta={}
-    fitter=None
-    valmode=False
-    cross_val=False
-    
-    plot_dataidx=0
-    plot_stimidx=0
-
-
-    
-    def __init__(self):
-        print("Creating new stack")
-        self.modules=[]
-        self.mod_names=[]
-        self.data=[]
-        self.data.append([])
-        self.data[0].append({})
-        self.data[0][0]['resp']=[]
-        self.data[0][0]['stim']=[]
-        
-        self.meta={}
-        self.modelname='Empty stack'
-        self.error=self.default_error
-        self.valmode=False
-        self.plot_trialidx=(0,3)
-        self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
-        
-    def evaluate(self,start=0):
-        # evalute stack, starting at module # start
-        for ii in range(start,len(self.modules)):
-            #if ii>0:
-            #    print("Propagating mod {0} d_out to mod{1} d_in".format(ii-1,ii))
-            #    self.modules[ii].d_in=self.modules[ii-1].d_out
-            self.modules[ii].evaluate()
-    
-    # create instance of mod and append to stack    
-    def append(self, mod=None, **xargs):
-        if mod is None:
-            m=nems_module(self)
-        else:
-            m=mod(self, **xargs)
-        
-        self.modules.append(m)
-        self.data.append(m.d_out)
-        self.mod_names.append(m.name)
-        self.mod_ids.append(m.id)
-        m.evaluate()
-        
-    def append_instance(self, mod=None):
-        """Same as append but takes an instance of a module instead
-        of the class to preserve existing **xargs. For use with insert/remove.
-        Could maybe merge these with an added boolean arg? Wasn't sure if that
-        would interfere with the **xargs.
-        
-        @author: jacob
-        
-        """
-        if not mod:
-            mod=nems_module(self)
-        self.modules.append(mod)
-        self.data.append(mod.d_out)
-        self.mod_names.append(mod.name)
-        self.mod_ids.append(mod.id)
-        mod.evaluate()
-        
-    def insert(self, mod=None, idx=None, **xargs):
-        """Insert a module at index in stack, then evaluate the inserted
-        module and re-append all the modules that were in the stack previously,
-        starting with the insertion index.
-        
-        Returns:
-        --------
-        idx : int
-            Index the module was inserted at.
-            Will either be the same as the argument idx if given, or
-            the last index in the stack if mod was appended instead.
-        
-        @author: jacob
-        
-        """
-        
-        # if no index is given or index is out of bounds,
-        # just append mod to the end of the stack
-        if (not idx) or (idx > len(self.modules)-1)\
-                     or (idx < -1*len(self.modules)-1):
-            self.append(mod, **xargs)
-            idx = len(self.modules) - 1
-            return idx
-        
-        tail = [self.popmodule_2() for m in self.modules[idx:]]
-        self.append(mod, **xargs)
-        for mod in reversed(tail[:-1]):
-            self.append_instance(mod)
-        return idx
-    
-    def remove(self, idx=None, mod=None, all_idx=False):
-        """Remove the module at the given index in stack, then re-append
-        all modules that came after the removed module.
-        
-        Arguments:
-        ----------
-        idx : int
-            Index of module to be removed. If no idx is given, but a mod is
-            given, nu.find_modules will be used to find idx.
-        mod : nems_module
-            Module to be removed. Only needs to be passed if index is not
-            given, or if all matching indices should be removed.
-        
-        all_idx : boolean
-            If true, and a module is passed instead without an idx, 
-            all matching instances of the module will be removed.
-            Otherwise the instance at the highest index will be removed.
-            
-        Errors:
-        -------
-        Raises an IndexError if idx is None or its absolute value is greater
-        than the length of self.modules, or if mod is given but not found.
-        
-        @author: jacob
-        
-        """
-        
-        if mod and not idx:
-            idx = nu.find_modules(self, mod.name)
-            if not idx:
-                print("Module does not exist in stack.")
-                return
-            if not all_idx:
-                # Only remove the instance with the highest index
-                self.remove(idx=idx[-1], mod=None)
-                return
-            else:
-                j = idx[0]
-                # same as tail comp below, but exclude all indexes that match
-                # the mod
-                tail_keep = [
-                        self.popmodule_2() for i, m in 
-                        enumerate(self.modules[j:])
-                        if i not in idx
-                        ]
-                # still need to pop the matched instances, but don't need to
-                # do anything with them.
-                tail_toss = [
-                        self.popmodule_2() for i, m in
-                        enumerate(self.modules[j:])
-                        if i in idx
-                        ]
-                for mod in reversed(tail_keep):
-                    self.append_instance(mod)
-                        
-            
-        if (not idx) or (idx > len(self.modules)-1)\
-                     or (idx < -1*len(self.modules)-1):
-            raise IndexError
-        
-        # Remove modules from stack starting at the end until reached idx.
-        tail = [self.popmodule_2() for m in self.modules[idx:]]
-        # Then put them back on starting with the second to last module popped.
-        for mod in reversed(tail[:-1]):
-            self.append_instance(mod)
-
-        
-    def popmodule_2(self):
-        """For remove and insert -- wasn't sure if the original popmodule 
-        method had a specific use-case, so I didn't want to modify it.
-        Can merge the two if these changes won't cause issues.
-        
-        Removes the last module from stack lists, along with its corresponding
-        data and name (and id?).
-        
-        @author: jacob
-        """
-        
-        m = self.modules.pop(-1)
-        self.data.pop(-1)
-        self.mod_names.pop(-1)
-        # Doesn't look like this one is being used yet?
-        #self.mod_ids.pop(-1)
-        return m
-        
-    def popmodule(self, mod=nems_module()):
-        del self.modules[-1]
-        del self.data[-1]
-        
-    def clear(self):
-        del self.modules[1:]
-        del self.data[1:]
-        
-    def output(self):
-        return self.data[-1]
-    
-    def default_error(self):
-        return np.zeros([1,1])
-    
-    def quick_plot(self,size=(12,24)):
-        plt.figure(figsize=size)
-        plt.subplot(len(self.modules),1,1)
-        #self.do_raster_plot()
-        for idx,m in enumerate(self.modules):
-            # skip first module
-            if idx>0:
-                print(self.mod_names[idx])
-                plt.subplot(len(self.modules)-1,1,idx)
-                #plt.subplot(len(self.modules),1,idx+1)
-                m.do_plot(m)
-        plt.tight_layout()
-        #TODO: Use gridspec to fix spacing issue? Addition of labels makes
-        #      the subplots look "scrunched" vertically.
-    
-    def quick_plot_save(self, mode=None):
-        """Copy of quick_plot for easy save or embed.
-        
-        mode options:
-        -------------
-        "json" -- .json
-        "html" -- .html
-        "png" -- .png
-        default -- .png
-        
-        returns:
-        --------
-        filename : string
-            Path to saved file, currently of the form:
-            "/auto/data/code/nems_saved_models/batch{#}/{cell}_{modelname}.type"
-                        
-        @author: jacob
-        
-        """
-        batch = self.meta['batch']
-        cellid = self.meta['cellid']
-        modelname = self.meta['modelname']
-    
-        fig = plt.figure(figsize=(8,9))
-        for idx,m in enumerate(self.modules):
-        # skip first module
-            if idx>0:
-                plt.subplot(len(self.modules)-1,1,idx)
-                m.do_plot(m)
-        plt.tight_layout()
-        
-        file_root = (
-                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.",
-                [batch, cellid, modelname]
-                )
-        if mode is not None:
-            mode = mode.lower()
-        if mode is None:
-            #filename = (
-            #        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
-            #        .format(batch,cellid,modelname)
-            #        )
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        elif mode == "png":
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        elif mode == "pdf":
-            filename = (file_root[0] + 'pdf').format(*file_root[1])
-            fig.savefig(format="pdf")
-        elif mode == "svg":
-            filename = (file_root[0] + 'svg').format(*file_root[1])
-            fig.savefig(format="svg")
-        elif mode == "json":
-            filename = (file_root[0] + 'JSON').format(*file_root[1])
-            mpld3.save_json(fig, filename)
-        elif mode == "html":
-            filename = (file_root[0] + 'html').format(*file_root[1])
-            mpld3.save_html(fig, filename)
-        else:
-            print("%s is not a valid format -- saving as .png instead."%mode)
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        plt.close(fig)
-        return filename
-    
-#    def trial_quick_plot(self):
-#        """
-#        Plots several trials of a stimulus after fitting pupil data.
-#        This is to make it easier to visualize the fits on individual trials,
-#        as opposed to over the entire length of the fitted vector.
-#        """
-#        plt.figure(figsize=(12,15))
-#        for idx,m in enumerate(self.modules):
-#            # skip first module
-#            if idx>0:
-#                plt.subplot(len(self.modules)-1,1,idx)
-#                m.do_trial_plot(m,idx)
-
-                
-    def do_raster_plot(self,size=(12,6)):
-        """
-        Generates a raster plot for the stimulus specified by self.plot_stimidx
-        """
-        un=self.unresampled
-        reps=un['repcount']
-        ids=self.plot_stimidx
-        r=reps.shape[0]
-        lis=[]
-        for i in range(0,r):
-            lis.extend([i]*reps[i])
-        new_id=lis[ids]
-        nu.raster_plot(data=un,stims=new_id,size=size,idx=new_id)
-    
-    
-    def do_sorted_raster(self,size=(12,6)):
-        """
-        Generates a raster plot sorted by average pupil diameter for the stimulus
-        specified by self.plot_stimidx
-        
-        This function is deprecated, as the default plot for the pupil_model module
-         is now a specific raster plot function in nems_utils
-        """
-        un=copy.deepcopy(self.unresampled)
-        res=un['resp']
-        pup=un['pupil']
-        reps=un['repcount']
-        r=reps.shape[0]
-        idz=self.plot_stimidx
-        lis=[]
-        for i in range(0,r):
-            lis.extend([i]*reps[i])
-        ids=lis[idz]
-        b=np.nanmean(pup[:,:,ids],axis=0)
-        bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
-        bc=bc[:,1]
-        res[:,:,ids]=res[:,bc,ids]
-        un['resp']=res
-        nu.raster_plot(data=un,stims=ids,size=size,idx=ids)
-        return(res)
-           
-            
-# end nems_stack
-
