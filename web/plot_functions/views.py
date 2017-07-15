@@ -12,7 +12,7 @@ the display area in the browser.
 """
 
 import pandas.io.sql as psql
-import numpy as np
+
 from flask import render_template, jsonify, request, Response
 
 from nems_analysis import app, Session, NarfResults, NarfBatches
@@ -28,14 +28,14 @@ def generate_plot_html():
     bSelected = request.args.get('bSelected')[:3]
     mSelected = request.args.getlist('mSelected[]')
     cSelected = request.args.getlist('cSelected[]')
-    measure = request.args['measure']
+    measure = request.args.get('measure')
     onlyFair = request.args.get('onlyFair')
-    if onlyFair == "fair":
+    if int(onlyFair):
         onlyFair = True
     else:
         onlyFair = False
-    includeOutliers = request.form.get('includeOutliers')
-    if includeOutliers == "outliers":
+    includeOutliers = request.args.get('includeOutliers')
+    if int(includeOutliers):
         includeOutliers = True
     else:
         includeOutliers = False
@@ -92,11 +92,11 @@ def generate_plot_html():
                             "min snr index: %s -- was less than criteria: %s\n"
                             %(min_snr_index, filterCriteria['snri'])
                             )
-                print(
-                    "Removing cellid: %s,\n"
-                    "because: %s"
-                    %(cellid, filterReason)
-                    )
+                #print(
+                #    "Removing cellid: %s,\n"
+                #    "because: %s"
+                #    %(cellid, filterReason)
+                #    )
                 cSelected.remove(cellid)
                 removalCount += 1
         else:
@@ -108,10 +108,14 @@ def generate_plot_html():
             removalCount += 1
     print("Number of cells filtered due to snr/iso criteria: %d"%removalCount)
         
-    results = psql.read_sql_query(session.query(NarfResults).filter\
-              (NarfResults.batch == bSelected).filter\
-              (NarfResults.cellid.in_(cSelected)).filter\
-              (NarfResults.modelname.in_(mSelected)).statement,session.bind)
+    results = psql.read_sql_query(
+            session.query(NarfResults)
+            .filter(NarfResults.batch == bSelected)
+            .filter(NarfResults.cellid.in_(cSelected))
+            .filter(NarfResults.modelname.in_(mSelected))
+            .statement,
+            session.bind
+            )
     
     Plot_Class = getattr(pg, plotType)
     plot = Plot_Class(
@@ -119,13 +123,19 @@ def generate_plot_html():
             outliers=includeOutliers,
             )
     if plot.emptycheck:
+        print('Plot checked empty after forming data array')
         return jsonify(script='Empty',div='Plot')
     else:
         plot.generate_plot()
         
     session.close()
     
-    return jsonify(script=plot.script, div=plot.div)
+    if hasattr(plot, 'script') and hasattr(plot, 'div'):
+        return jsonify(script=plot.script, div=plot.div)
+    elif hasattr(plot, 'html'):
+        return jsonify(html=plot.html)
+    else:
+        return jsonify(script="Couldn't find anything ", div="to return")
     
     
 
