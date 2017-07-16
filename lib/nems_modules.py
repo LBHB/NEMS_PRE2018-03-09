@@ -400,6 +400,7 @@ class standard_est_val(nems_module):
                 
                 d_est=d.copy()
                 d_val=d.copy()
+                d['resp']=np.transpose(d['resp'],(1,0))
                 
                 d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
                 d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
