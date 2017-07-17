@@ -98,7 +98,7 @@ def fir_mini_fit(stack):
     
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
-    fir_mini_fit(stack)
+    #fir_mini_fit(stack)
     
     
 def fir15(stack):
@@ -182,7 +182,7 @@ def fit00(stack):
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
         
-    stack.evaluate(1)
+    stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.001
@@ -197,7 +197,7 @@ def fit01(stack):
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
         
-    stack.evaluate(1)
+    stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.00000001
@@ -212,7 +212,7 @@ def fit02(stack):
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
         
-    stack.evaluate(1)
+    stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack,routine='SLSQP')
     stack.fitter.tol=0.000001
@@ -224,7 +224,7 @@ def fit00h1(stack):
     if not hubidx:
         stack.append(nm.pseudo_huber_error,b=1.0)
         stack.error=stack.modules[-1].error
-    stack.evaluate(1)
+    stack.evaluate(2)
     
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.001
@@ -244,7 +244,7 @@ def fitannl00(stack):
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
     
-    stack.evaluate(1)
+    stack.evaluate(2)
     
     stack.fitter=nf.anneal_min(stack,anneal_iter=50,stop=5,up_int=10,bounds=None)
     stack.fitter.tol=0.001
@@ -260,7 +260,7 @@ def fitannl01(stack):
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
     
-    stack.evaluate(1)
+    stack.evaluate(2)
     
     stack.fitter=nf.anneal_min(stack,anneal_iter=100,stop=10,up_int=5,bounds=None)
     stack.fitter.tol=0.000001

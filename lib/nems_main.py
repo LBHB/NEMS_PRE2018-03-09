@@ -65,6 +65,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             f(stack)
             
         # measure performance on both estimation and validation data
+        print('Evaluating fit on validation data')
         stack.valmode=True
         stack.evaluate(1)
         corridx=nu.find_modules(stack,'correlation')
