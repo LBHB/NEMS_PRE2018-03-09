@@ -12,7 +12,7 @@ import lib.baphy_utils as bu
 import lib.nems_modules as nm
 import lib.nems_stack as ns
 import lib.nems_fitters as nf
-import lib.nems_main2 as mn
+import lib.nems_main as mn
 import os
 import os.path
 import copy
@@ -28,7 +28,8 @@ for i in filelist:
 """modlist=['nopupgain','pupgain','polypupgain02','polypupgain03','polypupgain04','exppupgain','logpupgain',
          'butterworth01','butterworth02','butterworth03','butterworth04','poissonpupgain']"""
 
-stack=mn.fit_single_model('eno052d-a1', 294, 'loadlocal_pupgain_fit00', autoplot=True,crossval=False)
+stack=mn.fit_single_model('bbl038f-a1', 291, 'fb18ch100_ev_fir10_fit00', autoplot=True,crossval=False)
+alldata=stack.data
 #stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_nopupgain_fit01', autoplot=True,crossval=False)
 #print(slist.__len__())
 #dat1=slist[1].data

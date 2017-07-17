@@ -330,7 +330,7 @@ class load_mat(nems_module):
 
                 if self.avg_resp is True: 
                     data['resp']=np.nanmean(data['resp'],axis=1) 
-                    #data['resp']=np.transpose(data['resp'],(1,0))
+                    data['resp']=np.transpose(data['resp'],(1,0))
                 elif self.perfect_model is True:
                     avg=np.nanmean(data['resp'],axis=1)
                     data['stim']=avg
@@ -400,8 +400,8 @@ class standard_est_val(nems_module):
                 
                 d_est=d.copy()
                 d_val=d.copy()
-                d['resp']=np.transpose(d['resp'],(1,0))
-                
+
+
                 d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
                 d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
                 d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
@@ -598,7 +598,10 @@ class crossval(nems_module):
                 d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
             else:
                 re=d['resp'].shape
-                spl=mt.ceil(re[-1]*self.valfrac)
+                try:
+                    spl=mt.ceil(re[2]*self.valfrac)
+                except IndexError:
+                    spl=mt.ceil(re[0]*self.valfrac)
                 count=count*spl
                 print('Creating estimation/validation datasets using stimuli')
                 try:
@@ -612,7 +615,6 @@ class crossval(nems_module):
                     d_val['resp']=copy.deepcopy(d['resp'][:,:,count:(count+spl)])
                     d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],2)
                 except IndexError:
-                    d['resp']=np.transpose(d['resp'],(1,0))
                     d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
                     d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
                 try:
@@ -1027,7 +1029,7 @@ class mean_square_error(nems_module):
     mse_est=np.ones([1,1])
     mse_val=np.ones([1,1])
         
-    def my_init(self, input1='stim',input2='resp',norm=True,shrink=0):
+    def my_init(self, input1='stim',input2='resp',norm=True,shrink=False):
         self.input1=input1
         self.input2=input2
         self.norm=norm
@@ -1039,7 +1041,7 @@ class mean_square_error(nems_module):
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
             
-        if self.shrink:
+        if self.shrink is True:
             X1=self.unpack_data(self.input1,est=True)
             X2=self.unpack_data(self.input2,est=True)
             bounds=np.round(np.linspace(0,len(X1)+1,11)).astype(int)
@@ -1061,9 +1063,7 @@ class mean_square_error(nems_module):
             P=np.zeros([1,1])
             N=0
             for f in self.d_out:
-                #E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
                 E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-                #P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
                 P+=np.sum(np.square(f[self.input2]))
                 N+=f[self.input2].size
         
