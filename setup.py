@@ -10,7 +10,10 @@ with codecs.open('README.md', encoding='utf-8') as f:
     long_description = f.read()
 
 GENERAL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'flask', 'sqlalchemy']
-WEB_REQUIRES = ['flask', 'mpld3', 'bokeh', 'flask-socketio', 'eventlet']
+WEB_REQUIRES = [
+        'flask', 'mpld3', 'bokeh', 'flask-socketio', 'eventlet', 'flask-login',
+        'flask-WTF',
+        ]
 DB_REQUIRES = ['sqlalchemy', 'pymysql']
 
 setup(
