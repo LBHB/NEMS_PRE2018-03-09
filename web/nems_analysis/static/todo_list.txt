@@ -30,3 +30,10 @@ In no particular order:
   (added ctrl select with current implementation for now)
       
 - interface for uploading and running data from outside lab
+
+- able to reload modules/lib stuff
+  (how would this affect saved models if module changed)
+
+- new fields in narfresults for user control/ownership?
+
+- ability to run custom scripts from directory on selected results

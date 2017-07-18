@@ -16,7 +16,7 @@ body {
   display: none;
 }
 
-tables.dataframe, .dataframe th, .dataframe td {
+tables.dataframe, table, th, td {
   border: none;
   border-bottom: 1px solid #C8C8C8;
   border-collapse: collapse;

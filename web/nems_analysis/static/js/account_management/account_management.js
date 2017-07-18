@@ -1,6 +1,8 @@
 $(document).ready(function(){
 
+    /*
     $("#logIn").on('click', function(){
+        
         var user = $("#user").val();
         var pswd = $("#pswd").val();
 
@@ -25,10 +27,11 @@ $(document).ready(function(){
             }
         });
     });
+    */
 
-    $("#logOut").on('click', function(){
+    $("#logout").on('click', function(){
         $.ajax({
-            url: $SCRIPT_ROOT + '/log_out',
+            url: $SCRIPT_ROOT + '/logout',
             type: 'GET',
             success: function(data){
                 if (data.success){

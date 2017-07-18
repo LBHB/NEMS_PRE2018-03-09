@@ -32,8 +32,7 @@ import numpy as np
 #NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
 #      list for use with web interface
 PLOT_TYPES = [
-        'Scatter_Plot', 'Bar_Plot', 'Pareto_Plot', 'Difference_Plot',
-        'Tabular_Plot',
+        'Scatter_Plot', 'Bar_Plot', 'Pareto_Plot', 'Tabular_Plot'
         ]
 
 # Setting default tools as global variable was causing issues with scatter
@@ -555,20 +554,14 @@ class Pareto_Plot(PlotGenerator):
         self.script,self.div = components(p)
             
             
-class Difference_Plot(PlotGenerator):
-    def form_data_array(self, data):
-        return pd.DataFrame(index=['A','B'], columns=['1','2'])
-    # TODO: implement this from NARF
-            
-    
 class Tabular_Plot(PlotGenerator):
     # TODO: implement this from NARF
     def __init__(self, data, measure, fair=True, outliers=False, extra_cols=[]):
         # Use blank measure since tabular has a fixed set of columns
         _measure=[]
         _extra_cols=[
-                'r_test', 'mse_test', 'nlogl_test',
-                'mi_test', 'cohere_test', 'n_parms',
+                'n_parms', 'r_test', 'mse_test', 'nlogl_test',
+                'mi_test', 'cohere_test',
                 ]
         PlotGenerator.__init__(
                 self, data=data, measure=_measure, fair=fair,
@@ -589,15 +582,21 @@ class Tabular_Plot(PlotGenerator):
         columns = []
         for m in self.measure:
             if m == 'n_parms':
-                columns.append(m)
-                break
-            mean = 'mean_%s'%m
-            median = 'median_%s'%m
+                columns.append('n_parms')
+                continue
+            m = m.replace('_test', '')
+            if m == 'r':
+                mean = 'r(mean)'
+                median = 'r(median)'
+            else:
+                mean = '%s(mn)'%m
+                median = '%s(md)'%m
             columns.append(mean)
             columns.append(median)
+        index = self.data.index.levels[0].tolist()
         table = pd.DataFrame(
                     # index = list of model names
-                    index=self.data.index.levels[0].tolist(),
+                    index=index,
                     # columns = list of measures, both mean and median
                     columns=columns
                     )
@@ -606,37 +605,56 @@ class Tabular_Plot(PlotGenerator):
         for i, model in enumerate(table.index.tolist()):
             for j, meas in enumerate(self.measure):
                 series = self.data[meas]
-                if j%2 == 0:
-                    col = 'mean_%s'%meas
-                else:
-                    col = 'median_%s'%meas
-                    
-                if 'n_parms' in meas:
+                if meas == 'n_parms':
                     table.at[model, 'n_parms'] = (
                             series.loc[model].values.tolist()[0]
                             )
-                    break
+                    continue
                 else:
-                    table.at[model, col] = np.nanmean(series.loc[model])
-                    table.at[model, col] = np.nanmedian(series.loc[model])
-        
-        table.sort_values('mean_r_test', axis=0, ascending=False, inplace=True)
+                    m = meas.replace('_test', '')
+                    if m == 'r':
+                        mn = 'r(mean)'
+                        md = 'r(median)'
+                    else:
+                        mn = '%s(mn)'%m
+                        md = '%s(md)'%m
+                    table.at[model, mn] = np.nanmean(series.loc[model])
+                    table.at[model, md] = np.nanmedian(series.loc[model])
+                    
+                    # num valid cells is the minimum of either the current
+                    # value or the number of cells in the series minus number 
+                    # of NaN values in series.
+                    #table.at['valid_cells', mn] = min(
+                    #        table.at['valid_cells', mn],
+                    #        (series.size - table[mn].isnull().sum())
+                    #        )
+                    #table.at['valid_cells', md] = min(
+                    #        table.at['valid_cells', md],
+                    #        (series.size - table[md].isnull().sum())
+                    #        )
+                    
+        table.sort_values('n_parms', axis=0, ascending=False, inplace=True)
         
         # see pandas style attribute for more options
         positives = [
-                'mean_r_test', 'median_r_test',
-                'mean_mi_test', 'median_mi_test',
-                'mean_cohere_test', 'median_cohere_test',
+                'r(mean)', 'r(median)', 'mi(mn)', 'mi(md)',
+                'cohere(mn)', 'cohere(md)',
                 ]
         negatives = [
-                'mean_mse_test', 'median_mse_test',
-                'mean_nlogl_test', 'median_nlogl_test',
+                'mse(mn)', 'mse(md)', 'nlogl(mn)', 'nlogl(md)',
                 ]
-        table.style.highlight_max(subset=positives, axis=0, color='darkorange')
-        table.style.highlight_min(subset=negatives, axis=0, color='darkorange')
-        self.html = table.to_html(
-            index=True, classes="table-hover table-condensed",
-            )
+        t = table.style.highlight_max(
+                        subset=positives, axis=0, color='darkorange'
+                        )\
+                   .highlight_min(
+                        subset=negatives, axis=0, color='darkorange'
+                        )\
+                   .format("{: 3.4f}")
+        
+        self.html = t.render()
+        #self.html = table.to_html(
+        #    index=True, classes="table-hover table-condensed",
+        #    )
         
         #source = ColumnDataSource(table)
         #cols = table.columns.tolist()
@@ -655,10 +673,6 @@ class Tabular_Plot(PlotGenerator):
         
         #self.script, self.div = components(data_table)
 
-            
-            
-            
-            
             
             
             
