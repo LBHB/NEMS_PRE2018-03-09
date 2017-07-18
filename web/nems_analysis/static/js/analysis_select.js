@@ -935,8 +935,14 @@ $(document).ready(function(){
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
         var measure = $("#measureSelector").val();
-        var onlyFair = $("#onlyFair").val();
-        var includeOutliers = $("#includeOutliers").val();
+        var onlyFair = 0;
+        if (document.getElementById("onlyFair").checked){
+            onlyFair = 1;
+        }
+        var includeOutliers = 0;
+        if (document.getElementById("includeOutliers").checked){
+            includeOutliers = 1;
+        }
         
         addLoad();
         $.ajax({
@@ -949,7 +955,12 @@ $(document).ready(function(){
             success: function(data){
                 //plotDiv.resizable("destroy");
                 //plotDiv.draggable("destroy");
-                plotDiv.html(data.script + data.div);
+                if (data.hasOwnProperty('script')){
+                    plotDiv.html(data.script + data.div);
+                }
+                if (data.hasOwnProperty('html')){
+                    plotDiv.html(data.html);
+                }
                 //sizeDragDisplay();
                 removeLoad();
             },
@@ -959,5 +970,6 @@ $(document).ready(function(){
             }
         })
     }
+
 });
         

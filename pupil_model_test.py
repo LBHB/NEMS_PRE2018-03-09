@@ -24,17 +24,18 @@ stack.meta['cellid']='eno052d-a1'
 file=bu.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
 print("Initializing load_mat with file {0}".format(file))
 
-stack.append(nm.load_mat,est_files=[file],fs=50,formpup=False)
-stack.cv_counter=0
-stack.append(nm.pupil_est_val,valfrac=0.00)
+stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True,perfect_model=False)
+#stack.cv_counter=0
+#stack.append(nm.pupil_est_val,valfrac=0.05)
 
 #stack.append(nm.normalize)
 
-stack.append(nm.pupil_model,tile_data=True)
-unpacked=stack.modules[-1].unpack_data()
-unpackresp=stack.modules[-1].unpack_data(name='resp')
+#stack.append(nm.pupil_model,tile_data=True)
+#unpacked=stack.modules[-1].unpack_data()
+#unpackresp=stack.modules[-1].unpack_data(name='resp')
 
-
+alldata=stack.data
+"""
 #smalldata=copy.deepcopy(stack.data)
 stack.append(nm.state_gain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
 #stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,10,10])
@@ -71,6 +72,6 @@ datas=stack.data
 #print(stack.modules[3].theta)                   
 #stack.do_sorted_raster(size=(12,4))
 stack.quick_plot()
-
+"""
 
 

@@ -7,6 +7,7 @@ Created on Sun Jun 18 20:16:37 2017
 """
 import numpy as np
 import lib.nems_modules as nm
+import lib.nems_stack as ns
 import lib.nems_fitters as nf
 import lib.nems_utils as nu
 import lib.nems_keywords as nk
@@ -37,7 +38,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     
     Crossval should be working now! At least for pupil stuff ---njs July 13 2017
     """
-    stack=nm.nems_stack()
+    stack=ns.nems_stack()
     
     stack.meta['batch']=batch
     stack.meta['cellid']=cellid
@@ -64,6 +65,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             f(stack)
             
         # measure performance on both estimation and validation data
+        print('Evaluating fit on validation data')
         stack.valmode=True
         stack.evaluate(1)
         corridx=nu.find_modules(stack,'correlation')
@@ -110,12 +112,12 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}{3}.pkl"
             .format(batch, cellid, modelname, xval)
             )
-    nu.save_model(stack,filename)
+    nu.save_model(stack,filename) 
     #os.chmod(filename, 0o666)
     if stack.cross_val is not True:
         return(stack)
     else:
-        #TODO: Something funky is happening here
+        #TODO: Figure out best way to output data
         E=0
         P=0
         val_stim=np.concatenate(val_stim_list,axis=0)
@@ -130,7 +132,6 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
         stack.meta['r_est']=np.median(np.array(r_est_list))
         val_stim=val_stim.reshape([-1,1],order='C')
         val_resp=val_resp.reshape([-1,1],order='C')
-        print(val_stim.shape,val_resp.shape)
         
         stack.meta['r_val'],p=spstats.pearsonr(val_stim,val_resp)
         #stack.meta['r_val']=np.median(np.array(r_val_list))
