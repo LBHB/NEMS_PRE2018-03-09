@@ -334,17 +334,18 @@ class load_mat(nems_module):
                 elif self.perfect_model is True:
                     avg=np.nanmean(data['resp'],axis=1)
                     data['stim']=avg
+                else:
+                    data['resp']=np.transpose(data['resp'],(1,2,0))
+                    #sr=data['resp'].shape
+                    #data['stim']=np.tile(data['stim'],(1,sr[1],1))
+                    #print(data['stim'].shape)
                     
-                    #else:
-                        #sr=data['resp'].shape
-                        #data['stim']=np.tile(data['stim'],(1,sr[1],1))
-                        #print(data['stim'].shape)
-                    #for i in ('resp','pupil'):
-                        #s=data[i].shape
-                        #print(s)
-                        #data[i]=np.reshape(data[i],(s[0],s[1]*s[2]),order='F')
-                        #data[i]=np.transpose(data[i],(1,0))
-                        #print(data[i].shape)
+                #for i in ('resp','pupil'):
+                    #s=data[i].shape
+                    #print(s)
+                    #data[i]=np.reshape(data[i],(s[0],s[1]*s[2]),order='F')
+                    #data[i]=np.transpose(data[i],(1,0))
+                    #print(data[i].shape)
 
 
                     
@@ -359,14 +360,12 @@ class load_mat(nems_module):
             #PreStimSilence=data['PreStimSilence'][0,0]
             #PostStimSilence=data['PostStimSilence'][0,0]
 
-    
-
 class standard_est_val(nems_module):
     """
     Special module(s) for organizing/splitting estimation and validation data.
     Currently just one that replicates (mostly) the standard procedure from NARF
     """
- 
+    
     name='standard_est_val'
     user_editable_fields=['output_name','valfrac']
     valfrac=0.05
@@ -397,11 +396,15 @@ class standard_est_val(nems_module):
                 m=s.max()
                 validx = s==m
                 estidx = s<m
+                if not estidx.sum():
+                    s[-1]+=1
+                    m=s.max()
+                    validx = s==m
+                    estidx = s<m
                 
                 d_est=d.copy()
                 d_val=d.copy()
-
-
+                
                 d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
                 d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
                 d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
@@ -468,8 +471,7 @@ class stim_est_val(nems_module):
             d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
             d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
             d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
-
-            
+                        
             d_est['est']=True
             d_val['est']=False
                  
@@ -494,7 +496,7 @@ class trial_est_val(nems_module):
     
     Compatible with cross-validation. 
     """
- 
+    
     name='pupil_est_val'
     user_editable_fields=['output_name','valfrac']
     #plot_fns=[nu.non_plot]
