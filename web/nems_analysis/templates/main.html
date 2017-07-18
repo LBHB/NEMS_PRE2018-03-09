@@ -67,7 +67,21 @@
             TODO</a></li>
             <li><a href="#" id="enableDraggable">Enable Draggable</a></li>
             <li><a href="#" id="disableDraggable">Disable Draggable</a></li>
+            <li>
+                <input type="text"
+                       placeholder="username"
+                       id="user"
+                       size="10">
+            </li>
+            <li>
+                <input type="text"
+                       placeholder="password"
+                       id="pswd"
+                       size="10">
+            </li>
             <li><a href="#" id="logIn">Log In</a></li>
+            <li><a href="#" id="logOut">Log Out</a></li>
+            <li><a href="#" id="userName">'user name'</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -775,6 +789,22 @@
         <input type="text" id="p_modelname" name="modelname" value="">
     </form>
     </div>
+
+    <!-- form from snippets 62 -->
+    <div id="loginWrapper">
+        <form action="" method="POST">
+            <dl>
+                <dt>Username:
+                    <dd><input type="text" name="username">
+                <dt>Password:
+                    <dd><input type="password" name="password">
+            </dl>
+            <p>
+                <input type="submit" value="Login">
+                <input type="hidden" value="{{ next or '' }}" name="next">
+            </p>
+        </form>
+    </div>
     
     <!-- load jquery -->
     <script type=text/javascript src=
@@ -802,6 +832,9 @@
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
     <script type="text/javascript" src=
     "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
-    
+    <script type="text/javascript">
+    "{{ url_for('static', filename='js/account_management/account_management.js') }}"
+    </script>
+
   </body>
 </html>
