@@ -16,6 +16,7 @@ import lib.nems_modules as nm
 import lib.nems_fitters as nf
 import lib.nems_keywords as nk
 import lib.nems_utils as nu
+import lib.nems_stack as ns
 
 imp.reload(nf)
 
@@ -28,7 +29,7 @@ datapath='/Users/svd/python/nems/misc/ref/'
 est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
 # create an empty stack
-stack=nm.nems_stack()
+stack=ns.nems_stack()
 
 stack.meta['batch']=291
 #stack.meta['cellid']='chn020f-b1'
@@ -38,9 +39,15 @@ stack.meta['cellid']='bbl061h-a1'
 
 #stack.meta['batch']=267
 #stack.meta['cellid']='ama024a-21-1'
+stack.meta['batch']=293
+stack.meta['cellid']='eno048f-a1'
+
+
+
 
 # add a loader module to stack
-nk.fb18ch100(stack)
+#nk.fb18ch100(stack)
+nk.parm100(stack)
 #nk.loadlocal(stack)
 
 nk.ev(stack)

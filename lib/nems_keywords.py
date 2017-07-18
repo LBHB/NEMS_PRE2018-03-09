@@ -12,6 +12,10 @@ import lib.nems_utils as nu
 import lib.baphy_utils as baphy_utils
 
 # loader keywords
+def parm100(stack):
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True,perfect_model=False)
 
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
