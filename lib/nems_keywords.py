@@ -53,6 +53,9 @@ def loadlocal(stack):
 
 standard_est_val = ['ev', ]
 
+#TODO: incorporate est/val into loader keywords. Would have either standard or nested crossval options
+#specified by keyword. Could be like fb18ch100 and fb18ch100xv or something ---njs July 18 2017
+
 def ev(stack):
     stack.append(nm.standard_est_val, valfrac=0.05)
     

@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.ma as npma
 import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.signal as sps
@@ -226,12 +227,12 @@ class load_mat(nems_module):
     est_files=[]
     fs=100
     
-    def my_init(self,est_files=[],fs=100,avg_resp=True,perfect_model=False):
+    def my_init(self,est_files=[],fs=100,avg_resp=True):
         self.est_files=est_files.copy()
         self.do_trial_plot=self.plot_fns[0]
         self.fs=fs
         self.avg_resp=avg_resp
-        self.perfect_model=perfect_model
+        self.parent_stack.avg_resp=avg_resp
 
     def evaluate(self):
         del self.d_out[:]
@@ -323,32 +324,39 @@ class load_mat(nems_module):
                 #TODO: need to fix repcount for data with varying trial numbers (in pupil_est_val)
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 self.parent_stack.unresampled['repcount']=data['repcount']
-                #print(data['stim'].shape)
-                #print(data['resp'].shape)
-                #print(data['pupil'].shape)
                 
+                data['avgresp']=np.nanmean(data['resp'],axis=1)
+                data['avgresp']=np.transpose(data['avgresp'],(1,0))
 
                 if self.avg_resp is True: 
-                    data['resp']=np.nanmean(data['resp'],axis=1) 
-                    data['resp']=np.transpose(data['resp'],(1,0))
-                elif self.perfect_model is True:
-                    avg=np.nanmean(data['resp'],axis=1)
-                    data['stim']=avg
+                    data['resp']=data['avgresp']
                 else:
-                    data['resp']=np.transpose(data['resp'],(1,2,0))
-                    #sr=data['resp'].shape
-                    #data['stim']=np.tile(data['stim'],(1,sr[1],1))
-                    #print(data['stim'].shape)
-                    
-                #for i in ('resp','pupil'):
-                    #s=data[i].shape
-                    #print(s)
-                    #data[i]=np.reshape(data[i],(s[0],s[1]*s[2]),order='F')
-                    #data[i]=np.transpose(data[i],(1,0))
-                    #print(data[i].shape)
+                    r=data['repcount']
+                    s=copy.deepcopy(data['resp'].shape)
+                    data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='F'),(1,0))
+                    #data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
+                    mask=np.logical_not(npma.getmask(npma.masked_invalid(data['resp'])))
+                    R=data['resp'][mask]
+                    data['resp']=np.reshape(R,(-1,s[0]),order='C')
+                    try:
+                        data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='F'),(1,0))
+                        P=data['pupil'][mask]
+                        data['pupil']=np.reshape(P,(-1,s[0]),order='C')
+                        #data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
+                    except ValueError:
+                        data['pupil']=None
+                    Y=data['stim'][:,0,:]
+                    Z=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
+                    for i in range(1,s[2]):
+                        Y=data['stim'][:,i,:]
+                        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
+                        Z=np.append(Z,Y,axis=1)
+                    data['stim']=Z
+                    lis=[]
+                    for i in range(0,r.shape[0]):
+                        lis.extend([i]*data['repcount'][i])
+                    data['replist']=np.array(lis)
 
-
-                    
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 print('load_mat: appending {0} to d_out stack'.format(f))
@@ -561,10 +569,9 @@ class crossval(nems_module):
     name='crossval'
     valfrac=0.05
     
-    def my_init(self,valfrac=0.05,use_trials=False):
+    def my_init(self,valfrac=0.05):
         self.valfrac=valfrac
         self.crossval=self.parent_stack.cross_val
-        self.use_trials=use_trials
         try:
             self.iter=int(1/valfrac)-1
         except:
@@ -572,39 +579,17 @@ class crossval(nems_module):
         
     def evaluate(self):
         del self.d_out[:]
-         # for each data file:
+
         for i, d in enumerate(self.d_in):    
             count=self.parent_stack.cv_counter
+            re=d['resp'].shape
+            spl=mt.ceil(re[0]*self.valfrac)
+            count=count*spl
         
             d_est=d.copy()
             d_val=d.copy()
             
-            if self.use_trials is True:
-                re=d['resp'].shape
-                respl=mt.ceil(re[1]*(1-self.valfrac))
-                spl=mt.ceil(re[1]*self.valfrac)
-                count=count*spl
-                print('Creating estimation/validation datasets using trials')
-                try:
-                    d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
-                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
-                except TypeError:
-                    print('No pupil data')
-                    d_val['pupil']=None
-                    d_est['pupil']=None
-                d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
-                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
-                d_val['stim']=copy.deepcopy(d['stim'])
-                d_est['stim']=copy.deepcopy(d['stim'])
-                d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64')
-                d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
-            else:
-                re=d['resp'].shape
-                try:
-                    spl=mt.ceil(re[2]*self.valfrac)
-                except IndexError:
-                    spl=mt.ceil(re[0]*self.valfrac)
-                count=count*spl
+            if self.parent_stack.avg_resp is True:
                 print('Creating estimation/validation datasets using stimuli')
                 try:
                     d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
@@ -612,21 +597,28 @@ class crossval(nems_module):
                 except TypeError:
                     print('No pupil data')
                     d_val['pupil']=None
-                    d_est['pupil']=None
-                try:
-                    d_val['resp']=copy.deepcopy(d['resp'][:,:,count:(count+spl)])
-                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],2)
-                except IndexError:
-                    d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
-                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                try:
-                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
-                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
-                except IndexError:
-                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl)])
-                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                    d_est['pupil']=None   
+                d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+                d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
                 d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
                 d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+            else:
+                print('Creating estimation/validation datasets using trials')
+                try:
+                    d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
+                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
+                except TypeError:
+                    print('No pupil data')
+                    d_val['pupil']=None
+                    d_est['pupil']=None
+                d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                d_val['stim']=copy.deepcopy(d['stim'])
+                d_est['stim']=copy.deepcopy(d['stim'])
+                d_val['replist']=copy.deepcopy(d['replist'][count:(count+spl)])
+                d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
                     
             d_est['est']=True
             d_val['est']=False
@@ -646,37 +638,18 @@ class pupil_model(nems_module):
     Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
     Will probably incorporate into pupil_est_val later.
     """
-    def my_init(self,tile_data=True):
-        self.tile_data=tile_data
-   
     def evaluate(self):
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
             self.d_out.append(val.copy())
             self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
         for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in['resp'])
-            Xp=copy.deepcopy(f_in['pupil'])
-            #Xa=np.nanmean(X,axis=1)
-            Xa=copy.deepcopy(f_in['stim'])
-            if self.tile_data is True:
-                s=Xp.shape 
-                #Z=np.reshape(Xp,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
-                Z=np.reshape(Xp,(s[0],s[1]*s[2]),order='F')  #Comment out to have long "stimuli"
-                Z=np.transpose(Z,(1,0))
-                #Q=np.reshape(X,(s[0]*s[1],s[2]),order='F') #Uncomment to have long "stimuli"
-                Q=np.reshape(X,(s[0],s[1]*s[2]),order='F') #Comment out to have long "stimuli"
-                Q=np.transpose(Q,(1,0))
-                #Y=np.tile(Xa,(s[1],1)) #Uncomment to have long "stimuli"
-                Y=np.tile(Xa[:,0],(s[1],1))
-                for i in range(1,Xa.shape[1]):
-                    Y=np.append(Y,np.tile(Xa[:,i],(s[1],1)),axis=0) #Comment out to have long "stimuli"  
-                #Y=np.transpose(Y,(1,0))
-            else:
-                Y=X
-            f_out[self.output_name]=Y  
-            f_out['pupil']=Z
-            f_out['resp']=Q
+            Xa=copy.deepcopy(f_in['avgresp'])
+            R=f_in['replist']
+            X=np.zeros(f_in['resp'].shape)
+            for i in range(0,R.shape[0]):
+                X[i,:]=Xa[R[i],:]
+            f_out['stim']=X
             
 
 """
