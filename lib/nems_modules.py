@@ -580,55 +580,63 @@ class crossval(nems_module):
     def evaluate(self):
         del self.d_out[:]
 
-        for i, d in enumerate(self.d_in):    
-            count=self.parent_stack.cv_counter
-            re=d['resp'].shape
-            spl=mt.ceil(re[0]*self.valfrac)
-            count=count*spl
-        
-            d_est=d.copy()
-            d_val=d.copy()
+        for i, d in enumerate(self.d_in):
+            try:
+                if d['est']:
+                    # flagged as est data
+                    self.d_out.append(d)
+                elif self.parent_stack.valmode:
+                    self.d_out.append(d)
+                self.parent_stack.cond=True
+            except:
+                count=self.parent_stack.cv_counter
+                re=d['resp'].shape
+                spl=mt.ceil(re[0]*self.valfrac)
+                count=count*spl
             
-            if self.parent_stack.avg_resp is True:
-                print('Creating estimation/validation datasets using stimuli')
-                try:
-                    d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
-                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
-                except TypeError:
-                    print('No pupil data')
-                    d_val['pupil']=None
-                    d_est['pupil']=None   
-                d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
-                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
-                d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
-                d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
-                d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
-            else:
-                print('Creating estimation/validation datasets using trials')
-                try:
-                    d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
-                    d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
-                except TypeError:
-                    print('No pupil data')
-                    d_val['pupil']=None
-                    d_est['pupil']=None
-                d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
-                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                d_val['stim']=copy.deepcopy(d['stim'])
-                d_est['stim']=copy.deepcopy(d['stim'])
-                d_val['replist']=copy.deepcopy(d['replist'][count:(count+spl)])
-                d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
-                    
-            d_est['est']=True
-            d_val['est']=False
-            
-            self.d_out.append(d_est)
-            if self.parent_stack.valmode:
-                self.d_out.append(d_val)
+                d_est=d.copy()
+                d_val=d.copy()
                 
-        if self.parent_stack.cv_counter==self.iter:
-            self.parent_stack.cond=True
+                if self.parent_stack.avg_resp is True:
+                    print('Creating estimation/validation datasets using stimuli')
+                    try:
+                        d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
+                        d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
+                    except TypeError:
+                        print('No pupil data')
+                        d_val['pupil']=None
+                        d_est['pupil']=None   
+                    d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                    d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+                    d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+                else:
+                    print('Creating estimation/validation datasets using trials')
+                    try:
+                        d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
+                        d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
+                    except TypeError:
+                        print('No pupil data')
+                        d_val['pupil']=None
+                        d_est['pupil']=None
+                    d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                    d_val['stim']=copy.deepcopy(d['stim'])
+                    d_est['stim']=copy.deepcopy(d['stim'])
+                    d_val['replist']=copy.deepcopy(d['replist'][count:(count+spl)])
+                    d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
+                        
+                d_est['est']=True
+                d_val['est']=False
+                
+                self.d_out.append(d_est)
+                if self.parent_stack.valmode:
+                    self.d_out.append(d_val)
+                
+                if self.parent_stack.cv_counter==self.iter:
+                    self.parent_stack.cond=True
             
                     
 class pupil_model(nems_module):
