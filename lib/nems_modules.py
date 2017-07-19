@@ -25,6 +25,7 @@ class nems_module:
     
     input_name='stim'  # name of input matrix in d_in
     output_name='stim' # name of output matrix in d_out
+    state_var='pupil'
     parent_stack=None # pointer to stack instance that owns this module
     id=None  # unique name for this module to be referenced from the stack??
     d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
@@ -112,6 +113,10 @@ class nems_module:
                 
         return X
     
+#TODO: Need to do some thinking about the best way to handle evaluate and nested_evaluate.
+#If the data arrays are always put into a list, could use just one evaluate function that
+#uses 0 index if there is no nesting, and iterates otherwise. ---njs July 19 2017
+
     def evaluate(self):
         """
         evaluate - iterate through each file, extracting the input data 
@@ -130,6 +135,20 @@ class nems_module:
         for f_in,f_out in zip(self.d_in,self.d_out):
             X=copy.deepcopy(f_in[self.input_name])
             f_out[self.output_name]=self.my_eval(X)
+            
+    def nested_evaluate(self,nest=0):
+        """
+        Special evaluation for use with nested crossval. Essentially the same as evaluate, 
+        but it allows uses of nest list for calculating nested crossval datasets.
+        """
+        del self.d_out[:]
+        for i,d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+            
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in[self.input_name][nest])
+            f_out[self.output_name][nest]=self.my_eval(X)
+    
     
     #
     # customizable functions
@@ -574,8 +593,10 @@ class crossval(nems_module):
         self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
+            self.parent_stack.nests=int(1/valfrac)
         except:
             self.iter=0
+            self.parent_stack.nests=1
         
     def evaluate(self):
         del self.d_out[:]
@@ -993,9 +1014,20 @@ class state_gain(nems_module):
             self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])        
         for f_in,f_out in zip(self.d_in,self.d_out):
             X=copy.deepcopy(f_in[self.input_name])
-            Xp=copy.deepcopy(f_in['pupil'])
+            Xp=copy.deepcopy(f_in[self.state_var])
             Z=getattr(self,self.gain_type+'_fn')(X,Xp)
             f_out[self.output_name]=Z
+            
+    def nested_evaluate(self,nest=0):
+        del self.d_out[:]
+        for i,val in enumerate(self.d_in):
+            self.d_out.append(val.copy())
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            X=copy.deepcopy(f_in[self.input_name][nest])
+            Xp=copy.deepcopy(f_in[self.state_var][nest])
+            Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+            f_out[self.output_name][nest]=Z
+            
         
 """
 modules for computing scores/ assessing model performance

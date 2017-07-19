@@ -36,6 +36,8 @@ class nems_stack:
     fitter=None
     valmode=False
     cross_val=False
+    nests=20
+    avg_resp=True
     
     plot_dataidx=0
     plot_stimidx=0
@@ -58,6 +60,8 @@ class nems_stack:
         self.valmode=False
         self.plot_trialidx=(0,3)
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
+        self.nests=20
+        self.parm_fits=[]
         
     def evaluate(self,start=0):
         # evalute stack, starting at module # start
@@ -65,7 +69,22 @@ class nems_stack:
             #if ii>0:
             #    print("Propagating mod {0} d_out to mod{1} d_in".format(ii-1,ii))
             #    self.modules[ii].d_in=self.modules[ii-1].d_out
-            self.modules[ii].evaluate()
+            self.modules[ii].evaluate() 
+            
+    def nested_evaluate(self,start=0):
+        for i in range(0,self.nests):
+            for j in range(start,len(self.modules)):
+                self.modules[j].phi2parms(phi=self.parm_fits[i][j])
+                self.modules[j].nested_evaluate(nest=i)
+                
+    def nested_concatenate(self,start=0):
+        for j in range(start,len(self.data)):
+            if self.data[j]['stim'][0].ndim==3:
+                self.data[j]['stim']=np.concatenate(self.data[j]['stim'],axis=1)
+            else:
+                self.data[j]['stim']=np.concatenate(self.data[j]['stim'],axis=0)
+            self.data[j]['resp']=np.concatenate(self.data[j]['resp'],axis=0)
+            self.data[j]['pupil']=np.concatenate(self.data[j]['pupil'],axis=0)
     
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
