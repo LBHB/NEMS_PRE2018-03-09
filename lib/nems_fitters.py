@@ -50,7 +50,6 @@ class nems_fitter:
         """
         Converts fit parameters to a single vector, to be used in fitting
         algorithms.
-        to_fit should be formatted ['par1','par2',] etc
         """
         phi=[]
         for k in self.fit_modules:
@@ -62,7 +61,6 @@ class nems_fitter:
         """
         Converts single fit vector back to fit parameters so model can be calculated
         on fit update steps.
-        to_fit should be formatted ['par1','par2',] etc
         """
         st=0
         for k in self.fit_modules:
