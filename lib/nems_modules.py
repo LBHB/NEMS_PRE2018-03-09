@@ -653,7 +653,35 @@ class crossval(nems_module):
                 d_val['est']=False
                 
                 self.d_out.append(d_est)
-                if self.parent_stack.valmode:
+                if self.parent_stack.valmode is True:
+                    d_val['stim']=[]
+                    d_val['resp']=[]
+                    d_val['pupil']=[]
+                    d_val['replist']=[]
+                    d_val['repcount']=[]
+                    for count in range(0,self.parent_stack.nests):
+                        re=d['resp'].shape
+                        spl=mt.ceil(re[0]*self.valfrac)
+                        count=count*spl
+                        if self.parent_stack.avg_resp is True:
+                            try:
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
+                            except TypeError:
+                                print('No pupil data')
+                                d_val['pupil']=None
+                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                            d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
+                            d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
+                        else:
+                            try:
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
+                            except TypeError:
+                                print('No pupil data')
+                                d_val['pupil']=None
+                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                            d_val['stim'].append(copy.deepcopy(d['stim']))
+                            d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))
+                    
                     self.d_out.append(d_val)
                 
                 if self.parent_stack.cv_counter==self.iter:
