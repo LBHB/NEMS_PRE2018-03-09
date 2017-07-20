@@ -26,7 +26,7 @@ import sys
 from base64 import b64encode
 
 from flask import (
-        render_template, jsonify, request, redirect,url_for, Response,
+        render_template, jsonify, request, redirect,url_for, Response, g
         )
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
@@ -73,6 +73,12 @@ def main_view():
         sortlist, defaultsort, statuslist, and taglist.
     
     """
+    
+    user = g.user
+    try:
+        username = user.username
+    except:
+        username = ''
     
     session = Session()
     
@@ -157,7 +163,7 @@ def main_view():
             collist=collist, defaultcols=defaultcols, measurelist=measurelist,
             defaultrowlimit=defaultrowlimit,sortlist=collist,
             defaultsort=defaultsort,statuslist=statuslist, taglist=taglist,
-            plotTypeList=plotTypeList,
+            plotTypeList=plotTypeList, username=username,
             )
 
 

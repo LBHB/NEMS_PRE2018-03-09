@@ -67,16 +67,10 @@
             TODO</a></li>
             <li><a href="#" id="enableDraggable">Enable Draggable</a></li>
             <li><a href="#" id="disableDraggable">Disable Draggable</a></li>
-            <li>
-                <a href="#"
-                   data-toggle="modal"
-                   id="login"
-                   data-target="#loginModal">
-                       Log in
-                </a>
-            </li>
-            <li><a href="#" id="logout">Log Out</a></li>
-            <li><a href="#" id="userName">'user name'</a></li>
+            <li><a href="{{ url_for('login') }}" id="login">Log In</a></li>
+            <li><a href="{{ url_for('logout') }}" id="logout">Log Out</a></li>
+            <li><a href="{{ url_for('register') }}" id="register">Register</a></li>
+            <li><p>{{ username }}</p></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -348,7 +342,7 @@
                                    id="queuelimit"
                                    value="20"
                                    size="6">
-                                       Cross Val
+                                       Iterative Crossval
                             <input tabindex="-1"
                                    type="checkbox"
                                    id="crossVal"
@@ -784,42 +778,6 @@
         <input type="text" id="p_modelname" name="modelname" value="">
     </form>
     </div>
-
-    <div class="modal"
-         id="loginModal" 
-         tabindex="-1"
-         role="dialog">
-        <div class="modal-dialog modal-sm"
-             role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title" id="logInModalLabel"> Log In </h3>
-                    <button type="button" class="close" data-dismiss="modal"
-                    aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div><!-- header -->
-                <div class="modal-body">
-                    <!-- form from snippets 62 -->
-                    <!-- disabled for now until authentication code is ready for testing -->
-                    <form action="{#{{ url_for('login') }}#}" method="POST">
-                        <dl>
-                            <dt>Username:
-                                <dd><input type="text" name="username">
-                            <dt>Password:
-                                <dd><input type="password" name="password">
-                        </dl>
-                        <p>
-                            <input type="submit" value="Login" id="submitLogIn">
-                            <input type="hidden" value="{{ next or '' }}" name="next">
-                        </p>
-                    </form>
-                </div><!-- body -->
-                <div class="modal-footer">
-                </div><!-- footer -->
-            </div><!--content -->
-        </div><!--dialog-->
-    </div><!--modal-->
     
     <!-- load jquery -->
     <script type=text/javascript src=
@@ -847,9 +805,6 @@
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
     <script type="text/javascript" src=
     "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
-    <script type="text/javascript">
-    "{{ url_for('static', filename='js/account_management/account_management.js') }}"
-    </script>
 
   </body>
 </html>

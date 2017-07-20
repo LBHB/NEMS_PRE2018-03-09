@@ -1,5 +1,7 @@
 $(document).ready(function(){
 
+
+    //    old js/modal way commented out, using wtf forms in python    
     /*
     $("#logIn").on('click', function(){
         
@@ -29,6 +31,7 @@ $(document).ready(function(){
     });
     */
 
+    /*
     $("#logout").on('click', function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/logout',
@@ -50,7 +53,9 @@ $(document).ready(function(){
             }
         });
     });
+    */
 
+    /*
     var user_avail = false;
     $("#reg_user").change(function(){
         var user = $("#reg_user").val();
@@ -72,7 +77,9 @@ $(document).ready(function(){
             }
         });
     });
+    */
 
+    /*
     var pswd_match = false;
     $("#reg_pswd, #reg_pswdTwo").change(function(){
         var pswd = $("#reg_pswd").val();
@@ -84,7 +91,9 @@ $(document).ready(function(){
         }
         check_register_okay();
     });
+    */
 
+    /*
     function check_register_okay(){
         if (user_avail && pswd_match){
             $("#register").prop("disabled", false);
@@ -92,7 +101,9 @@ $(document).ready(function(){
             $("#register").prop("disabled", true);
         }
     }
+    */
 
+    /*
     $("#register").on('click', function(){
         var user = $("#reg_user").val();
         var pswd = $("#reg_pswd").val();
@@ -129,5 +140,5 @@ $(document).ready(function(){
             }
         });
     });
-
+    */
 });

@@ -67,6 +67,7 @@ Base = automap_base()
 engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],pool_recycle=POOL_RECYCLE)
 Base.prepare(engine, reflect=True)
 
+NarfUsers = Base.classes.NarfUsers
 NarfAnalysis = Base.classes.NarfAnalysis
 NarfBatches = Base.classes.NarfBatches
 NarfResults = Base.classes.NarfResults
@@ -85,4 +86,4 @@ import misc_views.views
 import plot_functions.views
 import model_functions.views
 import modelpane.views
-#import account_management.views
+import account_management.views
