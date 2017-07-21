@@ -34,6 +34,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     keywords=modelname.split("_")
     stack.cv_counter=0
     stack.cond=False
+    stack.fitted_modules=[]
     while stack.cond is False:
         print('iter loop='+str(stack.cv_counter))
         stack.clear()
@@ -42,20 +43,27 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             f = getattr(nk, k)
             f(stack)
             
-        fitted_modules=[]
-        for idx,m in enumerate(self.stack.modules):
+        phi=[]
+        for idx,m in enumerate(stack.modules):
             this_phi=m.parms2phi()
             if this_phi.size:
-                fitted_modules.append(idx)
-            phi=[]
-            for k in fitted_modules:
-                g=stack.modules[k].parms2phi()
-                phi=np.append(phi,g)
+                if stack.cv_counter==0:
+                    stack.fitted_modules.append(idx)
+                phi.append(this_phi)
+        phi=np.concatenate(phi)
+        stack.parm_fits.append(phi)
+        if stack.cross_val is not True:
+            stack.cond=True
+        
         stack.cv_counter+=1
             
         # measure performance on both estimation and validation data
     stack.valmode=True
-    stack.evaluate(1)
+    if stack.cross_val is True:
+        stack.nested_evaluate(1)
+        stack.nested_concatenate(1)
+    else:
+        stack.evaluate(1)
     corridx=nu.find_modules(stack,'correlation')
     if not corridx:
         # add MSE calculator module to stack if not there yet
@@ -63,17 +71,12 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
                 
     print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
              stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
-    if stack.cross_val is not True:
-        stack.cond=True
-        valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-        if valdata:
-            stack.plot_dataidx=valdata[0]
-        else:
-            stack.plot_dataidx=0
+    valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+    if valdata:
+        stack.plot_dataidx=valdata[0]
     else:
-        
-        
-        
+        stack.plot_dataidx=0
+
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
     if autoplot:
@@ -95,28 +98,5 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             )
     #nu.save_model(stack,filename) 
     #os.chmod(filename, 0o666)
-    if stack.cross_val is not True:
-        return(stack)
-    else:
-        #TODO: Figure out best way to output data
-        E=0
-        P=0
-        val_stim=np.concatenate(val_stim_list,axis=0)
-        val_resp=np.concatenate(val_resp_list,axis=0)
-        
-        E=np.sum(np.square(val_stim-val_resp))
-        P=np.sum(np.square(val_resp))
-        mse=E/P
-        stack.meta['mse_val']=mse
-        #stack.meta['mse_val']=np.median(np.array(mse_vallist))
-        stack.meta['mse_est']=np.median(np.array(mse_estlist))
-        stack.meta['r_est']=np.median(np.array(r_est_list))
-        val_stim=val_stim.reshape([-1,1],order='C')
-        val_resp=val_resp.reshape([-1,1],order='C')
-        
-        stack.meta['r_val'],p=spstats.pearsonr(val_stim,val_resp)
-        #stack.meta['r_val']=np.median(np.array(r_val_list))
-        print("Median: mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
-              stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
-        #return(stack_list)
-        return(stack)
+
+    return(stack)

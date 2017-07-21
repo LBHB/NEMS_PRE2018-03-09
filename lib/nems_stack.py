@@ -74,17 +74,22 @@ class nems_stack:
     def nested_evaluate(self,start=0):
         for i in range(0,self.nests):
             for j in range(start,len(self.modules)):
-                self.modules[j].phi2parms(phi=self.parm_fits[i][j])
+                st=0
+                for k in self.fitted_modules:
+                    phi_old=self.modules[k].parms2phi()
+                    s=phi_old.shape
+                    self.modules[k].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
+                    st+=np.prod(s)
                 self.modules[j].nested_evaluate(nest=i)
                 
     def nested_concatenate(self,start=0):
         for j in range(start,len(self.data)):
-            if self.data[j]['stim'][0].ndim==3:
-                self.data[j]['stim']=np.concatenate(self.data[j]['stim'],axis=1)
+            if self.data[j][1]['stim'][0].ndim==3:
+                self.data[j][1]['stim']=np.concatenate(self.data[j][1]['stim'],axis=1)
             else:
-                self.data[j]['stim']=np.concatenate(self.data[j]['stim'],axis=0)
-            self.data[j]['resp']=np.concatenate(self.data[j]['resp'],axis=0)
-            self.data[j]['pupil']=np.concatenate(self.data[j]['pupil'],axis=0)
+                self.data[j][1]['stim']=np.concatenate(self.data[j][1]['stim'],axis=0)
+            self.data[j][1]['resp']=np.concatenate(self.data[j][1]['resp'],axis=0)
+            self.data[j][1]['pupil']=np.concatenate(self.data[j][1]['pupil'],axis=0)
     
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
@@ -251,12 +256,12 @@ class nems_stack:
         #self.do_raster_plot()
         for idx,m in enumerate(self.modules):
             # skip first module
-            if idx>0:
+            if idx>1:
                 print(self.mod_names[idx])
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
-        plt.tight_layout()
+        #plt.tight_layout()
         #TODO: Use gridspec to fix spacing issue? Addition of labels makes
         #      the subplots look "scrunched" vertically.
     

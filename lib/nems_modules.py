@@ -135,19 +135,25 @@ class nems_module:
         for f_in,f_out in zip(self.d_in,self.d_out):
             X=copy.deepcopy(f_in[self.input_name])
             f_out[self.output_name]=self.my_eval(X)
+
             
     def nested_evaluate(self,nest=0):
         """
         Special evaluation for use with nested crossval. Essentially the same as evaluate, 
         but it allows uses of nest list for calculating nested crossval datasets.
         """
-        del self.d_out[:]
-        for i,d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-            
+        if nest==0:
+            del self.d_out[:]
+            for i,d in enumerate(self.d_in):
+                self.d_out.append(d.copy())
         for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name][nest])
-            f_out[self.output_name][nest]=self.my_eval(X)
+            try:
+                X=copy.deepcopy(f_in[self.input_name][nest])
+                f_out[self.output_name][nest]=self.my_eval(X)
+            except IndexError:
+                X=copy.deepcopy(f_in[self.input_name])
+                f_out[self.output_name]=self.my_eval(X)
+                
     
     
     #
@@ -586,6 +592,7 @@ class crossval(nems_module):
     Cross-validation est/val module that replaces trial_est_val and stim_est_val.
     """
     name='crossval'
+    plot_fns=[nu.plot_spectrogram]
     valfrac=0.05
     
     def my_init(self,valfrac=0.05):
@@ -653,34 +660,36 @@ class crossval(nems_module):
                 d_val['est']=False
                 
                 self.d_out.append(d_est)
-                if self.parent_stack.valmode is True:
-                    d_val['stim']=[]
-                    d_val['resp']=[]
-                    d_val['pupil']=[]
-                    d_val['replist']=[]
-                    d_val['repcount']=[]
-                    for count in range(0,self.parent_stack.nests):
-                        re=d['resp'].shape
-                        spl=mt.ceil(re[0]*self.valfrac)
-                        count=count*spl
-                        if self.parent_stack.avg_resp is True:
-                            try:
-                                d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
-                            except TypeError:
-                                print('No pupil data')
-                                d_val['pupil']=None
-                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
-                            d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
-                            d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
-                        else:
-                            try:
-                                d_val['pupil'].append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
-                            except TypeError:
-                                print('No pupil data')
-                                d_val['pupil']=None
-                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
-                            d_val['stim'].append(copy.deepcopy(d['stim']))
-                            d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))
+                if self.parent_stack.valmode is True: 
+                    if self.parent_stack.cross_val is True:
+                        d_val['stim']=[]
+                        d_val['resp']=[]
+                        d_val['pupil']=[]
+                        d_val['replist']=[]
+                        d_val['repcount']=[]
+                        for count in range(0,self.parent_stack.nests):
+                            re=d['resp'].shape
+                            spl=mt.ceil(re[0]*self.valfrac)
+                            count=count*spl
+                            if self.parent_stack.avg_resp is True:
+                                try:
+                                    d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
+                                except TypeError:
+                                    print('No pupil data')
+                                    d_val['pupil']=None
+                                d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                                d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
+                                d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
+                            else:
+                                try:
+                                    d_val['pupil'].append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
+                                except TypeError:
+                                    print('No pupil data')
+                                    d_val['pupil']=None
+                                d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                                d_val['stim'].append(copy.deepcopy(d['stim']))
+                                d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))
+                                d_val['repcount']=copy.deepcopy(d['repcount'])
                     
                     self.d_out.append(d_val)
                 
@@ -695,6 +704,7 @@ class pupil_model(nems_module):
     Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
     Will probably incorporate into pupil_est_val later.
     """
+
     def evaluate(self):
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
@@ -707,6 +717,30 @@ class pupil_model(nems_module):
             for i in range(0,R.shape[0]):
                 X[i,:]=Xa[R[i],:]
             f_out['stim']=X
+
+    
+    def nested_evaluate(self,nest=0):
+        if nest==0:
+            del self.d_out[:]
+            for i,val in enumerate(self.d_in):
+                self.d_out.append(val.copy())
+                self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            Xa=f_in['avgresp']
+            try:
+                R=f_in['replist'][nest]
+                X=np.zeros(f_in['resp'][nest].shape)
+                for i in range(0,R.shape[0]):
+                    X[i,:]=Xa[R[i],:]
+                f_out['stim'][nest]=X
+            except IndexError:
+                R=f_in['replist']
+                X=np.zeros(f_in['resp'].shape)
+                for i in range(0,R.shape[0]):
+                    X[i,:]=Xa[R[i],:]
+                f_out['stim']=X
+                
+        
             
 
 """
@@ -1033,7 +1067,7 @@ class state_gain(nems_module):
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
     
-    
+
     def evaluate(self):
         del self.d_out[:]
         for i, val in enumerate(self.d_in):
@@ -1045,16 +1079,25 @@ class state_gain(nems_module):
             Xp=copy.deepcopy(f_in[self.state_var])
             Z=getattr(self,self.gain_type+'_fn')(X,Xp)
             f_out[self.output_name]=Z
+
             
     def nested_evaluate(self,nest=0):
-        del self.d_out[:]
-        for i,val in enumerate(self.d_in):
-            self.d_out.append(val.copy())
+        if nest==0:
+            del self.d_out[:]
+            for i,val in enumerate(self.d_in):
+                self.d_out.append(val.copy())
         for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name][nest])
-            Xp=copy.deepcopy(f_in[self.state_var][nest])
-            Z=getattr(self,self.gain_type+'_fn')(X,Xp)
-            f_out[self.output_name][nest]=Z
+            try:
+                X=copy.deepcopy(f_in[self.input_name][nest])
+                Xp=copy.deepcopy(f_in[self.state_var][nest])
+                Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+                f_out[self.output_name][nest]=Z
+            except IndexError:
+                X=copy.deepcopy(f_in[self.input_name])
+                Xp=copy.deepcopy(f_in[self.state_var])
+                Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+                f_out[self.output_name]=Z
+                
             
         
 """
