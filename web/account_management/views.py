@@ -12,7 +12,7 @@ from flask import redirect, request, url_for, render_template, g
 from flask_login import (
         LoginManager, login_required, login_user, logout_user, current_user
         )
-from flask.ext.bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt
 
 from nems_analysis import app, Session, NarfUsers
 from account_management.forms import LoginForm, RegistrationForm

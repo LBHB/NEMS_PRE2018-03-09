@@ -12,7 +12,7 @@ with codecs.open('README.md', encoding='utf-8') as f:
 GENERAL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'flask', 'sqlalchemy']
 WEB_REQUIRES = [
         'flask', 'mpld3', 'bokeh', 'flask-socketio', 'eventlet', 'flask-login',
-        'flask-WTF',
+        'flask-WTF', 'bcrypt',
         ]
 DB_REQUIRES = ['sqlalchemy', 'pymysql']
 

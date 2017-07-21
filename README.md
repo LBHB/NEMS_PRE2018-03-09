@@ -38,7 +38,7 @@ Ongoing: expand this information in [NEMS Wiki](https://bitbucket.org/lbhb/nems/
 * Dependencies
 
     * Model fitting: numpy, scipy, scipy.signal, scipy.io, scipy.stats, scipy.special, math, matplotlib.pyplot, importlib, copy, os, datetime
-    * Web or database-specific: pandas, sqlalchemy, flask, mpld3, bokeh, pymysql, flask-socketio, eventlet, flask-login, flask-WTF
+    * Web or database-specific: pandas, sqlalchemy, flask, mpld3, bokeh, pymysql, flask-socketio, eventlet, flask-login, flask-WTF, bcrypt
 
 ### Who do I talk to? ###
 
