@@ -19,6 +19,7 @@ from account_management.forms import LoginForm, RegistrationForm
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.session_protection = 'basic'
 bcrypt = Bcrypt(app)
 
 
@@ -39,11 +40,13 @@ def load_user(user_id):
                 # password should be stored as bcrypt hash
                 # (generated when registered)
                 password=sqla_user.password,
-                group=sqla_user.group,
-                sec_level=sqla_user.sec_level,
+                labgroup=sqla_user.labgroup,
+                sec_lvl=sqla_user.sec_lvl,
                 )
         return user
-    except:
+    except Exception as e:
+        print("Error loading user")
+        print(e)
         return None
     finally:
         session.close()
@@ -57,22 +60,12 @@ def login():
     #_next = get_redirect_target()
     form = LoginForm(request.form)
     if request.method == 'POST' and form.validate():
-        user = load_user(
-                user_id=str(form.email.data).encode('utf-8')
-                )
-        print("made it past load_user")
+        user = load_user(form.email.data)
         if user:
-            print("made it inside the 'if user:' statement")
             if bcrypt.check_password_hash(user.password, form.password.data):
-                print("made it past password check")
-                session = Session()
                 user.authenticated = True
-                session.add(user)
-                session.commit()
                 login_user(user, remember=True)
-                session.close()
-                
-                flask.flash("Login successful. Welcome back %s!"%form.username)
+                flask.flash("Login successful. Welcome back %s!"%user.username)
                 return redirect(url_for('main_view'))
 
     return render_template(
@@ -121,11 +114,11 @@ class User():
     # have this inherit from sqlalchemy base? then
     # these methods just get added on, but all db fields visible as attr.
     
-    def __init__(self, username, password, group=None, sec_lvl=0):
+    def __init__(self, username, password, labgroup=None, sec_lvl=0):
         self.username = username
         self.password = password
-        self.group = group
-        self.sec_level = sec_lvl
+        self.labgroup = labgroup
+        self.sec_lvl = sec_lvl
         self.authenticated = False
         
     def is_authenticated(self):

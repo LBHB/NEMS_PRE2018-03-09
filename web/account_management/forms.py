@@ -31,6 +31,27 @@ class UsernameAvailable():
         session.close()
 
 
+class EmailAvailable():
+    
+    def __init__(self, message=None):
+        if message:
+            self.message = message
+        else:
+            self.message = "An account with that email address already exists."
+            
+    def __call__(self, form, field):
+        session = Session()
+        exists = (
+                session.query(NarfUsers)
+                .filter(NarfUsers.email == field.data)
+                .first()
+                )
+        if exists:
+            session.close()
+            raise ValidationError(self.message)
+        session.close()
+        
+
 class LoginForm(FlaskForm):
     email = StringField(
             'Email',
@@ -55,7 +76,7 @@ class RegistrationForm(FlaskForm):
                     DataRequired(),
                     InputRequired(),
                     Length(min=4, max=25),
-                    #UsernameAvailable(),
+                    UsernameAvailable(),
                     ],
             )
     email = StringField(
@@ -67,6 +88,7 @@ class RegistrationForm(FlaskForm):
                     # crude reg-ex validation per wtforms website, but
                     # probably good enough for now.
                     Email('Must use a valid e-mail address'),
+                    EmailAvailable(),
                     ],
             )
     password = PasswordField(

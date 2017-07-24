@@ -67,10 +67,71 @@
             TODO</a></li>
             <li><a href="#" id="enableDraggable">Enable Draggable</a></li>
             <li><a href="#" id="disableDraggable">Disable Draggable</a></li>
-            <li><a href="{{ url_for('login') }}" id="login">Log In</a></li>
-            <li><a href="{{ url_for('logout') }}" id="logout">Log Out</a></li>
-            <li><a href="{{ url_for('register') }}" id="register">Register</a></li>
-            <li><p>{{ username }}</p></li>
+            <li>
+                <a href="{{ url_for('login') }}" id="login">
+                    {% if username %}
+                        <script>
+                            var login = document.getElementById('login');
+                            login.style.display = 'none';
+                        </script>
+                    {% else %}
+                        <script>
+                            var login = document.getElementById('login');
+                            login.style.display = 'block';
+                        </script>
+                        Log In
+                    {% endif %}
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('logout') }}" id="logout">
+                    {% if username %}
+                        <script>
+                            var logout = document.getElementById('logout');
+                            logout.style.display = 'block';
+                        </script>
+                        Log Out
+                    {% else %}
+                        <script>
+                            var logout = document.getElementById('logout');
+                            logout.style.display = 'none';
+                        </script>
+                    {% endif %}
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('register') }}" id="register">
+                    {% if username %}
+                        <script>
+                            var register = document.getElementById('register');
+                            register.style.display = 'none';
+                        </script>
+                    {% else %}
+                        <script>
+                            var register = document.getElementById('register');
+                            register.style.display = 'block';
+                        </script>
+                        Register
+                    {% endif %}
+                </a>
+            </li>
+            <li><a href="#">{{ username }}</a></li>
+            <li>
+                <a href="{{ url_for('upload') }}" id="upload">
+                    {% if username %}
+                        <script>
+                            var upload = document.getElementById('upload');
+                            upload.style.display = 'block';
+                        </script>
+                        Upload
+                    {% else %}
+                        <script>
+                            var upload = document.getElementById('upload');
+                            upload.style.display = 'none';
+                        </script>
+                    {% endif %}
+                </a>
+            </li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>

@@ -16,9 +16,6 @@ In no particular order:
   or mashes into title/whatever axis it sits on. waiting on fix from bokeh
   for non-sticky toolbar.
   
-- clean up quickplot and other mpl plots - add axis titles, spacing between
-  subplots etc.
-  
 - link up enqueue models to cluster
 
 - switch analysis editor to use id instead of name for querying
