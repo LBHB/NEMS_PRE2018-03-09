@@ -117,27 +117,9 @@ class nems_module:
 #If the data arrays are always put into a list, could use just one evaluate function that
 #uses 0 index if there is no nesting, and iterates otherwise. ---njs July 19 2017
 
-    def evaluate(self):
-        """
-        evaluate - iterate through each file, extracting the input data 
-        (X=self.data_in[self.input_name]) and passing it as matrix to 
-        self.my_eval(), which can perform the module-specific
-        transformation (default is a simple pass-through) output of my_eval
-        is saved to self.d_out[self.output_name].
-        Notice that a deepcopy is made of the input variable so that changes
-        to it will not accidentally propagate backwards through the data
-        stream
-        """
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-        
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            f_out[self.output_name]=self.my_eval(X)
 
             
-    def nested_evaluate(self,nest=0):
+    def evaluate(self,nest=0):
         """
         Special evaluation for use with nested crossval. Essentially the same as evaluate, 
         but it allows uses of nest list for calculating nested crossval datasets.
@@ -147,10 +129,10 @@ class nems_module:
             for i,d in enumerate(self.d_in):
                 self.d_out.append(d.copy())
         for f_in,f_out in zip(self.d_in,self.d_out):
-            try:
+            if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 f_out[self.output_name][nest]=self.my_eval(X)
-            except IndexError:
+            else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
                 
@@ -259,7 +241,7 @@ class load_mat(nems_module):
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
 
-    def evaluate(self):
+    def evaluate(self,nest=0):
         del self.d_out[:]
 #        for i, d in enumerate(self.d_in):
 #            self.d_out.append(d.copy())
@@ -476,7 +458,7 @@ class stim_est_val(nems_module):
     
     def my_init(self,valfrac=0.05):
         self.valfrac=valfrac
-        self.crossval=self.parent_stack.cross_val
+        #self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
         except:
@@ -537,7 +519,7 @@ class trial_est_val(nems_module):
     
     def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
-        self.crossval=self.parent_stack.cross_val
+        #self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
         except:
@@ -597,7 +579,7 @@ class crossval(nems_module):
     
     def my_init(self,valfrac=0.05):
         self.valfrac=valfrac
-        self.crossval=self.parent_stack.cross_val
+        #self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
             self.parent_stack.nests=int(1/valfrac)
@@ -605,7 +587,8 @@ class crossval(nems_module):
             self.iter=0
             self.parent_stack.nests=1
         
-    def evaluate(self):
+    def evaluate(self,nest=0):
+
         del self.d_out[:]
 
         for i, d in enumerate(self.d_in):
@@ -623,73 +606,91 @@ class crossval(nems_module):
                 count=count*spl
             
                 d_est=d.copy()
-                d_val=d.copy()
+                #d_val=d.copy()
+                
                 
                 if self.parent_stack.avg_resp is True:
-                    print('Creating estimation/validation datasets using stimuli')
                     try:
-                        d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
+                        #d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
+                        #self.parent_stack.val_pupil.append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
                         d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
                     except TypeError:
                         print('No pupil data')
-                        d_val['pupil']=None
+                        #d_val['pupil']=None
+                        #self.parent_stack.val_pupil=None
                         d_est['pupil']=None   
-                    d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    #d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    #self.parent_stack.val_resp.append(copy.deepcopy(d['resp'][count:(count+spl),:]))
                     d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                    d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+                    #d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
+                    #self.parent_stack.val_stim.append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
                     d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
-                    d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+                    #d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
+                    #self.parent_stack.val_repcount.append(copy.deepcopy(d['repcount'][count:(count+spl)]))
                     d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
                 else:
-                    print('Creating estimation/validation datasets using trials')
                     try:
-                        d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
+                        #d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
+                        #self.parent_stack.val_pupil.append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
                         d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
                     except TypeError:
                         print('No pupil data')
-                        d_val['pupil']=None
+                        #d_val['pupil']=None
+                        #self.parent_stack.val_pupil=None
                         d_est['pupil']=None
-                    d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    #d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
+                    #self.parent_stack.val_resp.append(copy.deepcopy(d['resp'][count:(count+spl),:]))
                     d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                    d_val['stim']=copy.deepcopy(d['stim'])
+                    #d_val['stim']=copy.deepcopy(d['stim'])
+                    #self.parent_stack.val_stim.append(copy.deepcopy(d['stim']))
                     d_est['stim']=copy.deepcopy(d['stim'])
-                    d_val['replist']=copy.deepcopy(d['replist'][count:(count+spl)])
+                    #d_val['replist']=copy.deepcopy(d['replist'][count:(count+spl)])
+                    #self.parent_stack.val_replist.append(copy.deepcopy(d['replist'][count:(count+spl)]))
                     d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
+                    #self.parent_stack.val_repcount.append(copy.deepcopy(d['repcount']))
+                    #d_val['repcount']=copy.deepcopy(d['repcount'])
                         
                 d_est['est']=True
-                d_val['est']=False
+                #d_val['est']=False
                 
                 self.d_out.append(d_est)
-                if self.parent_stack.valmode is True: 
-                    if self.parent_stack.cross_val is True:
-                        d_val['stim']=[]
-                        d_val['resp']=[]
-                        d_val['pupil']=[]
-                        d_val['replist']=[]
-                        d_val['repcount']=[]
-                        for count in range(0,self.parent_stack.nests):
-                            re=d['resp'].shape
-                            spl=mt.ceil(re[0]*self.valfrac)
-                            count=count*spl
-                            if self.parent_stack.avg_resp is True:
-                                try:
-                                    d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
-                                except TypeError:
-                                    print('No pupil data')
-                                    d_val['pupil']=None
-                                d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
-                                d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
-                                d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
-                            else:
-                                try:
-                                    d_val['pupil'].append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
-                                except TypeError:
-                                    print('No pupil data')
-                                    d_val['pupil']=None
-                                d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
-                                d_val['stim'].append(copy.deepcopy(d['stim']))
-                                d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))
-                                d_val['repcount']=copy.deepcopy(d['repcount'])
+                if self.parent_stack.valmode is True:
+                    
+                    d_val=d.copy()
+                    d_val['est']=False
+                    
+                    d_val['stim']=[]
+                    d_val['resp']=[]
+                    d_val['pupil']=[]
+                    d_val['replist']=[]
+                    d_val['repcount']=[]
+
+                    for count in range(0,self.parent_stack.nests):
+                        #print(count)
+                        re=d['resp'].shape
+                        spl=mt.ceil(re[0]*self.valfrac)
+                        count=count*spl
+                        if self.parent_stack.avg_resp is True:
+                            try:
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
+                            except TypeError:
+                                print('No pupil data')
+                                d_val['pupil']=None
+                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                            d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
+                            d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
+                        else:
+                            try:
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
+                            except TypeError:
+                                print('No pupil data')
+                                d_val['pupil']=None
+                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                            d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
+                            d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))
+                            d_val['repcount']=copy.deepcopy(d['repcount'])
+                            
+
                     
                     self.d_out.append(d_val)
                 
@@ -704,36 +705,22 @@ class pupil_model(nems_module):
     Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
     Will probably incorporate into pupil_est_val later.
     """
-
-    def evaluate(self):
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            self.d_out.append(val.copy())
-            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            Xa=copy.deepcopy(f_in['avgresp'])
-            R=f_in['replist']
-            X=np.zeros(f_in['resp'].shape)
-            for i in range(0,R.shape[0]):
-                X[i,:]=Xa[R[i],:]
-            f_out['stim']=X
-
     
-    def nested_evaluate(self,nest=0):
+    def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
                 self.d_out.append(val.copy())
-                self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+                #self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
         for f_in,f_out in zip(self.d_in,self.d_out):
             Xa=f_in['avgresp']
-            try:
+            if f_in['est'] is False:
                 R=f_in['replist'][nest]
                 X=np.zeros(f_in['resp'][nest].shape)
                 for i in range(0,R.shape[0]):
                     X[i,:]=Xa[R[i],:]
                 f_out['stim'][nest]=X
-            except IndexError:
+            else:
                 R=f_in['replist']
                 X=np.zeros(f_in['resp'].shape)
                 for i in range(0,R.shape[0]):
@@ -766,7 +753,7 @@ class normalize(nems_module):
         self.force_positive=force_positive
         self.input_name=data
     
-    def evaluate(self):
+    def evaluate(self,nest=0):
         X=self.unpack_data()
         name=self.input_name
         
@@ -1066,33 +1053,19 @@ class state_gain(nems_module):
         Y=self.theta[0,2]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
-    
-
-    def evaluate(self):
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            #self.d_out.append(copy.deepcopy(val))
-            self.d_out.append(val.copy())
-            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])        
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            Xp=copy.deepcopy(f_in[self.state_var])
-            Z=getattr(self,self.gain_type+'_fn')(X,Xp)
-            f_out[self.output_name]=Z
-
-            
-    def nested_evaluate(self,nest=0):
+              
+    def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
                 self.d_out.append(val.copy())
         for f_in,f_out in zip(self.d_in,self.d_out):
-            try:
+            if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 Xp=copy.deepcopy(f_in[self.state_var][nest])
                 Z=getattr(self,self.gain_type+'_fn')(X,Xp)
                 f_out[self.output_name][nest]=Z
-            except IndexError:
+            else:
                 X=copy.deepcopy(f_in[self.input_name])
                 Xp=copy.deepcopy(f_in[self.state_var])
                 Z=getattr(self,self.gain_type+'_fn')(X,Xp)
@@ -1122,10 +1095,11 @@ class mean_square_error(nems_module):
         self.shrink=shrink
         self.do_trial_plot=self.plot_fns[1]
         
-    def evaluate(self):
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
+    def evaluate(self,nest=0):
+        if nest==0:
+            del self.d_out[:]
+            for i, d in enumerate(self.d_in):
+                self.d_out.append(d.copy())
             
         if self.shrink is True:
             X1=self.unpack_data(self.input1,est=True)
@@ -1213,7 +1187,7 @@ class pseudo_huber_error(nems_module):
         self.b=b
         self.do_trial_plot=self.plot_fns[1]
         
-    def evaluate(self):
+    def evaluate(self,nest=0):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())

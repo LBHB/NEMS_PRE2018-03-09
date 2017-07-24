@@ -32,7 +32,7 @@ example fit on nice IC cell:
     nems.fit_single_model(cellid,batch,modelname)
 
 """
-def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
+def fit_single_model(cellid, batch, modelname, autoplot=True):
     """
     Fits a single NEMS model.
     
@@ -43,19 +43,12 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     stack.meta['batch']=batch
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
-    stack.cross_val=crossval
     
     # extract keywords from modelname    
     keywords=modelname.split("_")
     stack.cv_counter=0
     stack.cond=False
-    mse_estlist=[]
-    mse_vallist=[]
-    r_est_list=[]
-    r_val_list=[]
-    stack_list=[]
-    val_stim_list=[]
-    val_resp_list=[]
+    stack.fitted_modules=[]
     while stack.cond is False:
         print('iter loop='+str(stack.cv_counter))
         stack.clear()
@@ -64,33 +57,46 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
             f = getattr(nk, k)
             f(stack)
             
-        # measure performance on both estimation and validation data
-        print('Evaluating fit on validation data')
-        stack.valmode=True
-        stack.evaluate(1)
-        corridx=nu.find_modules(stack,'correlation')
-        if not corridx:
-            # add MSE calculator module to stack if not there yet
-            stack.append(nm.correlation)
-                
-        print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
-              stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
-        if stack.cross_val is not True:
+       #TODO: this stuff below could be wrapped into do_fit somehow
+        phi=[] 
+        for idx,m in enumerate(stack.modules):
+            this_phi=m.parms2phi()
+            if this_phi.size:
+                if stack.cv_counter==0:
+                    stack.fitted_modules.append(idx)
+                phi.append(this_phi)
+        phi=np.concatenate(phi)
+        stack.parm_fits.append(phi)
+        print(stack.nests)
+        if stack.nests==1:
             stack.cond=True
-            valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-            if valdata:
-                stack.plot_dataidx=valdata[0]
-            else:
-                stack.plot_dataidx=0
         else:
-            mse_vallist.append(stack.meta['mse_val'])
-            mse_estlist.append(stack.meta['mse_est'])
-            r_est_list.append(stack.meta['r_est'])
-            r_val_list.append(stack.meta['r_val'])
-            stack_list.append(copy.deepcopy(stack))
-            val_stim_list.append(copy.deepcopy(stack.data[-1][1]['stim']))
-            val_resp_list.append(copy.deepcopy(stack.data[-1][1]['resp']))
             stack.cv_counter+=1
+    #print(stack.parm_fits)
+    # measure performance on both estimation and validation data
+    stack.valmode=True
+    
+    #stack.nests=1
+    print(stack.modules[1])
+    stack.evaluate(1)
+    
+    stack.append(nm.mean_square_error)
+    
+    corridx=nu.find_modules(stack,'correlation')
+    if not corridx:
+       # add MSE calculator module to stack if not there yet
+        stack.append(nm.correlation)
+                    
+    #print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+                 #stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+    print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+                 stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+    valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+    print(valdata)
+    if valdata:
+        stack.plot_dataidx=valdata[0]
+    else:
+        stack.plot_dataidx=0
         
         
     # edit: added autoplot kwarg for option to disable auto plotting
@@ -98,47 +104,16 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,crossval=False):
     if autoplot:
         stack.quick_plot()
     
-    # add tag to end of modelname if crossvalidated
-    if crossval:
-        # took tag out for now, realized it would cause issues with loader.
-        # TODO: how should load model handle the tag? Or don't bother wih tag?
-        xval = ""
-        #xval = "_xval"
-    else:
-        xval = ""
     
     # save
     filename=(
-            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}{3}.pkl"
-            .format(batch, cellid, modelname, xval)
+            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
+            .format(batch, cellid, modelname)
             )
     nu.save_model(stack,filename) 
     #os.chmod(filename, 0o666)
-    if stack.cross_val is not True:
-        return(stack)
-    else:
-        #TODO: Figure out best way to output data
-        E=0
-        P=0
-        val_stim=np.concatenate(val_stim_list,axis=0)
-        val_resp=np.concatenate(val_resp_list,axis=0)
-        
-        E=np.sum(np.square(val_stim-val_resp))
-        P=np.sum(np.square(val_resp))
-        mse=E/P
-        stack.meta['mse_val']=mse
-        #stack.meta['mse_val']=np.median(np.array(mse_vallist))
-        stack.meta['mse_est']=np.median(np.array(mse_estlist))
-        stack.meta['r_est']=np.median(np.array(r_est_list))
-        val_stim=val_stim.reshape([-1,1],order='C')
-        val_resp=val_resp.reshape([-1,1],order='C')
-        
-        stack.meta['r_val'],p=spstats.pearsonr(val_stim,val_resp)
-        #stack.meta['r_val']=np.median(np.array(r_val_list))
-        print("Median: mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
-              stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
-        #return(stack_list)
-        return(stack)
+
+    return(stack)
 
 """
 load_single_model - load and evaluate a model, specified by cellid, batch and modelname

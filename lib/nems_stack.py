@@ -35,8 +35,8 @@ class nems_stack:
     meta={}
     fitter=None
     valmode=False
-    cross_val=False
-    nests=20
+    #cross_val=False
+    #nests=20
     avg_resp=True
     
     plot_dataidx=0
@@ -58,38 +58,41 @@ class nems_stack:
         self.modelname='Empty stack'
         self.error=self.default_error
         self.valmode=False
-        self.plot_trialidx=(0,3)
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
-        self.nests=20
+        self.nests=1 #Default is to have only one nest, i.e. standard crossval
         self.parm_fits=[]
         
     def evaluate(self,start=0):
-        # evalute stack, starting at module # start
-        for ii in range(start,len(self.modules)):
-            #if ii>0:
-            #    print("Propagating mod {0} d_out to mod{1} d_in".format(ii-1,ii))
-            #    self.modules[ii].d_in=self.modules[ii-1].d_out
-            self.modules[ii].evaluate() 
+        """
+        evaluate stack, starting at module # start
+        """
+        if self.valmode is True:
+            #xval_idx=nu.find_modules(self,'crossval')
+            #xval_idx=xval_idx[0]
+            #print(xval_idx)
+            #self.modules[xval_idx].evaluate()
+            #print(self.data[2][1]['stim'][3].shape)
+            for i in range(0,self.nests):
+                for j in range(start,len(self.modules)):
+                    st=0
+                    for m in self.fitted_modules:
+                        phi_old=self.modules[m].parms2phi()
+                        s=phi_old.shape
+                        self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
+                        st+=np.prod(s)
+                    self.modules[j].evaluate(nest=i)
+            for k in range(start+1,len(self.data)):
+                if self.data[k][1]['stim'][0].ndim==3:
+                    self.data[k][1]['stim']=np.concatenate(self.data[k][1]['stim'],axis=1)
+                else:
+                    self.data[k][1]['stim']=np.concatenate(self.data[k][1]['stim'],axis=0)
+                self.data[k][1]['resp']=np.concatenate(self.data[k][1]['resp'],axis=0)
+                self.data[k][1]['pupil']=np.concatenate(self.data[k][1]['pupil'],axis=0)
+                self.data[k][1]['replist']=np.concatenate(self.data[k][1]['replist'],axis=0)
+        else:
+            for ii in range(start,len(self.modules)):
+                self.modules[ii].evaluate() 
             
-    def nested_evaluate(self,start=0):
-        for i in range(0,self.nests):
-            for j in range(start,len(self.modules)):
-                st=0
-                for k in self.fitted_modules:
-                    phi_old=self.modules[k].parms2phi()
-                    s=phi_old.shape
-                    self.modules[k].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
-                    st+=np.prod(s)
-                self.modules[j].nested_evaluate(nest=i)
-                
-    def nested_concatenate(self,start=0):
-        for j in range(start,len(self.data)):
-            if self.data[j][1]['stim'][0].ndim==3:
-                self.data[j][1]['stim']=np.concatenate(self.data[j][1]['stim'],axis=1)
-            else:
-                self.data[j][1]['stim']=np.concatenate(self.data[j][1]['stim'],axis=0)
-            self.data[j][1]['resp']=np.concatenate(self.data[j][1]['resp'],axis=0)
-            self.data[j][1]['pupil']=np.concatenate(self.data[j][1]['pupil'],axis=0)
     
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
@@ -241,7 +244,7 @@ class nems_stack:
         del self.data[-1]
         
     def clear(self):
-        del self.modules[1:]
+        del self.modules[:]
         del self.data[1:]
         
     def output(self):
@@ -252,11 +255,11 @@ class nems_stack:
     
     def quick_plot(self,size=(12,24)):
         plt.figure(figsize=size)
-        plt.subplot(len(self.modules),1,1)
+        plt.subplot(len(self.modules)-1,1,1)
         #self.do_raster_plot()
         for idx,m in enumerate(self.modules):
             # skip first module
-            if idx>1:
+            if idx>0:
                 print(self.mod_names[idx])
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
@@ -345,46 +348,6 @@ class nems_stack:
 #                m.do_trial_plot(m,idx)
 
                 
-    def do_raster_plot(self,size=(12,6)):
-        """
-        Generates a raster plot for the stimulus specified by self.plot_stimidx
-        """
-        un=self.unresampled
-        reps=un['repcount']
-        ids=self.plot_stimidx
-        r=reps.shape[0]
-        lis=[]
-        for i in range(0,r):
-            lis.extend([i]*reps[i])
-        new_id=lis[ids]
-        nu.raster_plot(data=un,stims=new_id,size=size,idx=new_id)
-    
-    
-    def do_sorted_raster(self,size=(12,6)):
-        """
-        Generates a raster plot sorted by average pupil diameter for the stimulus
-        specified by self.plot_stimidx
-        
-        This function is deprecated, as the default plot for the pupil_model module
-         is now a specific raster plot function in nems_utils
-        """
-        un=copy.deepcopy(self.unresampled)
-        res=un['resp']
-        pup=un['pupil']
-        reps=un['repcount']
-        r=reps.shape[0]
-        idz=self.plot_stimidx
-        lis=[]
-        for i in range(0,r):
-            lis.extend([i]*reps[i])
-        ids=lis[idz]
-        b=np.nanmean(pup[:,:,ids],axis=0)
-        bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
-        bc=bc[:,1]
-        res[:,:,ids]=res[:,bc,ids]
-        un['resp']=res
-        nu.raster_plot(data=un,stims=ids,size=size,idx=ids)
-        return(res)
-         
+
 
 

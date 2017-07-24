@@ -21,8 +21,9 @@ stack=ns.nems_stack()
 stack.meta['batch']=294
 stack.meta['cellid']='eno052d-a1'
 stack.meta['modelname']='perfectpupil50_nopupgain_fit01'
-stack.cross_val=True
-    
+#stack.cross_val=True #This is now incorporated into the data loading keyword
+#stack.nests=1
+
 # extract keywords from modelname    
 keywords=stack.meta['modelname'].split("_")
 stack.cv_counter=0
@@ -35,8 +36,9 @@ while stack.cond is False:
     for k in keywords:
         f = getattr(nk, k)
         f(stack)
-            
-    phi=[]
+    
+    #TODO: this stuff below could be wrapped into do_fit somehow
+    phi=[] 
     for idx,m in enumerate(stack.modules):
         this_phi=m.parms2phi()
         if this_phi.size:
@@ -45,22 +47,20 @@ while stack.cond is False:
             phi.append(this_phi)
     phi=np.concatenate(phi)
     stack.parm_fits.append(phi)
-    if stack.cross_val is not True:
+    print(stack.nests)
+    if stack.nests==1:
         stack.cond=True
-        
-    stack.cv_counter+=1
-
+    else:
+        stack.cv_counter+=1
+#print(stack.parm_fits)
 # measure performance on both estimation and validation data
 stack.valmode=True
-if stack.cross_val is True:
-    xval_idx=nu.find_modules(stack,'crossval')
-    xval_idx=xval_idx[0]
-    stack.modules[xval_idx].evaluate()
-    stack.nested_evaluate(xval_idx+1)
-    stack.nested_concatenate(xval_idx)
-else:
-    stack.evaluate(1)
 
+#stack.nests=1
+print(stack.modules[1])
+stack.evaluate(1)
+
+stack.append(nm.mean_square_error)
 
 
 corridx=nu.find_modules(stack,'correlation')
@@ -81,7 +81,7 @@ else:
 
 # edit: added autoplot kwarg for option to disable auto plotting
 #       -jacob, 6/20/17
-stack.plot_dataidx=0
-pltdat=stack.modules[2].d_out[1]['replist']
+stack.plot_dataidx=1
+stack.plot_stimidx=5
 #alldats=stack.data[2]
 stack.quick_plot()
