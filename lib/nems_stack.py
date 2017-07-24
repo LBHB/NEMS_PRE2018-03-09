@@ -58,9 +58,8 @@ class nems_stack:
         self.modelname='Empty stack'
         self.error=self.default_error
         self.valmode=False
-        self.plot_trialidx=(0,3)
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
-        self.nests=1
+        self.nests=1 #Default is to have only one nest, i.e. standard crossval
         self.parm_fits=[]
         
     def evaluate(self,start=0):
