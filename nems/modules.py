@@ -237,19 +237,7 @@ class load_mat(nems_module):
                         data['est']=False
                 except ValueError:
                     print("Est/val conditions not flagged in datafile")
-                    #Quick fix for some batch293 data with unlabeled structs ---njs 25 July 2017
-                    if numdats==2:
-                        print('Two structs passed, assuming est/val') 
-                        if count==0:
-                            data['est']=True
-                        else:
-                            data['est']=False
-                    else:
-                        print('est/val to be created by crossval')
-                count+=1
-    #            data = scipy.io.loadmat(f,chars_as_strings=True)
-    #            data['raw_stim']=data['stim'].copy()
-    #            data['raw_resp']=data['resp'].copy()
+                    
                                     
                 data['fs']=self.fs
                 noise_thresh=0.04
