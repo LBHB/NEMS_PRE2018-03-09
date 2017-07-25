@@ -109,3 +109,6 @@ saved_models/
 *#
 **/database_info.txt
 **/nems_path.txt
+**/hidden/*
+!**/hidden/__init__.py
+
