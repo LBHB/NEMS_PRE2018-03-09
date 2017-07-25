@@ -36,7 +36,7 @@ class nems_stack:
     fitter=None
     valmode=False
     #cross_val=False
-    #nests=20
+    #nests=1
     avg_resp=True
     
     plot_dataidx=0
@@ -61,12 +61,13 @@ class nems_stack:
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
         self.nests=1 #Default is to have only one nest, i.e. standard crossval
         self.parm_fits=[]
+        self.pre_flag=False
         
     def evaluate(self,start=0):
         """
         evaluate stack, starting at module # start
         """
-        if self.valmode is True:
+        if self.valmode is True: #and self.pre_flag is not True:
             #xval_idx=nu.find_modules(self,'crossval')
             #xval_idx=xval_idx[0]
             #print(xval_idx)

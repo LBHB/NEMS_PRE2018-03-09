@@ -67,6 +67,16 @@ def fb18ch50(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
     stack.append(nm.crossval,valfrac=0.05)
+    
+def fb16ch50u(stack):
+    """
+    Specifically for batch293 tone-pip data
+    """
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
+                                     fs=100,stimfmt='parm',chancount=16)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
+    stack.append(nm.crossval,valfrac=0.1)
 
 def loadlocal(stack):
     """
@@ -128,7 +138,7 @@ def fir_mini_fit(stack):
     stack.append(nm.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.basic_min(stack)
-    stack.fitter.tol=0.05
+    stack.fitter.tol=0.0001
     #stack.fitter=nf.coordinate_descent(stack)
     #stack.fitter.tol=0.001
     fitidx=nu.find_modules(stack,'weight_channels') + nu.find_modules(stack,'fir_filter')
