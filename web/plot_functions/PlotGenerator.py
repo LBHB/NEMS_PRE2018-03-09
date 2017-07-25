@@ -360,7 +360,6 @@ class Scatter_Plot(PlotGenerator):
                     x_axis_label=modelX, y_axis_label=modelY,
                     title=self.measure[0], tools=tools, responsive=True,
                     toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
-                    webgl=True,
                     )
             glyph = Circle(
                     x='x_values', y='y_values', size=CIRCLE_SIZE,

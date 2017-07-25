@@ -12,10 +12,6 @@ body {
   text-align: center;
 }
 
-#logout {
-  display: none;
-}
-
 tables.dataframe, table, th, td {
   border: none;
   border-bottom: 1px solid #C8C8C8;

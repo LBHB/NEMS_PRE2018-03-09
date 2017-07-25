@@ -53,7 +53,7 @@ $(document).ready(function(){
     $("#py_console").resizable({
         handles: "n, s"        
     });
-    $("#py_console").draggable();
+    //$("#py_console").draggable();
     $("#selectArea").draggable();
 
     sizeDragDisplay();

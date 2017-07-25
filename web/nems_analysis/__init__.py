@@ -87,3 +87,4 @@ import plot_functions.views
 import model_functions.views
 import modelpane.views
 import account_management.views
+import upload.views
