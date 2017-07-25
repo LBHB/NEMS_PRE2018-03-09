@@ -72,6 +72,11 @@ class nems_stack:
             #print(xval_idx)
             #self.modules[xval_idx].evaluate()
             #print(self.data[2][1]['stim'][3].shape)
+            
+            #TODO: there is definitely a more efficient way to do this, but this
+            #works reliably. In the future, should make it so that crossval is
+            #only evaluated once ---njs 24 July 2017
+            
             for i in range(0,self.nests):
                 for j in range(start,len(self.modules)):
                     st=0
