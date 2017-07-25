@@ -5,7 +5,7 @@ import scipy.io
 import scipy.signal as sps
 import scipy.stats as spstats
 import copy
-import nems.nems_utils as nu
+import nems.utils as nu
 import math as mt
 import scipy.special as sx
 

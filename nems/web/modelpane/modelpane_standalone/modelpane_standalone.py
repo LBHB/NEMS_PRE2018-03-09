@@ -14,11 +14,11 @@ from flask import (
 import matplotlib.pyplot as plt, mpld3
 import numpy as np
 
-import nems.nems_modules as nm
-import nems.nems_fitters as nf
-import nems.nems_keywords as nk
-import nems.nems_utils as nu
-import nems.nems_main as nems
+import nems.modules as nm
+import nems.fitters as nf
+import nems.keywords as nk
+import nems.utils as nu
+import nems.main as nems
 
 # When copy-pasting updates from other modelpane:
 #  --replace 'from nems_analysis import app' with 'app = Flask(__name__)

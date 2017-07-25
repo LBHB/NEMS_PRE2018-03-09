@@ -6,9 +6,9 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
-import nems.nems_modules as nm
-import nems.nems_fitters as nf
-import nems.nems_utils as nu
+import nems.modules as nm
+import nems.fitters as nf
+import nems.utils as nu
 import nems.baphy_utils as baphy_utils
 
 # loader keywords

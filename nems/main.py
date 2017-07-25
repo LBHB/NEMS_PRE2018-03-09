@@ -6,11 +6,11 @@ Created on Sun Jun 18 20:16:37 2017
 @author: svd
 """
 import numpy as np
-import nems.nems_modules as nm
-import nems.nems_stack as ns
-import nems.nems_fitters as nf
-import nems.nems_utils as nu
-import nems.nems_keywords as nk
+import nems.modules as nm
+import nems.stack as ns
+import nems.fitters as nf
+import nems.utils as nu
+import nems.keywords as nk
 import nems.baphy_utils as baphy_utils
 import os
 import datetime
@@ -25,7 +25,7 @@ from sqlalchemy.ext.automap import automap_base
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
 
 example fit on nice IC cell:
-    import lib.nems_main as nems
+    import lib.main as nems
     cellid='bbl061h-a1'
     batch=291
     modelname='fb18ch100_ev_fir10_dexp_fit00'

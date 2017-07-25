@@ -15,10 +15,10 @@ from flask import (
 import matplotlib.pyplot as plt, mpld3
 import numpy as np
 
-import nems.nems_modules as nm
-import nems.nems_keywords as nk
-import nems.nems_utils as nu
-import nems.nems_main as nems
+import nems.modules as nm
+import nems.keywords as nk
+import nems.utils as nu
+import nems.main as nems
 
 from nems.web.nems_analysis import app
 

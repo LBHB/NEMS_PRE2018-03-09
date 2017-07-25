@@ -21,7 +21,7 @@ from itertools import product
 from flask import jsonify, request
 
 from nems.web.nems_analysis import app, NarfResults, Session
-import nems.nems_main as nems
+import nems.main as nems
 from nems.web.model_functions.fit_single_utils import fetch_meta_data
 
 

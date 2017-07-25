@@ -2,7 +2,7 @@
 
 import os
 # Only used for dummy directory detection
-import nems.nems_utils as nu
+import nems.utils as nu
 
 # Database settings
 # To specify database settings, create the nems.config.hidden subdirectory
