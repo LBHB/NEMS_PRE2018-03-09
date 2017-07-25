@@ -88,13 +88,15 @@ class nems_stack:
                         st+=np.prod(s)
                     self.modules[j].evaluate(nest=i)
             for k in range(start+1,len(self.data)):
-                if self.data[k][1]['stim'][0].ndim==3:
-                    self.data[k][1]['stim']=np.concatenate(self.data[k][1]['stim'],axis=1)
-                else:
-                    self.data[k][1]['stim']=np.concatenate(self.data[k][1]['stim'],axis=0)
-                self.data[k][1]['resp']=np.concatenate(self.data[k][1]['resp'],axis=0)
-                self.data[k][1]['pupil']=np.concatenate(self.data[k][1]['pupil'],axis=0)
-                self.data[k][1]['replist']=np.concatenate(self.data[k][1]['replist'],axis=0)
+                for n in range(0,len(self.data[-1])):
+                    if n%2 !=0:
+                        if self.data[k][n]['stim'][0].ndim==3:
+                            self.data[k][n]['stim']=np.concatenate(self.data[k][n]['stim'],axis=1)
+                        else:
+                            self.data[k][n]['stim']=np.concatenate(self.data[k][n]['stim'],axis=0)
+                        self.data[k][n]['resp']=np.concatenate(self.data[k][n]['resp'],axis=0)
+                        self.data[k][n]['pupil']=np.concatenate(self.data[k][n]['pupil'],axis=0)
+                        self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
         else:
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
