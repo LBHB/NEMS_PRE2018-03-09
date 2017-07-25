@@ -322,6 +322,20 @@ def fitannl01(stack):
     stack.fitter.do_fit()
     stack.popmodule()
     
+def fititer00(stack):
+    
+    stack.append(nm.mean_square_error,shrink=0.5)
+    stack.error=stack.modules[-1].error
+    
+    stack.fitter=nf.fit_iteratively(stack,max_iter=5)
+    #stack.fitter.sub_fitter=nf.basic_min(stack)
+    stack.fitter.sub_fitter=nf.coordinate_descent(stack,tol=0.001,maxit=10)
+    stack.fitter.sub_fitter.step_init=0.05
+    
+    stack.fitter.do_fit()
+    
+    stack.popmodule()
+
 
 # etc etc for other keywords
 ###############################################################################

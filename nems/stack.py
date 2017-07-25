@@ -41,8 +41,8 @@ class nems_stack:
     
     plot_dataidx=0
     plot_stimidx=0
-
-
+    fitted_modules=[]
+    cv_counter=0
     
     def __init__(self):
         print("Creating new stack")
@@ -61,7 +61,8 @@ class nems_stack:
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
         self.nests=1 #Default is to have only one nest, i.e. standard crossval
         self.parm_fits=[]
-        self.pre_flag=False
+        self.fitted_modules=False
+        self.cv_counter=0
         
     def evaluate(self,start=0):
         """
