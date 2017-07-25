@@ -248,9 +248,10 @@ class load_mat(nems_module):
                     
         # load contents of Matlab data file
         for f in self.est_files:
-            #f='tor_data_por073b-b1.mat'
             matdata = scipy.io.loadmat(f,chars_as_strings=True)
+            numdat=matdata['data'][0].__len__()
             for s in matdata['data'][0]:
+                print('wtf')
                 try:
                     data={}
                     data['resp']=s['resp_raster']
@@ -444,137 +445,14 @@ class standard_est_val(nems_module):
                 self.d_out.append(d_est)
                 if self.parent_stack.valmode:
                     self.d_out.append(d_val)
-                    
-class stim_est_val(nems_module):
-    """
-    DEPRECATED, use crossval with use_trials=False
-    
-    Use with datasets that have large numbers of stimuli with few trials
-    """
-    
-    name='stim_est_val'
-    user_editable_fields=['output_name','valfrac']
-    valfrac=0.05
-    
-    def my_init(self,valfrac=0.05):
-        self.valfrac=valfrac
-        #self.crossval=self.parent_stack.cross_val
-        try:
-            self.iter=int(1/valfrac)-1
-        except:
-            self.iter=0
-            
-    def evaluate(self):
-        del self.d_out[:]
-         # for each data file:
-        for i, d in enumerate(self.d_in):
-            re=d['resp'].shape
-            spl=mt.ceil(re[0]*self.valfrac)
-            
-            count=self.parent_stack.cv_counter
-            count=count*spl
-            
-            d_est=d.copy()
-            d_val=d.copy()
-            
-            d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
-            d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
-            d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
-            d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
-            
-            d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
-            d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-            d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
-            d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
-                        
-            d_est['est']=True
-            d_val['est']=False
-                 
-            self.d_out.append(d_est)
-            if self.parent_stack.valmode:
-                self.d_out.append(d_val)
-                
-        if self.parent_stack.cv_counter==self.iter:
-            self.parent_stack.cond=True
 
-
-class trial_est_val(nems_module):
-    """
-    DEPRECATED, use crossval with use_trials=True
-    
-    Breaks imported data into est/val. Use with pupil_model and batch 294 data, where 
-    there are only 2 stimuli, so takes some trials from both stimuli as validation data.
-    This module is specfically for looking at just pupil gain, without other 
-    model fitting.
-    
-    Use with batch 294-like data sets with high numbers of trials but low number of stimuli.
-    
-    Compatible with cross-validation. 
-    """
-    
-    name='pupil_est_val'
-    user_editable_fields=['output_name','valfrac']
-    #plot_fns=[nu.non_plot]
-    valfrac=0.05
-    
-    def my_init(self, valfrac=0.05):
-        self.valfrac=valfrac
-        #self.crossval=self.parent_stack.cross_val
-        try:
-            self.iter=int(1/valfrac)-1
-        except:
-            self.iter=0
-    
-    def evaluate(self):
-        del self.d_out[:]
-         # for each data file:
-        for i, d in enumerate(self.d_in):
-            re=d['resp'].shape
-            respl=mt.ceil(re[1]*(1-self.valfrac))
-            spl=mt.ceil(re[1]*self.valfrac)
-            
-            count=self.parent_stack.cv_counter
-            count=count*spl
-
-            #print('count='+str(count))
-            d_est=d.copy()
-            d_val=d.copy()
-            
-            #TODO: need to fixed repcounts for batches with different trial numbers for different stims
-            #TODO: want to create a way to delete using mask for varying trial numbers
-            d_val['repcount']=np.full(shape=re[2],fill_value=spl,dtype='int64') 
-            d_val['resp']=copy.deepcopy(d['resp'][:,count:(count+spl),:])
-            d_val['stim']=copy.deepcopy(d['stim'])
-            d_val['pupil']=copy.deepcopy(d['pupil'][:,count:(count+spl),:])
-            d_est['repcount']=np.full(shape=re[2],fill_value=respl,dtype='int64')
-            d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],1)
-            d_est['stim']=copy.deepcopy(d['stim'])
-            d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],1)
-
-            #d_est['repcount']=copy.deepcopy(d['repcount'][:respl])
-            #d_est['resp']=copy.deepcopy(d['resp'][:,:respl,:])
-            ##d_est['stim']=copy.deepcopy(d['stim'][:,:stspl,:])
-            ##d_val['stim']=copy.deepcopy(d['stim'][:,stspl:,:])
-
-            #d_est['pupil']=copy.deepcopy(d['pupil'][:,:respl,:])
-            #d_val['pupil']=copy.deepcopy(d['pupil'][:,respl:,:])
-                
-            d_est['est']=True
-            d_val['est']=False
-            
-            self.d_out.append(d_est)
-            if self.parent_stack.valmode:
-                self.d_out.append(d_val)
-                
-        if self.parent_stack.cv_counter==self.iter:
-            self.parent_stack.cond=True
             
 class crossval(nems_module):
     """
     Cross-validation est/val module that replaces trial_est_val and stim_est_val.
     """
     name='crossval'
-    plot_fns=[nu.plot_spectrogram]
+    plot_fns=[nu.raster_plot]
     valfrac=0.05
     
     def my_init(self,valfrac=0.05):
@@ -582,10 +460,10 @@ class crossval(nems_module):
         #self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
-            self.parent_stack.nests=int(1/valfrac)
+            #self.parent_stack.nests=int(1/valfrac)
         except:
             self.iter=0
-            self.parent_stack.nests=1
+            #self.parent_stack.nests=1
         
     def evaluate(self,nest=0):
 
@@ -599,6 +477,7 @@ class crossval(nems_module):
                 elif self.parent_stack.valmode:
                     self.d_out.append(d)
                 self.parent_stack.cond=True
+                self.parent_stack.pre_flag=True
             except:
                 count=self.parent_stack.cv_counter
                 re=d['resp'].shape
@@ -611,44 +490,22 @@ class crossval(nems_module):
                 
                 if self.parent_stack.avg_resp is True:
                     try:
-                        #d_val['pupil']=copy.deepcopy(d['pupil'][:,:,count:(count+spl)])
-                        #self.parent_stack.val_pupil.append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
                         d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
                     except TypeError:
                         print('No pupil data')
-                        #d_val['pupil']=None
-                        #self.parent_stack.val_pupil=None
-                        d_est['pupil']=None   
-                    #d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
-                    #self.parent_stack.val_resp.append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                        d_est['pupil']=[]  
                     d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                    #d_val['stim']=copy.deepcopy(d['stim'][:,count:(count+spl),:])
-                    #self.parent_stack.val_stim.append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
                     d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
-                    #d_val['repcount']=copy.deepcopy(d['repcount'][count:(count+spl)])
-                    #self.parent_stack.val_repcount.append(copy.deepcopy(d['repcount'][count:(count+spl)]))
                     d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
                 else:
                     try:
-                        #d_val['pupil']=copy.deepcopy(d['pupil'][count:(count+spl),:])
-                        #self.parent_stack.val_pupil.append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
                         d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
                     except TypeError:
                         print('No pupil data')
-                        #d_val['pupil']=None
-                        #self.parent_stack.val_pupil=None
-                        d_est['pupil']=None
-                    #d_val['resp']=copy.deepcopy(d['resp'][count:(count+spl),:])
-                    #self.parent_stack.val_resp.append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                        d_est['pupil']=[]
                     d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                    #d_val['stim']=copy.deepcopy(d['stim'])
-                    #self.parent_stack.val_stim.append(copy.deepcopy(d['stim']))
-                    d_est['stim']=copy.deepcopy(d['stim'])
-                    #d_val['replist']=copy.deepcopy(d['replist'][count:(count+spl)])
-                    #self.parent_stack.val_replist.append(copy.deepcopy(d['replist'][count:(count+spl)]))
+                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
                     d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
-                    #self.parent_stack.val_repcount.append(copy.deepcopy(d['repcount']))
-                    #d_val['repcount']=copy.deepcopy(d['repcount'])
                         
                 d_est['est']=True
                 #d_val['est']=False
@@ -675,7 +532,7 @@ class crossval(nems_module):
                                 d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
                             except TypeError:
                                 print('No pupil data')
-                                d_val['pupil']=None
+                                d_val['pupil']=[]
                             d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
                             d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
                             d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
@@ -684,7 +541,7 @@ class crossval(nems_module):
                                 d_val['pupil'].append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
                             except TypeError:
                                 print('No pupil data')
-                                d_val['pupil']=None
+                                d_val['pupil']=[]
                             d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
                             d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
                             d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))

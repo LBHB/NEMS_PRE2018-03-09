@@ -32,11 +32,23 @@ example fit on nice IC cell:
     nems.fit_single_model(cellid,batch,modelname)
 
 """
-def fit_single_model(cellid, batch, modelname, autoplot=True):
+def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove xvals later, need to rework web app
     """
-    Fits a single NEMS model.
+    Fits a single NEMS model. With the exception of the autoplot feature,
+    all the details of modelfitting are taken care of by the model keywords.
     
-    Crossval should be working now! At least for pupil stuff ---njs July 13 2017
+    fit_single_model functions by iterating through each of the keywords in the
+    modelname, and perfroming the actions specified by each keyword, usually 
+    appending a nems module. If nested crossvla is specified in one of the modules,
+    it will simply re-evaluate the keywords for each new estimation set, and store
+    the fitted parameters for each module. Once all the estimation sets have been fit,
+    fit_single_model then evaulates the validation datasets and saves the stack.
+    It autoplot is true, it generates plots specified by each nems module. 
+    
+    fit_single_model returns the evaluated stack, which contains both the estimation
+    and validation datasets. In the caste of nested crossvalidation, the validation
+    dataset contains all the data, while the estimation dataset is just the estimation 
+    data that was fitted last (i.e. on the last nest)
     """
     stack=ns.nems_stack()
     
@@ -67,17 +79,17 @@ def fit_single_model(cellid, batch, modelname, autoplot=True):
                 phi.append(this_phi)
         phi=np.concatenate(phi)
         stack.parm_fits.append(phi)
-        print(stack.nests)
+
         if stack.nests==1:
             stack.cond=True
         else:
             stack.cv_counter+=1
-    #print(stack.parm_fits)
+
     # measure performance on both estimation and validation data
     stack.valmode=True
     
     #stack.nests=1
-    print(stack.modules[1])
+
     stack.evaluate(1)
     
     stack.append(nm.mean_square_error)
@@ -92,7 +104,6 @@ def fit_single_model(cellid, batch, modelname, autoplot=True):
     print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                  stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
     valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-    print(valdata)
     if valdata:
         stack.plot_dataidx=valdata[0]
     else:

@@ -286,7 +286,7 @@ def raster_plot(m,idx=None,size=(12,6)):
     plt.scatter(xdur[stims],ydur[stims],color='g',s=(0.5*np.pi)*2,alpha=0.6)
     plt.scatter(xpost[stims],ypost[stims],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.ylabel('Trial')
-    #plt.xlabel('Time')
+    plt.xlabel('Time')
     plt.title('Stimulus #'+str(stims))
 
 def sorted_raster(m,idx=None,size=FIGSIZE):
@@ -317,7 +317,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
     plt.scatter(xdur[ids],ydur[ids],color='g',s=(0.5*np.pi)*2,alpha=0.6)
     plt.scatter(xpost[ids],ypost[ids],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.ylabel('Trial')
-    #plt.xlabel('Time')
+    plt.xlabel('Time')
     plt.title('Stimulus #'+str(ids))
     
 
