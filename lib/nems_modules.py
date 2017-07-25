@@ -150,44 +150,7 @@ class nems_module:
         # pass-through of pointer to input data matrix.
         Y=X
         return Y
-      
-    #def do_plot(self,size=(12,4),idx=None):
-    #    #deprecated. plot functions are now in nems_utils.py
-    #   
-    #    # Moved from pylab to pyplot module in all do_plot functions, changed plots 
-    #    #to be individual large figures, added other small details -njs June 16, 2017
-    #    if idx:
-    #        plt.figure(num=idx,figsize=size)
-    #    out1=self.d_out[:][self.parent_stack.plot_dataidx]
-    #
-    #    if out1['stim'].ndim==3:
-    #        plt.imshow(out1['stim'][:,self.parent_stack.plot_stimidx,:], aspect='auto', origin='lower')
-    #    elif out1['pupil'] is None:
-    #    #else:
-    #        s=out1['stim'][self.parent_stack.plot_stimidx,:]
-    #        r=out1['resp'][self.parent_stack.plot_stimidx,:]
-    #        pred, =plt.plot(s,label='Predicted')
-    #        resp, =plt.plot(r,'r',label='Response')
-    #        plt.legend(handles=[pred,resp])
-    #
-    #    
-    #    else:
-    #     u=0
-    #        c=out1['repcount'][self.parent_stack.plot_stimidx]
-    #        h=out1['stim'][self.parent_stack.plot_stimidx].shape
-    #        scl=h[1]/c
-    #        
-    #        for i in self.parent_stack.plot_trialidx:
-    #            s=out1['stim'][self.parent_stack.plot_stimidx,u:(u+scl)]
-    #            r=out1['resp'][self.parent_stack.plot_stimidx,u:(u+scl)]
-    #            pred, =plt.plot(s,label='Predicted')
-    #            resp, =plt.plot(r,'r',label='Response')
-    #            plt.legend(handles=[pred,resp])
-    #            u=u+scl
-        
-                
-                
-    #    plt.title("{0} (data={1}, stim={2})".format(self.name,self.parent_stack.plot_dataidx,self.parent_stack.plot_stimidx))
+
         
     
 #### end nems_module ##########################################################
@@ -221,11 +184,7 @@ class dummy_data(nems_module):
 
 class load_mat(nems_module):
     """
-    avg_resp tells load_mat to average the response raster trials. Don't use with pupil 
-    data.
-    
-    perfect_model tells load_mat to use the averaged response raster as the stimulus. Use
-    this to just look at pupil effects without fitting the rest of a model.
+    Loads a .mat matrix
     """
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
@@ -249,9 +208,9 @@ class load_mat(nems_module):
         # load contents of Matlab data file
         for f in self.est_files:
             matdata = scipy.io.loadmat(f,chars_as_strings=True)
-            numdat=matdata['data'][0].__len__()
+            numdats=matdata['data'][0].__len__()
+            count=0
             for s in matdata['data'][0]:
-                print('wtf')
                 try:
                     data={}
                     data['resp']=s['resp_raster']
@@ -276,9 +235,18 @@ class load_mat(nems_module):
                         data['est']=True
                     else:
                         data['est']=False
-                except:
+                except ValueError:
                     print("Est/val conditions not flagged in datafile")
-                    
+                    #Quick fix for some batch293 data with unlabeled structs ---njs 25 July 2017
+                    if numdats==2:
+                        print('Two structs passed, assuming est/val') 
+                        if count==0:
+                            data['est']=True
+                        else:
+                            data['est']=False
+                    else:
+                        print('est/val to be created by crossval')
+                count+=1
     #            data = scipy.io.loadmat(f,chars_as_strings=True)
     #            data['raw_stim']=data['stim'].copy()
     #            data['raw_resp']=data['resp'].copy()
@@ -378,6 +346,7 @@ class load_mat(nems_module):
 
 class standard_est_val(nems_module):
     """
+    DEPRECATED, use crossval. Has the same functionality.
     Special module(s) for organizing/splitting estimation and validation data.
     Currently just one that replicates (mostly) the standard procedure from NARF
     """
