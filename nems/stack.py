@@ -95,8 +95,17 @@ class nems_stack:
                         else:
                             self.data[k][n]['stim']=np.concatenate(self.data[k][n]['stim'],axis=0)
                         self.data[k][n]['resp']=np.concatenate(self.data[k][n]['resp'],axis=0)
-                        self.data[k][n]['pupil']=np.concatenate(self.data[k][n]['pupil'],axis=0)
-                        self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
+                        try:
+                            self.data[k][n]['pupil']=np.concatenate(self.data[k][n]['pupil'],axis=0)
+                        except ValueError:
+                            print('No pupil data')
+                            self.data[k][n]['pupil']=None
+                        try:
+                            self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
+                        except ValueError:
+                            print('Trials average, used repcount')
+                            self.data[k][n]['replist']=[]
+                            
         else:
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
