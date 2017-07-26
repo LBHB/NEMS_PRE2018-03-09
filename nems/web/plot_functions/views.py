@@ -15,7 +15,8 @@ import pandas.io.sql as psql
 
 from flask import render_template, jsonify, request, Response
 
-from nems.web.nems_analysis import app, Session, NarfResults, NarfBatches
+from nems.web.nems_analysis import app
+from nems.db import Session, NarfResults, NarfBatches
 import nems.web.plot_functions.PlotGenerator as pg
 
         
@@ -70,6 +71,12 @@ def generate_plot_html():
             min_snr = min(dbCriteria[0].est_snr, dbCriteria[0].val_snr)
             min_isolation = dbCriteria[0].min_isolation
             min_snr_index = dbCriteria[0].min_snr_index
+            print(type(min_snr))
+            print(type(min_isolation))
+            print(type(min_snr_index))
+            print(type(filterCriteria['snr']))
+            print(type(filterCriteria['iso']))
+            print(type(filterCriteria['snri']))
             
             a = (filterCriteria['snr'] > min_snr)
             b = (filterCriteria['iso'] > min_isolation)

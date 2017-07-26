@@ -10,12 +10,23 @@ import nems.modules as nm
 import nems.fitters as nf
 import nems.utils as nu
 import nems.baphy_utils as baphy_utils
+import numpy as np
 
 # loader keywords
 def parm100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
+    
+def parm50(stack):
+    """
+    Specifically for batch293 tone-pip data
+    """
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
+                                     fs=100,stimfmt='parm',chancount=16)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
+    stack.append(nm.crossval,valfrac=0.05)
 
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
@@ -67,16 +78,7 @@ def fb18ch50(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
     stack.append(nm.crossval,valfrac=0.05)
-    
-def fb16ch50u(stack):
-    """
-    Specifically for batch293 tone-pip data
-    """
-    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
-                                     fs=100,stimfmt='parm',chancount=16)
-    print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
-    stack.append(nm.crossval,valfrac=0.1)
+
 
 def loadlocal(stack):
     """
@@ -284,7 +286,6 @@ def fit00h1(stack):
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
     
-    #So that the Huber error can be compared again MSE cost fn performance
     stack.popmodule()
     
         
@@ -372,4 +373,23 @@ def perfectpupil50(stack):
     stack.append(nm.pupil_model)
     
     
-    
+# Helper/Support Functions
+###############################################################################
+
+def gen_parm_list(stack):
+    phi=[] 
+    for idx,m in enumerate(stack.modules):
+        this_phi=m.parms2phi()
+        if this_phi.size:
+            if stack.cv_counter==0:
+                stack.fitted_modules.append(idx)
+            phi.append(this_phi)
+    phi=np.concatenate(phi)
+    stack.parm_fits.append(phi)
+
+
+
+
+
+
+

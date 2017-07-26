@@ -27,15 +27,16 @@ from base64 import b64encode
 from flask import (
         render_template, jsonify, request, redirect, url_for, Response, g
         )
+from flask_login import login_required, login_user
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
-from sqlalchemy import desc, asc
+from sqlalchemy import desc, asc, or_
 
-from nems.web.nems_analysis import (
-        app, Session, NarfAnalysis, NarfBatches, NarfResults, sBatch,
-        )
+from nems.web.nems_analysis import app
+from nems.db import Session, NarfAnalysis, NarfBatches, NarfResults, sBatch
 from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
+from nems.web.account_management.views import get_current_user
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
@@ -73,11 +74,11 @@ def main_view():
     
     """
     
-    user = g.user
-    try:
-        username = user.username
-    except:
-        username = ''
+    
+    # TODO: figure out how to integrate sec_lvl/superuser mode
+    #       maybe need to add sec_lvl column to analysis/batches/results?
+    #       then can compare in query ex: if user.sec_lvl > analysis.sec_lvl
+    user = get_current_user()
     
     session = Session()
     
@@ -86,13 +87,27 @@ def main_view():
     analysislist = [
             i[0] for i in
             session.query(NarfAnalysis.name)
-            .order_by(asc(NarfAnalysis.id)).all()
+            .filter(or_(
+                    int(user.sec_lvl) == 9,
+                    NarfAnalysis.public == '1',
+                    NarfAnalysis.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    NarfAnalysis.username == user.username,
+                    ))
+            .order_by(asc(NarfAnalysis.id))
+            .all()
             ]
     
     batchids = [
             i[0] for i in
             session.query(NarfBatches.batch)
-            .distinct().all()
+            .distinct()
+            .filter(or_(
+                    int(user.sec_lvl) == 9,
+                    NarfBatches.public == '1',
+                    NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    NarfBatches.username == user.username,
+                    ))
+            .all()
             ]
     batchnames = []
     for i in batchids:
@@ -126,6 +141,7 @@ def main_view():
     statuslist = [
             i[0] for i in
             session.query(NarfAnalysis.status)
+            .filter(NarfAnalysis.name.in_(analysislist))
             .distinct().all()
             ]
     
@@ -133,6 +149,7 @@ def main_view():
     tags = [
             i[0].split(",") for i in
             session.query(NarfAnalysis.tags)
+            .filter(NarfAnalysis.name.in_(analysislist))
             .distinct().all()
             ]
     # Flatten list of lists into a single list of all tag strings
@@ -153,6 +170,7 @@ def main_view():
     collist.remove('cellid')
     collist.remove('modelname')
 
+    # imported at top from PlotGenerator
     plotTypeList = PLOT_TYPES
 
     session.close()
@@ -162,13 +180,15 @@ def main_view():
             collist=collist, defaultcols=defaultcols, measurelist=measurelist,
             defaultrowlimit=defaultrowlimit,sortlist=collist,
             defaultsort=defaultsort,statuslist=statuslist, taglist=taglist,
-            plotTypeList=plotTypeList, username=username,
+            plotTypeList=plotTypeList, username=user.username,
             )
 
 
 @app.route('/update_batch')
 def update_batch():
     """Update current batch selection after an analysis is selected."""
+    
+    user = get_current_user()
     session = Session()
     
     aSelected = request.args.get('aSelected', type=str)
@@ -176,6 +196,11 @@ def update_batch():
     batch = (
             session.query(NarfAnalysis.batch)
             .filter(NarfAnalysis.name == aSelected)
+            .filter(or_(
+                    NarfBatches.public == '1',
+                    NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    NarfBatches.username == user.username,
+                    ))
             .first()
             )
     try:
@@ -324,6 +349,7 @@ def update_results():
 def update_analysis():
     """Update list of analyses after a tag and/or filter selection changes."""
     
+    user = get_current_user()
     session = Session()
     
     tagSelected = request.args.get('tagSelected')
@@ -344,6 +370,11 @@ def update_analysis():
             session.query(NarfAnalysis.name)
             .filter(NarfAnalysis.tags.ilike(tString))
             .filter(NarfAnalysis.status.ilike(sString))
+            .filter(or_(
+                    NarfAnalysis.public == '1',
+                    NarfAnalysis.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    NarfAnalysis.username == user.username,
+                    ))
             .order_by(asc(NarfAnalysis.id))
             .all()
             ]
@@ -402,11 +433,17 @@ def update_analysis_details():
 @app.route('/update_status_options')
 def update_status_options():
     
+    user = get_current_user()
     session = Session()
     
     statuslist = [
         i[0] for i in
         session.query(NarfAnalysis.status)
+        .filter(or_(
+                NarfAnalysis.public == '1',
+                NarfAnalysis.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                NarfAnalysis.username == user.username,
+                ))
         .distinct().all()
         ]
 
@@ -418,11 +455,17 @@ def update_status_options():
 @app.route('/update_tag_options')
 def update_tag_options():
     
+    user = get_current_user()
     session = Session()
     
     tags = [
         i[0].split(",") for i in
         session.query(NarfAnalysis.tags)
+        .filter(or_(
+                NarfAnalysis.public == '1',
+                NarfAnalysis.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                NarfAnalysis.username == user.username,
+                ))
         .distinct().all()
         ]
     # Flatten list of lists into a single list of all tag strings
@@ -452,6 +495,7 @@ def update_tag_options():
 
 
 @app.route('/edit_analysis', methods=['GET','POST'])
+@login_required
 def edit_analysis():
     """Take input from Analysis Editor modal and save it to the database.
     
@@ -459,6 +503,7 @@ def edit_analysis():
     
     """
     
+    user = get_current_user()
     session = Session()
     modTime = str(datetime.datetime.now().replace(microsecond=0))
     
@@ -493,20 +538,35 @@ def edit_analysis():
                 )
     elif len(checkExists) == 1:
         a = checkExists[0]
-        a.name = eName
-        a.status = eStatus
-        a.question = eQuestion
-        a.answer = eAnswer
-        a.tags = eTags
-        a.lastmod = modTime
-        a.modeltree = eTree
+        if (
+                a.public
+                or (user.labgroup in a.labgroup)
+                or (a.username == user.username)
+                ):
+            a.name = eName
+            a.status = eStatus
+            a.question = eQuestion
+            a.answer = eAnswer
+            a.tags = eTags
+            a.lastmod = modTime
+            a.modeltree = eTree
+        else:
+            return jsonify(
+                    success=(
+                            "You do not have permission "
+                            "to modify this analysis."
+                            )
+                    )
     # If it doesn't exist, add new sql alchemy object with the
     # appropriate attributes, which should get assigned to a new id
     else:
+        # TODO: Currently copies user's labgroup by default.
+        #       Is that the behavior we want?
         a = NarfAnalysis(
                 name=eName, status=eStatus, question=eQuestion,
                 answer=eAnswer, tags=eTags, batch='',
-                lastmod=modTime, modeltree=eTree,
+                lastmod=modTime, modeltree=eTree, username=user.username,
+                labgroup=user.labgroup, public='0'
                 )
         session.add(a)
     
@@ -590,14 +650,16 @@ def check_analysis_exists():
 
 
 @app.route('/delete_analysis')
+@login_required
 def delete_analysis():
     """Delete the selected analysis from the database."""
+    
+    user = get_current_user()
     session = Session()
     
-    success = True
+    success = False
     aSelected = request.args.get('aSelected')
     if len(aSelected) == 0:
-        success = False
         return jsonify(success=success)
     
     result = (
@@ -606,7 +668,6 @@ def delete_analysis():
             .first()
             )
     if result is None:
-        success = False
         return jsonify(success=success)
 
     # Leave these tests here incase accidental deletion
@@ -622,8 +683,17 @@ def delete_analysis():
     #print("batch:"); print(result.batch)
     #print("model tree:"); print(result.modeltree)
 
-    session.delete(result)
-    session.commit()
+    if (
+            result.public
+            or (result.username == user.username)
+            or (user.labgroup in result.labgroup)
+            ):
+        success = True
+        session.delete(result)
+        session.commit()
+    else:
+        return jsonify(success=success)
+    
     session.close()
 
     return jsonify(success=success)
