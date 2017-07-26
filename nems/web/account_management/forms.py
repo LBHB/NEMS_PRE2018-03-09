@@ -6,7 +6,7 @@ from wtforms.validators import (
         DataRequired, Length, EqualTo, Email, InputRequired, ValidationError
         )
 
-from nems.web.nems_analysis import NarfUsers, Session
+from nems.db import NarfUsers, Session
 
 
 class UsernameAvailable():

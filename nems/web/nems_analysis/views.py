@@ -32,9 +32,8 @@ import pandas.io.sql as psql
 from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc, or_
 
-from nems.web.nems_analysis import (
-        app, Session, NarfAnalysis, NarfBatches, NarfResults, sBatch,
-        )
+from nems.web.nems_analysis import app
+from nems.db import Session, NarfAnalysis, NarfBatches, NarfResults, sBatch
 from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
