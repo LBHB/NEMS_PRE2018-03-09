@@ -290,6 +290,7 @@ def update_results():
     
     """
     
+    user = get_current_user()
     session = Session()
     nullselection = """
             MUST SELECT A BATCH AND ONE OR MORE CELLS AND
@@ -332,6 +333,12 @@ def update_results():
             .filter(NarfResults.batch == bSelected)
             .filter(NarfResults.cellid.in_(cSelected))
             .filter(NarfResults.modelname.in_(mSelected))
+            .filter(or_(
+                    int(user.sec_lvl) == 9,
+                    NarfResults.public == '1',
+                    NarfResults.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    NarfResults.username == user.username,
+                    ))
             .order_by(ordSelected(getattr(NarfResults, sortSelected)))
             .limit(rowlimit).statement,
             session.bind

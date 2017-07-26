@@ -30,11 +30,15 @@ def load_user(user_id):
     try:
         # get email match from user database
         # (needs to be stored as unicode per flask-login)
-        sqla_user = (
+        sqla_users = (
                 session.query(NarfUsers)
                 .filter(NarfUsers.email == user_id)
-                .all()[0]
+                .all()
                 )
+        if sqla_users:
+            sqla_user = sqla_users[0]
+        else:
+            raise Exception('No account with that email')
         # assign attrs from table object to active user instance
         user = User(
                 username=sqla_user.username,
@@ -46,7 +50,6 @@ def load_user(user_id):
                 )
         return user
     except Exception as e:
-        print("Error loading user")
         print(e)
         return None
     finally:
@@ -58,7 +61,7 @@ def load_user(user_id):
     
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    errors = ''
+    errors = []
     form = LoginForm(request.form)
     if request.method == 'POST':
         if form.validate():
@@ -68,7 +71,11 @@ def login():
                     user.authenticated = True
                     login_user(user, remember=True)
                     return redirect(url_for('main_view'))
+            else:
+                errors += ['No account with that e-mail address']
         else:
+            print('form errors:')
+            print(form.errors)
             return render_template(
                     'account_management/login.html',
                     form=form, errors=form.errors,
@@ -109,6 +116,8 @@ def register():
 
             return redirect(url_for('login'))
         else:
+            print('form errors:')
+            print(form.errors)
             return render_template(
                     'account_management/register.html',
                     form=form, errors=form.errors,

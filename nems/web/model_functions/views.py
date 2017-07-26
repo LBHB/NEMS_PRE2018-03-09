@@ -24,12 +24,13 @@ from nems.web.nems_analysis import app
 from nems.db import Session, NarfResults
 import nems.main as nems
 from nems.web.model_functions.fit_single_utils import fetch_meta_data
-
+from nems.web.account_management.views import get_current_user
 
 @app.route('/fit_single_model')
 def fit_single_model_view():
     """Call lib.nems_main.fit_single_model with user selections as args."""
     
+    user = get_current_user()
     session = Session()
     
     cSelected = request.args.getlist('cSelected[]')
@@ -74,12 +75,19 @@ def fit_single_model_view():
     if not r:
         r = NarfResults()
         r.figurefile = plotfile
+        r.username = user.username
+        if not user.labgroup == 'SPECIAL_NONE_FLAG':
+            r.labgroup = user.labgroup
         fetch_meta_data(stack, r, attrs)
         # TODO: assign performance variables from stack.meta
         session.add(r)
     else:
-        # TODO: assign performance variables from stack.meta
         r[0].figurefile = plotfile
+        # TODO: This overrides any existing username or labgroup assignment.
+        #       Is this the desired behavior?
+        r.username = user.username
+        if not user.labgroup == 'SPECIAL_NONE_FLAG':
+            r.labgroup = user.labgroup
         fetch_meta_data(stack, r[0], attrs)
     
     session.commit()
@@ -96,6 +104,7 @@ def fit_single_model_view():
 def enqueue_models_view():
     """Call modelfit.enqueue_models with user selections as args."""
     
+    user = get_current_user()
     session = Session()
     #max number of models to run?
     queuelimit = request.args.get('queuelimit')
@@ -145,12 +154,18 @@ def enqueue_models_view():
         if not r:
             r = NarfResults()
             r.figurefile = plotfile
+            r.username = user.username
+            if not user.labgroup == 'SPECIAL_NONE_FLAG':
+                r.labgroup = user.labgroup
             fetch_meta_data(stack, r, attrs)
             # TODO: assign performance variables from stack.meta
             session.add(r)
         else:
             # TODO: assign performance variables from stack.meta
             r[0].figurefile = plotfile
+            r.username = user.username
+            if not user.labgroup == 'SPECIAL_NONE_FLAG':
+                r.labgroup = user.labgroup
             fetch_meta_data(stack, r[0], attrs)
 
         session.commit()

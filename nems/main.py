@@ -147,7 +147,12 @@ def load_single_model(cellid, batch, modelname):
     #filename = filename.strip('_xval')
     
     stack=nu.load_model(filename)
-    stack.evaluate()
-    
+    try:
+        stack.evaluate()
+    except Exception as e:
+        print("Error evaluating stack")
+        print(e)
+        # TODO: What to do here? Is there a special case to handle, or
+        #       did something just go wrong?
     return stack
     
