@@ -24,7 +24,10 @@
     <link rel="stylesheet" href=
     "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" 
     integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" 
-    crossorigin="anonymous">    
+    crossorigin="anonymous">
+
+    <link rel="stylesheet" href=
+    "{{ url_for('static', filename='css/account_management/account_management.css') }}">
     
   </head>
 
@@ -75,6 +78,12 @@
                 {{ render_field(form.firstname, class="form-control") }}
                 {{ render_field(form.lastname, class="form-control") }}
                 <button type="submit"> Submit </button>
+                {% if error %}
+                    {% for error in errors %}
+                        <br>
+                        {{ error }}
+                    {% endfor %}
+                {% endif %}
             </form>
             </div>
             <div class="col-xs-4"></div>

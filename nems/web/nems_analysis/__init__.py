@@ -3,9 +3,6 @@ from io import StringIO
 
 from flask import Flask
 from flask_socketio import SocketIO
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.automap import automap_base
 
 from nems.web.nems_analysis.SplitOutput import SplitOutput
 
@@ -55,29 +52,6 @@ def start_logging():
             {'data':'console connected or re-connected'},
             namespace='/py_console',
             )
-
-
-# sets how often sql alchemy attempts to re-establish connection engine
-# TODO: query db for time-out variable and set this based on some fraction of that
-POOL_RECYCLE = 7200;
-
-#create base class to mirror existing database schema
-Base = automap_base()
-# create a database connection engine
-engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],pool_recycle=POOL_RECYCLE)
-Base.prepare(engine, reflect=True)
-
-NarfUsers = Base.classes.NarfUsers
-NarfAnalysis = Base.classes.NarfAnalysis
-NarfBatches = Base.classes.NarfBatches
-NarfResults = Base.classes.NarfResults
-tQueue = Base.classes.tQueue
-sCellFile = Base.classes.sCellFile
-sBatch = Base.classes.sBatch
-
-# import this when another module needs to use the database connection.
-# used like a class - ex: 'session = Session()'
-Session = sessionmaker(bind=engine)
 
 # these don't get used for anything within this module, 
 # just have to be loaded when app is initiated

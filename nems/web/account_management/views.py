@@ -14,7 +14,8 @@ from flask_login import (
         )
 from flask_bcrypt import Bcrypt
 
-from nems.web.nems_analysis import app, Session, NarfUsers
+from nems.web.nems_analysis import app
+from nems.db import Session, NarfUsers
 from account_management.forms import LoginForm, RegistrationForm
 
 login_manager = LoginManager()
@@ -29,11 +30,15 @@ def load_user(user_id):
     try:
         # get email match from user database
         # (needs to be stored as unicode per flask-login)
-        sqla_user = (
+        sqla_users = (
                 session.query(NarfUsers)
                 .filter(NarfUsers.email == user_id)
-                .all()[0]
+                .all()
                 )
+        if sqla_users:
+            sqla_user = sqla_users[0]
+        else:
+            raise Exception('No account with that email')
         # assign attrs from table object to active user instance
         user = User(
                 username=sqla_user.username,
@@ -45,32 +50,40 @@ def load_user(user_id):
                 )
         return user
     except Exception as e:
-        print("Error loading user")
         print(e)
         return None
     finally:
         session.close()
 
-@app.before_request
-def before_request():
-    g.user = current_user
+#@app.before_request
+#def before_request():
+#    g.user = current_user
     
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    #_next = get_redirect_target()
+    errors = []
     form = LoginForm(request.form)
-    if request.method == 'POST' and form.validate():
-        user = load_user(form.email.data)
-        if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):
-                user.authenticated = True
-                login_user(user, remember=True)
-                flask.flash("Login successful. Welcome back %s!"%user.username)
-                return redirect(url_for('main_view'))
+    if request.method == 'POST':
+        if form.validate():
+            user = load_user(form.email.data)
+            if user:
+                if bcrypt.check_password_hash(user.password, form.password.data):
+                    user.authenticated = True
+                    login_user(user, remember=True)
+                    return redirect(url_for('main_view'))
+            else:
+                errors += ['No account with that e-mail address']
+        else:
+            print('form errors:')
+            print(form.errors)
+            return render_template(
+                    'account_management/login.html',
+                    form=form, errors=form.errors,
+                    )
 
     return render_template(
             'account_management/login.html',
-            form=form, #next=_next,
+            form=form, errors=errors,
             )
 
 @app.route('/logout')
@@ -80,32 +93,39 @@ def logout():
     user.authenticated = False
     logout_user()
     
-    return render_template('main.html')
+    return redirect(url_for('main_view'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    #_next = get_redirect_target()
+    errors = ''
     form = RegistrationForm(request.form)
-    if request.method == 'POST' and form.validate():
-        session = Session()
-        new_user = NarfUsers(
-                username = form.username.data,
-                password = bcrypt.generate_password_hash(form.password.data),
-                email = (form.email.data).encode('utf-8'),
-                firstname = form.firstname.data,
-                lastname = form.lastname.data,
-                )
+    if request.method == 'POST':
+        if form.validate():
+            session = Session()
+            new_user = NarfUsers(
+                    username = form.username.data,
+                    password = bcrypt.generate_password_hash(form.password.data),
+                    email = (form.email.data).encode('utf-8'),
+                    firstname = form.firstname.data,
+                    lastname = form.lastname.data,
+                    )
         
-        session.add(new_user)
-        session.commit()
-        session.close()
+            session.add(new_user)
+            session.commit()
+            session.close()
 
-        flask.flash("Registration successful - thanks %s!"%form.username)
-        return redirect(url_for('main_view'))
-    
+            return redirect(url_for('login'))
+        else:
+            print('form errors:')
+            print(form.errors)
+            return render_template(
+                    'account_management/register.html',
+                    form=form, errors=form.errors,
+                    )
+            
     return render_template(
             'account_management/register.html',
-            form=form, #next=_next
+            form=form, errors=errors,
             )
 
 
@@ -117,7 +137,10 @@ class User():
     def __init__(self, username, password, labgroup=None, sec_lvl=0):
         self.username = username
         self.password = password
-        self.labgroup = labgroup
+        if labgroup:
+            self.labgroup = labgroup
+        else:
+            self.labgroup = 'SPECIAL_NONE_FLAG'
         self.sec_lvl = sec_lvl
         self.authenticated = False
         
@@ -143,10 +166,45 @@ class User():
         user_id = (
                 session.query(NarfUsers.email)
                 .filter(NarfUsers.username == self.username)
-                .first()[0]
+                .first()
                 )
         session.close()
         return user_id
+    
+
+class BlankUser():
+    """ Blank dummy user, only used to avoid errors when checking for
+    labgroup/username match in other views.
+    
+    """
+    
+    username = ''
+    password = ''
+    labgroup = 'SPECIAL_NONE_FLAG'
+    sec_lvl = '1'
+    authenticated = False
+    
+    def __init__(self):
+        pass
+    
+    
+def get_current_user():
+    """Uses flask-login's current_user function to load the current global
+    user object. If it returns flask-login's default mixin class instead of
+    a User object from the class defined in this module, it will return a
+    BlankUser object. Otherwise, it will return the currently stored User.
+    
+    """
+    
+    user = current_user
+    try:
+        # Default flask_login user class doesn't have this attribute,
+        # so if no user is logged in this will throw an error.
+        labgroup = user.labgroup
+    except:
+        user = BlankUser()
+    return user
+
 
 # Functions from snippets 62
 def is_safe_url(target):

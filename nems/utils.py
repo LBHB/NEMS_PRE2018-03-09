@@ -70,9 +70,11 @@ def load_model(file_path):
             stack = pickle.load(handle)
         return stack
     except:
+        # TODO: need to do something else here maybe? removed return stack
+        #       at the end b/c it was being returned w/o assignment when
+        #       open file failed.
         print("error loading {0}".format(file_path))
-                   
-    return stack
+        return
 
 
 #

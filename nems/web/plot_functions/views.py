@@ -15,7 +15,8 @@ import pandas.io.sql as psql
 
 from flask import render_template, jsonify, request, Response
 
-from nems.web.nems_analysis import app, Session, NarfResults, NarfBatches
+from nems.web.nems_analysis import app
+from nems.db import Session, NarfResults, NarfBatches
 import nems.web.plot_functions.PlotGenerator as pg
 
         
