@@ -51,9 +51,9 @@ def load_user(user_id):
     finally:
         session.close()
 
-@app.before_request
-def before_request():
-    g.user = current_user
+#@app.before_request
+#def before_request():
+#    g.user = current_user
     
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -80,7 +80,7 @@ def logout():
     user.authenticated = False
     logout_user()
     
-    return render_template('main.html')
+    return redirect(url_for('main_view'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -101,7 +101,7 @@ def register():
         session.close()
 
         flask.flash("Registration successful - thanks %s!"%form.username)
-        return redirect(url_for('main_view'))
+        return redirect(url_for('login'))
     
     return render_template(
             'account_management/register.html',
@@ -117,7 +117,10 @@ class User():
     def __init__(self, username, password, labgroup=None, sec_lvl=0):
         self.username = username
         self.password = password
-        self.labgroup = labgroup
+        if labgroup:
+            self.labgroup = labgroup
+        else:
+            self.labgroup = 'SPECIAL_NONE_FLAG'
         self.sec_lvl = sec_lvl
         self.authenticated = False
         
@@ -143,10 +146,45 @@ class User():
         user_id = (
                 session.query(NarfUsers.email)
                 .filter(NarfUsers.username == self.username)
-                .first()[0]
+                .first()
                 )
         session.close()
         return user_id
+    
+
+class BlankUser():
+    """ Blank dummy user, only used to avoid errors when checking for
+    labgroup/username match in other views.
+    
+    """
+    
+    username = ''
+    password = ''
+    labgroup = 'SPECIAL_NONE_FLAG'
+    sec_lvl = '1'
+    authenticated = False
+    
+    def __init__(self):
+        pass
+    
+    
+def get_current_user():
+    """Uses flask-login's current_user function to load the current global
+    user object. If it returns flask-login's default mixin class instead of
+    a User object from the class defined in this module, it will return a
+    BlankUser object. Otherwise, it will return the currently stored User.
+    
+    """
+    
+    user = current_user
+    try:
+        # Default flask_login user class doesn't have this attribute,
+        # so if no user is logged in this will throw an error.
+        labgroup = user.labgroup
+    except:
+        user = BlankUser()
+    return user
+
 
 # Functions from snippets 62
 def is_safe_url(target):

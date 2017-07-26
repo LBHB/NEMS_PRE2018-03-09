@@ -84,7 +84,12 @@ def fit_single_model_view():
     session.commit()
     session.close()
     
-    return jsonify(r_est=stack.meta['r_est'][0], r_val=stack.meta['r_val'][0])
+    r_est = stack.meta['r_est'][0]
+    r_val = stack.meta['r_val'][0]
+    # Manually release stack for garbage collection -- having memory issues?
+    stack = None
+    
+    return jsonify(r_est=r_est, r_val=r_val)
 
 @app.route('/enqueue_models')
 def enqueue_models_view():
@@ -148,6 +153,9 @@ def enqueue_models_view():
             fetch_meta_data(stack, r[0], attrs)
 
         session.commit()
+        
+        # Manually release stack for garbage collection - having memory issues?
+        stack = None
 
     session.close()
     
