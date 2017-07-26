@@ -234,7 +234,7 @@ $(document).ready(function(){
     ordSelected = updateOrder();
     sortSelected = updateSort();
 
-    $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
+    $("#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(updateResults);
             
     function updateResults(){

@@ -85,9 +85,9 @@ def fit_single_model_view():
         r[0].figurefile = plotfile
         # TODO: This overrides any existing username or labgroup assignment.
         #       Is this the desired behavior?
-        r.username = user.username
+        r[0].username = user.username
         if not user.labgroup == 'SPECIAL_NONE_FLAG':
-            r.labgroup = user.labgroup
+            r[0].labgroup = user.labgroup
         fetch_meta_data(stack, r[0], attrs)
     
     session.commit()
@@ -163,9 +163,9 @@ def enqueue_models_view():
         else:
             # TODO: assign performance variables from stack.meta
             r[0].figurefile = plotfile
-            r.username = user.username
+            r[0].username = user.username
             if not user.labgroup == 'SPECIAL_NONE_FLAG':
-                r.labgroup = user.labgroup
+                r[0].labgroup = user.labgroup
             fetch_meta_data(stack, r[0], attrs)
 
         session.commit()
