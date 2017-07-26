@@ -103,12 +103,12 @@ def ev(stack):
     """
     stack.append(nm.standard_est_val, valfrac=0.05)
     
-def xvals10(stack):
-    stack.nests=10
+def xval10(stack):
+    #stack.nests=10
     stack.append(nm.crossval,valfrac=0.1)
     
 def xval05(stack):
-    stack.nests=20
+    #stack.nests=20
     stack.append(nm.crossval,valfrac=0.05)
     
 

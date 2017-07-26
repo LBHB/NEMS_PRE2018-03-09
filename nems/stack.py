@@ -61,7 +61,7 @@ class nems_stack:
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
         self.nests=1 #Default is to have only one nest, i.e. standard crossval
         self.parm_fits=[]
-        self.fitted_modules=False
+        self.fitted_modules=[]
         self.cv_counter=0
         
     def evaluate(self,start=0):
