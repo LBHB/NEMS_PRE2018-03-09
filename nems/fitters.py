@@ -294,12 +294,14 @@ class coordinate_descent(nems_fitter):
     step_init=0.01
     step_change=np.sqrt(0.5)
     step_min=1e-7
+    verbose=True
     
     
-    def my_init(self,tol=0.001,maxit=1000):
+    def my_init(self,tol=0.001,maxit=1000,verbose=True):
         print("initializing basic_min")
         self.maxit=maxit
         self.tol=tol
+        self.verbose=verbose
                     
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
@@ -347,17 +349,21 @@ class coordinate_descent(nems_fitter):
             
             if s_delta<0:
                 step_size=step_size*self.step_change
-                print("{0}: Backwards (delta={1}), adjusting step size to {2}".format(n,s_delta,step_size))
+                if self.verbose is True:
+                    print("{0}: Backwards (delta={1}), adjusting step size to {2}".format(n,s_delta,step_size))
                 
             elif s_delta<self.tol:
-                print("{0}: Error improvement too small (delta={1}). Iteration complete.".format(n,s_delta))
+                if self.verbose is True:
+                    print("{0}: Error improvement too small (delta={1}). Iteration complete.".format(n,s_delta))
                 
             elif sopt:
                 x_save[popt]-=step_size
-                print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
+                if self.verbose is True:
+                    print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
             else:
                 x_save[popt]+=step_size
-                print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
+                if self.verbose is True:
+                    print("{0}: best step={1},{2} error={3}, delta={4}".format(n,popt,sopt,s_new[x_opt],s_delta))
             
             x=x_save.copy()
             n+=1
@@ -383,7 +389,7 @@ class fit_iteratively(nems_fitter):
     def my_init(self,sub_fitter=basic_min,max_iter=5,min_kwargs={'routine':'L-BFGS-B','maxit':10000}):
         self.sub_fitter=sub_fitter(self.stack,**min_kwargs)
         self.max_iter=max_iter
-            
+
     def do_fit(self):
         self.sub_fitter.tol=self.tol
         itr=0

@@ -57,26 +57,26 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     stack.meta['modelname']=modelname
     
     # extract keywords from modelname    
-    keywords=modelname.split("_")
+    stack.keywords=modelname.split("_")
     stack.cond=False
     while stack.cond is False:
         print('iter loop='+str(stack.cv_counter))
         stack.clear()
         stack.valmode=False
-        for k in keywords:
+        for k in stack.keywords:
             f = getattr(nk, k)
             f(stack)
             
-       #TODO: this stuff below could be wrapped into do_fit somehow
-        phi=[] 
-        for idx,m in enumerate(stack.modules):
-            this_phi=m.parms2phi()
-            if this_phi.size:
-                if stack.cv_counter==0:
-                    stack.fitted_modules.append(idx)
-                phi.append(this_phi)
-        phi=np.concatenate(phi)
-        stack.parm_fits.append(phi)
+       #This has been added as a helper function in keywords that is added to fitter wrappers
+        #phi=[] 
+        #for idx,m in enumerate(stack.modules):
+        #    this_phi=m.parms2phi()
+        #    if this_phi.size:
+        #        if stack.cv_counter==0:
+        #            stack.fitted_modules.append(idx)
+        #        phi.append(this_phi)
+        #phi=np.concatenate(phi)
+        #stack.parm_fits.append(phi)
 
         if stack.nests==1:
             stack.cond=True

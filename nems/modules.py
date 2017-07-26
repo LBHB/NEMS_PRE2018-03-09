@@ -27,7 +27,7 @@ class nems_module:
     output_name='stim' # name of output matrix in d_out
     state_var='pupil'
     parent_stack=None # pointer to stack instance that owns this module
-    id=None  # unique name for this module to be referenced from the stack??
+    idm=None  # unique name for this module to be referenced from the stack??
     d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
     d_out=None # pointer to output, parent_stack.d[i+!]
     fit_fields=[]  # what fields should be fed to phi for fitting
@@ -52,7 +52,7 @@ class nems_module:
             self.parent_stack=parent_stack
             # d_in is by default the last entry of parent_stack.data
             self.d_in=parent_stack.data[-1]
-            self.id="{0}{1}".format(self.name,len(parent_stack.modules))
+            self.idm="{0}{1}".format(self.name,len(parent_stack.modules))
         
         self.d_out=copy.copy(self.d_in)
         self.do_plot=self.plot_fns[0]  # default is first in list
@@ -127,7 +127,7 @@ class nems_module:
         if nest==0:
             del self.d_out[:]
             for i,d in enumerate(self.d_in):
-                self.d_out.append(d.copy())
+                self.d_out.append(copy.deepcopy(d))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
@@ -135,9 +135,7 @@ class nems_module:
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
-                
-    
-    
+
     #
     # customizable functions
     #
@@ -338,7 +336,7 @@ class standard_est_val(nems_module):
     Special module(s) for organizing/splitting estimation and validation data.
     Currently just one that replicates (mostly) the standard procedure from NARF
     """
-    
+    #TODO: make this work given changes to stack
     name='standard_est_val'
     user_editable_fields=['output_name','valfrac']
     valfrac=0.05
@@ -485,6 +483,7 @@ class crossval(nems_module):
                         spl=mt.ceil(re[0]*self.valfrac)
                         count=count*spl
                         if self.parent_stack.avg_resp is True:
+                            #TODO: clean this up
                             try:
                                 d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
                             except TypeError:

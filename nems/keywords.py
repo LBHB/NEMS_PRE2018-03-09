@@ -240,6 +240,7 @@ def fit00(stack):
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
+    create_parmlist(stack)
     stack.popmodule() #pop MSE 
     
 def fit01(stack):
@@ -256,7 +257,7 @@ def fit01(stack):
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.00000001
     stack.fitter.do_fit()
-    
+    create_parmlist(stack)
     stack.popmodule()
     
 def fit02(stack):
@@ -273,6 +274,7 @@ def fit02(stack):
     stack.fitter=nf.basic_min(stack,routine='SLSQP')
     stack.fitter.tol=0.000001
     stack.fitter.do_fit()
+    create_parmlist(stack)
     stack.popmodule()
     
 def fit00h1(stack):
@@ -285,7 +287,7 @@ def fit00h1(stack):
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
-    
+    create_parmlist(stack)
     stack.popmodule()
     
         
@@ -304,6 +306,7 @@ def fitannl00(stack):
     stack.fitter=nf.anneal_min(stack,anneal_iter=50,stop=5,up_int=10,bounds=None)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
+    create_parmlist(stack)
     stack.popmodule()
     
     
@@ -321,6 +324,7 @@ def fitannl01(stack):
     stack.fitter=nf.anneal_min(stack,anneal_iter=100,stop=10,up_int=5,bounds=None)
     stack.fitter.tol=0.000001
     stack.fitter.do_fit()
+    create_parmlist(stack)
     stack.popmodule()
     
 def fititer00(stack):
@@ -330,11 +334,11 @@ def fititer00(stack):
     
     stack.fitter=nf.fit_iteratively(stack,max_iter=5)
     #stack.fitter.sub_fitter=nf.basic_min(stack)
-    stack.fitter.sub_fitter=nf.coordinate_descent(stack,tol=0.001,maxit=10)
+    stack.fitter.sub_fitter=nf.coordinate_descent(stack,tol=0.001,maxit=10,verbose=False)
     stack.fitter.sub_fitter.step_init=0.05
     
     stack.fitter.do_fit()
-    
+    create_parmlist(stack)
     stack.popmodule()
 
 
@@ -376,7 +380,7 @@ def perfectpupil50(stack):
 # Helper/Support Functions
 ###############################################################################
 
-def gen_parm_list(stack):
+def create_parmlist(stack):
     phi=[] 
     for idx,m in enumerate(stack.modules):
         this_phi=m.parms2phi()

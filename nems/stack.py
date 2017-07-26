@@ -44,6 +44,7 @@ class nems_stack:
     parm_fits=[]
     fitted_modules=[]
     cv_counter=0
+    keywords=[]
     
     def __init__(self):
         print("Creating new stack")
@@ -64,6 +65,7 @@ class nems_stack:
         self.parm_fits=[]
         self.fitted_modules=[]
         self.cv_counter=0
+        self.keywords=[]
         
     def evaluate(self,start=0):
         """
@@ -81,13 +83,13 @@ class nems_stack:
             #only evaluated once ---njs 24 July 2017
             
             for i in range(0,self.nests):
+                st=0
+                for m in self.fitted_modules:
+                    phi_old=self.modules[m].parms2phi()
+                    s=phi_old.shape
+                    self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
+                    st+=np.prod(s)
                 for j in range(start,len(self.modules)):
-                    st=0
-                    for m in self.fitted_modules:
-                        phi_old=self.modules[m].parms2phi()
-                        s=phi_old.shape
-                        self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
-                        st+=np.prod(s)
                     self.modules[j].evaluate(nest=i)
             for k in range(start+1,len(self.data)):
                 for n in range(0,len(self.data[-1])):
@@ -105,7 +107,6 @@ class nems_stack:
                             self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
                         except ValueError:
                             self.data[k][n]['replist']=[]
-                            
         else:
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
@@ -121,7 +122,7 @@ class nems_stack:
         self.modules.append(m)
         self.data.append(m.d_out)
         self.mod_names.append(m.name)
-        self.mod_ids.append(m.id)
+        self.mod_ids.append(m.idm)
         m.evaluate()
         
     def append_instance(self, mod=None):
@@ -273,7 +274,6 @@ class nems_stack:
     def quick_plot(self,size=(12,24)):
         plt.figure(figsize=size)
         plt.subplot(len(self.modules)-1,1,1)
-        #self.do_raster_plot()
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
