@@ -58,9 +58,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     
     # extract keywords from modelname    
     keywords=modelname.split("_")
-    stack.cv_counter=0
     stack.cond=False
-    stack.fitted_modules=[]
     while stack.cond is False:
         print('iter loop='+str(stack.cv_counter))
         stack.clear()

@@ -41,6 +41,7 @@ class nems_stack:
     
     plot_dataidx=0
     plot_stimidx=0
+    parm_fits=[]
     fitted_modules=[]
     cv_counter=0
     
@@ -99,12 +100,10 @@ class nems_stack:
                         try:
                             self.data[k][n]['pupil']=np.concatenate(self.data[k][n]['pupil'],axis=0)
                         except ValueError:
-                            print('No pupil data')
                             self.data[k][n]['pupil']=None
                         try:
                             self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
                         except ValueError:
-                            print('Trials average, used repcount')
                             self.data[k][n]['replist']=[]
                             
         else:

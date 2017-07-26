@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jul  3 12:15:26 2017
+
+@author: shofer
+"""
+import numpy as np
+import nems.keywords as nk
+import nems.utils as nu
+import nems.baphy_utils as bu
+import nems.modules as nm
+import nems.stack as ns
+import nems.fitters as nf
+import nems.main as mn
+import os
+import os.path
+import copy
+
+stack=ns.nems_stack()
+    
+stack.meta['batch']=293
+stack.meta['cellid']='eno048f-b1'
+stack.meta['modelname']='fb16ch50u_wc03_fir10_polypupgain03_fit02'
+    
+# extract keywords from modelname    
+keywords=stack.meta['modelname'].split("_")
+stack.cond=False
+while stack.cond is False:
+   print('iter loop='+str(stack.cv_counter))
+   stack.clear()
+   stack.valmode=False
+   for k in keywords:
+       f = getattr(nk, k)
+       f(stack)
+    
+      
+   phi=[] 
+   for idx,m in enumerate(stack.modules):
+       this_phi=m.parms2phi()
+       if this_phi.size:
+           if stack.cv_counter==0:
+               stack.fitted_modules.append(idx)
+           phi.append(this_phi)
+   phi=np.concatenate(phi)
+   stack.parm_fits.append(phi)
+
+   if stack.nests==1:
+       stack.cond=True
+   else:
+       stack.cv_counter+=1
+
+    # measure performance on both estimation and validation data
+stack.valmode=True
+    
+    #stack.nests=1
+
+stack.evaluate(1)
+alldata=stack.data   
+stack.append(nm.mean_square_error)
+    
+corridx=nu.find_modules(stack,'correlation')
+if not corridx:
+       # add MSE calculator module to stack if not there yet
+    stack.append(nm.correlation)
+                    
+#print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+                 #stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+                 stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+if valdata:
+    stack.plot_dataidx=valdata[0]
+else:
+    stack.plot_dataidx=0
+        
+        
+    # edit: added autoplot kwarg for option to disable auto plotting
+    #       -jacob, 6/20/17
+stack.quick_plot()
+"""
+stack=ns.nems_stack()
+
+stack.meta['batch']=293
+#stack.meta['cellid']='eno053f-a1'
+stack.meta['cellid']='eno048f-b1'
+
+#file='/auto/users/shofer/data/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'.mat'
+file=bu.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
+print("Initializing load_mat with file {0}".format(file))
+stack.cv_counter=0
+stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
+stack.append(nm.crossval,valfrac=0.05)
+stack.append(nm.weight_channels,num_chans=3)
+stack.append(nm.fir_filter,num_coefs=10)
+
+stack.append(nm.mean_square_error)
+stack.error=stack.modules[-1].error
+stack.fitter=nf.basic_min(stack)
+stack.fitter.tol=0.0001
+#stack.fitter=nf.coordinate_descent(stack)
+#stack.fitter.tol=0.001
+fitidx=nu.find_modules(stack,'weight_channels') + nu.find_modules(stack,'fir_filter')
+stack.fitter.fit_modules=fitidx
+stack.fitter.do_fit()
+
+stack.popmodule()
+stack.append(nm.state_gain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
+
+stack.append(nm.mean_square_error)
+stack.error=stack.modules[-1].error
+stack.fitter=nf.basic_min(stack,routine='SLSQP')
+stack.fitter.tol=0.0001
+stack.fitter.do_fit()
+
+
+stack.valmode=True
+    
+    #stack.nests=1
+stack.evaluate(1)
+    
+stack.append(nm.mean_square_error)
+    
+corridx=nu.find_modules(stack,'correlation')
+if not corridx:
+   # add MSE calculator module to stack if not there yet
+   stack.append(nm.correlation)
+#stack.append(nm.normalize)
+
+#stack.append(nm.pupil_model,tile_data=True)
+#unpacked=stack.modules[-1].unpack_data()
+#unpackresp=stack.modules[-1].unpack_data(name='resp')
+alldata=stack.data
+"""
+
+
+
