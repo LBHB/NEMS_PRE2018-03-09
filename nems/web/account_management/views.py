@@ -58,20 +58,25 @@ def load_user(user_id):
     
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    #_next = get_redirect_target()
+    errors = ''
     form = LoginForm(request.form)
-    if request.method == 'POST' and form.validate():
-        user = load_user(form.email.data)
-        if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):
-                user.authenticated = True
-                login_user(user, remember=True)
-                flask.flash("Login successful. Welcome back %s!"%user.username)
-                return redirect(url_for('main_view'))
+    if request.method == 'POST':
+        if form.validate():
+            user = load_user(form.email.data)
+            if user:
+                if bcrypt.check_password_hash(user.password, form.password.data):
+                    user.authenticated = True
+                    login_user(user, remember=True)
+                    return redirect(url_for('main_view'))
+        else:
+            return render_template(
+                    'account_management/login.html',
+                    form=form, errors=form.errors,
+                    )
 
     return render_template(
             'account_management/login.html',
-            form=form, #next=_next,
+            form=form, errors=errors,
             )
 
 @app.route('/logout')
@@ -85,28 +90,33 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    #_next = get_redirect_target()
+    errors = ''
     form = RegistrationForm(request.form)
-    if request.method == 'POST' and form.validate():
-        session = Session()
-        new_user = NarfUsers(
-                username = form.username.data,
-                password = bcrypt.generate_password_hash(form.password.data),
-                email = (form.email.data).encode('utf-8'),
-                firstname = form.firstname.data,
-                lastname = form.lastname.data,
-                )
+    if request.method == 'POST':
+        if form.validate():
+            session = Session()
+            new_user = NarfUsers(
+                    username = form.username.data,
+                    password = bcrypt.generate_password_hash(form.password.data),
+                    email = (form.email.data).encode('utf-8'),
+                    firstname = form.firstname.data,
+                    lastname = form.lastname.data,
+                    )
         
-        session.add(new_user)
-        session.commit()
-        session.close()
+            session.add(new_user)
+            session.commit()
+            session.close()
 
-        flask.flash("Registration successful - thanks %s!"%form.username)
-        return redirect(url_for('login'))
-    
+            return redirect(url_for('login'))
+        else:
+            return render_template(
+                    'account_management/register.html',
+                    form=form, errors=form.errors,
+                    )
+            
     return render_template(
             'account_management/register.html',
-            form=form, #next=_next
+            form=form, errors=errors,
             )
 
 
