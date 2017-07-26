@@ -12,11 +12,15 @@ import imp
 
 import scipy.io
 import scipy.signal
-import lib.nems_modules as nm
-import lib.nems_fitters as nf
-import lib.nems_keywords as nk
-import lib.nems_utils as nu
-import lib.nems_stack as ns
+import nems.modules as nm
+import nems.main as main
+import nems.fitters as nf
+import nems.keywords as nk
+import nems.utils as nu
+import nems.stack as ns
+
+
+
 
 imp.reload(nf)
 
@@ -24,7 +28,7 @@ imp.reload(nf)
 #est_files=[datapath + 'tor_data_por073b-b1.mat']
 
 #datapath='/auto/data/code/nems_in_cache/batch271/'
-#est_files=[datapath + 'chn020f-b1_b271_ozgf_c24_fs200.mat']
+#est_fieles=[datapath + 'chn020f-b1_b271_ozgf_c24_fs200.mat']
 datapath='/Users/svd/python/nems/misc/ref/'
 est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
@@ -42,7 +46,11 @@ stack.meta['cellid']='bbl061h-a1'
 stack.meta['batch']=293
 stack.meta['cellid']='eno052b-c1'
 
+cellid='eno052b-c1'
+batch=293
+modelname="parm100_xval05_wc02_fir15_fititer00"
 
+stack=main.fit_single_model(cellid, batch, modelname)
 
 
 # add a loader module to stack
@@ -50,7 +58,8 @@ stack.meta['cellid']='eno052b-c1'
 nk.parm100(stack)
 #nk.loadlocal(stack)
 
-nk.ev(stack)
+#nk.ev(stack)
+stack.append(nm.crossval, valfrac=0.00)
 
 # add fir filter module to stack & fit a little
 #nk.dlog(stack)
