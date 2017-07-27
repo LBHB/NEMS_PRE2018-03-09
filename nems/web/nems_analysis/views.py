@@ -37,6 +37,7 @@ from nems.db import Session, NarfAnalysis, NarfBatches, NarfResults, sBatch
 from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
+from nems.keyword_rules import keyword_test_routine
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
@@ -525,6 +526,12 @@ def edit_analysis():
     
     #TODO: this requires that all analyses have to have a unique name.
     #       better way to do this or just enforce the rule?
+    
+    # Make sure the keyword combination is valid using nems.keyword_rules
+    try:
+        keyword_test_routine(eTree)
+    except Exception as e:
+        return jsonify(success='Analysis not saved: \n' + str(e))
     
     # Find out if an analysis with same name already exists.
     # If it does, grab its sql alchemy object and update it with new values,
