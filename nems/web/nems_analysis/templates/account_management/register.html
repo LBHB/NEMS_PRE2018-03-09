@@ -78,6 +78,12 @@
                 {{ render_field(form.firstname, class="form-control") }}
                 {{ render_field(form.lastname, class="form-control") }}
                 <button type="submit"> Submit </button>
+                {% if error %}
+                    {% for error in errors %}
+                        <br>
+                        {{ error }}
+                    {% endfor %}
+                {% endif %}
             </form>
             </div>
             <div class="col-xs-4"></div>

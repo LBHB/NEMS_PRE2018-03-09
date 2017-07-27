@@ -9,7 +9,7 @@ from nems.web.upload.forms import UploadForm
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
-    error = ''
+    errors = ''
     form = UploadForm(request.form)
     if request.method == 'POST':
         if form.validate():
@@ -33,9 +33,8 @@ def upload():
     
             return redirect(url_for('main_view'))
         else:
-            error = 'Form validation failed.'
             return render_template(
-                    'upload/upload.html', form=form, error=error,
+                    'upload/upload.html', form=form, error=form.errors,
                     )
     else:
-        return render_template('upload/upload.html', form=form)
+        return render_template('upload/upload.html', form=form, errors=errors)

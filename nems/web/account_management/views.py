@@ -30,11 +30,15 @@ def load_user(user_id):
     try:
         # get email match from user database
         # (needs to be stored as unicode per flask-login)
-        sqla_user = (
+        sqla_users = (
                 session.query(NarfUsers)
                 .filter(NarfUsers.email == user_id)
-                .all()[0]
+                .all()
                 )
+        if sqla_users:
+            sqla_user = sqla_users[0]
+        else:
+            raise Exception('No account with that email')
         # assign attrs from table object to active user instance
         user = User(
                 username=sqla_user.username,
@@ -46,7 +50,6 @@ def load_user(user_id):
                 )
         return user
     except Exception as e:
-        print("Error loading user")
         print(e)
         return None
     finally:
@@ -58,20 +61,29 @@ def load_user(user_id):
     
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    #_next = get_redirect_target()
+    errors = []
     form = LoginForm(request.form)
-    if request.method == 'POST' and form.validate():
-        user = load_user(form.email.data)
-        if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):
-                user.authenticated = True
-                login_user(user, remember=True)
-                flask.flash("Login successful. Welcome back %s!"%user.username)
-                return redirect(url_for('main_view'))
+    if request.method == 'POST':
+        if form.validate():
+            user = load_user(form.email.data)
+            if user:
+                if bcrypt.check_password_hash(user.password, form.password.data):
+                    user.authenticated = True
+                    login_user(user, remember=True)
+                    return redirect(url_for('main_view'))
+            else:
+                errors += ['No account with that e-mail address']
+        else:
+            print('form errors:')
+            print(form.errors)
+            return render_template(
+                    'account_management/login.html',
+                    form=form, errors=form.errors,
+                    )
 
     return render_template(
             'account_management/login.html',
-            form=form, #next=_next,
+            form=form, errors=errors,
             )
 
 @app.route('/logout')
@@ -85,28 +97,35 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    #_next = get_redirect_target()
+    errors = ''
     form = RegistrationForm(request.form)
-    if request.method == 'POST' and form.validate():
-        session = Session()
-        new_user = NarfUsers(
-                username = form.username.data,
-                password = bcrypt.generate_password_hash(form.password.data),
-                email = (form.email.data).encode('utf-8'),
-                firstname = form.firstname.data,
-                lastname = form.lastname.data,
-                )
+    if request.method == 'POST':
+        if form.validate():
+            session = Session()
+            new_user = NarfUsers(
+                    username = form.username.data,
+                    password = bcrypt.generate_password_hash(form.password.data),
+                    email = (form.email.data).encode('utf-8'),
+                    firstname = form.firstname.data,
+                    lastname = form.lastname.data,
+                    )
         
-        session.add(new_user)
-        session.commit()
-        session.close()
+            session.add(new_user)
+            session.commit()
+            session.close()
 
-        flask.flash("Registration successful - thanks %s!"%form.username)
-        return redirect(url_for('login'))
-    
+            return redirect(url_for('login'))
+        else:
+            print('form errors:')
+            print(form.errors)
+            return render_template(
+                    'account_management/register.html',
+                    form=form, errors=form.errors,
+                    )
+            
     return render_template(
             'account_management/register.html',
-            form=form, #next=_next
+            form=form, errors=errors,
             )
 
 

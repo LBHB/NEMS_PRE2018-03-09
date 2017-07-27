@@ -46,10 +46,13 @@ def modelpane_view():
         mp_stack = nems.load_single_model(
                 cellid=cSelected, batch=bSelected, modelname=mSelected,
                 )
-    except:
+    except Exception as e:
+        print("error when calling load_single_model")
+        print(e)
         return Response(
-                "Model has not been fitted yet, or its fit file "
-                "is not in local storage."
+                "Model has not been fitted yet, its fit file "
+                "is not in local storage, "
+                "or there was an error when loading the model."
                 )
         
     all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]

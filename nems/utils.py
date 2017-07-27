@@ -70,9 +70,11 @@ def load_model(file_path):
             stack = pickle.load(handle)
         return stack
     except:
+        # TODO: need to do something else here maybe? removed return stack
+        #       at the end b/c it was being returned w/o assignment when
+        #       open file failed.
         print("error loading {0}".format(file_path))
-                   
-    return stack
+        return
 
 
 #
@@ -318,7 +320,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
     plt.scatter(xpost[ids],ypost[ids],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.ylabel('Trial')
     plt.xlabel('Time')
-    plt.title('Stimulus #'+str(ids))
+    plt.title('Sorted by Pupil: Stimulus #'+str(ids))
     
 
 #
