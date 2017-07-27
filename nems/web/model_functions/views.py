@@ -135,6 +135,12 @@ def enqueue_models_view():
         cell = combo[0]
         model = combo[1]
         try:
+            keyword_test_routine(model)
+        except Exception as e:
+            print("Error when calling nems.fit_single_model for " + mSelected)
+            print(e)
+            failures += combo
+        try:
             stack = nems.fit_single_model(
                             cellid=cell,
                             batch=bSelected,

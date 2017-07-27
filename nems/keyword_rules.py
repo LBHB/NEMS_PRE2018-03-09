@@ -25,14 +25,16 @@ import inspect
 
 def keyword_test_routine(modelname):
     """ Runs the check_keywords() method of each test class defined in this
-        module (except for the Keyword_Test base class) and throws the error
-        defined in the related class if a test fails.
+        module and throws the error defined in the related class
+        if a test fails.
         
     """
     
     clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
     classes = [c[1] for c in clsmembers if c[1].__module__ == __name__]
     for test_class in classes:
+        if 'Error' in test_class.__name__:
+            pass
         tester = test_class()
         passed = tester.check_keywords(modelname)
         if not passed:
