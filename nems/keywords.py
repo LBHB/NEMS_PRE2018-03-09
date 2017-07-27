@@ -11,12 +11,14 @@ import nems.fitters as nf
 import nems.utils as nu
 import nems.baphy_utils as baphy_utils
 import numpy as np
-import sys
-print(__name__)
+
 #thismod=sys.modules(__name__)
 
 # loader keywords
 def parm100(stack):
+    """
+    Specifically for batch293 tone-pip data
+    """
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
@@ -64,18 +66,7 @@ def fb18ch100u(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.crossval,valfrac=stack.valfrac)
-    
-def fb18ch100n(stack):
-    """
-    DEPRECATED: Keyword to load data and use with nested crossvalidation
-    """
-    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
-    print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.nests=20
-    stack.append(nm.crossval,valfrac=0.05)
-    
-    
+      
 def fb18ch50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -379,22 +370,19 @@ def perfectpupil50(stack):
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model)
  
+    
 # Nested Crossval
 ###############################################################################
-
 
 def nested20(stack):
     stack.nests=20
     stack.valfrac=0.05
     nest_helper(stack)
         
-        
-        
 def nested10(stack):
     stack.nests=10
     stack.valfrac=0.1
     nest_helper(stack)
-    
     
     
 # Helper/Support Functions

@@ -40,11 +40,8 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     
     fit_single_model functions by iterating through each of the keywords in the
     modelname, and perfroming the actions specified by each keyword, usually 
-    appending a nems module. If nested crossvla is specified in one of the modules,
-    it will simply re-evaluate the keywords for each new estimation set, and store
-    the fitted parameters for each module. Once all the estimation sets have been fit,
-    fit_single_model then evaulates the validation datasets and saves the stack.
-    It autoplot is true, it generates plots specified by each nems module. 
+    appending a nems module. Nested crossval is implemented as a special keyword,
+    which is placed last in a modelname/
     
     fit_single_model returns the evaluated stack, which contains both the estimation
     and validation datasets. In the caste of nested crossvalidation, the validation
@@ -73,9 +70,6 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
 
     # measure performance on both estimation and validation data
     stack.valmode=True
-    
-    #stack.nests=1
-
     stack.evaluate(1)
     
     stack.append(nm.mean_square_error)

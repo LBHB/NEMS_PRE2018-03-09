@@ -190,7 +190,6 @@ class load_mat(nems_module):
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
     plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
-    do_trial_plot=plot_fns[0]
     est_files=[]
     fs=100
     
@@ -886,9 +885,7 @@ class state_gain(nems_module):
                 Xp=copy.deepcopy(f_in[self.state_var])
                 Z=getattr(self,self.gain_type+'_fn')(X,Xp)
                 f_out[self.output_name]=Z
-                
-            
-        
+                    
 """
 modules for computing scores/ assessing model performance
 """
