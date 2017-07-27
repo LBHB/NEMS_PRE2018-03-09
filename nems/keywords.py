@@ -235,7 +235,6 @@ def fit00(stack):
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
-    #stack.popmodule() #pop MSE 
     
 def fit01(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
@@ -252,7 +251,6 @@ def fit01(stack):
     stack.fitter.tol=0.00000001
     stack.fitter.do_fit()
     create_parmlist(stack)
-    stack.popmodule()
     
 def fit02(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
@@ -269,7 +267,6 @@ def fit02(stack):
     stack.fitter.tol=0.000001
     stack.fitter.do_fit()
     create_parmlist(stack)
-    stack.popmodule()
     
 def fit00h1(stack):
     hubidx=nu.find_modules(stack,'pseudo_huber_error')
@@ -283,8 +280,7 @@ def fit00h1(stack):
     stack.fitter.do_fit()
     create_parmlist(stack)
     stack.popmodule()
-    
-        
+    stack.append(nm.mean_square_error)
     
 def fitannl00(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
@@ -301,7 +297,6 @@ def fitannl00(stack):
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
-    stack.popmodule()
     
     
 def fitannl01(stack):
@@ -319,7 +314,6 @@ def fitannl01(stack):
     stack.fitter.tol=0.000001
     stack.fitter.do_fit()
     create_parmlist(stack)
-    stack.popmodule()
     
 def fititer00(stack):
     
@@ -333,7 +327,6 @@ def fititer00(stack):
     
     stack.fitter.do_fit()
     create_parmlist(stack)
-    stack.popmodule()
 
 
 # etc etc for other keywords

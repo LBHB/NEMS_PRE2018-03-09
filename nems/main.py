@@ -71,8 +71,6 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     # measure performance on both estimation and validation data
     stack.valmode=True
     stack.evaluate(1)
-    #stack.append(nm.mean_square_error)
-    #stack.append(nm.mean_square_error)
     
     corridx=nu.find_modules(stack,'correlation')
     if not corridx:
