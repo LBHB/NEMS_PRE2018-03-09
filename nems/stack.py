@@ -110,6 +110,10 @@ class nems_stack:
                             self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
                         except ValueError:
                             self.data[k][n]['replist']=[]
+                        try:
+                            self.data[k][n]['repcount']=np.concatenate(self.data[k][n]['repcount'],axis=0)
+                        except ValueError:
+                            self.data[k][n]['repcount']=[]
         else:
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
@@ -277,7 +281,7 @@ class nems_stack:
     
     def quick_plot(self,size=(12,24)):
         plt.figure(figsize=size)
-        plt.subplot(len(self.modules)-1,1,1)
+        #plt.subplot(len(self.modules)-1,1,1)
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
@@ -285,7 +289,7 @@ class nems_stack:
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
-        #plt.tight_layout()
+        plt.tight_layout()
         #TODO: Use gridspec to fix spacing issue? Addition of labels makes
         #      the subplots look "scrunched" vertically.
     
@@ -316,6 +320,7 @@ class nems_stack:
         for idx,m in enumerate(self.modules):
         # skip first module
             if idx>0:
+                print(self.mod_names[idx])
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
         plt.tight_layout()
