@@ -114,7 +114,7 @@ class nems_stack:
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
         if mod is None:
-            m=nm.nems_module(self)
+            raise ValueError('stack.append: module not specifified')
         else:
             m=mod(self, **xargs)
         
@@ -134,7 +134,8 @@ class nems_stack:
         
         """
         if not mod:
-            mod=nm.nems_module(self)
+            raise ValueError('stack.append: module not specifified')
+            #mod=nm.nems_module(self)
         self.modules.append(mod)
         self.data.append(mod.d_out)
         self.mod_names.append(mod.name)
@@ -256,7 +257,7 @@ class nems_stack:
         #self.mod_ids.pop(-1)
         return m
         
-    def popmodule(self, mod=nm.nems_module()):
+    def popmodule(self):
         del self.modules[-1]
         del self.data[-1]
         
