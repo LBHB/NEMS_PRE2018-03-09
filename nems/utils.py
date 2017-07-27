@@ -68,6 +68,7 @@ def load_model(file_path):
         # Load data (deserialize)
         with open(file_path, 'rb') as handle:
             stack = pickle.load(handle)
+        print('stack successfully loaded')
         return stack
     except:
         # TODO: need to do something else here maybe? removed return stack
@@ -341,4 +342,44 @@ def shrinkage(mH,eH,sigrat=1,thresh=0):
     
     return hf
 
-
+def concatenate_helper(stack,start=1,**kwargs):
+    """
+    Helper function to concatenate the nest list in the validation data. Simply
+    takes the lists in stack.data if ['est'] is False and concatenates all the 
+    subarrays.
+    """
+    try:
+        end=kwargs['end']
+    except:
+        end=len(stack.data)
+    for k in range(start,end):
+        #print('start loop 1')
+        #print(len(stack.data[k]))
+        for n in range(0,len(stack.data[k])):
+            #print('start loop 2')
+            try:
+                if stack.data[k][n]['est'] is False:
+                    #print('concatenating')
+                    if stack.data[k][n]['stim'][0].ndim==3:
+                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
+                    else:
+                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
+                        stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
+                    try:
+                        stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
+                    except ValueError:
+                        stack.data[k][n]['pupil']=None
+                    try:
+                        stack.data[k][n]['replist']=np.concatenate(stack.data[k][n]['replist'],axis=0)
+                    except ValueError:
+                        stack.data[k][n]['replist']=[]
+                    try:
+                        stack.data[k][n]['repcount']=np.concatenate(stack.data[k][n]['repcount'],axis=0)
+                    except ValueError:
+                        stack.data[k][n]['repcount']=[]
+                else:
+                    #print('didnt concatenate')
+                    pass
+            except:
+                #print('skippd the whole damn thing')
+                pass

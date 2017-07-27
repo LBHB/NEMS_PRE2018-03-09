@@ -71,8 +71,8 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     # measure performance on both estimation and validation data
     stack.valmode=True
     stack.evaluate(1)
-    
-    stack.append(nm.mean_square_error)
+    #stack.append(nm.mean_square_error)
+    #stack.append(nm.mean_square_error)
     
     corridx=nu.find_modules(stack,'correlation')
     if not corridx:
@@ -131,11 +131,13 @@ def load_single_model(cellid, batch, modelname):
     
     stack=nu.load_model(filename)
     try:
+        stack.valmode=True
         stack.evaluate()
     except Exception as e:
         print("Error evaluating stack")
         print(e)
         # TODO: What to do here? Is there a special case to handle, or
         #       did something just go wrong?
+    #stack.quick_plot()
     return stack
     

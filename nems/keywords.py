@@ -235,7 +235,7 @@ def fit00(stack):
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
-    stack.popmodule() #pop MSE 
+    #stack.popmodule() #pop MSE 
     
 def fit01(stack):
     mseidx=nu.find_modules(stack,'mean_square_error')
@@ -375,11 +375,17 @@ def perfectpupil50(stack):
 ###############################################################################
 
 def nested20(stack):
+    """
+    Keyword for 20-fold nested crossvalidation. Uses 5% validation chunks.
+    """
     stack.nests=20
     stack.valfrac=0.05
     nest_helper(stack)
         
 def nested10(stack):
+    """
+    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    """
     stack.nests=10
     stack.valfrac=0.1
     nest_helper(stack)
@@ -389,6 +395,10 @@ def nested10(stack):
 ###############################################################################
 
 def create_parmlist(stack):
+    """
+    Helper function that assigns all fitted parameters for a model to a single (n,)
+    phi vector and accociates it to the stack.parm_fits object
+    """
     phi=[] 
     for idx,m in enumerate(stack.modules):
         this_phi=m.parms2phi()
@@ -400,6 +410,10 @@ def create_parmlist(stack):
     stack.parm_fits.append(phi)
 
 def nest_helper(stack):
+    """
+    Helper function for implementing nested crossvalidation. Essentially sets up
+    a loop with the estimation part of fit_single_model inside. 
+    """
     stack.cond=False
     while stack.cond is False:
         print('iter loop='+str(stack.cv_counter))

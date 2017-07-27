@@ -75,45 +75,30 @@ class nems_stack:
         """
         if self.valmode is True: #and self.pre_flag is not True:
             print('Evaluating validation data')
-            #xval_idx=nu.find_modules(self,'crossval')
-            #xval_idx=xval_idx[0]
-            #print(xval_idx)
-            #self.modules[xval_idx].evaluate()
-            #print(self.data[2][1]['stim'][3].shape)
-            
-            #TODO: there is definitely a more efficient way to do this, but this
-            #works reliably. In the future, should make it so that crossval is
-            #only evaluated once ---njs 24 July 2017
-            
-            for i in range(0,self.nests):
-                st=0
-                for m in self.fitted_modules:
-                    phi_old=self.modules[m].parms2phi()
-                    s=phi_old.shape
-                    self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
-                    st+=np.prod(s)
-                for j in range(start,len(self.modules)):
-                    self.modules[j].evaluate(nest=i)
-            for k in range(start+1,len(self.data)):
-                for n in range(0,len(self.data[-1])):
-                    if n%2 !=0:
-                        if self.data[k][n]['stim'][0].ndim==3:
-                            self.data[k][n]['stim']=np.concatenate(self.data[k][n]['stim'],axis=1)
-                        else:
-                            self.data[k][n]['stim']=np.concatenate(self.data[k][n]['stim'],axis=0)
-                        self.data[k][n]['resp']=np.concatenate(self.data[k][n]['resp'],axis=0)
-                        try:
-                            self.data[k][n]['pupil']=np.concatenate(self.data[k][n]['pupil'],axis=0)
-                        except ValueError:
-                            self.data[k][n]['pupil']=None
-                        try:
-                            self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
-                        except ValueError:
-                            self.data[k][n]['replist']=[]
-                        try:
-                            self.data[k][n]['repcount']=np.concatenate(self.data[k][n]['repcount'],axis=0)
-                        except ValueError:
-                            self.data[k][n]['repcount']=[]
+            mse_idx=nu.find_modules(self,'mean_square_error')
+            #print(mse_idx)
+            mse_idx=int(mse_idx[0])
+                #xval_idx=nu.find_modules(self,'crossval')
+                #xval_idx=xval_idx[0]
+                #print(xval_idx)
+                #self.modules[xval_idx].evaluate()
+                #print(self.data[2][1]['stim'][3].shape)
+                
+                #TODO: there is definitely a more efficient way to do this, but this
+                #works reliably. In the future, should make it so that crossval is
+                #only evaluated once ---njs 24 July 2017
+            for ii in range(start,mse_idx):
+                for i in range(0,self.nests):
+                    st=0
+                    for m in self.fitted_modules:
+                        phi_old=self.modules[m].parms2phi()
+                        s=phi_old.shape
+                        self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
+                        st+=np.prod(s)
+                    self.modules[ii].evaluate(nest=i)
+            nu.concatenate_helper(self,start=start+1,end=mse_idx+1)
+            for ij in range(mse_idx,len(self.modules)):
+                self.modules[ij].evaluate() 
         else:
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 

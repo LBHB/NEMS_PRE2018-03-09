@@ -90,6 +90,7 @@ class nems_module:
         m=self
         if m.d_in[0][name].ndim==2:
             X=np.empty([0,1])
+            #s=m.d_in[0][name].shape
         else:
             s=m.d_in[0][name].shape
             X=np.empty([s[0],0])
@@ -130,11 +131,11 @@ class nems_module:
                 self.d_out.append(copy.deepcopy(d))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
-                print('f_in:',f_in[self.input_name][nest].shape)
+                #print('f_in:',f_in[self.input_name][nest].shape)
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 f_out[self.output_name][nest]=self.my_eval(X)
-                print('f_in:',f_in[self.input_name][nest].shape)
-                print('f_out:',f_out[self.output_name][nest].shape)
+                #print('f_in:',f_in[self.input_name][nest].shape)
+                #print('f_out:',f_out[self.output_name][nest].shape)
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
@@ -208,8 +209,6 @@ class load_mat(nems_module):
         # load contents of Matlab data file
         for f in self.est_files:
             matdata = scipy.io.loadmat(f,chars_as_strings=True)
-            numdats=matdata['data'][0].__len__()
-            count=0
             for s in matdata['data'][0]:
                 try:
                     data={}
@@ -936,10 +935,16 @@ class mean_square_error(nems_module):
             P=np.zeros([1,1])
             N=0
             for f in self.d_out:
+                #try:
                 E+=np.sum(np.square(f[self.input1]-f[self.input2]))
                 P+=np.sum(np.square(f[self.input2]))
+                #except TypeError:
+                    #print('error eval')
+                    #nu.concatenate_helper(self.parent_stack)
+                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+                    #P+=np.sum(np.square(f[self.input2]))
                 N+=f[self.input2].size
-        
+
             if self.norm:
                 mse=E/P
             else:
@@ -1055,5 +1060,7 @@ class correlation(nems_module):
             return r_val
         else:
             return (r_est)
+    
+
     
         
