@@ -25,6 +25,7 @@ from nems.db import Session, NarfResults
 import nems.main as nems
 from nems.web.model_functions.fit_single_utils import fetch_meta_data
 from nems.web.account_management.views import get_current_user
+from nems.keyword_rules import keyword_test_routine
 
 @app.route('/fit_single_model')
 def fit_single_model_view():
@@ -40,6 +41,13 @@ def fit_single_model_view():
     # Disallow multiple cell/model selections for a single fit.
     if (len(cSelected) > 1) or (len(mSelected) > 1):
         return jsonify(r_est='error',r_val='more than 1 cell and/or model')
+    
+    try:
+        keyword_test_routine(mSelected[0])
+    except Exception as e:
+        print(e)
+        print('Fit failed.')
+        raise e
     
     print(
             "Beginning model fit -- this may take several minutes.",
