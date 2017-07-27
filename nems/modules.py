@@ -54,7 +54,7 @@ class nems_module:
             self.d_in=parent_stack.data[-1]
             self.idm="{0}{1}".format(self.name,len(parent_stack.modules))
         
-        self.d_out=copy.copy(self.d_in)
+        self.d_out=copy.deepcopy(self.d_in)
         self.do_plot=self.plot_fns[0]  # default is first in list
         self.do_trial_plot=self.plot_fns[0]
         self.my_init(**xargs)
@@ -130,8 +130,11 @@ class nems_module:
                 self.d_out.append(copy.deepcopy(d))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
+                print('f_in:',f_in[self.input_name][nest].shape)
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 f_out[self.output_name][nest]=self.my_eval(X)
+                print('f_in:',f_in[self.input_name][nest].shape)
+                print('f_out:',f_out[self.output_name][nest].shape)
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)

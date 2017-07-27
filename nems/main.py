@@ -17,6 +17,7 @@ import datetime
 import copy
 import scipy.stats as spstats
 
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
@@ -58,30 +59,17 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     
     # extract keywords from modelname    
     stack.keywords=modelname.split("_")
-    stack.cond=False
-    while stack.cond is False:
-        print('iter loop='+str(stack.cv_counter))
-        stack.clear()
+    if 'nested' in stack.keywords[-1]:
+        print('Using nested cross-validation, fitting will take longer!')
+        f=getattr(nk,stack.keywords[-1])
+        f(stack)
+    else:
+        print('Using standard est/val conditions')
         stack.valmode=False
         for k in stack.keywords:
             f = getattr(nk, k)
             f(stack)
             
-       #This has been added as a helper function in keywords that is added to fitter wrappers
-        #phi=[] 
-        #for idx,m in enumerate(stack.modules):
-        #    this_phi=m.parms2phi()
-        #    if this_phi.size:
-        #        if stack.cv_counter==0:
-        #            stack.fitted_modules.append(idx)
-        #        phi.append(this_phi)
-        #phi=np.concatenate(phi)
-        #stack.parm_fits.append(phi)
-
-        if stack.nests==1:
-            stack.cond=True
-        else:
-            stack.cv_counter+=1
 
     # measure performance on both estimation and validation data
     stack.valmode=True
@@ -106,7 +94,8 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         stack.plot_dataidx=valdata[0]
     else:
         stack.plot_dataidx=0
-        
+    
+    #stack.plot_stimidx=xvals['stimidx']
         
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17

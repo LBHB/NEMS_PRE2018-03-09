@@ -45,6 +45,7 @@ class nems_stack:
     fitted_modules=[]
     cv_counter=0
     keywords=[]
+    valfrac=0.05
     
     def __init__(self):
         print("Creating new stack")
@@ -66,12 +67,14 @@ class nems_stack:
         self.fitted_modules=[]
         self.cv_counter=0
         self.keywords=[]
+        self.valfrac=0.05
         
     def evaluate(self,start=0):
         """
         evaluate stack, starting at module # start
         """
         if self.valmode is True: #and self.pre_flag is not True:
+            print('Evaluating validation data')
             #xval_idx=nu.find_modules(self,'crossval')
             #xval_idx=xval_idx[0]
             #print(xval_idx)
@@ -351,18 +354,7 @@ class nems_stack:
         plt.close(fig)
         return filename
     
-#    def trial_quick_plot(self):
-#        """
-#        Plots several trials of a stimulus after fitting pupil data.
-#        This is to make it easier to visualize the fits on individual trials,
-#        as opposed to over the entire length of the fitted vector.
-#        """
-#        plt.figure(figsize=(12,15))
-#        for idx,m in enumerate(self.modules):
-#            # skip first module
-#            if idx>0:
-#                plt.subplot(len(self.modules)-1,1,idx)
-#                m.do_trial_plot(m,idx)
+
 
                 
 

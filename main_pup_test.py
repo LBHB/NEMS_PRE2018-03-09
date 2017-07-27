@@ -28,7 +28,9 @@ for i in filelist:
 """modlist=['nopupgain','pupgain','polypupgain02','polypupgain03','polypupgain04','exppupgain','logpupgain',
          'butterworth01','butterworth02','butterworth03','butterworth04','poissonpupgain']"""
 #BOL006b-43-1
-stack=mn.fit_single_model('bbl031f-a1', 291, 'fb18ch100_wc01_fir15_dexp_fititer00', autoplot=True)
+#stack=mn.fit_single_model('bbl031f-a1', 291, 'fb18ch50_wc03_fir10_dexp_fit02', autoplot=True)
+stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_pupgain_fit02_nested20', autoplot=True,stimidx=55)
+#alldata=stack.data
 #alldata=stack.data
 #stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_nopupgain_fit01', autoplot=True,crossval=False)
 #print(slist.__len__())

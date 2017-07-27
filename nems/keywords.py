@@ -11,6 +11,9 @@ import nems.fitters as nf
 import nems.utils as nu
 import nems.baphy_utils as baphy_utils
 import numpy as np
+import sys
+print(__name__)
+#thismod=sys.modules(__name__)
 
 # loader keywords
 def parm100(stack):
@@ -26,32 +29,32 @@ def parm50(stack):
                                      fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
 
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=200,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb24ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True) #Data not preprocessed to 100 Hz, internally converts
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb24ch100n(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True) #Data not preprocessed to 100 Hz, internally converts
     stack.nests=20
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb18ch100u(stack):
     """
@@ -60,11 +63,11 @@ def fb18ch100u(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb18ch100n(stack):
     """
-    Keyword to load data and use with nested crossvalidation
+    DEPRECATED: Keyword to load data and use with nested crossvalidation
     """
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -77,7 +80,7 @@ def fb18ch50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
 
 
 def loadlocal(stack):
@@ -355,8 +358,8 @@ def perfectpupil100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False)
-    stack.nests=20
-    stack.append(nm.crossval,valfrac=0.05)
+    #stack.nests=20
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model)
     
@@ -371,10 +374,27 @@ def perfectpupil50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
-    stack.append(nm.crossval,valfrac=0.05)
-    stack.nests=20
+    stack.append(nm.crossval,valfrac=stack.valfrac)
+    #stack.nests=20
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model)
+ 
+# Nested Crossval
+###############################################################################
+
+
+def nested20(stack):
+    stack.nests=20
+    stack.valfrac=0.05
+    nest_helper(stack)
+        
+        
+        
+def nested10(stack):
+    stack.nests=10
+    stack.valfrac=0.1
+    nest_helper(stack)
+    
     
     
 # Helper/Support Functions
@@ -391,8 +411,17 @@ def create_parmlist(stack):
     phi=np.concatenate(phi)
     stack.parm_fits.append(phi)
 
-
-
+def nest_helper(stack):
+    stack.cond=False
+    while stack.cond is False:
+        print('iter loop='+str(stack.cv_counter))
+        stack.clear()
+        stack.valmode=False
+        for k in range(0,len(stack.keywords)-1):
+            f = globals()[stack.keywords[k]]
+            f(stack)
+        
+        stack.cv_counter+=1
 
 
 
