@@ -114,16 +114,13 @@ class nems_module:
                 
         return X
     
-#TODO: Need to do some thinking about the best way to handle evaluate and nested_evaluate.
-#If the data arrays are always put into a list, could use just one evaluate function that
-#uses 0 index if there is no nesting, and iterates otherwise. ---njs July 19 2017
 
-
+#TODO: evaluate is overwrting the previous stack.data entries with the final entry
+#when nested crossval is used, but not otherwise.
             
     def evaluate(self,nest=0):
         """
-        Special evaluation for use with nested crossval. Essentially the same as evaluate, 
-        but it allows uses of nest list for calculating nested crossval datasets.
+        General evaluate function, for both nested and non-nested crossval
         """
         if nest==0:
             del self.d_out[:]
@@ -201,7 +198,7 @@ class load_mat(nems_module):
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
 
-    def evaluate(self,nest=0):
+    def evaluate(self,**kwargs):
         del self.d_out[:]
 #        for i, d in enumerate(self.d_in):
 #            self.d_out.append(d.copy())
@@ -333,7 +330,7 @@ class load_mat(nems_module):
 
 class standard_est_val(nems_module):
     """
-    DEPRECATED, use crossval. Has the same functionality.
+    NO LONGER DEPRECATED
     Special module(s) for organizing/splitting estimation and validation data.
     Currently just one that replicates (mostly) the standard procedure from NARF
     """
@@ -345,7 +342,7 @@ class standard_est_val(nems_module):
     def my_init(self, valfrac=0.05):
         self.valfrac=valfrac
     
-    def evaluate(self):
+    def evaluate(self,**kwargs):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
@@ -375,19 +372,21 @@ class standard_est_val(nems_module):
                     estidx = s<m
                 
                 d_est=d.copy()
-                d_val=d.copy()
+                #d_val=d.copy()
                 
                 d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
                 d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
                 d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
-                d_val['repcount']=copy.deepcopy(d['repcount'][validx])
-                d_val['resp']=copy.deepcopy(d['resp'][validx,:])
-                d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
-                
-                #if 'pupil' in d.keys():
-                if d['pupil'] is not None:
+                #d_val['repcount']=copy.deepcopy(d['repcount'][validx])
+                #d_val['resp']=copy.deepcopy(d['resp'][validx,:])
+                #d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
+                try:
                     d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
+                except:
+                    print('No pupil data')
+                    d_est['pupil']=[]
+
+                #d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
                     #for j in (d_est,d_val):
                     #    for i in ('resp','pupil'):
                     #        s=j[i].shape
@@ -396,10 +395,22 @@ class standard_est_val(nems_module):
                     #    j['stim']=np.tile(j['stim'],(1,1,s[1]))
                 
                 d_est['est']=True
-                d_val['est']=False
+                #d_val['est']=False
                 
                 self.d_out.append(d_est)
                 if self.parent_stack.valmode:
+                    
+                    d_val=d.copy()
+                    d_val['repcount']=copy.deepcopy(d['repcount'][validx])
+                    d_val['resp']=[copy.deepcopy(d['resp'][validx,:])]
+                    d_val['stim']=[copy.deepcopy(d['stim'][:,validx,:])]
+                    try:
+                        d_val['pupil']=[copy.deepcopy(d['pupil'][validx,:])]
+                    except:
+                        print('No pupil data')
+                        d_val['pupil']=[]
+                        
+                    d_val['est']=False
                     self.d_out.append(d_val)
 
             
@@ -554,6 +565,7 @@ class normalize(nems_module):
     works well with fit algorithms --
     either mean 0, variance 1 (if sign doesn't matter) or
     min 0, max 1 (if positive values desired)
+    
     IMPORTANT NOTE: normalization factors are computed from estimation data 
     only but applied to both estimation and validation data streams
     """
@@ -767,6 +779,8 @@ class nonlinearity(nems_module):
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
+        s_indices= X<=0
+        X[s_indices]=0
         Y=np.log(X+self.phi[0,0])
         return(Y)
     def exp_fn(self,X):
@@ -1039,7 +1053,7 @@ class correlation(nems_module):
         self.input2=input2
         self.do_plot=self.plot_fns[1]
         
-    def evaluate(self):
+    def evaluate(self,**kwargs):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())

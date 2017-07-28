@@ -77,8 +77,6 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
        # add MSE calculator module to stack if not there yet
         stack.append(nm.correlation)
                     
-    #print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
-                 #stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
     print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                  stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
     valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
@@ -86,8 +84,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         stack.plot_dataidx=valdata[0]
     else:
         stack.plot_dataidx=0
-    
-    #stack.plot_stimidx=xvals['stimidx']
+
         
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17

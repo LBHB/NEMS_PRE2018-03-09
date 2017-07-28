@@ -376,7 +376,8 @@ def concatenate_helper(stack,start=1,**kwargs):
                     try:
                         stack.data[k][n]['repcount']=np.concatenate(stack.data[k][n]['repcount'],axis=0)
                     except ValueError:
-                        stack.data[k][n]['repcount']=[]
+                        pass
+                        #stack.data[k][n]['repcount']=stack.data[k][n]['repcount']
                 else:
                     #print('didnt concatenate')
                     pass

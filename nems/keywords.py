@@ -21,7 +21,8 @@ def parm100(stack):
     """
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def parm50(stack):
     """
@@ -71,7 +72,8 @@ def fb18ch50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
-    stack.append(nm.crossval,valfrac=stack.valfrac)
+    #stack.append(nm.crossval,valfrac=stack.valfrac)
+    stack.append(nm.standard_est_val,valfrac=stack.valfrac)
 
 
 def loadlocal(stack):
@@ -154,7 +156,19 @@ def fir15(stack):
 
 # static NL keywords
 ###############################################################################
-
+def nonlin_mini_fit(stack):
+    # mini fit
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.00001
+    #stack.fitter=nf.coordinate_descent(stack)
+    #stack.fitter.tol=0.001
+    fitidx=nu.find_modules(stack,'nonlinearity')
+    stack.fitter.fit_modules=fitidx
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
 def dlog(stack):
     stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['phi'],phi=[1])
     
@@ -162,7 +176,9 @@ def exp(stack):
     stack.append(nm.nonlinearity,nltype='exp',fit_fields=['phi'],phi=[1,1])
 
 def dexp(stack):
-    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['phi'],phi=[1,1,1,1])
+    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['phi'],phi=[1,.01,.001,0]) 
+    #choose phi s.t. dexp starts as almost a straight line 
+    nonlin_mini_fit(stack)
     
 def poly01(stack):
     stack.append(nm.nonlinearity,nltype='poly',fit_fields=['phi'],phi=[0,1])
