@@ -198,6 +198,7 @@ def update_batch():
             session.query(NarfAnalysis.batch)
             .filter(NarfAnalysis.name == aSelected)
             .filter(or_(
+                    int(user.sec_lvl) == 9,
                     NarfBatches.public == '1',
                     NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
                     NarfBatches.username == user.username,
@@ -317,7 +318,7 @@ def update_results():
         ordSelected = desc
     sortSelected = request.args.get('sortSelected', 'cellid')
 
-    # Always add cellid, batch and modelname to column lists,
+    # Always add cellid and modelname to column lists,
     # since they are required for selection behavior.
     cols = [
             getattr(NarfResults, 'cellid'),

@@ -40,8 +40,3 @@ In no particular order:
   (ex. which views should require a 'fresh' login even for saved session?)
   
 - integrate AWS
-
-- move config and db conneciton etc to separate config folder
-    (and make available globally for matplotlib, flask settings etc.)
-    
-- 

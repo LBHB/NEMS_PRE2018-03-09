@@ -12,15 +12,9 @@ import nems.fitters as nf
 import nems.utils as nu
 import nems.keywords as nk
 import nems.baphy_utils as baphy_utils
-import os
-import datetime
 import copy
 import scipy.stats as spstats
 
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.automap import automap_base
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -91,12 +85,11 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     if autoplot:
         stack.quick_plot()
     
-    
     # save
     filename=(
-            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
-            .format(batch, cellid, modelname)
-            )
+        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
+        .format(batch, cellid, modelname)
+        )
     nu.save_model(stack,filename) 
     #os.chmod(filename, 0o666)
 

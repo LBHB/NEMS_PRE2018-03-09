@@ -9,20 +9,44 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
+import datetime
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 
-from nems.config.config import db_uri
+try:
+    import nems_config.AWS_Config as awsc
+    AWS = awsc.Use_AWS
+    if AWS:
+        from nems.EC2_Mgmt import check_instance_count
+except:
+    AWS = False
 
-SQLALCHEMY_DATABASE_URI = db_uri
+# Database settings
+# To specify database settings, store a file named Database_Info.py in the
+# nems_config directory (inside the top-level package folder) with this format:
+#   host = 'hosturl'
+#   user = 'username'
+#   passwd = 'password'
+#   database = 'database'
+# Order doesn't matter.
+try:
+    import nems_config.Database_Info as db
+    db_uri = 'mysql+pymysql://%s:%s@%s/%s'%(
+                    db.user,db.passwd,db.host,db.database
+                    )
+except Exception as e:
+    print('No database info detected')
+    print(e)
+    db_uri = 'sqlite:////path/to/default/database/file'
 
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that
 POOL_RECYCLE = 7200;
 
 # create a database connection engine
-engine = create_engine(SQLALCHEMY_DATABASE_URI,pool_recycle=POOL_RECYCLE)
+engine = create_engine(db_uri ,pool_recycle=POOL_RECYCLE)
 
 #create base class to mirror existing database schema
 Base = automap_base()
@@ -33,6 +57,7 @@ NarfAnalysis = Base.classes.NarfAnalysis
 NarfBatches = Base.classes.NarfBatches
 NarfResults = Base.classes.NarfResults
 tQueue = Base.classes.tQueue
+tComputer = Base.classes.tComputer
 sCellFile = Base.classes.sCellFile
 sBatch = Base.classes.sBatch
 
@@ -155,6 +180,12 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun):
     session.commit()
     tQueueId = job.id
     session.close()
+    
+    if AWS:
+        check_instance_count()
+    else:
+        pass
+    
     return tQueueId
     
 def add_model_to_queue(commandPrompt,note,job,priority=1,rundataid=0):

@@ -85,7 +85,8 @@ def fit_single_model_view():
         r.figurefile = plotfile
         r.username = user.username
         if not user.labgroup == 'SPECIAL_NONE_FLAG':
-            r.labgroup = user.labgroup
+            if not user.labgroup in r.labgroup:
+                r.labgroup += ', %s'%user.labgroup
         fetch_meta_data(stack, r, attrs)
         # TODO: assign performance variables from stack.meta
         session.add(r)
@@ -95,7 +96,8 @@ def fit_single_model_view():
         #       Is this the desired behavior?
         r[0].username = user.username
         if not user.labgroup == 'SPECIAL_NONE_FLAG':
-            r[0].labgroup = user.labgroup
+            if not user.labgroup in r.labgroup:
+                r.labgroup += ', %s'%user.labgroup
         fetch_meta_data(stack, r[0], attrs)
     
     session.commit()
@@ -170,8 +172,8 @@ def enqueue_models_view():
             r.figurefile = plotfile
             r.username = user.username
             if not user.labgroup == 'SPECIAL_NONE_FLAG':
-                r.labgroup = user.labgroup
-            fetch_meta_data(stack, r, attrs)
+                if not user.labgroup in r.labgroup:
+                    r.labgroup += ', %s'%user.labgroup
             # TODO: assign performance variables from stack.meta
             session.add(r)
         else:
@@ -179,7 +181,8 @@ def enqueue_models_view():
             r[0].figurefile = plotfile
             r[0].username = user.username
             if not user.labgroup == 'SPECIAL_NONE_FLAG':
-                r[0].labgroup = user.labgroup
+                if not user.labgroup in r.labgroup:
+                    r.labgroup += ', %s'%user.labgroup
             fetch_meta_data(stack, r[0], attrs)
 
         session.commit()

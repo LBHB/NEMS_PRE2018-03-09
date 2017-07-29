@@ -13,6 +13,14 @@ import pickle
 import os
 import copy
 
+import boto3
+try:
+    import nems_config.AWS_Config as awsc
+    AWS = awsc.Use_AWS
+except:
+    AWS = False
+    
+    
 # set default figsize for pyplots (so we don't have to change each function)
 FIGSIZE=(12,4)
 
@@ -30,52 +38,56 @@ def save_model(stack, file_path):
     stack2=copy.deepcopy(stack)
     for i in range(1,len(stack2.data)):
         del stack2.data[i][:]
-        
-    directory = os.path.dirname(file_path)
     
-    try:
-        os.stat(directory)
-    except:
-        os.mkdir(directory)       
+    if AWS:
+        # TODO: Need to set up AWS credentials in order to test this
+        # TODO: Can file key contain a directory structure, or do we need to
+        #       set up nested 'buckets' on s3 itself?
+        s3 = boto3.resource('s3')
+        key = file_path.strip('/auto/data/code/nems_saved_models/')
+        fileobj = 'binary container'
+        pickle.dump(stack2, fileobj, protocol=pickle.HIGHEST_PROTOCOL)
+        s3.Object('nems_saved_models', key).put(Body=fileobj)
+    else:
+        directory = os.path.dirname(file_path)
     
-    try:
-    # Store data (serialize)
-        with open(file_path, 'wb') as handle:
-            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    except FileExistsError:
-        print("Removing existing model at: {0}".format(file_path))
-        os.remove(file_path)
-        with open(file_path, 'wb') as handle:
-            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            
-    #orig_umask = os.umask(0)
-    #try:
-    #    file=os.open(
-    #            path=file_path,
-    #            flags=os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-    #            mode=0o777,
-    #            )
-    #finally:
-    #    os.umask(orig_umask)
+        try:
+            os.stat(directory)
+        except:
+            os.mkdir(directory)       
+    
+        try:
+        # Store data (serialize)
+            with open(file_path, 'wb') as handle:
+                pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        except FileExistsError:
+            print("Removing existing model at: {0}".format(file_path))
+            os.remove(file_path)
+            with open(file_path, 'wb') as handle:
+                pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    #with os.fdopen(file, 'wb') as handle:
-    #    pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    print("Saved model to {0}".format(file_path))
+        print("Saved model to {0}".format(file_path))
 
 def load_model(file_path):
-    try:
-        # Load data (deserialize)
-        with open(file_path, 'rb') as handle:
-            stack = pickle.load(handle)
-        print('stack successfully loaded')
-        return stack
-    except:
-        # TODO: need to do something else here maybe? removed return stack
-        #       at the end b/c it was being returned w/o assignment when
-        #       open file failed.
-        print("error loading {0}".format(file_path))
-        return
+    if AWS:
+        # TODO: need to set up AWS credentials to test this
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket('nems_saved_models')
+        key = file_path.strip('/auto/data/code/nems_saved_models/')
+        bucket.download_file(key, file_path)
+    else:
+        try:
+            # Load data (deserialize)
+            with open(file_path, 'rb') as handle:
+                stack = pickle.load(handle)
+            print('stack successfully loaded')
+            return stack
+        except:
+            # TODO: need to do something else here maybe? removed return stack
+            #       at the end b/c it was being returned w/o assignment when
+            #       open file failed.
+            print("error loading {0}".format(file_path))
+            return
 
 
 #
