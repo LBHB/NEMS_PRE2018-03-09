@@ -31,7 +31,7 @@ class nems_module:
     d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
     d_out=None # pointer to output, parent_stack.d[i+!]
     fit_fields=[]  # what fields should be fed to phi for fitting
-
+    
     #
     # Begin standard functions
     #
@@ -82,20 +82,25 @@ class nems_module:
             setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
             os+=np.prod(s)
     
-    def unpack_data(self,name='stim',est=True):
+    def unpack_data(self,name='stim',est=True,use_dout=False):
         """
         unpack_data - extract a data variable from all files into a single
         matrix (concatenated across files)
         """
         m=self
-        if m.d_in[0][name].ndim==2:
+        if use_dout:
+            D=m.d_out
+        else:
+            D=m.d_in
+            
+        if D[0][name].ndim==2:
             X=np.empty([0,1])
             #s=m.d_in[0][name].shape
         else:
-            s=m.d_in[0][name].shape
+            s=D[0][name].shape
             X=np.empty([s[0],0])
             
-        for i, d in enumerate(m.d_in):
+        for i, d in enumerate(D):
             if not 'est' in d.keys():
                 if d[name].ndim==2:
                     X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
@@ -753,7 +758,7 @@ class nonlinearity(nems_module):
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
-    plot_fns=[nu.pre_post_psth,nu.plot_spectrogram]
+    plot_fns=[nu.io_scatter_smooth,nu.pre_post_psth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
     
@@ -1042,7 +1047,7 @@ class correlation(nems_module):
  
     name='correlation'
     user_editable_fields=['input1','input2']
-    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
+    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter, nu.pred_act_scatter_smooth]
     input1='stim'
     input2='resp'
     r_est=np.ones([1,1])

@@ -67,6 +67,7 @@ class nems_stack:
         self.fitted_modules=[]
         self.cv_counter=0
         self.keywords=[]
+        self.mod_ids=[]
         self.valfrac=0.05
         
     def evaluate(self,start=0):
@@ -111,11 +112,13 @@ class nems_stack:
         else:
             m=mod(self, **xargs)
         
-        self.modules.append(m)
-        self.data.append(m.d_out)
-        self.mod_names.append(m.name)
-        self.mod_ids.append(m.idm)
-        m.evaluate()
+        self.append_instance(m)
+        # svd removed redundant code
+        #        self.modules.append(m)
+        #        self.data.append(m.d_out)
+        #        self.mod_names.append(m.name)
+        #        self.mod_ids.append(m.id)
+        #        m.evaluate()
         
     def append_instance(self, mod=None):
         """Same as append but takes an instance of a module instead
@@ -132,7 +135,8 @@ class nems_stack:
         self.modules.append(mod)
         self.data.append(mod.d_out)
         self.mod_names.append(mod.name)
-        self.mod_ids.append(mod.id)
+        self.mod_ids.append(mod.idm)
+        
         mod.evaluate()
         
     def insert(self, mod=None, idx=None, **xargs):

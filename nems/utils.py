@@ -129,18 +129,61 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
         plt.xlabel('Time Step')
         plt.ylabel('Firing rate (unitless)')
             
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
 def pred_act_scatter(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
-    s=out1['stim'][m.parent_stack.plot_stimidx,:]
+    s=out1[m.output_name][m.parent_stack.plot_stimidx,:]
     r=out1['resp'][m.parent_stack.plot_stimidx,:]
     plt.plot(s,r,'ko')
+    plt.xlabel("Predicted ({0})".format(m.output_name))
+    plt.ylabel('Actual')
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
+    axes = plt.gca()
+    ymin, ymax = axes.get_ylim()
+    xmin, xmax = axes.get_xlim()
+    plt.text(xmin+(xmax-xmin)/50,ymax-(ymax-ymin)/20,"r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0],m.parent_stack.meta['r_val'][0]),
+             verticalalignment='top')
+    
+    
+def io_scatter_smooth(m,idx=None,size=FIGSIZE):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    s=m.unpack_data(m.input_name,use_dout=False)
+    r=m.unpack_data(m.output_name,use_dout=True)
+    s2=np.append(s.transpose(),r.transpose(),0)
+    s2.sort(1)
+    bincount=np.min([100,s2.shape[1]])
+    T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=np.reshape(s2,[2,bincount,T])
+    s2=np.mean(s2,2)
+    s2=np.squeeze(s2)
+    
+    plt.plot(s2[0,:],s2[1,:],'k.')
+    plt.xlabel("Input ({0})".format(m.input_name))
+    plt.ylabel("Output ({0})".format(m.output_name))
+    #plt.title("{0}".format(m.name))
+
+def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    s=m.unpack_data(m.output_name,use_dout=True)
+    r=m.unpack_data("resp",use_dout=True)
+    s2=np.append(s.transpose(),r.transpose(),0)
+    s2.sort(1)
+    bincount=np.min([100,s2.shape[1]])
+    T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=np.reshape(s2,[2,bincount,T])
+    s2=np.mean(s2,2)
+    s2=np.squeeze(s2)
+    plt.plot(s2[0,:],s2[1,:],'k.')
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    m.parent_stack.meta['r_val']
+    #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
 
 def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
@@ -151,7 +194,7 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     pred, =plt.plot(s,label='Predicted')
     act, =plt.plot(r,'r',label='Actual')
     plt.legend(handles=[pred,act])
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Trial')
     plt.ylabel('Firing rate (unitless)')
 
@@ -166,7 +209,7 @@ def pre_post_psth(m,size=FIGSIZE,idx=None):
     pre, =plt.plot(s1,label='Pre-nonlinearity')
     post, =plt.plot(s2,'r',label='Post-nonlinearity')
     plt.legend(handles=[pre,post])
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Trial')
     plt.ylabel('Firing rate (unitless)')
 
@@ -175,26 +218,35 @@ def plot_stim_psth(m,idx=None,size=FIGSIZE):
         plt.figure(num=str(idx),figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
     #c=out1['repcount'][m.parent_stack.plot_stimidx]
-    h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    #h=out1['stim'][m.parent_stack.plot_stimidx].shape
     #scl=int(h[0]/c)
     s2=out1['stim'][m.parent_stack.plot_stimidx,:]
     resp, =plt.plot(s2,'r',label='Post-'+m.name)
     plt.legend(handles=[resp])
-    plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
+    #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
   
 def plot_strf(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
     h=m.coefs
+    
+    # if weight channels exist and dimensionality matches, generate a full STRF
+    wcidx=find_modules(m.parent_stack,"weight_channels")
+    if m.name=="fir_filter" and len(wcidx):
+        w=m.parent_stack.modules[wcidx[0]].coefs
+        if w.shape[0]==h.shape[0]:
+            h=np.matmul(w.transpose(), h)
+        
     mmax=np.max(np.abs(h.reshape(-1)))
     plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
     plt.clim(-mmax,mmax)
     cbar = plt.colorbar()
     #TODO: cbar.set_label('???')
-    plt.title(m.name)
+    #plt.title(m.name)S
     plt.xlabel('Channel') #or kHz?
     # Is this correct? I think so...
-    plt.ylabel('Latency') 
+    plt.ylabel('Latency')
+    
 """
 Potentially useful trial plotting stuff...not currently in use, however --njs July 5 2017   
 def plot_trials(m,idx=None,size=(12,4)):
