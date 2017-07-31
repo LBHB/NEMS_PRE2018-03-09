@@ -380,6 +380,7 @@ def update_analysis():
             .filter(NarfAnalysis.tags.ilike(tString))
             .filter(NarfAnalysis.status.ilike(sString))
             .filter(or_(
+                    int(user.sec_lvl) == 9,
                     NarfAnalysis.public == '1',
                     NarfAnalysis.labgroup.ilike('%{0}%'.format(user.labgroup)),
                     NarfAnalysis.username == user.username,
