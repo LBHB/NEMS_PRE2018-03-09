@@ -128,14 +128,13 @@ class nems_module:
                 self.d_out.append(copy.deepcopy(d))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
-                #print('f_in:',f_in[self.input_name][nest].shape)
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 f_out[self.output_name][nest]=self.my_eval(X)
-                #print('f_in:',f_in[self.input_name][nest].shape)
-                #print('f_out:',f_out[self.output_name][nest].shape)
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
+                if self.parent_stack.valmode is True:
+                    print('evaled here')
 
     #
     # customizable functions
@@ -248,34 +247,25 @@ class load_mat(nems_module):
                 data['stim']=np.transpose(data['stim'],(0,2,1))
                 if stim_resamp_factor != 1:
                     s=data['stim'].shape
-                    #new_stim_size=np.round(s[2]*stim_resamp_factor)
-                    #print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['stim']=resamp
-                    #data['stim']=scipy.signal.resample(data['stim'],new_stim_size,axis=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 if resp_resamp_factor != 1:
                     s=data['resp'].shape
-                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    #print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['resp']=resamp
-                    #data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
                     
                 if data['pupil'] is not None and resp_resamp_factor != 1:
                     s=data['pupil'].shape
-                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    #print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['pupil']=resamp
-                    #data['pupil']=scipy.signal.resample(data['pupil'],new_resp_size,axis=0)
                     
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
@@ -417,6 +407,8 @@ class standard_est_val(nems_module):
 class crossval(nems_module):
     """
     Cross-validation est/val module that replaces trial_est_val and stim_est_val.
+    
+    @author: shofer
     """
     name='crossval'
     plot_fns=[nu.raster_plot]
@@ -527,16 +519,15 @@ class pupil_model(nems_module):
     name='pupil_model'
     plot_fns=[nu.sorted_raster,nu.raster_plot]
     """
-    Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
-    Will probably incorporate into pupil_est_val later.
+    Replaces stim with average resp for each stim. This is the 'perfect' model
+    used for comparing different models of pupil state gain.
     """
     
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
-                self.d_out.append(val.copy())
-                #self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+                self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             Xa=f_in['avgresp']
             if f_in['est'] is False:
@@ -710,7 +701,9 @@ class weight_channels(nems_module):
  
 class fir_filter(nems_module):
     """
-    fir_filter - the workhorse linear filter module
+    fir_filter - the workhorse linear filter module. Takes in a 3D stim array 
+    (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
+    offset, and outputs a 2D stim array (stims,time).
     """
     name='fir_filter'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
@@ -745,9 +738,10 @@ class fir_filter(nems_module):
 
 class nonlinearity(nems_module): 
     """
-    nonlinearity - apply a static nonlinearity. TODO: use helper functions
-    rather than a look-up table to determine which NL to apply. parameters can
-    be saved in a generic vector self.phi - see NARF implementation for reference 
+    nonlinearity - apply a static nonlinearity to the data. This modules uses helper 
+    functions and a generic fit field ('phi') to specify the type of nonlinearity 
+    applied. Look at nems/keywords to see how to apply different nonlinearities, as
+    each kind has a specific nltype and phi.
     
     @author: shofer
     """
@@ -806,9 +800,9 @@ class nonlinearity(nems_module):
                  
 class state_gain(nems_module): 
     """
-    state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
-    my not be able to use standard my_eval() because needs access to two 
-    variables in the data stream rather than just one.
+    state_gain - apply a gain/offset based on continuous pupil diameter, or some 
+    other continuous variable. Does not use standard my_eval, instead uses its own
+    evaluate() that overrides the nems_module evaluate()
     
     @author: shofer
     """
@@ -886,7 +880,7 @@ class state_gain(nems_module):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
-                self.d_out.append(val.copy())
+                self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])

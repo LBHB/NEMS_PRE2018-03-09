@@ -31,7 +31,7 @@ def parm50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
                                      fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.crossval,valfrac=stack.valfrac)
 
 def fb24ch200(stack):
@@ -385,7 +385,9 @@ def perfectpupil50(stack):
 
 def nested20(stack):
     """
-    Keyword for 20-fold nested crossvalidation. Uses 5% validation chunks.
+    Keyword for 20-fold nested crossvalidation. Uses 5% validation chunks. 
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=20
     stack.valfrac=0.05
@@ -394,6 +396,8 @@ def nested20(stack):
 def nested10(stack):
     """
     Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=10
     stack.valfrac=0.1

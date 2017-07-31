@@ -73,6 +73,32 @@ class FIR_Included(Keyword_Test):
     def check_keywords(self, modelname):
         if 'fir' in modelname:
             return True
+        elif 'perfectpupil' in modelname:
+            return True
         else:
             return False
         
+class Nested_At_End(Keyword_Test):
+    def __init__(self):
+        self.error=Exception(
+                'If nested crossval is included, it must be the last keyword'
+                '\n Failed test: %s' % self.__repr__())
+    def __repr__(self):
+        return 'Nested_At_End'
+    
+    def check_keywords(self,modelname):
+        names=modelname.split('_')
+        if 'nested' in modelname:
+            if 'nested' in names[-1]:
+                return True
+            else:
+                print('Nested crossval must be last keyword in modelname string')
+                return False
+        else:
+            return True
+    
+    
+    
+    
+    
+    

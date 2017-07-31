@@ -73,10 +73,9 @@ class nems_stack:
         """
         evaluate stack, starting at module # start
         """
-        if self.valmode is True: #and self.pre_flag is not True:
+        if self.valmode is True: 
             print('Evaluating validation data')
             mse_idx=nu.find_modules(self,'mean_square_error')
-            #print(mse_idx)
             mse_idx=int(mse_idx[0])
                 #xval_idx=nu.find_modules(self,'crossval')
                 #xval_idx=xval_idx[0]
@@ -86,7 +85,10 @@ class nems_stack:
                 
                 #TODO: there is definitely a more efficient way to do this, but this
                 #works reliably. In the future, should make it so that crossval is
-                #only evaluated once ---njs 24 July 2017
+                #only evaluated once on nested fits. However, it isn't such a big deal
+                # since it doesn't fit crossval (e.e. isn't called thousands of times)
+                #---njs 24 July 2017, updated July 31 2017
+                
             for ii in range(start,mse_idx):
                 for i in range(0,self.nests):
                     st=0
@@ -100,6 +102,7 @@ class nems_stack:
             for ij in range(mse_idx,len(self.modules)):
                 self.modules[ij].evaluate() 
         else:
+            #This condition evaluates for fitting and est data set
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
             
