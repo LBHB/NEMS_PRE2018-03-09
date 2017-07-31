@@ -35,9 +35,10 @@ cellid='BOL006b-11-1'
 batch=293
 modelname="parm50_wc01_fir15_fititer00"
 
-#cellid='bbl031f-a1'
-#batch=291
-#modelname="fb18ch100_wc01_fir15_dexp_fititer00"
+#cellid='bbl034e-a1'
+cellid='bbl031f-a1'
+batch=291
+modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 
 stack=main.fit_single_model(cellid, batch, modelname)
 
