@@ -41,12 +41,23 @@ except Exception as e:
     print(e)
     db_uri = 'sqlite:////path/to/default/database/file'
 
+try:
+    import nems_config.Cluster_Database_Info as clst_db
+    clst_db_uri = 'mysql+pymysql://%s:%s@%s/%s'%(
+                        clst_db.user, clst_db.passwd, clst_db.host, 
+                        clst_db.database,
+                        )
+except Exception as e:
+    print('No cluster database info detected')
+    print(e)
+    clst_db_uri = 'sqlite:////path/to/default/database/file'
+    
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that
 POOL_RECYCLE = 7200;
 
 # create a database connection engine
-engine = create_engine(db_uri ,pool_recycle=POOL_RECYCLE)
+engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE)
 
 #create base class to mirror existing database schema
 Base = automap_base()
@@ -64,6 +75,18 @@ sBatch = Base.classes.sBatch
 # import this when another module needs to use the database connection.
 # used like a class - ex: 'session = Session()'
 Session = sessionmaker(bind=engine)
+
+
+# Same as above, but duplicated for use w/ cluster
+cluster_engine = create_engine(clst_db_uri, pool_recycle=POOL_RECYCLE)
+
+cluster_Base = automap_base()
+cluster_Base.prepare(cluster_engine, reflect=True)
+
+cluster_tQueue = cluster_Base.classes.tQueue
+cluster_tComputer = cluster_Base.classes.tComputer
+
+cluster_Session = sessionmaker(bind=cluster_engine)
 
 
 def enqueue_models(celllist, batch, modellist, force_rerun=False):
@@ -114,8 +137,9 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun):
     Narf_Analysis : enqueue_single_model
     
     """
-
+    
     session = Session()
+    cluster_session = cluster_Session()
     tQueueId = -1
     
     # TODO: anything else needed here? this is syntax for nems_fit_single
@@ -139,7 +163,7 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun):
         return -1
     
     #query tQueue to check if entry with same cell/batch/model already exists
-    qdata = session.query(tQueue).filter(tQueue.note == note).all()
+    qdata = cluster_session.query(tQueue).filter(tQueue.note == note).all()
     
     # if it does, check its 'complete' status and take different action based on
     # status
@@ -173,7 +197,7 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun):
     else: #result must not have existed? or status value was greater than 2
         # add new entry
         print("Adding job to queue for: %s\n"%note)
-        job = tQueue()
+        job = cluster_tQueue()
         session.add(add_model_to_queue(commandPrompt,note,job))
     
     # uncomment session.commit() when ready to test saving to database

@@ -73,7 +73,7 @@ def fit_single_model_view():
             .filter(NarfResults.cellid == cSelected[0])
             .filter(NarfResults.batch == bSelected)
             .filter(NarfResults.modelname == mSelected[0])
-            .all()
+            .first()
             )
     collist = ['%s'%(s) for s in NarfResults.__table__.columns]
     attrs = [s.replace('NarfResults.', '') for s in collist]
@@ -85,20 +85,31 @@ def fit_single_model_view():
         r.figurefile = plotfile
         r.username = user.username
         if not user.labgroup == 'SPECIAL_NONE_FLAG':
-            if not user.labgroup in r.labgroup:
-                r.labgroup += ', %s'%user.labgroup
+            try:
+                if not user.labgroup in r.labgroup:
+                    r.labgroup += ', %s'%user.labgroup
+            except TypeError:
+                # if r.labgroup is none, ca'nt check if user.labgroup is in it
+                r.labgroup = user.labgroup
         fetch_meta_data(stack, r, attrs)
         # TODO: assign performance variables from stack.meta
         session.add(r)
     else:
-        r[0].figurefile = plotfile
+        r.figurefile = plotfile
         # TODO: This overrides any existing username or labgroup assignment.
         #       Is this the desired behavior?
-        r[0].username = user.username
+        r.username = user.username
         if not user.labgroup == 'SPECIAL_NONE_FLAG':
-            if not user.labgroup in r.labgroup:
-                r.labgroup += ', %s'%user.labgroup
-        fetch_meta_data(stack, r[0], attrs)
+            try:
+                if not user.labgroup in r.labgroup:
+                    r.labgroup += ', %s'%user.labgroup
+            except TypeError:
+                # if r.labgroup is none, can't check if user.labgroup is in it
+                r.labgroup = user.labgroup
+        fetch_meta_data(stack, r, attrs)
+    
+    print(r.username)
+    print(r.labgroup)
     
     session.commit()
     session.close()
