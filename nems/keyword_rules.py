@@ -23,6 +23,8 @@
 import sys
 import inspect
 
+import nems.keywords as nk
+
 def keyword_test_routine(modelname):
     """ Runs the check_keywords() method of each test class defined in this
         module and throws the error defined in the related class
@@ -86,7 +88,7 @@ class Nested_At_End(Keyword_Test):
     def __repr__(self):
         return 'Nested_At_End'
     
-    def check_keywords(self,modelname):
+    def check_keywords(self, modelname):
         names=modelname.split('_')
         if 'nested' in modelname:
             if 'nested' in names[-1]:
@@ -100,8 +102,32 @@ class Nested_At_End(Keyword_Test):
         
 class Keywords_Exist(Keyword_Test):
     def __init__(self):
-        pass
+        self.missing_kw = []
+        self.error=Exception(
+                'One or more keywords did not exist: \n{0}'
+                .format(', '.join(self.missing_kw))
+                )
+    def __repr__(self):
+        return 'Keywords_Exist'
     
+    def check_keywords(self, modelname):
+        # put this in at top to turn off test for now, not working
+        return True
+        kwfuncs = inspect.getmembers(
+                        sys.modules[nk.__name__], inspect.isfunction
+                        )
+        keywords = modelname.split('_')
+        for kw in keywords:
+            if kw in kwfuncs:
+                pass
+            else:
+                self.missing_kw.append(kw)
+                return False
+        return True
+        #if False in [(kw in kwfuncs) for kw in keywords]:
+        #    return False
+        #else:
+        #    return True
     
     
     

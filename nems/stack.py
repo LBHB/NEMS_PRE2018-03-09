@@ -320,7 +320,7 @@ class nems_stack:
                     "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.{3}"
                     .format(batch, cellid, modelname, mode)
                     )
-        if os.isfile(filename):
+        if os.path.isfile(filename):
             os.remove(filename)
         try:
             fig.savefig(filename)
@@ -330,7 +330,7 @@ class nems_stack:
             return filename
         
         try:
-            os.chmod(filename, 'Oo666')
+            os.chmod(filename, 0o666)
         except Exception as e:
             print("Couldn't modify file permissions for figure")
             print(e)
