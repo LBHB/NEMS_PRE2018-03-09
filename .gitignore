@@ -109,3 +109,7 @@ saved_models/
 *#
 **/database_info.txt
 **/nems_path.txt
+
+**/nems_config/*
+!**/nems_config/__init__.py
+
