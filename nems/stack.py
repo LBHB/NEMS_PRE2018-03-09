@@ -24,8 +24,6 @@ class nems_stack:
                   that takes place at each modules step
 
     """
-    #TODO: maybe in the future we want to put nems_stack into its own file? Would 
-    #probably take some work, but might reduce clutter in this file ---njs 13 July 2017
     
     modelname=None
     modules=[]  # stack of modules
@@ -63,10 +61,10 @@ class nems_stack:
         self.valmode=False
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
         self.nests=1 #Default is to have only one nest, i.e. standard crossval
-        self.parm_fits=[]
-        self.fitted_modules=[]
-        self.cv_counter=0
-        self.keywords=[]
+        self.parm_fits=[] #List of fitted parameters for each nest
+        self.fitted_modules=[] #List of modules with fitted parameters
+        self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
+        self.keywords=[] #The split modelname string
         self.mod_ids=[]
         self.valfrac=0.05
         
@@ -74,10 +72,9 @@ class nems_stack:
         """
         evaluate stack, starting at module # start
         """
-        if self.valmode is True: #and self.pre_flag is not True:
+        if self.valmode is True: 
             print('Evaluating validation data')
             mse_idx=nu.find_modules(self,'mean_square_error')
-            #print(mse_idx)
             mse_idx=int(mse_idx[0])
                 #xval_idx=nu.find_modules(self,'crossval')
                 #xval_idx=xval_idx[0]
@@ -87,7 +84,10 @@ class nems_stack:
                 
                 #TODO: there is definitely a more efficient way to do this, but this
                 #works reliably. In the future, should make it so that crossval is
-                #only evaluated once ---njs 24 July 2017
+                #only evaluated once on nested fits. However, it isn't such a big deal
+                # since it doesn't fit crossval (e.e. isn't called thousands of times)
+                #---njs 24 July 2017, updated July 31 2017
+                
             for ii in range(start,mse_idx):
                 for i in range(0,self.nests):
                     st=0
@@ -101,6 +101,7 @@ class nems_stack:
             for ij in range(mse_idx,len(self.modules)):
                 self.modules[ij].evaluate() 
         else:
+            #This condition evaluates for fitting and est data set
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
             
@@ -274,7 +275,7 @@ class nems_stack:
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
-                print(self.mod_names[idx])
+                print(self.modules[idx].name)
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)

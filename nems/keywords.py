@@ -31,7 +31,7 @@ def parm50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
                                      fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.crossval,valfrac=stack.valfrac)
 
 def fb24ch200(stack):
@@ -144,15 +144,15 @@ def fir_mini_fit(stack):
     stack.fitter.do_fit()
     stack.popmodule()
     
-    
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
     fir_mini_fit(stack)
-    
+    #stack.append(nm.normalize)
     
 def fir15(stack):
     stack.append(nm.fir_filter,num_coefs=15)
     fir_mini_fit(stack)
+    #stack.append(nm.normalize)
 
 # static NL keywords
 ###############################################################################
@@ -169,8 +169,10 @@ def nonlin_mini_fit(stack):
     
     stack.fitter.do_fit()
     stack.popmodule()
+    
 def dlog(stack):
     stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['phi'],phi=[1])
+    #stack.append(nm.normalize)
     
 def exp(stack):
     stack.append(nm.nonlinearity,nltype='exp',fit_fields=['phi'],phi=[1,1])
@@ -198,6 +200,7 @@ def tanhsig(stack):
 
 def nopupgain(stack):
     stack.append(nm.state_gain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
+
     
 def pupgain(stack):
     stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
@@ -261,7 +264,7 @@ def fit01(stack):
         # set error (for minimization) for this stack to be output of last module
         stack.error=stack.modules[-1].error
         
-    #stack.evaluate(2)
+    stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.00000001
@@ -385,7 +388,9 @@ def perfectpupil50(stack):
 
 def nested20(stack):
     """
-    Keyword for 20-fold nested crossvalidation. Uses 5% validation chunks.
+    Keyword for 20-fold nested crossvalidation. Uses 5% validation chunks. 
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=20
     stack.valfrac=0.05
@@ -394,6 +399,8 @@ def nested20(stack):
 def nested10(stack):
     """
     Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=10
     stack.valfrac=0.1

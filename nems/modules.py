@@ -119,9 +119,6 @@ class nems_module:
                 
         return X
     
-
-#TODO: evaluate is overwrting the previous stack.data entries with the final entry
-#when nested crossval is used, but not otherwise.
             
     def evaluate(self,nest=0):
         """
@@ -133,11 +130,8 @@ class nems_module:
                 self.d_out.append(copy.deepcopy(d))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
-                #print('f_in:',f_in[self.input_name][nest].shape)
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 f_out[self.output_name][nest]=self.my_eval(X)
-                #print('f_in:',f_in[self.input_name][nest].shape)
-                #print('f_out:',f_out[self.output_name][nest].shape)
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
@@ -253,34 +247,25 @@ class load_mat(nems_module):
                 data['stim']=np.transpose(data['stim'],(0,2,1))
                 if stim_resamp_factor != 1:
                     s=data['stim'].shape
-                    #new_stim_size=np.round(s[2]*stim_resamp_factor)
-                    #print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['stim']=resamp
-                    #data['stim']=scipy.signal.resample(data['stim'],new_stim_size,axis=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 if resp_resamp_factor != 1:
                     s=data['resp'].shape
-                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    #print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['resp']=resamp
-                    #data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
                     
                 if data['pupil'] is not None and resp_resamp_factor != 1:
                     s=data['pupil'].shape
-                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    #print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['pupil']=resamp
-                    #data['pupil']=scipy.signal.resample(data['pupil'],new_resp_size,axis=0)
                     
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
@@ -422,6 +407,8 @@ class standard_est_val(nems_module):
 class crossval(nems_module):
     """
     Cross-validation est/val module that replaces trial_est_val and stim_est_val.
+    
+    @author: shofer
     """
     name='crossval'
     plot_fns=[nu.raster_plot]
@@ -429,13 +416,10 @@ class crossval(nems_module):
     
     def my_init(self,valfrac=0.05):
         self.valfrac=valfrac
-        #self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
-            #self.parent_stack.nests=int(1/valfrac)
         except:
             self.iter=0
-            #self.parent_stack.nests=1
         
     def evaluate(self,nest=0):
 
@@ -532,16 +516,15 @@ class pupil_model(nems_module):
     name='pupil_model'
     plot_fns=[nu.sorted_raster,nu.raster_plot]
     """
-    Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
-    Will probably incorporate into pupil_est_val later.
+    Replaces stim with average resp for each stim. This is the 'perfect' model
+    used for comparing different models of pupil state gain.
     """
     
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
-                self.d_out.append(val.copy())
-                #self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+                self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             Xa=f_in['avgresp']
             if f_in['est'] is False:
@@ -557,8 +540,6 @@ class pupil_model(nems_module):
                     X[i,:]=Xa[R[i],:]
                 f_out['stim']=X
                 
-        
-            
 
 """
 Modules that actually transform the data stream
@@ -574,47 +555,68 @@ class normalize(nems_module):
     IMPORTANT NOTE: normalization factors are computed from estimation data 
     only but applied to both estimation and validation data streams
     """
+    #TODO: it might be better to build this more intrinsically into the stack 
+    #object, or else it has to be appended in every keyword?
+    
+    #TODO: this is having issues with batch294 data used with perfectpupil50? 
+    #Not sure why, it works fine for nested and non-nested crossval otherwise
+    #---this definitely has something to do with where this module is appended
+    #in the stack.
+    
     name='normalize'
     user_editable_fields=['output_name','valfrac','valmode']
     force_positive=True
-    d=0
-    g=1
+    #d=0
+    #g=1
     
     def my_init(self, force_positive=True,data='stim'):
         self.force_positive=force_positive
         self.input_name=data
+        if self.parent_stack.cv_counter==0:
+            print('norm lists created')
+            self.parent_stack.d=[0]*self.parent_stack.nests
+            self.parent_stack.g=[1]*self.parent_stack.nests
     
     def evaluate(self,nest=0):
+        c=self.parent_stack.cv_counter
         X=self.unpack_data()
         name=self.input_name
-        
-        if self.d_in[0][name].ndim==2:
-            if self.force_positive:
-                self.d=X.min()
-                self.g=1/(X-self.d).max()
+        if self.parent_stack.valmode is False:
+            if self.d_in[0][name].ndim==2:
+                if self.force_positive:
+                    self.parent_stack.d[c]=X.min()
+                    self.parent_stack.g[c]=1/(X-self.parent_stack.d[c]).max()
+                else:
+                    self.parent_stack.d[c]=X.mean()
+                    self.parent_stack.g[c]=X.std()
             else:
-                self.d=X.mean()
-                self.g=X.std()
-        else:
-            s=self.d_in[0][name].shape
-            if self.force_positive:
-                self.d=X[:,:].min(axis=1).reshape([s[0],1,1])
-                self.g=1/(X[:,:]-self.d.reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
-            else:
-                self.d=X[:,:].mean(axis=1).reshape([s[0],1,1])
-                self.g=X[:,:].std(axis=1).reshape([s[0],1,1])
-                self.g[np.isinf(g)]=0
-                
-        # apply the normalization
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-        
+                s=self.d_in[0][name].shape
+                if self.force_positive:
+                    self.parent_stack.d[c]=X[:,:].min(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c]=1/(X[:,:]-
+                                       self.parent_stack.d[c].reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
+                else:
+                    self.parent_stack.d[c]=X[:,:].mean(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c]=X[:,:].std(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c][np.isinf(self.parent_stack.g[c])]=0
+            # apply the normalization
+            
+        if nest==0:
+            del self.d_out[:]
+            for i, d in enumerate(self.d_in):
+                self.d_out.append(copy.deepcopy(d))
+                    
         for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            f_out[self.output_name]=np.multiply(X-self.d,self.g)
-                        
-       
+            #X=copy.deepcopy(f_in[self.input_name])
+            #f_out[self.output_name]=np.multiply(X-self.parent_stack.d[c],self.parent_stack.g[c])    
+            if f_in['est'] is False:
+                X=copy.deepcopy(f_in[self.input_name][nest])
+                f_out[self.output_name][nest]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
+            else:
+                X=copy.deepcopy(f_in[self.input_name])
+                f_out[self.output_name]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
+            
+        
 class add_scalar(nems_module):
     """ 
     add_scalar -- pretty much a dummy test module but may be useful for
@@ -715,7 +717,9 @@ class weight_channels(nems_module):
  
 class fir_filter(nems_module):
     """
-    fir_filter - the workhorse linear filter module
+    fir_filter - the workhorse linear filter module. Takes in a 3D stim array 
+    (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
+    offset, and outputs a 2D stim array (stims,time).
     """
     name='fir_filter'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
@@ -750,15 +754,16 @@ class fir_filter(nems_module):
 
 class nonlinearity(nems_module): 
     """
-    nonlinearity - apply a static nonlinearity. TODO: use helper functions
-    rather than a look-up table to determine which NL to apply. parameters can
-    be saved in a generic vector self.phi - see NARF implementation for reference 
+    nonlinearity - apply a static nonlinearity to the data. This modules uses helper 
+    functions and a generic fit field ('phi') to specify the type of nonlinearity 
+    applied. Look at nems/keywords to see how to apply different nonlinearities, as
+    each kind has a specific nltype and phi.
     
     @author: shofer
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
-    plot_fns=[nu.io_scatter_smooth,nu.pre_post_psth,nu.plot_spectrogram]
+    plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
     
@@ -811,9 +816,9 @@ class nonlinearity(nems_module):
                  
 class state_gain(nems_module): 
     """
-    state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
-    my not be able to use standard my_eval() because needs access to two 
-    variables in the data stream rather than just one.
+    state_gain - apply a gain/offset based on continuous pupil diameter, or some 
+    other continuous variable. Does not use standard my_eval, instead uses its own
+    evaluate() that overrides the nems_module evaluate()
     
     @author: shofer
     """
@@ -891,7 +896,7 @@ class state_gain(nems_module):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
-                self.d_out.append(val.copy())
+                self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
