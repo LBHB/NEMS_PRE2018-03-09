@@ -59,10 +59,10 @@ if __name__ == '__main__':
         # also filter based on note - should only be one result to match either
         # filter, but double checks to make sure there's no conflict
         note = "{0}/{1}/{2}".format(cellid, batch, modelname)
+                #.filter(tQueue.note == note)
         qdata = (
                 cluster_session.query(tQueue)
                 .filter(tQueue.id == queueid)
-                .filter(tQueue.note == note)
                 .first()
                 )
         if not qdata:
