@@ -3,6 +3,7 @@
 # This script runs nems_main.fit_single_model from the command line
 
 import nems.main as nems
+from nems.db import cluster_Session, tQueue
 import sys
 import os
 import nems.db as nd
@@ -49,9 +50,30 @@ if __name__ == '__main__':
     
     if queueid:
         # mark job complete
-        sql="UPDATE tQueue SET complete=1 WHERE id={}".format(queueid)
-        result = conn.execute(sql)
-        conn.close()
+        # svd old-fashioned way of doing
+        #sql="UPDATE tQueue SET complete=1 WHERE id={}".format(queueid)
+        #result = conn.execute(sql)
+        #conn.close()
    
+        cluster_session = cluster_Session()
+        # also filter based on note - should only be one result to match either
+        # filter, but double checks to make sure there's no conflict
+        note = "{0}/{1}/{2}".format(cellid, batch, modelname)
+        qdata = (
+                cluster_session.query(tQueue)
+                .filter(tQueue.id == queueid)
+                .filter(tQueue.note == note)
+                .first()
+                )
+        if not qdata:
+            # Something went wrong - either no matching id, no matching note,
+            # or mismatch between id and note
+            print("Invalid query result when checking for queueid & note match")
+            print("/n for queueid: %s"%queueid)
+        else:
+            qdata.complete = 1
+            cluster_session.commit()
        
+        cluster_session.close()
+           
        
