@@ -28,21 +28,24 @@ for i in filelist:
 """modlist=['nopupgain','pupgain','polypupgain02','polypupgain03','polypupgain04','exppupgain','logpupgain',
          'butterworth01','butterworth02','butterworth03','butterworth04','poissonpupgain']"""
 #BOL006b-43-1
-stack=mn.fit_single_model('BOL006b-43-1', 293, 'parm50_wc03_fir15_nopupgain_dexp_fit02', autoplot=True)
-alldata=stack.data
+#BOL006b-60-1
+#BOL006b-18-2
+stack=mn.fit_single_model('eno050c-a1', 293, 'parm50_wc03_fir10_dexp_powergain02_fit01', autoplot=True)
+
 #stack.plot_dataidx=0
 #stack.plot_stimidx=10
 #stack.quick_plot()
 #stack=mn.load_single_model('bbl031f-a1', 291, 'fb18ch50_wc03_fir10_dexp_fit00')
-#alldata=stack.data
+
 #din=stack.modules[3].d_in
 #print(stack.data.__len__())
 #print(stack.modules[-1].d_in[0]['stim'].shape)
-#stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_polypupgain03_fit02', autoplot=True)
+#stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_pupgain_fit00_nested10', autoplot=True)
 #print(stack.data[3][1]['stim'].shape)
 #alldata=stack.data
 #alldata=stack.data
-#stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_nopupgain_fit01', autoplot=True,crossval=False)
+#stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_pupgain_dexp_fit01_nested10', autoplot=True)
+alldata=stack.data
 #print(slist.__len__())
 #dat1=slist[1].data
 #dat2=slist[19].data[-1][1]['repcount'].shape[0]

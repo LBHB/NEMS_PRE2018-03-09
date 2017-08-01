@@ -119,9 +119,6 @@ class nems_module:
                 
         return X
     
-
-#TODO: evaluate is overwrting the previous stack.data entries with the final entry
-#when nested crossval is used, but not otherwise.
             
     def evaluate(self,nest=0):
         """
@@ -138,8 +135,6 @@ class nems_module:
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
-                if self.parent_stack.valmode is True:
-                    print('evaled here')
 
     #
     # customizable functions
@@ -421,13 +416,10 @@ class crossval(nems_module):
     
     def my_init(self,valfrac=0.05):
         self.valfrac=valfrac
-        #self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
-            #self.parent_stack.nests=int(1/valfrac)
         except:
             self.iter=0
-            #self.parent_stack.nests=1
         
     def evaluate(self,nest=0):
 
@@ -548,8 +540,6 @@ class pupil_model(nems_module):
                     X[i,:]=Xa[R[i],:]
                 f_out['stim']=X
                 
-        
-            
 
 """
 Modules that actually transform the data stream
@@ -565,47 +555,68 @@ class normalize(nems_module):
     IMPORTANT NOTE: normalization factors are computed from estimation data 
     only but applied to both estimation and validation data streams
     """
+    #TODO: it might be better to build this more intrinsically into the stack 
+    #object, or else it has to be appended in every keyword?
+    
+    #TODO: this is having issues with batch294 data used with perfectpupil50? 
+    #Not sure why, it works fine for nested and non-nested crossval otherwise
+    #---this definitely has something to do with where this module is appended
+    #in the stack.
+    
     name='normalize'
     user_editable_fields=['output_name','valfrac','valmode']
     force_positive=True
-    d=0
-    g=1
+    #d=0
+    #g=1
     
     def my_init(self, force_positive=True,data='stim'):
         self.force_positive=force_positive
         self.input_name=data
+        if self.parent_stack.cv_counter==0:
+            print('norm lists created')
+            self.parent_stack.d=[0]*self.parent_stack.nests
+            self.parent_stack.g=[1]*self.parent_stack.nests
     
     def evaluate(self,nest=0):
+        c=self.parent_stack.cv_counter
         X=self.unpack_data()
         name=self.input_name
-        
-        if self.d_in[0][name].ndim==2:
-            if self.force_positive:
-                self.d=X.min()
-                self.g=1/(X-self.d).max()
+        if self.parent_stack.valmode is False:
+            if self.d_in[0][name].ndim==2:
+                if self.force_positive:
+                    self.parent_stack.d[c]=X.min()
+                    self.parent_stack.g[c]=1/(X-self.parent_stack.d[c]).max()
+                else:
+                    self.parent_stack.d[c]=X.mean()
+                    self.parent_stack.g[c]=X.std()
             else:
-                self.d=X.mean()
-                self.g=X.std()
-        else:
-            s=self.d_in[0][name].shape
-            if self.force_positive:
-                self.d=X[:,:].min(axis=1).reshape([s[0],1,1])
-                self.g=1/(X[:,:]-self.d.reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
-            else:
-                self.d=X[:,:].mean(axis=1).reshape([s[0],1,1])
-                self.g=X[:,:].std(axis=1).reshape([s[0],1,1])
-                self.g[np.isinf(g)]=0
-                
-        # apply the normalization
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-        
+                s=self.d_in[0][name].shape
+                if self.force_positive:
+                    self.parent_stack.d[c]=X[:,:].min(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c]=1/(X[:,:]-
+                                       self.parent_stack.d[c].reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
+                else:
+                    self.parent_stack.d[c]=X[:,:].mean(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c]=X[:,:].std(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c][np.isinf(self.parent_stack.g[c])]=0
+            # apply the normalization
+            
+        if nest==0:
+            del self.d_out[:]
+            for i, d in enumerate(self.d_in):
+                self.d_out.append(copy.deepcopy(d))
+                    
         for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            f_out[self.output_name]=np.multiply(X-self.d,self.g)
-                        
-       
+            #X=copy.deepcopy(f_in[self.input_name])
+            #f_out[self.output_name]=np.multiply(X-self.parent_stack.d[c],self.parent_stack.g[c])    
+            if f_in['est'] is False:
+                X=copy.deepcopy(f_in[self.input_name][nest])
+                f_out[self.output_name][nest]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
+            else:
+                X=copy.deepcopy(f_in[self.input_name])
+                f_out[self.output_name]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
+            
+        
 class add_scalar(nems_module):
     """ 
     add_scalar -- pretty much a dummy test module but may be useful for
@@ -752,7 +763,7 @@ class nonlinearity(nems_module):
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
-    plot_fns=[nu.io_scatter_smooth,nu.pre_post_psth,nu.plot_spectrogram]
+    plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
     

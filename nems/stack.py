@@ -24,8 +24,6 @@ class nems_stack:
                   that takes place at each modules step
 
     """
-    #TODO: maybe in the future we want to put nems_stack into its own file? Would 
-    #probably take some work, but might reduce clutter in this file ---njs 13 July 2017
     
     modelname=None
     modules=[]  # stack of modules
@@ -63,10 +61,10 @@ class nems_stack:
         self.valmode=False
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
         self.nests=1 #Default is to have only one nest, i.e. standard crossval
-        self.parm_fits=[]
-        self.fitted_modules=[]
-        self.cv_counter=0
-        self.keywords=[]
+        self.parm_fits=[] #List of fitted parameters for each nest
+        self.fitted_modules=[] #List of modules with fitted parameters
+        self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
+        self.keywords=[] #The split modelname string
         self.mod_ids=[]
         self.valfrac=0.05
         
@@ -277,7 +275,7 @@ class nems_stack:
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
-                print(self.mod_names[idx])
+                print(self.modules[idx].name)
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)

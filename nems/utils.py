@@ -198,7 +198,7 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     act, =plt.plot(r,'r',label='Actual')
     plt.legend(handles=[pred,act])
     #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
-    plt.xlabel('Trial')
+    plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
 
@@ -213,7 +213,7 @@ def pre_post_psth(m,size=FIGSIZE,idx=None):
     post, =plt.plot(s2,'r',label='Post-nonlinearity')
     plt.legend(handles=[pre,post])
     #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
-    plt.xlabel('Trial')
+    plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
 def plot_stim_psth(m,idx=None,size=FIGSIZE):
