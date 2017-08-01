@@ -250,19 +250,20 @@ def add_model_to_queue(commandPrompt,note,job,priority=1,rundataid=0):
     
     #TODO: set these some where else? able to choose from UI?
     #       could grab user name from login once implemented
-    user = 'default-user-name-here?'
-    progname = 'python3'
+    user = 'logged in user'
+    linux_user = 'nems'
     allowqueuemaster=1
     waitid = 0
     dt = str(datetime.datetime.now().replace(microsecond=0))
     
     job.rundataid = rundataid
-    job.progname = progname
+    job.progname = commandPrompt
     job.priority = priority
-    job.parmstring = commandPrompt
+    job.parmstring = ''
     job.queuedate = dt
     job.allowqueuemaster = allowqueuemaster
     job.user = user
+    job.linux_user = linux_user
     job.note = note
     job.waitid = waitid
     
