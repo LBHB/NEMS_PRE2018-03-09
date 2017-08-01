@@ -65,7 +65,8 @@ def save_model(stack, file_path):
             os.remove(file_path)
             with open(file_path, 'wb') as handle:
                 pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
+        
+        os.chmod(file_path, 0o666)
         print("Saved model to {0}".format(file_path))
 
 def load_model(file_path):

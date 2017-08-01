@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt,mpld3
 import nems.utils as nu
 import numpy as np
 import copy
+import os
 
 class nems_stack:
         
@@ -348,6 +349,7 @@ class nems_stack:
             filename = (file_root[0] + 'png').format(*file_root[1])
             fig.savefig(filename)
         plt.close(fig)
+        os.chmod(filename, 0o666)
         return filename
     
 
