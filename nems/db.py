@@ -43,9 +43,10 @@ except Exception as e:
 
 try:
     import nems_config.Cluster_Database_Info as clst_db
-    clst_db_uri = 'mysql+pymysql://%s:%s@%s/%s'%(
-                        clst_db.user, clst_db.passwd, clst_db.host, 
-                        clst_db.database,
+    # format:      dialect+driver://username:password@host:port/database
+    clst_db_uri = 'mysql+pymysql://%s:%s@%s:%s/%s'%(
+                        clst_db.user, clst_db.passwd, clst_db.host,
+                        clst_db.port, clst_db.database,
                         )
 except Exception as e:
     print('No cluster database info detected')
@@ -104,9 +105,9 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False):
     
     Returns:
     --------
-    data : string  <-- not yet finalized
-        Some message indicating success or failure to the user, to be passed
-        on to the web interface by the calling view function.
+    pass_fail : list
+        List of strings indicating success or failure for each job that
+        was supposed to be queued.
         
     See Also:
     ---------
@@ -116,12 +117,23 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False):
     """
     # Not yet ready for testing - still need to coordinate the supporting
     # functions with the model queuer.
+    pass_fail = []
     for model in modellist:
         for cell in celllist:
-            enqueue_single_model(cell, batch, model, force_rerun)
+            queueid = enqueue_single_model(cell, batch, model, force_rerun)
+            if int(queueid) < 0:
+                pass_fail.append(
+                        'Failure: {0}, {1}, {2}'
+                        .format(cell, batch, model)
+                        )
+            else:
+                pass_fail.append(
+                        'Success: {0}, {1}, {2} \n'
+                        'added to queue with queue id: {3}'
+                        .format(cell, batch, model, queueid)
+                        )
     
-    data = 'Placeholder success/failure messsage for user if any.'
-    return data
+    return pass_fail
 
 
 def enqueue_single_model(cellid, batch, modelname, force_rerun):
@@ -145,8 +157,8 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun):
     # TODO: anything else needed here? this is syntax for nems_fit_single
     #       command prompt wrapper in main nems folder.
     commandPrompt = (
-            "nems_fit_single %s %s %s"
-            %(cellid,batch,modelname)
+            "python nems/nems_fit_single.py {0} {1} {3}"
+            .format(cellid, batch, modelname)
             )
 
     note = "%s/%s/%s"%(cellid,batch,modelname)
@@ -156,7 +168,7 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun):
             .filter(NarfResults.cellid == cellid)
             .filter(NarfResults.batch == batch)
             .filter(NarfResults.modelname == modelname)
-            .all()
+            .first()
             )
     if result and not force_rerun:
         print("Entry in NarfResults already exists for: %s, skipping.\n"%note)
@@ -168,31 +180,31 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun):
     # if it does, check its 'complete' status and take different action based on
     # status
     
-    if qdata and (int(qdata[0].complete) <= 0):
+    if qdata and (int(qdata.complete) <= 0):
         #TODO:
         #incomplete entry for note already exists, skipping
         #update entry with same note? what does this accomplish?
         #moves it back into queue maybe?
         print("Incomplete entry for: %s already exists, skipping.\n"%note)
         return -1
-    elif qdata and (int(qdata[0].complete) == 2):
+    elif qdata and (int(qdata.complete) == 2):
         #TODO:
         #dead queue entry for note exists, resetting
         #update complete and progress status each to 0
         #what does this do? doesn't look like the sql is sent right away,
         #instead gets assigned to [res,r]
         print("Dead queue entry for: %s already exists, resetting.\n"%note)
-        qdata[0].complete = 0
-        qdata[0].progress = 0
+        qdata.complete = 0
+        qdata.progress = 0
         return -1
-    elif qdata and (int(qdata[0].complete) == 1):
+    elif qdata and (int(qdata.complete) == 1):
         #TODO:
         #resetting existing queue entry for note
         #update complete and progress status each to 0
         #same as above, what does this do?
         print("Resetting existing queue entry for: %s\n"%note)
-        qdata[0].complete = 0
-        qdata[0].progress = 0
+        qdata.complete = 0
+        qdata.progress = 0
         return -1
     else: #result must not have existed? or status value was greater than 2
         # add new entry
