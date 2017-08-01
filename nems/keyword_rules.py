@@ -96,6 +96,11 @@ class Nested_At_End(Keyword_Test):
                 return False
         else:
             return True
+        
+        
+class Keywords_Exist(Keyword_Test):
+    def __init__(self):
+        pass
     
     
     

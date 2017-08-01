@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt,mpld3
 import nems.utils as nu
 import numpy as np
 import copy
+import os
 
 class nems_stack:
         
@@ -283,7 +284,7 @@ class nems_stack:
         #TODO: Use gridspec to fix spacing issue? Addition of labels makes
         #      the subplots look "scrunched" vertically.
     
-    def quick_plot_save(self, mode=None):
+    def quick_plot_save(self, mode='png'):
         """Copy of quick_plot for easy save or embed.
         
         mode options:
@@ -315,39 +316,26 @@ class nems_stack:
                 m.do_plot(m)
         plt.tight_layout()
         
-        file_root = (
-                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.",
-                [batch, cellid, modelname]
-                )
-        if mode is not None:
-            mode = mode.lower()
-        if mode is None:
-            #filename = (
-            #        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
-            #        .format(batch,cellid,modelname)
-            #        )
-            filename = (file_root[0] + 'png').format(*file_root[1])
+        filename = (
+                    "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.{3}"
+                    .format(batch, cellid, modelname, mode)
+                    )
+        if os.isfile(filename):
+            os.remove(filename)
+        try:
             fig.savefig(filename)
-        elif mode == "png":
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        elif mode == "pdf":
-            filename = (file_root[0] + 'pdf').format(*file_root[1])
-            fig.savefig(format="pdf")
-        elif mode == "svg":
-            filename = (file_root[0] + 'svg').format(*file_root[1])
-            fig.savefig(format="svg")
-        elif mode == "json":
-            filename = (file_root[0] + 'JSON').format(*file_root[1])
-            mpld3.save_json(fig, filename)
-        elif mode == "html":
-            filename = (file_root[0] + 'html').format(*file_root[1])
-            mpld3.save_html(fig, filename)
-        else:
-            print("%s is not a valid format -- saving as .png instead."%mode)
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        plt.close(fig)
+        except Exception as e:
+            print("Bad file extension for figure or couldn't save")
+            print(e)
+            return filename
+        
+        try:
+            os.chmod(filename, 'Oo666')
+        except Exception as e:
+            print("Couldn't modify file permissions for figure")
+            print(e)
+            return filename
+        
         return filename
     
 
