@@ -5,6 +5,7 @@
 import nems.main as nems
 import sys
 import os
+import nems.db as nd
 
 if __name__ == '__main__':
     
@@ -19,9 +20,15 @@ if __name__ == '__main__':
     #updatecount=parser.updatecount[0]
     #offset=parser.offset[0]
 
-    queueid=os.environ['QUEUEID']
-    if queueid:
+    if 'QUEUEID' in os.environ:
+        queueid=os.environ['QUEUEID']
         print("Starting QUEUEID={}".format(queueid))
+        conn=nd.cluster_engine.connect()
+        # tick off progress, job is live
+        sql="UPDATE tQueue SET complete=-1,progress=progress+1 WHERE id={}".format(queueid)
+        result = conn.execute(sql)
+    else:
+        queueid=0
         
     if len(sys.argv)<4:
         print('syntax: nems_fit_single cellid batch modelname')
@@ -41,5 +48,10 @@ if __name__ == '__main__':
     print("Preview saved to: {0}".format(path))
     
     if queueid:
-        # TODO : replace with code that actually updates the database
-       print("UPDATE tQueue SET complete=1 WHERE id={}".format(queueid))
+        # mark job complete
+        sql="UPDATE tQueue SET complete=1 WHERE id={}".format(queueid)
+        result = conn.execute(sql)
+        conn.close()
+   
+       
+       

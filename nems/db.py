@@ -43,9 +43,10 @@ except Exception as e:
 
 try:
     import nems_config.Cluster_Database_Info as clst_db
-    clst_db_uri = 'mysql+pymysql://%s:%s@%s/%s'%(
+    # default clst_db.port=3306
+    clst_db_uri = 'mysql+pymysql://%s:%s@%s:%d/%s'%(
                         clst_db.user, clst_db.passwd, clst_db.host, 
-                        clst_db.database,
+                        clst_db.port,clst_db.database,
                         )
 except Exception as e:
     print('No cluster database info detected')
