@@ -1,10 +1,10 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 
 # This script runs nems_main.fit_single_model from the command line
 
-import lib.nems_main as nems
+import nems.main as nems
 import sys
-
+import os
 
 if __name__ == '__main__':
     
@@ -19,7 +19,10 @@ if __name__ == '__main__':
     #updatecount=parser.updatecount[0]
     #offset=parser.offset[0]
 
-    
+    queueid=os.environ['QUEUEID']
+    if queueid:
+        print("Starting QUEUEID={}".format(queueid))
+        
     if len(sys.argv)<4:
         print('syntax: nems_fit_single cellid batch modelname')
         exit(-1)
@@ -29,10 +32,14 @@ if __name__ == '__main__':
     modelname=sys.argv[3]
     
     print("Running fit_single_model({0},{1},{2})".format(cellid,batch,modelname))
-    stack = nems.fit_single_model(cellid,batch,modelname)
+    stack = nems.fit_single_model(cellid,batch,modelname,autoplot=False)
 
     print("Done with fit.")
     
     # Edit: added code to save preview image. -Jacob 7/6/2017
     path = stack.quick_plot_save(mode="png")
     print("Preview saved to: {0}".format(path))
+    
+    if queueid:
+        # TODO : replace with code that actually updates the database
+       print("UPDATE tQueue SET complete=1 WHERE id={}".format(queueid))
