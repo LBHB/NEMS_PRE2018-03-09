@@ -6,6 +6,7 @@ import nems.main as nems
 from nems.db import cluster_Session, tQueue
 import sys
 import os
+import nems.db as nd
 
 if __name__ == '__main__':
     
@@ -20,9 +21,15 @@ if __name__ == '__main__':
     #updatecount=parser.updatecount[0]
     #offset=parser.offset[0]
 
-    queueid=os.environ['QUEUEID']
-    if queueid:
+    if 'QUEUEID' in os.environ:
+        queueid=os.environ['QUEUEID']
         print("Starting QUEUEID={}".format(queueid))
+        conn=nd.cluster_engine.connect()
+        # tick off progress, job is live
+        sql="UPDATE tQueue SET complete=-1,progress=progress+1 WHERE id={}".format(queueid)
+        result = conn.execute(sql)
+    else:
+        queueid=0
         
     if len(sys.argv)<4:
         print('syntax: nems_fit_single cellid batch modelname')
@@ -42,15 +49,20 @@ if __name__ == '__main__':
     print("Preview saved to: {0}".format(path))
     
     if queueid:
-        print("UPDATE tQueue SET complete=1 WHERE id={}".format(queueid))
+        # mark job complete
+        # svd old-fashioned way of doing
+        #sql="UPDATE tQueue SET complete=1 WHERE id={}".format(queueid)
+        #result = conn.execute(sql)
+        #conn.close()
+   
         cluster_session = cluster_Session()
         # also filter based on note - should only be one result to match either
         # filter, but double checks to make sure there's no conflict
         note = "{0}/{1}/{2}".format(cellid, batch, modelname)
+                #.filter(tQueue.note == note)
         qdata = (
                 cluster_session.query(tQueue)
                 .filter(tQueue.id == queueid)
-                .filter(tQueue.note == note)
                 .first()
                 )
         if not qdata:

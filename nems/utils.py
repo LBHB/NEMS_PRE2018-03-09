@@ -56,16 +56,22 @@ def save_model(stack, file_path):
         except:
             os.mkdir(directory)       
     
+        if os.path.isfile(file_path):
+            print("Removing existing model at: {0}".format(file_path))
+            os.remove(file_path)
+
         try:
-        # Store data (serialize)
+            # Store data (serialize)
             with open(file_path, 'wb') as handle:
                 pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
         except FileExistsError:
+            # should never run? or if it does, shouldn't do anything useful
             print("Removing existing model at: {0}".format(file_path))
             os.remove(file_path)
             with open(file_path, 'wb') as handle:
                 pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
+        
+        os.chmod(file_path, 0o666)
         print("Saved model to {0}".format(file_path))
 
 def load_model(file_path):
@@ -116,9 +122,9 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
         except:
             plt.imshow(out1['stim'][:,new_id,:], aspect='auto', origin='lower', interpolation='none')
         cbar = plt.colorbar()
-        #cbar.set_label('???')
-        # TODO: colorbar is intensity of response? but how is it measured?
-        plt.xlabel('Trial')
+        cbar.set_label('amplitude')
+        # TODO: colorbar is intensity of spectrogram/response, units not clearly specified yet
+        plt.xlabel('Time')
         plt.ylabel('Channel')
     else:
         s=out1['stim'][:,new_id]
@@ -126,8 +132,9 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
         pred, =plt.plot(s,label='Average Model')
         #resp, =plt.plot(r,'r',label='Response')
         plt.legend(handles=[pred])
+        # TODO: plot time in seconds
         plt.xlabel('Time Step')
-        plt.ylabel('Firing rate (unitless)')
+        plt.ylabel('Firing rate (a.u.)')
             
     #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 

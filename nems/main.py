@@ -91,7 +91,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         .format(batch, cellid, modelname)
         )
     nu.save_model(stack,filename) 
-    #os.chmod(filename, 0o666)
+    
 
     return(stack)
 

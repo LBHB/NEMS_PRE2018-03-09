@@ -44,6 +44,7 @@ except Exception as e:
 try:
     import nems_config.Cluster_Database_Info as clst_db
     # format:      dialect+driver://username:password@host:port/database
+    # to-do default port = 3306
     clst_db_uri = 'mysql+pymysql://%s:%s@%s:%s/%s'%(
                         clst_db.user, clst_db.passwd, clst_db.host,
                         clst_db.port, clst_db.database,
