@@ -56,11 +56,16 @@ def save_model(stack, file_path):
         except:
             os.mkdir(directory)       
     
+        if os.path.isfile(file_path):
+            print("Removing existing model at: {0}".format(file_path))
+            os.remove(file_path)
+
         try:
-        # Store data (serialize)
+            # Store data (serialize)
             with open(file_path, 'wb') as handle:
                 pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
         except FileExistsError:
+            # should never run? or if it does, shouldn't do anything useful
             print("Removing existing model at: {0}".format(file_path))
             os.remove(file_path)
             with open(file_path, 'wb') as handle:

@@ -328,25 +328,39 @@ class nems_stack:
             #        .format(batch,cellid,modelname)
             #        )
             filename = (file_root[0] + 'png').format(*file_root[1])
+            if os.path.isfile(filename):
+               os.remove(filename)
             fig.savefig(filename)
         elif mode == "png":
             filename = (file_root[0] + 'png').format(*file_root[1])
+            if os.path.isfile(filename):
+               os.remove(filename)
             fig.savefig(filename)
         elif mode == "pdf":
             filename = (file_root[0] + 'pdf').format(*file_root[1])
+            if os.path.isfile(filename):
+               os.remove(filename)
             fig.savefig(format="pdf")
         elif mode == "svg":
             filename = (file_root[0] + 'svg').format(*file_root[1])
+            if os.path.isfile(filename):
+               os.remove(filename)
             fig.savefig(format="svg")
         elif mode == "json":
             filename = (file_root[0] + 'JSON').format(*file_root[1])
+            if os.path.isfile(filename):
+               os.remove(filename)
             mpld3.save_json(fig, filename)
         elif mode == "html":
             filename = (file_root[0] + 'html').format(*file_root[1])
+            if os.path.isfile(filename):
+               os.remove(filename)
             mpld3.save_html(fig, filename)
         else:
             print("%s is not a valid format -- saving as .png instead."%mode)
             filename = (file_root[0] + 'png').format(*file_root[1])
+            if os.path.isfile(filename):
+               os.remove(filename)
             fig.savefig(filename)
         plt.close(fig)
         os.chmod(filename, 0o666)
