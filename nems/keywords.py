@@ -8,15 +8,22 @@ Created on Fri Jun 16 05:20:07 2017
 
 import nems.modules as nm
 import nems.fitters as nf
+import nems.tensorflow_fitters as ntf
 import nems.utils as nu
 import nems.baphy_utils as baphy_utils
 import numpy as np
 
+#thismod=sys.modules(__name__)
+
 # loader keywords
 def parm100(stack):
+    """
+    Specifically for batch293 tone-pip data
+    """
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def parm50(stack):
     """
@@ -25,33 +32,50 @@ def parm50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
                                      fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
+    
+def parm50test(stack):
+    """
+    Specifically for batch293 tone-pip data
+    """
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
+                                     fs=100,stimfmt='parm',chancount=16)
+    print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.standard_est_val)
+    
+def parm50a(stack):
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
+                                     fs=100,stimfmt='parm',chancount=16)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
 
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=200,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb24ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True) #Data not preprocessed to 100 Hz, internally converts
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb24ch100n(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True) #Data not preprocessed to 100 Hz, internally converts
     stack.nests=20
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb18ch100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     
 def fb18ch100u(stack):
     """
@@ -60,24 +84,14 @@ def fb18ch100u(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False)
-    stack.append(nm.crossval,valfrac=0.05)
-    
-def fb18ch100n(stack):
-    """
-    Keyword to load data and use with nested crossvalidation
-    """
-    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
-    print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.nests=20
-    stack.append(nm.crossval,valfrac=0.05)
-    
-    
+    stack.append(nm.crossval,valfrac=stack.valfrac)
+      
 def fb18ch50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
-    stack.append(nm.crossval,valfrac=0.05)
+    #stack.append(nm.crossval,valfrac=stack.valfrac)
+    stack.append(nm.standard_est_val,valfrac=stack.valfrac)
 
 
 def loadlocal(stack):
@@ -148,27 +162,43 @@ def fir_mini_fit(stack):
     stack.fitter.do_fit()
     stack.popmodule()
     
-    
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
     fir_mini_fit(stack)
-    
+    #stack.append(nm.normalize)
     
 def fir15(stack):
     stack.append(nm.fir_filter,num_coefs=15)
     fir_mini_fit(stack)
+    #stack.append(nm.normalize)
 
 # static NL keywords
 ###############################################################################
-
+def nonlin_mini_fit(stack):
+    # mini fit
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.basic_min(stack)
+    stack.fitter.tol=0.00001
+    #stack.fitter=nf.coordinate_descent(stack)
+    #stack.fitter.tol=0.001
+    fitidx=nu.find_modules(stack,'nonlinearity')
+    stack.fitter.fit_modules=fitidx
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
+    
 def dlog(stack):
     stack.append(nm.nonlinearity,nltype='dlog',fit_fields=['phi'],phi=[1])
+    #stack.append(nm.normalize)
     
 def exp(stack):
     stack.append(nm.nonlinearity,nltype='exp',fit_fields=['phi'],phi=[1,1])
 
 def dexp(stack):
-    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['phi'],phi=[1,1,1,1])
+    stack.append(nm.nonlinearity,nltype='dexp',fit_fields=['phi'],phi=[1,.01,.001,0]) 
+    #choose phi s.t. dexp starts as almost a straight line 
+    nonlin_mini_fit(stack)
     
 def poly01(stack):
     stack.append(nm.nonlinearity,nltype='poly',fit_fields=['phi'],phi=[0,1])
@@ -188,6 +218,7 @@ def tanhsig(stack):
 
 def nopupgain(stack):
     stack.append(nm.state_gain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
+
     
 def pupgain(stack):
     stack.append(nm.state_gain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
@@ -227,115 +258,88 @@ def butterworth04(stack):
 ###############################################################################
 
 def fit00(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-        
+    stack.append(nm.mean_square_error)  
+    # set error (for minimization) for this stack to be output of last module
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
-    stack.popmodule() #pop MSE 
+    create_parmlist(stack)
     
 def fit01(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-        
-    #stack.evaluate(2)
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.00000001
     stack.fitter.do_fit()
-    
-    stack.popmodule()
+    create_parmlist(stack)
     
 def fit02(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-        
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack,routine='SLSQP')
     stack.fitter.tol=0.000001
     stack.fitter.do_fit()
-    stack.popmodule()
+    create_parmlist(stack)
     
 def fit00h1(stack):
-    hubidx=nu.find_modules(stack,'pseudo_huber_error')
-    if not hubidx:
-        stack.append(nm.pseudo_huber_error,b=1.0)
-        stack.error=stack.modules[-1].error
+    stack.append(nm.pseudo_huber_error,b=1.0)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
     stack.fitter=nf.basic_min(stack)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
-    
+    create_parmlist(stack)
     stack.popmodule()
-    
-        
+    stack.append(nm.mean_square_error)
     
 def fitannl00(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-    
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
     stack.fitter=nf.anneal_min(stack,anneal_iter=50,stop=5,up_int=10,bounds=None)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
-    stack.popmodule()
+    create_parmlist(stack)
     
     
 def fitannl01(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-    
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
     stack.fitter=nf.anneal_min(stack,anneal_iter=100,stop=10,up_int=5,bounds=None)
     stack.fitter.tol=0.000001
     stack.fitter.do_fit()
-    stack.popmodule()
+    create_parmlist(stack)
     
 def fititer00(stack):
-    
     stack.append(nm.mean_square_error,shrink=0.5)
     stack.error=stack.modules[-1].error
     
     stack.fitter=nf.fit_iteratively(stack,max_iter=5)
     #stack.fitter.sub_fitter=nf.basic_min(stack)
-    stack.fitter.sub_fitter=nf.coordinate_descent(stack,tol=0.001,maxit=10)
+    stack.fitter.sub_fitter=nf.coordinate_descent(stack,tol=0.001,maxit=10,verbose=False)
     stack.fitter.sub_fitter.step_init=0.05
     
     stack.fitter.do_fit()
-    
-    stack.popmodule()
+    create_parmlist(stack)
+
+def adadelta00(stack):
+    stack.fitter=ntf.ADADELTA_min(stack)
+    stack.fitter.do_fit()
+    create_parmlist(stack)
+    stack.append(nm.mean_square_error)
+
+
 
 
 # etc etc for other keywords
@@ -351,8 +355,8 @@ def perfectpupil100(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=100,avg_resp=False)
-    stack.nests=20
-    stack.append(nm.crossval,valfrac=0.05)
+    #stack.nests=20
+    stack.append(nm.crossval,valfrac=stack.valfrac)
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model)
     
@@ -367,16 +371,45 @@ def perfectpupil50(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
-    stack.append(nm.crossval,valfrac=0.05)
-    stack.nests=20
+    stack.append(nm.crossval,valfrac=stack.valfrac)
+    #stack.nests=20
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model)
+    
+ 
+    
+# Nested Crossval
+###############################################################################
+
+def nested20(stack):
+    """
+    Keyword for 20-fold nested crossvalidation. Uses 5% validation chunks. 
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
+    """
+    stack.nests=20
+    stack.valfrac=0.05
+    nest_helper(stack)
+        
+def nested10(stack):
+    """
+    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
+    """
+    stack.nests=10
+    stack.valfrac=0.1
+    nest_helper(stack)
     
     
 # Helper/Support Functions
 ###############################################################################
 
-def gen_parm_list(stack):
+def create_parmlist(stack):
+    """
+    Helper function that assigns all fitted parameters for a model to a single (n,)
+    phi vector and accociates it to the stack.parm_fits object
+    """
     phi=[] 
     for idx,m in enumerate(stack.modules):
         this_phi=m.parms2phi()
@@ -387,8 +420,21 @@ def gen_parm_list(stack):
     phi=np.concatenate(phi)
     stack.parm_fits.append(phi)
 
-
-
+def nest_helper(stack):
+    """
+    Helper function for implementing nested crossvalidation. Essentially sets up
+    a loop with the estimation part of fit_single_model inside. 
+    """
+    stack.cond=False
+    while stack.cond is False:
+        print('iter loop='+str(stack.cv_counter))
+        stack.clear()
+        stack.valmode=False
+        for k in range(0,len(stack.keywords)-1):
+            f = globals()[stack.keywords[k]]
+            f(stack)
+        
+        stack.cv_counter+=1
 
 
 

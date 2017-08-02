@@ -77,8 +77,10 @@
                 <br>
                 <button type="submit"> Submit </button>
                 {% if error %}
-                    <br>
-                    {{ error }}
+                    {% for error in errors %}
+                        <br>
+                        {{ error }}
+                    {% endfor %}
                 {% endif %}
             </form>
             </div>

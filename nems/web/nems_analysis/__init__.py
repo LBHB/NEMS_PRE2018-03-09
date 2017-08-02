@@ -7,7 +7,12 @@ from flask_socketio import SocketIO
 from nems.web.nems_analysis.SplitOutput import SplitOutput
 
 app = Flask(__name__)
-app.config.from_object('nems.config.hidden.Flask_Overrides.Flask_Overrides')
+try:
+    app.config.from_object('nems_config.Flask_Config')
+except:
+    print('No flask config file detected')
+    # Define desired default settings here
+    pass
 
 socketio = SocketIO(app, async_mode='threading')
 thread = None
@@ -32,6 +37,7 @@ def py_console():
                     #line = '{0}:{1}:{2}: {3}'.format(
                     #            now.hour, now.minute, now.second, line,
                     #            )
+                    line = line.replace('\n', '<br>')
                     socketio.emit(
                             'console_update',
                             {'data':line},

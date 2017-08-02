@@ -8,6 +8,7 @@ import copy
 import nems.utils as nu
 import math as mt
 import scipy.special as sx
+import warnings as wn
 
 class nems_module:
     """nems_module
@@ -27,11 +28,11 @@ class nems_module:
     output_name='stim' # name of output matrix in d_out
     state_var='pupil'
     parent_stack=None # pointer to stack instance that owns this module
-    id=None  # unique name for this module to be referenced from the stack??
+    idm=None  # unique name for this module to be referenced from the stack??
     d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
     d_out=None # pointer to output, parent_stack.d[i+!]
     fit_fields=[]  # what fields should be fed to phi for fitting
-
+    
     #
     # Begin standard functions
     #
@@ -52,9 +53,9 @@ class nems_module:
             self.parent_stack=parent_stack
             # d_in is by default the last entry of parent_stack.data
             self.d_in=parent_stack.data[-1]
-            self.id="{0}{1}".format(self.name,len(parent_stack.modules))
+            self.idm="{0}{1}".format(self.name,len(parent_stack.modules))
         
-        self.d_out=copy.copy(self.d_in)
+        self.d_out=copy.deepcopy(self.d_in)
         self.do_plot=self.plot_fns[0]  # default is first in list
         self.do_trial_plot=self.plot_fns[0]
         self.my_init(**xargs)
@@ -82,19 +83,25 @@ class nems_module:
             setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
             os+=np.prod(s)
     
-    def unpack_data(self,name='stim',est=True):
+    def unpack_data(self,name='stim',est=True,use_dout=False):
         """
         unpack_data - extract a data variable from all files into a single
         matrix (concatenated across files)
         """
         m=self
-        if m.d_in[0][name].ndim==2:
-            X=np.empty([0,1])
+        if use_dout:
+            D=m.d_out
         else:
-            s=m.d_in[0][name].shape
+            D=m.d_in
+            
+        if D[0][name].ndim==2:
+            X=np.empty([0,1])
+            #s=m.d_in[0][name].shape
+        else:
+            s=D[0][name].shape
             X=np.empty([s[0],0])
             
-        for i, d in enumerate(m.d_in):
+        for i, d in enumerate(D):
             if not 'est' in d.keys():
                 if d[name].ndim==2:
                     X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
@@ -113,21 +120,18 @@ class nems_module:
                 
         return X
     
-#TODO: Need to do some thinking about the best way to handle evaluate and nested_evaluate.
-#If the data arrays are always put into a list, could use just one evaluate function that
-#uses 0 index if there is no nesting, and iterates otherwise. ---njs July 19 2017
-
-
             
     def evaluate(self,nest=0):
         """
-        Special evaluation for use with nested crossval. Essentially the same as evaluate, 
-        but it allows uses of nest list for calculating nested crossval datasets.
+        General evaluate function, for both nested and non-nested crossval. Creates
+        a copy of the d_in dataframe and places it in the next position in stack.data.
+        Then calls the module specific my_eval, and replaces d_out[output_name] with 
+        the output of my_eval.
         """
         if nest==0:
             del self.d_out[:]
             for i,d in enumerate(self.d_in):
-                self.d_out.append(d.copy())
+                self.d_out.append(copy.deepcopy(d))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
@@ -135,19 +139,22 @@ class nems_module:
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
-                
-    
-    
+
     #
     # customizable functions
     #
     def my_init(self,**xargs):
-        # placeholder for module specific initialization
+        """
+        Placeholder for module specific initialization. my_init is defined for each 
+        module (with some specific exceptions). 
+        """
         pass 
         
     def my_eval(self,X):
-        # placeholder for module-specific evaluation, default is
-        # pass-through of pointer to input data matrix.
+        """
+        Placeholder for module-specific evaluation, default is
+        pass-through of pointer to input data matrix.
+        """
         Y=X
         return Y
 
@@ -184,12 +191,39 @@ class dummy_data(nems_module):
 
 class load_mat(nems_module):
     """
-    Loads a .mat matrix
+    Loads a MATLAB data file (.mat file) containing several "structs" which have 
+    data for an individual cell. 
+    
+    Inputs:
+        fs: frequency to resample stimulus, response, and pupil data. 
+        avg_resp: average all trials in the response raster and place in 
+                the output dictionary as 'resp'. Usually used when pupil
+                effect are being considered, and will generally allow for
+                better fitting.
+        est_files: MATLAB data files to load. 
+    
+    Returns: Data from this file is loaded into the stack.data as a list of dictionaries 
+    with keywords:
+        'resp': response raster for each type of stimulus
+        'stim': stimuli spectrograms that correspond to response
+        'respFs': sampling frequency of response raster
+        'stimFs':sampling frequency of stimuli spectrograms
+        'stimparam': details on types of stimuli used
+        'isolation': isolation of recorded cells (?)
+        'prestim': length of silence before stimulus begins
+        'poststim': length of silence after stimulus ends
+        'duration': length of simulus
+        'pupil': continuous pupil diameter measurements
+        'est': flag for estimation/validation data
+        'repcount': how many trials of each stimulus are present
+        'replist': a list containing the number of each stimulus the number of
+                times it was played. E.g., if we have stimulus 1 that was played
+                3 times and stimulus 2 that was played 2 times, replist would
+                be [1,1,1,2,2].
     """
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
     plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
-    do_trial_plot=plot_fns[0]
     est_files=[]
     fs=100
     
@@ -200,7 +234,7 @@ class load_mat(nems_module):
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
 
-    def evaluate(self,nest=0):
+    def evaluate(self,**kwargs):
         del self.d_out[:]
 #        for i, d in enumerate(self.d_in):
 #            self.d_out.append(d.copy())
@@ -208,8 +242,6 @@ class load_mat(nems_module):
         # load contents of Matlab data file
         for f in self.est_files:
             matdata = scipy.io.loadmat(f,chars_as_strings=True)
-            numdats=matdata['data'][0].__len__()
-            count=0
             for s in matdata['data'][0]:
                 try:
                     data={}
@@ -252,34 +284,25 @@ class load_mat(nems_module):
                 data['stim']=np.transpose(data['stim'],(0,2,1))
                 if stim_resamp_factor != 1:
                     s=data['stim'].shape
-                    #new_stim_size=np.round(s[2]*stim_resamp_factor)
-                    #print('resampling stim from '+str(data['stimFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['stim']=resamp
-                    #data['stim']=scipy.signal.resample(data['stim'],new_stim_size,axis=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 if resp_resamp_factor != 1:
                     s=data['resp'].shape
-                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    #print('resampling resp from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['resp']=resamp
-                    #data['resp']=scipy.signal.resample(data['resp'],new_resp_size,axis=0)
                     
                 if data['pupil'] is not None and resp_resamp_factor != 1:
                     s=data['pupil'].shape
-                    #new_resp_size=np.round(s[0]*resp_resamp_factor)
-                    #print('resampling pupil from '+str(data['respFs'])+'Hz to '+str(self.fs)+'Hz.')
                     resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
                     s_indices=resamp<noise_thresh
                     resamp[s_indices]=0
                     data['pupil']=resamp
-                    #data['pupil']=scipy.signal.resample(data['pupil'],new_resp_size,axis=0)
                     
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
@@ -334,19 +357,24 @@ class load_mat(nems_module):
 
 class standard_est_val(nems_module):
     """
-    DEPRECATED, use crossval. Has the same functionality.
-    Special module(s) for organizing/splitting estimation and validation data.
-    Currently just one that replicates (mostly) the standard procedure from NARF
-    """
+    Splits stack.data object into estimation and validation datasets. If 
+    estimation and validation datasets are already flagged in stack.data (i.e.
+    if d['est'] exists), it will simply pass the datasets as is. If not, it will
+    split the data based on the 'repcount' list. Stimuli with large numbers of
+    repetitions are placed in the validation dataset, while most of the stimuli,
+    which have low repetitions, are placed in the estimation dataset.
     
+    This estimation/validation routine is not compatible with nested
+    crossvalidation.
+    """
+    #TODO: make this work given changes to stack
     name='standard_est_val'
     user_editable_fields=['output_name','valfrac']
-    valfrac=0.05
     
-    def my_init(self, valfrac=0.05):
-        self.valfrac=valfrac
+    def my_init(self):
+        print('Using standard est/val')
     
-    def evaluate(self):
+    def evaluate(self,**kwargs):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
@@ -376,19 +404,21 @@ class standard_est_val(nems_module):
                     estidx = s<m
                 
                 d_est=d.copy()
-                d_val=d.copy()
+                #d_val=d.copy()
                 
                 d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
                 d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
                 d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
-                d_val['repcount']=copy.deepcopy(d['repcount'][validx])
-                d_val['resp']=copy.deepcopy(d['resp'][validx,:])
-                d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
-                
-                #if 'pupil' in d.keys():
-                if d['pupil'] is not None:
+                #d_val['repcount']=copy.deepcopy(d['repcount'][validx])
+                #d_val['resp']=copy.deepcopy(d['resp'][validx,:])
+                #d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
+                try:
                     d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
+                except:
+                    print('No pupil data')
+                    d_est['pupil']=[]
+
+                #d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
                     #for j in (d_est,d_val):
                     #    for i in ('resp','pupil'):
                     #        s=j[i].shape
@@ -397,16 +427,40 @@ class standard_est_val(nems_module):
                     #    j['stim']=np.tile(j['stim'],(1,1,s[1]))
                 
                 d_est['est']=True
-                d_val['est']=False
+                #d_val['est']=False
                 
                 self.d_out.append(d_est)
                 if self.parent_stack.valmode:
+                    
+                    d_val=d.copy()
+                    d_val['repcount']=copy.deepcopy(d['repcount'][validx])
+                    d_val['resp']=[copy.deepcopy(d['resp'][validx,:])]
+                    d_val['stim']=[copy.deepcopy(d['stim'][:,validx,:])]
+                    try:
+                        d_val['pupil']=[copy.deepcopy(d['pupil'][validx,:])]
+                    except:
+                        print('No pupil data')
+                        d_val['pupil']=[]
+                        
+                    d_val['est']=False
                     self.d_out.append(d_val)
 
             
 class crossval(nems_module):
     """
-    Cross-validation est/val module that replaces trial_est_val and stim_est_val.
+    Splits data into estimation and validation datasets. If estimation and 
+    validation sets are already flagged (if d['est'] exists), it just passes 
+    these. If not, it splits a given percentage of the dataset off as validation
+    data, and leaves the rest as estimation data. 
+    
+    Inputs:
+        valfrac: fraction of the dataset to allocate as validation data
+    
+    This module is set up to work with nested crossvalidation. If this is the 
+    case, it will run through the dataset, taking a different validation set 
+    each time. 
+    
+    @author: shofer
     """
     name='crossval'
     plot_fns=[nu.raster_plot]
@@ -414,13 +468,10 @@ class crossval(nems_module):
     
     def my_init(self,valfrac=0.05):
         self.valfrac=valfrac
-        #self.crossval=self.parent_stack.cross_val
         try:
             self.iter=int(1/valfrac)-1
-            #self.parent_stack.nests=int(1/valfrac)
         except:
             self.iter=0
-            #self.parent_stack.nests=1
         
     def evaluate(self,nest=0):
 
@@ -438,21 +489,18 @@ class crossval(nems_module):
             except:
                 count=self.parent_stack.cv_counter
                 re=d['resp'].shape
+                if re[0]<self.parent_stack.nests:
+                    raise IndexError('Fewer stimuli than nests; use a higher valfrac')
                 spl=mt.ceil(re[0]*self.valfrac)
                 count=count*spl
-            
+                
                 d_est=d.copy()
-                #d_val=d.copy()
-                
-                
                 if self.parent_stack.avg_resp is True:
                     try:
                         d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
                     except TypeError:
                         print('No pupil data')
                         d_est['pupil']=[]  
-                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
                     d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
                 else:
                     try:
@@ -460,12 +508,11 @@ class crossval(nems_module):
                     except TypeError:
                         print('No pupil data')
                         d_est['pupil']=[]
-                    d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                    d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
                     d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
-                        
+                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+
                 d_est['est']=True
-                #d_val['est']=False
                 
                 self.d_out.append(d_est)
                 if self.parent_stack.valmode is True:
@@ -490,8 +537,6 @@ class crossval(nems_module):
                             except TypeError:
                                 print('No pupil data')
                                 d_val['pupil']=[]
-                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
-                            d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
                             d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
                         else:
                             try:
@@ -499,12 +544,21 @@ class crossval(nems_module):
                             except TypeError:
                                 print('No pupil data')
                                 d_val['pupil']=[]
-                            d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
-                            d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
                             d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))
                             d_val['repcount']=copy.deepcopy(d['repcount'])
+                        d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
+                        d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
                             
-
+                    s=d_val['stim'][-1].shape
+                    sr=d_val['resp'][-1].shape
+                    if s[1]==0 or sr[0]==0:
+                        del(d_val['stim'][-1])
+                        del(d_val['resp'][-1])
+                        del(d_val['pupil'][-1])
+                        del(d_val['replist'][-1])
+                        self.parent_stack.nests-=1
+                        print('Final nest has no stimuli, updating to have {0} nests'.format(
+                                self.parent_stack.nests))
                     
                     self.d_out.append(d_val)
                 
@@ -516,16 +570,15 @@ class pupil_model(nems_module):
     name='pupil_model'
     plot_fns=[nu.sorted_raster,nu.raster_plot]
     """
-    Just reshapes & tiles stim, resp, and pupil data correctly for looking at pupil gain.
-    Will probably incorporate into pupil_est_val later.
+    Replaces stim with average resp for each stim. This is the 'perfect' model
+    used for comparing different models of pupil state gain.
     """
     
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
-                self.d_out.append(val.copy())
-                #self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])
+                self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             Xa=f_in['avgresp']
             if f_in['est'] is False:
@@ -541,8 +594,6 @@ class pupil_model(nems_module):
                     X[i,:]=Xa[R[i],:]
                 f_out['stim']=X
                 
-        
-            
 
 """
 Modules that actually transform the data stream
@@ -554,50 +605,72 @@ class normalize(nems_module):
     works well with fit algorithms --
     either mean 0, variance 1 (if sign doesn't matter) or
     min 0, max 1 (if positive values desired)
+    
     IMPORTANT NOTE: normalization factors are computed from estimation data 
     only but applied to both estimation and validation data streams
     """
+    #TODO: it might be better to build this more intrinsically into the stack 
+    #object, or else it has to be appended in every keyword?
+    
+    #TODO: this is having issues with batch294 data used with perfectpupil50? 
+    #Not sure why, it works fine for nested and non-nested crossval otherwise
+    #---this definitely has something to do with where this module is appended
+    #in the stack.
+    
     name='normalize'
     user_editable_fields=['output_name','valfrac','valmode']
     force_positive=True
-    d=0
-    g=1
+    #d=0
+    #g=1
     
     def my_init(self, force_positive=True,data='stim'):
         self.force_positive=force_positive
         self.input_name=data
+        if self.parent_stack.cv_counter==0:
+            print('norm lists created')
+            self.parent_stack.d=[0]*self.parent_stack.nests
+            self.parent_stack.g=[1]*self.parent_stack.nests
     
     def evaluate(self,nest=0):
+        c=self.parent_stack.cv_counter
         X=self.unpack_data()
         name=self.input_name
-        
-        if self.d_in[0][name].ndim==2:
-            if self.force_positive:
-                self.d=X.min()
-                self.g=1/(X-self.d).max()
+        if self.parent_stack.valmode is False:
+            if self.d_in[0][name].ndim==2:
+                if self.force_positive:
+                    self.parent_stack.d[c]=X.min()
+                    self.parent_stack.g[c]=1/(X-self.parent_stack.d[c]).max()
+                else:
+                    self.parent_stack.d[c]=X.mean()
+                    self.parent_stack.g[c]=X.std()
             else:
-                self.d=X.mean()
-                self.g=X.std()
-        else:
-            s=self.d_in[0][name].shape
-            if self.force_positive:
-                self.d=X[:,:].min(axis=1).reshape([s[0],1,1])
-                self.g=1/(X[:,:]-self.d.reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
-            else:
-                self.d=X[:,:].mean(axis=1).reshape([s[0],1,1])
-                self.g=X[:,:].std(axis=1).reshape([s[0],1,1])
-                self.g[np.isinf(g)]=0
-                
-        # apply the normalization
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-        
+                s=self.d_in[0][name].shape
+                if self.force_positive:
+                    self.parent_stack.d[c]=X[:,:].min(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c]=1/(X[:,:]-
+                                       self.parent_stack.d[c].reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
+                else:
+                    self.parent_stack.d[c]=X[:,:].mean(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c]=X[:,:].std(axis=1).reshape([s[0],1,1])
+                    self.parent_stack.g[c][np.isinf(self.parent_stack.g[c])]=0
+            # apply the normalization
+            
+        if nest==0:
+            del self.d_out[:]
+            for i, d in enumerate(self.d_in):
+                self.d_out.append(copy.deepcopy(d))
+                    
         for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            f_out[self.output_name]=np.multiply(X-self.d,self.g)
-                        
-       
+            #X=copy.deepcopy(f_in[self.input_name])
+            #f_out[self.output_name]=np.multiply(X-self.parent_stack.d[c],self.parent_stack.g[c])    
+            if f_in['est'] is False:
+                X=copy.deepcopy(f_in[self.input_name][nest])
+                f_out[self.output_name][nest]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
+            else:
+                X=copy.deepcopy(f_in[self.input_name])
+                f_out[self.output_name]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
+            
+        
 class add_scalar(nems_module):
     """ 
     add_scalar -- pretty much a dummy test module but may be useful for
@@ -698,7 +771,9 @@ class weight_channels(nems_module):
  
 class fir_filter(nems_module):
     """
-    fir_filter - the workhorse linear filter module
+    fir_filter - the workhorse linear filter module. Takes in a 3D stim array 
+    (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
+    offset, and outputs a 2D stim array (stims,time).
     """
     name='fir_filter'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
@@ -733,15 +808,16 @@ class fir_filter(nems_module):
 
 class nonlinearity(nems_module): 
     """
-    nonlinearity - apply a static nonlinearity. TODO: use helper functions
-    rather than a look-up table to determine which NL to apply. parameters can
-    be saved in a generic vector self.phi - see NARF implementation for reference 
+    nonlinearity - apply a static nonlinearity to the data. This modules uses helper 
+    functions and a generic fit field ('phi') to specify the type of nonlinearity 
+    applied. Look at nems/keywords to see how to apply different nonlinearities, as
+    each kind has a specific nltype and phi.
     
     @author: shofer
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
-    plot_fns=[nu.pre_post_psth,nu.plot_spectrogram]
+    plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
     
@@ -767,6 +843,8 @@ class nonlinearity(nems_module):
         
     #TODO: could even put these functions in a separate module?
     def dlog_fn(self,X):
+        s_indices= X<=0
+        X[s_indices]=0
         Y=np.log(X+self.phi[0,0])
         return(Y)
     def exp_fn(self,X):
@@ -792,9 +870,9 @@ class nonlinearity(nems_module):
                  
 class state_gain(nems_module): 
     """
-    state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
-    my not be able to use standard my_eval() because needs access to two 
-    variables in the data stream rather than just one.
+    state_gain - apply a gain/offset based on continuous pupil diameter, or some 
+    other continuous variable. Does not use standard my_eval, instead uses its own
+    evaluate() that overrides the nems_module evaluate()
     
     @author: shofer
     """
@@ -872,7 +950,7 @@ class state_gain(nems_module):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
-                self.d_out.append(val.copy())
+                self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
@@ -884,9 +962,7 @@ class state_gain(nems_module):
                 Xp=copy.deepcopy(f_in[self.state_var])
                 Z=getattr(self,self.gain_type+'_fn')(X,Xp)
                 f_out[self.output_name]=Z
-                
-            
-        
+                    
 """
 modules for computing scores/ assessing model performance
 """
@@ -937,10 +1013,16 @@ class mean_square_error(nems_module):
             P=np.zeros([1,1])
             N=0
             for f in self.d_out:
+                #try:
                 E+=np.sum(np.square(f[self.input1]-f[self.input2]))
                 P+=np.sum(np.square(f[self.input2]))
+                #except TypeError:
+                    #print('error eval')
+                    #nu.concatenate_helper(self.parent_stack)
+                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+                    #P+=np.sum(np.square(f[self.input2]))
                 N+=f[self.input2].size
-        
+
             if self.norm:
                 mse=E/P
             else:
@@ -1024,7 +1106,7 @@ class correlation(nems_module):
  
     name='correlation'
     user_editable_fields=['input1','input2']
-    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
+    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter, nu.pred_act_scatter_smooth]
     input1='stim'
     input2='resp'
     r_est=np.ones([1,1])
@@ -1035,7 +1117,7 @@ class correlation(nems_module):
         self.input2=input2
         self.do_plot=self.plot_fns[1]
         
-    def evaluate(self):
+    def evaluate(self,**kwargs):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
@@ -1056,5 +1138,7 @@ class correlation(nems_module):
             return r_val
         else:
             return (r_est)
+    
+
     
         

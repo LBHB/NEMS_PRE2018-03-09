@@ -13,6 +13,14 @@ import pickle
 import os
 import copy
 
+import boto3
+try:
+    import nems_config.AWS_Config as awsc
+    AWS = awsc.Use_AWS
+except:
+    AWS = False
+    
+    
 # set default figsize for pyplots (so we don't have to change each function)
 FIGSIZE=(12,4)
 
@@ -21,7 +29,8 @@ FIGSIZE=(12,4)
 #
 def find_modules(stack, mod_name):
     matchidx = [i for i, m in enumerate(stack.modules) if m.name==mod_name]
- 
+    if not matchidx:
+        raise ValueError('Module not present in this stack')
     return matchidx
 
 def save_model(stack, file_path):
@@ -30,49 +39,62 @@ def save_model(stack, file_path):
     stack2=copy.deepcopy(stack)
     for i in range(1,len(stack2.data)):
         del stack2.data[i][:]
+    
+    if AWS:
+        # TODO: Need to set up AWS credentials in order to test this
+        # TODO: Can file key contain a directory structure, or do we need to
+        #       set up nested 'buckets' on s3 itself?
+        s3 = boto3.resource('s3')
+        key = file_path.strip('/auto/data/code/nems_saved_models/')
+        fileobj = 'binary container'
+        pickle.dump(stack2, fileobj, protocol=pickle.HIGHEST_PROTOCOL)
+        s3.Object('nems_saved_models', key).put(Body=fileobj)
+    else:
+        directory = os.path.dirname(file_path)
+    
+        try:
+            os.stat(directory)
+        except:
+            os.mkdir(directory)       
+    
+        if os.path.isfile(file_path):
+            print("Removing existing model at: {0}".format(file_path))
+            os.remove(file_path)
+
+        try:
+            # Store data (serialize)
+            with open(file_path, 'wb') as handle:
+                pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        except FileExistsError:
+            # should never run? or if it does, shouldn't do anything useful
+            print("Removing existing model at: {0}".format(file_path))
+            os.remove(file_path)
+            with open(file_path, 'wb') as handle:
+                pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
-    directory = os.path.dirname(file_path)
-    
-    try:
-        os.stat(directory)
-    except:
-        os.mkdir(directory)       
-    
-    try:
-    # Store data (serialize)
-        with open(file_path, 'wb') as handle:
-            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    except FileExistsError:
-        print("Removing existing model at: {0}".format(file_path))
-        os.remove(file_path)
-        with open(file_path, 'wb') as handle:
-            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            
-    #orig_umask = os.umask(0)
-    #try:
-    #    file=os.open(
-    #            path=file_path,
-    #            flags=os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-    #            mode=0o777,
-    #            )
-    #finally:
-    #    os.umask(orig_umask)
-
-    #with os.fdopen(file, 'wb') as handle:
-    #    pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    print("Saved model to {0}".format(file_path))
+        os.chmod(file_path, 0o666)
+        print("Saved model to {0}".format(file_path))
 
 def load_model(file_path):
-    try:
-        # Load data (deserialize)
-        with open(file_path, 'rb') as handle:
-            stack = pickle.load(handle)
-        return stack
-    except:
-        print("error loading {0}".format(file_path))
-                   
-    return stack
+    if AWS:
+        # TODO: need to set up AWS credentials to test this
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket('nems_saved_models')
+        key = file_path.strip('/auto/data/code/nems_saved_models/')
+        bucket.download_file(key, file_path)
+    else:
+        try:
+            # Load data (deserialize)
+            with open(file_path, 'rb') as handle:
+                stack = pickle.load(handle)
+            print('stack successfully loaded')
+            return stack
+        except:
+            # TODO: need to do something else here maybe? removed return stack
+            #       at the end b/c it was being returned w/o assignment when
+            #       open file failed.
+            print("error loading {0}".format(file_path))
+            return
 
 
 #
@@ -101,9 +123,9 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
         except:
             plt.imshow(out1['stim'][:,new_id,:], aspect='auto', origin='lower', interpolation='none')
         cbar = plt.colorbar()
-        #cbar.set_label('???')
-        # TODO: colorbar is intensity of response? but how is it measured?
-        plt.xlabel('Trial')
+        cbar.set_label('amplitude')
+        # TODO: colorbar is intensity of spectrogram/response, units not clearly specified yet
+        plt.xlabel('Time')
         plt.ylabel('Channel')
     else:
         s=out1['stim'][:,new_id]
@@ -111,21 +133,68 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
         pred, =plt.plot(s,label='Average Model')
         #resp, =plt.plot(r,'r',label='Response')
         plt.legend(handles=[pred])
+        # TODO: plot time in seconds
         plt.xlabel('Time Step')
-        plt.ylabel('Firing rate (unitless)')
+        plt.ylabel('Firing rate (a.u.)')
             
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
 def pred_act_scatter(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
-    s=out1['stim'][m.parent_stack.plot_stimidx,:]
+    s=out1[m.output_name][m.parent_stack.plot_stimidx,:]
     r=out1['resp'][m.parent_stack.plot_stimidx,:]
     plt.plot(s,r,'ko')
+    plt.xlabel("Predicted ({0})".format(m.output_name))
+    plt.ylabel('Actual')
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
+    axes = plt.gca()
+    ymin, ymax = axes.get_ylim()
+    xmin, xmax = axes.get_xlim()
+    plt.text(xmin+(xmax-xmin)/50,ymax-(ymax-ymin)/20,"r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0],m.parent_stack.meta['r_val'][0]),
+             verticalalignment='top')
+    
+    
+def io_scatter_smooth(m,idx=None,size=FIGSIZE):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    s=m.unpack_data(m.input_name,use_dout=False)
+    r=m.unpack_data(m.output_name,use_dout=True)
+    r2=m.unpack_data("resp",use_dout=True)
+    s2=np.append(s.transpose(),r.transpose(),0)
+    s2=np.append(s2,r2.transpose(),0)
+    s2=s2[:,s2[0,:].argsort()]
+    bincount=np.min([100,s2.shape[1]])
+    T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=np.reshape(s2,[3,bincount,T])
+    s2=np.mean(s2,2)
+    s2=np.squeeze(s2)
+    
+    plt.plot(s2[0,:],s2[1,:],'k-')
+    plt.plot(s2[0,:],s2[2,:],'k.')
+    plt.xlabel("Input ({0})".format(m.input_name))
+    plt.ylabel("Output ({0})".format(m.output_name))
+    #plt.title("{0}".format(m.name))
+
+def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    s=m.unpack_data(m.output_name,use_dout=True)
+    r=m.unpack_data("resp",use_dout=True)
+    s2=np.append(s.transpose(),r.transpose(),0)
+    s2=s2[:,s2[0,:].argsort()]
+    bincount=np.min([100,s2.shape[1]])
+    T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=np.reshape(s2,[2,bincount,T])
+    s2=np.mean(s2,2)
+    s2=np.squeeze(s2)
+    plt.plot(s2[0,:],s2[1,:],'k.')
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    m.parent_stack.meta['r_val']
+    #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
 
 def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
@@ -136,8 +205,8 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     pred, =plt.plot(s,label='Predicted')
     act, =plt.plot(r,'r',label='Actual')
     plt.legend(handles=[pred,act])
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
-    plt.xlabel('Trial')
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
 
@@ -151,8 +220,8 @@ def pre_post_psth(m,size=FIGSIZE,idx=None):
     pre, =plt.plot(s1,label='Pre-nonlinearity')
     post, =plt.plot(s2,'r',label='Post-nonlinearity')
     plt.legend(handles=[pre,post])
-    plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
-    plt.xlabel('Trial')
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
 def plot_stim_psth(m,idx=None,size=FIGSIZE):
@@ -160,26 +229,36 @@ def plot_stim_psth(m,idx=None,size=FIGSIZE):
         plt.figure(num=str(idx),figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
     #c=out1['repcount'][m.parent_stack.plot_stimidx]
-    h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    #h=out1['stim'][m.parent_stack.plot_stimidx].shape
     #scl=int(h[0]/c)
     s2=out1['stim'][m.parent_stack.plot_stimidx,:]
     resp, =plt.plot(s2,'r',label='Post-'+m.name)
     plt.legend(handles=[resp])
-    plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
+    #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
+        
   
 def plot_strf(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
     h=m.coefs
+    
+    # if weight channels exist and dimensionality matches, generate a full STRF
+    wcidx=find_modules(m.parent_stack,"weight_channels")
+    if m.name=="fir_filter" and len(wcidx):
+        w=m.parent_stack.modules[wcidx[0]].coefs
+        if w.shape[0]==h.shape[0]:
+            h=np.matmul(w.transpose(), h)
+        
     mmax=np.max(np.abs(h.reshape(-1)))
     plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
     plt.clim(-mmax,mmax)
     cbar = plt.colorbar()
     #TODO: cbar.set_label('???')
-    plt.title(m.name)
+    #plt.title(m.name)S
     plt.xlabel('Channel') #or kHz?
     # Is this correct? I think so...
-    plt.ylabel('Latency') 
+    plt.ylabel('Latency')
+    
 """
 Potentially useful trial plotting stuff...not currently in use, however --njs July 5 2017   
 def plot_trials(m,idx=None,size=(12,4)):
@@ -318,7 +397,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
     plt.scatter(xpost[ids],ypost[ids],color='0.5',s=(0.5*np.pi)*2,alpha=0.6)
     plt.ylabel('Trial')
     plt.xlabel('Time')
-    plt.title('Stimulus #'+str(ids))
+    plt.title('Sorted by Pupil: Stimulus #'+str(ids))
     
 
 #
@@ -339,4 +418,45 @@ def shrinkage(mH,eH,sigrat=1,thresh=0):
     
     return hf
 
-
+def concatenate_helper(stack,start=1,**kwargs):
+    """
+    Helper function to concatenate the nest list in the validation data. Simply
+    takes the lists in stack.data if ['est'] is False and concatenates all the 
+    subarrays.
+    """
+    try:
+        end=kwargs['end']
+    except:
+        end=len(stack.data)
+    for k in range(start,end):
+        #print('start loop 1')
+        #print(len(stack.data[k]))
+        for n in range(0,len(stack.data[k])):
+            #print('start loop 2')
+            try:
+                if stack.data[k][n]['est'] is False:
+                    #print('concatenating')
+                    if stack.data[k][n]['stim'][0].ndim==3:
+                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
+                    else:
+                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
+                        stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
+                    try:
+                        stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
+                    except ValueError:
+                        stack.data[k][n]['pupil']=None
+                    try:
+                        stack.data[k][n]['replist']=np.concatenate(stack.data[k][n]['replist'],axis=0)
+                    except ValueError:
+                        stack.data[k][n]['replist']=[]
+                    try:
+                        stack.data[k][n]['repcount']=np.concatenate(stack.data[k][n]['repcount'],axis=0)
+                    except ValueError:
+                        pass
+                        #stack.data[k][n]['repcount']=stack.data[k][n]['repcount']
+                else:
+                    #print('didnt concatenate')
+                    pass
+            except:
+                #print('skippd the whole damn thing')
+                pass

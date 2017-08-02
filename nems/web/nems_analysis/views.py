@@ -37,6 +37,7 @@ from nems.db import Session, NarfAnalysis, NarfBatches, NarfResults, sBatch
 from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
+from nems.keyword_rules import keyword_test_routine
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
@@ -197,6 +198,7 @@ def update_batch():
             session.query(NarfAnalysis.batch)
             .filter(NarfAnalysis.name == aSelected)
             .filter(or_(
+                    int(user.sec_lvl) == 9,
                     NarfBatches.public == '1',
                     NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
                     NarfBatches.username == user.username,
@@ -290,6 +292,7 @@ def update_results():
     
     """
     
+    user = get_current_user()
     session = Session()
     nullselection = """
             MUST SELECT A BATCH AND ONE OR MORE CELLS AND
@@ -315,7 +318,7 @@ def update_results():
         ordSelected = desc
     sortSelected = request.args.get('sortSelected', 'cellid')
 
-    # Always add cellid, batch and modelname to column lists,
+    # Always add cellid and modelname to column lists,
     # since they are required for selection behavior.
     cols = [
             getattr(NarfResults, 'cellid'),
@@ -332,6 +335,12 @@ def update_results():
             .filter(NarfResults.batch == bSelected)
             .filter(NarfResults.cellid.in_(cSelected))
             .filter(NarfResults.modelname.in_(mSelected))
+            .filter(or_(
+                    int(user.sec_lvl) == 9,
+                    NarfResults.public == '1',
+                    NarfResults.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    NarfResults.username == user.username,
+                    ))
             .order_by(ordSelected(getattr(NarfResults, sortSelected)))
             .limit(rowlimit).statement,
             session.bind
@@ -371,6 +380,7 @@ def update_analysis():
             .filter(NarfAnalysis.tags.ilike(tString))
             .filter(NarfAnalysis.status.ilike(sString))
             .filter(or_(
+                    int(user.sec_lvl) == 9,
                     NarfAnalysis.public == '1',
                     NarfAnalysis.labgroup.ilike('%{0}%'.format(user.labgroup)),
                     NarfAnalysis.username == user.username,
@@ -518,6 +528,14 @@ def edit_analysis():
     
     #TODO: this requires that all analyses have to have a unique name.
     #       better way to do this or just enforce the rule?
+    
+    # Make sure the keyword combination is valid using nems.keyword_rules
+    try:
+        mf = ModelFinder(eTree)
+        for modelname in mf.modellist:
+            keyword_test_routine(modelname)
+    except Exception as e:
+        return jsonify(success='Analysis not saved: \n' + str(e))
     
     # Find out if an analysis with same name already exists.
     # If it does, grab its sql alchemy object and update it with new values,

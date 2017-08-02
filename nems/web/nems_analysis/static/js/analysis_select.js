@@ -17,13 +17,23 @@ $(document).ready(function(){
     });
     
     socket.on('console_update', function(msg){
-        //console.log('received console_update from server');
-        $('#py_console').prepend("<p class='py_con_msg'>" + msg.data + "</p>");
+        var color = '';
+        // TODO: add special color markers here for other messages?
+        if ((msg.data === 'Login required') || (msg.data === 'Fit failed.')){
+            color = 'style="color: red"';
+        }
+        $('#py_console').prepend("<p class='py_con_msg'" + color + ">" + msg.data + "</p>");
     });
     
     // use this in place of console.log to send to py_console
     function py_console_log(message){
-      $('#py_console').prepend("<p class='py_con_msg'>" + message + "</p>");        
+        var color = '';
+        // TODO: add special color markers here for other messages?
+        if ((message === 'Login required') || (message === 'Fit failed.')){
+            color = 'style="color: red"';
+        }
+        $('#py_console').prepend("<p class='py_con_msg'" + color + ">" + message + "</p>");
+             
     }
 
     //initializes bootstrap popover elements
@@ -234,7 +244,7 @@ $(document).ready(function(){
     ordSelected = updateOrder();
     sortSelected = updateSort();
 
-    $("#batchSelector,#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
+    $("#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(updateResults);
             
     function updateResults(){
@@ -767,8 +777,12 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
-        var queuelimit = $("#queuelimit").val();
- 
+        var forceRerun = 0;
+        
+        if (document.getElementById('forceRerun').checked){
+            forceRerun = 1;
+        }
+        
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
             py_console_log('Must select a batch')
@@ -779,30 +793,23 @@ $(document).ready(function(){
             return false;
         }
         
-        if (queuelimit > 50){
-            py_console_log("WARNING: Setting a queue limit higher than 50"
-                           + "will likely result in a very long wait time."
-                           + "Trying a smaller limit first is recommended.")
-        }
-        
-        if (!(confirm("Continuing will queue a model fit for all combinations\n"
-                      + "of selected models and cells. Until the background\n"
-                      + "model queuer is implemented, all fits will run immediately.\n\n"
-                      + "This may take a very long time. Are you sure you wish to continue?"))){
+        var total = cSelected.length * mSelected.length;
+        if (!(confirm('This will add ' + total + ' models to the queue.'
+                      + '\n\nAre you sure you wish to continue?'))){
             return false;
         }
-            
+        
         addLoad();
         py_console_log("Sending fit request for each combination - please wait...");
                       
         $.ajax({
             url: $SCRIPT_ROOT + '/enqueue_models',
             data: { bSelected:bSelected, cSelected:cSelected,
-                   mSelected:mSelected, queuelimit:queuelimit },
+                   mSelected:mSelected, forceRerun },
             // TODO: should POST be used in this case?
             type: 'GET',
-            success: function(data){
-                py_console_log(data.data);
+            success: function(result){
+                py_console_log(result);
                 removeLoad();
             },
             error: function(error){

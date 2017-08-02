@@ -17,52 +17,37 @@ import os
 import os.path
 import copy
 
+#keyword='parm50_wc03_fir10_dexp_fit01_nested20'
+#batch=293
+#cellid='BOL006b-60-1'
+
 stack=ns.nems_stack()
     
 stack.meta['batch']=293
-stack.meta['cellid']='eno048f-b1'
-stack.meta['modelname']='fb16ch50u_wc03_fir10_polypupgain03_fit02'
-    
+stack.meta['cellid']='BOL006b-60-1'
+stack.meta['modelname']='parm50_wc03_fir10_fit00_nested20'
+stack.keywords=stack.meta['modelname'].split("_")
 # extract keywords from modelname    
-keywords=stack.meta['modelname'].split("_")
-stack.cond=False
-while stack.cond is False:
-   print('iter loop='+str(stack.cv_counter))
-   stack.clear()
-   stack.valmode=False
-   for k in keywords:
-       f = getattr(nk, k)
-       f(stack)
-    
+if 'nested' in stack.keywords[-1]:
+    print('Using nested cross-validation, fitting will take longer!')
+    f=getattr(nk,stack.keywords[-1])
+    f(stack)
+else:
+    print('Using standard est/val conditions')
+    stack.valmode=False
+    for k in stack.keywords:
+        f = getattr(nk, k)
+        f(stack)    
       
-   phi=[] 
-   for idx,m in enumerate(stack.modules):
-       this_phi=m.parms2phi()
-       if this_phi.size:
-           if stack.cv_counter==0:
-               stack.fitted_modules.append(idx)
-           phi.append(this_phi)
-   phi=np.concatenate(phi)
-   stack.parm_fits.append(phi)
 
-   if stack.nests==1:
-       stack.cond=True
-   else:
-       stack.cv_counter+=1
-
-    # measure performance on both estimation and validation data
+ # measure performance on both estimation and validation data
 stack.valmode=True
-    
-    #stack.nests=1
-
+alldata=stack.data  
 stack.evaluate(1)
-alldata=stack.data   
-stack.append(nm.mean_square_error)
-    
-corridx=nu.find_modules(stack,'correlation')
-if not corridx:
-       # add MSE calculator module to stack if not there yet
-    stack.append(nm.correlation)
+
+alldata=stack.data
+
+stack.append(nm.correlation)
                     
 #print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                  #stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))

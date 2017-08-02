@@ -15,8 +15,6 @@ In no particular order:
 - fix issues w/ positioning of bokeh toolbar - it either sit way off to the right
   or mashes into title/whatever axis it sits on. waiting on fix from bokeh
   for non-sticky toolbar.
-  
-- link up enqueue models to cluster
 
 - switch analysis editor to use id instead of name for querying
 
@@ -31,8 +29,6 @@ In no particular order:
 - able to reload modules/lib stuff
   (how would this affect saved models if module changed)
 
-- new fields in narfresults for user control/ownership?
-
 - ability to run custom scripts from directory on selected results
 
 - finish config for session/cookie management w/ flask login
@@ -41,7 +37,4 @@ In no particular order:
   
 - integrate AWS
 
-- move config and db conneciton etc to separate config folder
-    (and make available globally for matplotlib, flask settings etc.)
-    
-- 
+- figure out why user name and labgroup won't save to narfresults

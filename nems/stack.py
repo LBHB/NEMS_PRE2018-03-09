@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt,mpld3
 import nems.utils as nu
 import numpy as np
 import copy
+import os
 
 class nems_stack:
         
@@ -24,8 +25,6 @@ class nems_stack:
                   that takes place at each modules step
 
     """
-    #TODO: maybe in the future we want to put nems_stack into its own file? Would 
-    #probably take some work, but might reduce clutter in this file ---njs 13 July 2017
     
     modelname=None
     modules=[]  # stack of modules
@@ -44,6 +43,8 @@ class nems_stack:
     parm_fits=[]
     fitted_modules=[]
     cv_counter=0
+    keywords=[]
+    valfrac=0.05
     
     def __init__(self):
         print("Creating new stack")
@@ -61,52 +62,43 @@ class nems_stack:
         self.valmode=False
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
         self.nests=1 #Default is to have only one nest, i.e. standard crossval
-        self.parm_fits=[]
-        self.fitted_modules=[]
-        self.cv_counter=0
+        self.parm_fits=[] #List of fitted parameters for each nest
+        self.fitted_modules=[] #List of modules with fitted parameters
+        self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
+        self.keywords=[] #The split modelname string
+        self.mod_ids=[]
+        self.valfrac=0.05
         
     def evaluate(self,start=0):
         """
         evaluate stack, starting at module # start
         """
-        if self.valmode is True: #and self.pre_flag is not True:
-            #xval_idx=nu.find_modules(self,'crossval')
-            #xval_idx=xval_idx[0]
-            #print(xval_idx)
-            #self.modules[xval_idx].evaluate()
-            #print(self.data[2][1]['stim'][3].shape)
-            
-            #TODO: there is definitely a more efficient way to do this, but this
-            #works reliably. In the future, should make it so that crossval is
-            #only evaluated once ---njs 24 July 2017
-            
-            for i in range(0,self.nests):
-                for j in range(start,len(self.modules)):
+        if self.valmode is True: 
+            print('Evaluating validation data')
+            mse_idx=nu.find_modules(self,'mean_square_error')
+            mse_idx=int(mse_idx[0])
+            try:
+                xval_idx=nu.find_modules(self,'crossval')
+            except:
+                xval_idx=nu.find_modules(self,'standard_est_val')
+            xval_idx=xval_idx[0]
+            if start<=xval_idx:
+                self.modules[xval_idx].evaluate()
+                start=xval_idx+1
+            for ii in range(start,mse_idx):
+                for i in range(0,self.nests):
                     st=0
                     for m in self.fitted_modules:
                         phi_old=self.modules[m].parms2phi()
                         s=phi_old.shape
                         self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
                         st+=np.prod(s)
-                    self.modules[j].evaluate(nest=i)
-            for k in range(start+1,len(self.data)):
-                for n in range(0,len(self.data[-1])):
-                    if n%2 !=0:
-                        if self.data[k][n]['stim'][0].ndim==3:
-                            self.data[k][n]['stim']=np.concatenate(self.data[k][n]['stim'],axis=1)
-                        else:
-                            self.data[k][n]['stim']=np.concatenate(self.data[k][n]['stim'],axis=0)
-                        self.data[k][n]['resp']=np.concatenate(self.data[k][n]['resp'],axis=0)
-                        try:
-                            self.data[k][n]['pupil']=np.concatenate(self.data[k][n]['pupil'],axis=0)
-                        except ValueError:
-                            self.data[k][n]['pupil']=None
-                        try:
-                            self.data[k][n]['replist']=np.concatenate(self.data[k][n]['replist'],axis=0)
-                        except ValueError:
-                            self.data[k][n]['replist']=[]
-                            
+                    self.modules[ii].evaluate(nest=i)
+            nu.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
+            for ij in range(mse_idx,len(self.modules)):
+                self.modules[ij].evaluate() 
         else:
+            #This condition evaluates for fitting and est data set
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
             
@@ -114,15 +106,17 @@ class nems_stack:
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
         if mod is None:
-            m=nm.nems_module(self)
+            raise ValueError('stack.append: module not specifified')
         else:
             m=mod(self, **xargs)
         
-        self.modules.append(m)
-        self.data.append(m.d_out)
-        self.mod_names.append(m.name)
-        self.mod_ids.append(m.id)
-        m.evaluate()
+        self.append_instance(m)
+        # svd removed redundant code
+        #        self.modules.append(m)
+        #        self.data.append(m.d_out)
+        #        self.mod_names.append(m.name)
+        #        self.mod_ids.append(m.id)
+        #        m.evaluate()
         
     def append_instance(self, mod=None):
         """Same as append but takes an instance of a module instead
@@ -134,11 +128,13 @@ class nems_stack:
         
         """
         if not mod:
-            mod=nm.nems_module(self)
+            raise ValueError('stack.append: module not specifified')
+            #mod=nm.nems_module(self)
         self.modules.append(mod)
         self.data.append(mod.d_out)
         self.mod_names.append(mod.name)
-        self.mod_ids.append(mod.id)
+        self.mod_ids.append(mod.idm)
+        
         mod.evaluate()
         
     def insert(self, mod=None, idx=None, **xargs):
@@ -256,7 +252,7 @@ class nems_stack:
         #self.mod_ids.pop(-1)
         return m
         
-    def popmodule(self, mod=nm.nems_module()):
+    def popmodule(self):
         del self.modules[-1]
         del self.data[-1]
         
@@ -272,20 +268,19 @@ class nems_stack:
     
     def quick_plot(self,size=(12,24)):
         plt.figure(figsize=size)
-        plt.subplot(len(self.modules)-1,1,1)
-        #self.do_raster_plot()
+        #plt.subplot(len(self.modules)-1,1,1)
         for idx,m in enumerate(self.modules):
             # skip first module
             if idx>0:
-                print(self.mod_names[idx])
+                print(self.modules[idx].name)
                 plt.subplot(len(self.modules)-1,1,idx)
                 #plt.subplot(len(self.modules),1,idx+1)
                 m.do_plot(m)
-        #plt.tight_layout()
+        plt.tight_layout()
         #TODO: Use gridspec to fix spacing issue? Addition of labels makes
         #      the subplots look "scrunched" vertically.
     
-    def quick_plot_save(self, mode=None):
+    def quick_plot_save(self, mode='png'):
         """Copy of quick_plot for easy save or embed.
         
         mode options:
@@ -312,57 +307,34 @@ class nems_stack:
         for idx,m in enumerate(self.modules):
         # skip first module
             if idx>0:
+                print(self.mod_names[idx])
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
         plt.tight_layout()
+
+        filename = (
+                    "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.{3}"
+                    .format(batch, cellid, modelname, mode)
+                    )
+        if os.path.isfile(filename):
+            os.remove(filename)
+        try:
+            fig.savefig(filename)
+        except Exception as e:
+            print("Bad file extension for figure or couldn't save")
+            print(e)
+            return filename
         
-        file_root = (
-                "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.",
-                [batch, cellid, modelname]
-                )
-        if mode is not None:
-            mode = mode.lower()
-        if mode is None:
-            #filename = (
-            #        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.png"
-            #        .format(batch,cellid,modelname)
-            #        )
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        elif mode == "png":
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        elif mode == "pdf":
-            filename = (file_root[0] + 'pdf').format(*file_root[1])
-            fig.savefig(format="pdf")
-        elif mode == "svg":
-            filename = (file_root[0] + 'svg').format(*file_root[1])
-            fig.savefig(format="svg")
-        elif mode == "json":
-            filename = (file_root[0] + 'JSON').format(*file_root[1])
-            mpld3.save_json(fig, filename)
-        elif mode == "html":
-            filename = (file_root[0] + 'html').format(*file_root[1])
-            mpld3.save_html(fig, filename)
-        else:
-            print("%s is not a valid format -- saving as .png instead."%mode)
-            filename = (file_root[0] + 'png').format(*file_root[1])
-            fig.savefig(filename)
-        plt.close(fig)
+        try:
+            os.chmod(filename, 0o666)
+        except Exception as e:
+            print("Couldn't modify file permissions for figure")
+            print(e)
+            return filename
+
         return filename
     
-#    def trial_quick_plot(self):
-#        """
-#        Plots several trials of a stimulus after fitting pupil data.
-#        This is to make it easier to visualize the fits on individual trials,
-#        as opposed to over the entire length of the fitted vector.
-#        """
-#        plt.figure(figsize=(12,15))
-#        for idx,m in enumerate(self.modules):
-#            # skip first module
-#            if idx>0:
-#                plt.subplot(len(self.modules)-1,1,idx)
-#                m.do_trial_plot(m,idx)
+
 
                 
 
