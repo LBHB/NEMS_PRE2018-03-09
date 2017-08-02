@@ -61,15 +61,11 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
             f = getattr(nk, k)
             f(stack)
             
-
     # measure performance on both estimation and validation data
     stack.valmode=True
     stack.evaluate(1)
     
-    corridx=nu.find_modules(stack,'correlation')
-    if not corridx:
-       # add MSE calculator module to stack if not there yet
-        stack.append(nm.correlation)
+    stack.append(nm.correlation)
                     
     print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                  stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
