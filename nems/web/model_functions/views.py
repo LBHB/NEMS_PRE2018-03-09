@@ -21,7 +21,7 @@ from itertools import product
 from flask import jsonify, request
 
 from nems.web.nems_analysis import app
-from nems.db import Session, NarfResults
+from nems.db import Session, NarfResults, enqueue_models
 import nems.main as nems
 from nems.web.model_functions.fit_single_utils import fetch_meta_data
 from nems.web.account_management.views import get_current_user
@@ -141,7 +141,11 @@ def enqueue_models_view():
     # data = enqueue_models(celllist=cSelected,batch=bSelected,
     #                      modellist=mSelected)
     
+    pass_fail = enqueue_models(cSelected, bSelected, mSelected, user=user)
+    return jsonify(data=pass_fail)
     
+    # Rest of code should never run any more, will look through and delete later.
+
     combos = list(product(cSelected, mSelected))
     failures = []
     for combo in combos[:queuelimit]:
