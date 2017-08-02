@@ -122,7 +122,10 @@ class nems_module:
             
     def evaluate(self,nest=0):
         """
-        General evaluate function, for both nested and non-nested crossval
+        General evaluate function, for both nested and non-nested crossval. Creates
+        a copy of the d_in dataframe and places it in the next position in stack.data.
+        Then calls the module specific my_eval, and replaces d_out[output_name] with 
+        the output of my_eval.
         """
         if nest==0:
             del self.d_out[:]
@@ -140,12 +143,17 @@ class nems_module:
     # customizable functions
     #
     def my_init(self,**xargs):
-        # placeholder for module specific initialization
+        """
+        Placeholder for module specific initialization. my_init is defined for each 
+        module (with some specific exceptions). 
+        """
         pass 
         
     def my_eval(self,X):
-        # placeholder for module-specific evaluation, default is
-        # pass-through of pointer to input data matrix.
+        """
+        Placeholder for module-specific evaluation, default is
+        pass-through of pointer to input data matrix.
+        """
         Y=X
         return Y
 
@@ -182,7 +190,35 @@ class dummy_data(nems_module):
 
 class load_mat(nems_module):
     """
-    Loads a .mat matrix
+    Loads a MATLAB data file (.mat file) containing several "structs" which have 
+    data for an individual cell. 
+    
+    Inputs:
+        fs: frequency to resample stimulus, response, and pupil data. 
+        avg_resp: average all trials in the response raster and place in 
+                the output dictionary as 'resp'. Usually used when pupil
+                effect are being considered, and will generally allow for
+                better fitting.
+        est_files: MATLAB data files to load. 
+    
+    Returns: Data from this file is loaded into the stack.data as a list of dictionaries 
+    with keywords:
+        'resp': response raster for each type of stimulus
+        'stim': stimuli spectrograms that correspond to response
+        'respFs': sampling frequency of response raster
+        'stimFs':sampling frequency of stimuli spectrograms
+        'stimparam': details on types of stimuli used
+        'isolation': isolation of recorded cells (?)
+        'prestim': length of silence before stimulus begins
+        'poststim': length of silence after stimulus ends
+        'duration': length of simulus
+        'pupil': continuous pupil diameter measurements
+        'est': flag for estimation/validation data
+        'repcount': how many trials of each stimulus are present
+        'replist': a list containing the number of each stimulus the number of
+                times it was played. E.g., if we have stimulus 1 that was played
+                3 times and stimulus 2 that was played 2 times, replist would
+                be [1,1,1,2,2].
     """
     name='load_mat'
     user_editable_fields=['output_name','est_files','fs']
@@ -320,17 +356,22 @@ class load_mat(nems_module):
 
 class standard_est_val(nems_module):
     """
-    NO LONGER DEPRECATED
-    Special module(s) for organizing/splitting estimation and validation data.
-    Currently just one that replicates (mostly) the standard procedure from NARF
+    Splits stack.data object into estimation and validation datasets. If 
+    estimation and validation datasets are already flagged in stack.data (i.e.
+    if d['est'] exists), it will simply pass the datasets as is. If not, it will
+    split the data based on the 'repcount' list. Stimuli with large numbers of
+    repetitions are placed in the validation dataset, while most of the stimuli,
+    which have low repetitions, are placed in the estimation dataset.
+    
+    This estimation/validation routine is not compatible with nested
+    crossvalidation.
     """
     #TODO: make this work given changes to stack
     name='standard_est_val'
     user_editable_fields=['output_name','valfrac']
-    valfrac=0.05
     
-    def my_init(self, valfrac=0.05):
-        self.valfrac=valfrac
+    def my_init(self):
+        print('Using standard est/val')
     
     def evaluate(self,**kwargs):
         del self.d_out[:]
@@ -406,7 +447,17 @@ class standard_est_val(nems_module):
             
 class crossval(nems_module):
     """
-    Cross-validation est/val module that replaces trial_est_val and stim_est_val.
+    Splits data into estimation and validation datasets. If estimation and 
+    validation sets are already flagged (if d['est'] exists), it just passes 
+    these. If not, it splits a given percentage of the dataset off as validation
+    data, and leaves the rest as estimation data. 
+    
+    Inputs:
+        valfrac: fraction of the dataset to allocate as validation data
+    
+    This module is set up to work with nested crossvalidation. If this is the 
+    case, it will run through the dataset, taking a different validation set 
+    each time. 
     
     @author: shofer
     """

@@ -8,6 +8,7 @@ Created on Fri Jun 16 05:20:07 2017
 
 import nems.modules as nm
 import nems.fitters as nf
+import nems.tensorflow_fitters as ntf
 import nems.utils as nu
 import nems.baphy_utils as baphy_utils
 import numpy as np
@@ -346,6 +347,14 @@ def fititer00(stack):
     
     stack.fitter.do_fit()
     create_parmlist(stack)
+
+def adadelta00(stack):
+    stack.fitter=ntf.ADADELTA_min(stack)
+    stack.fitter.do_fit()
+    create_parmlist(stack)
+    stack.append(nm.mean_square_error)
+
+
 
 
 # etc etc for other keywords
