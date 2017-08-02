@@ -768,7 +768,12 @@ $(document).ready(function(){
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
         var queuelimit = $("#queuelimit").val();
- 
+        var forceRerun = 0;
+        
+        if (document.getElementById('forceRerun').checked){
+            forceRerun = 1;
+        }
+        
         if ((bSelected === null) || (bSelected === undefined) || 
                 (bSelected.length == 0)){
             py_console_log('Must select a batch')
@@ -798,7 +803,7 @@ $(document).ready(function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/enqueue_models',
             data: { bSelected:bSelected, cSelected:cSelected,
-                   mSelected:mSelected, queuelimit:queuelimit },
+                   mSelected:mSelected, queuelimit:queuelimit, forceRerun },
             // TODO: should POST be used in this case?
             type: 'GET',
             success: function(data){
