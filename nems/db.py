@@ -11,11 +11,11 @@ Created on Fri Jun 16 05:20:07 2017
 
 import datetime
 
+import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 
-from nems.web.model_functions.fit_single_utils import fetch_meta_data
 try:
     import nems_config.AWS_Config as awsc
     AWS = awsc.Use_AWS
@@ -407,5 +407,71 @@ def save_results(stack, preview_file, queueid=None):
     session.close()
     
     return results_id
+
+def fetch_meta_data(stack, r, attrs):
+    """Assign attributes from model fitter object to NarfResults object.
+    
+    Arguments:
+    ----------
+    stack : nems_modules.stack
+        Stack containing meta data, modules, module names et cetera
+        (see nems_modules).
+    r : sqlalchemy ORM object instance
+        NarfResults object, either a blank one that was created before calling
+        this function or one that was retrieved via a query to NarfResults.
+        
+    Returns:
+    --------
+    Nothing. Attributes of 'r' are modified in-place.
+        
+    """
+    
+    r.lastmod = datetime.datetime.now().replace(microsecond=0)
+    
+    for a in attrs:
+        # list of non-numerical attributes, should be blank instead of 0.0
+        if a in ['modelpath', 'modelfile', 'githash']:
+            default = ''
+        else:
+            default = 0.0
+        # TODO: hard coded fix for now to match up stack.meta names with 
+        # narfresults names.
+        # Either need to maintain hardcoded list of fields instead of pulling
+        # from NarfResults, or keep meta names in fitter matched to columns
+        # some other way if naming rules change.
+        if 'fit' in a:
+            k = a.replace('fit','est')
+        elif 'test' in a:
+            k = a.replace('test','val')
+        else:
+            k = a
+        setattr(r, a, _fetch_attr_value(stack, k, default))
+
+def _fetch_attr_value(stack,k,default=0.0):
+    """Return the value of key 'k' of stack.meta, or default. Internal use."""
+    
+    # if stack.meta[k] is a string, return it.
+    # if it's an ndarray or anything else with indicies, get the first index;
+    # otherwise, just get the value. Then convert to scalar if np data type.
+    # or if key doesn't exist at all, return the default value.
+    if k in stack.meta:
+        if stack.meta[k]:
+            if not isinstance(stack.meta[k], str):
+                try:
+                    v = stack.meta[k][0]
+                except:
+                    v = stack.meta[k]
+                finally:
+                    try:
+                        v = np.asscalar(v)
+                    except:
+                        pass
+            else:
+                v = stack.meta[k]
+    else:
+        v = default
+        
+    
+    return v
         
     

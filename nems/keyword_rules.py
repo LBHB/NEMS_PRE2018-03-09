@@ -38,10 +38,9 @@ def keyword_test_routine(modelname):
         if 'Error' in test_class.__name__:
             pass
         tester = test_class()
-        passed = tester.check_keywords(modelname)
-        if not passed:
+        if not tester.check_keywords(modelname):
             raise tester.error
-
+            
 
 class Keyword_Test():
     
@@ -84,7 +83,8 @@ class Nested_At_End(Keyword_Test):
     def __init__(self):
         self.error=Exception(
                 'If nested crossval is included, it must be the last keyword'
-                '\n Failed test: %s' % self.__repr__())
+                '\n Failed test: %s' % self.__repr__()
+                )
     def __repr__(self):
         return 'Nested_At_End'
     
@@ -102,26 +102,28 @@ class Nested_At_End(Keyword_Test):
         
 class Keywords_Exist(Keyword_Test):
     def __init__(self):
-        self.missing_kw = []
-        self.error=Exception(
-                'One or more keywords did not exist: \n{0}'
-                .format(', '.join(self.missing_kw))
-                )
+        self.missing_kw = 'This test should not have failed yet.'
+        self.error = ''
     def __repr__(self):
         return 'Keywords_Exist'
     
     def check_keywords(self, modelname):
         # put this in at top to turn off test for now, not working
-        return True
-        kwfuncs = inspect.getmembers(
+        kwtuples = inspect.getmembers(
                         sys.modules[nk.__name__], inspect.isfunction
                         )
+        kwfuncs = [k[0] for k in kwtuples]
         keywords = modelname.split('_')
         for kw in keywords:
             if kw in kwfuncs:
-                pass
+                continue
             else:
-                self.missing_kw.append(kw)
+                self.missing_kw = kw
+                self.error = Exception(
+                        'Keyword does not exist: {0}   '
+                        '\n Failed test: {1}'
+                        .format(self.missing_kw, self.__repr__())
+                        )
                 return False
         return True
         #if False in [(kw in kwfuncs) for kw in keywords]:
