@@ -136,14 +136,18 @@ def enqueue_models_view():
     bSelected = request.args.get('bSelected')[:3]
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
+    force_rerun = request.args.get('forceRerun', type=int)
     
-    # TODO: What should this return? What does the user need to see?
-    # data = enqueue_models(celllist=cSelected,batch=bSelected,
-    #                      modellist=mSelected)
+    enqueue_models(
+            cSelected, bSelected, mSelected,
+            force_rerun=bool(force_rerun), user=user.username,
+            )
+    return jsonify(data=True)
     
-    pass_fail = enqueue_models(cSelected, bSelected, mSelected, user=user)
-    return jsonify(data=pass_fail)
-    
+
+
+
+
     # Rest of code should never run any more, will look through and delete later.
 
     combos = list(product(cSelected, mSelected))

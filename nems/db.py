@@ -129,22 +129,24 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
     pass_fail = []
     for model in modellist:
         for cell in celllist:
-            queueid = enqueue_single_model(
+            queueid, message = enqueue_single_model(
                         cell, batch, model, force_rerun, user
                         )
-            if int(queueid) < 0:
+            if not queueid:
                 pass_fail.append(
-                        'Failure: {0}, {1}, {2}'
+                        '\nFailure: {0}, {1}, {2}'
                         .format(cell, batch, model)
                         )
             else:
                 pass_fail.append(
-                        'Success: {0}, {1}, {2} \n'
-                        'added to queue with queue id: {3}'
-                        .format(cell, batch, model, queueid)
+                        '\n queueid: {0},'
+                        '\n message: {1}'
+                        .format(queueid, message)
                         )
     
-    return pass_fail
+    # Can return pass_fail instead if prefer to do something with it in views
+    print('\n'.join(pass_fail))
+    return
 
 
 def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
@@ -163,12 +165,12 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
     
     session = Session()
     cluster_session = cluster_Session()
-    tQueueId = -1
     
     # TODO: anything else needed here? this is syntax for nems_fit_single
     #       command prompt wrapper in main nems folder.
     commandPrompt = (
-            "python nems/nems_fit_single.py {0} {1} {2}"
+            "/auto/users/nems/anaconda3/bin/python "
+            "/auto/users/nems/nems/nems_fit_single.py {0} {1} {2}"
             .format(cellid, batch, modelname)
             )
 
@@ -183,7 +185,9 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
             )
     if result and not force_rerun:
         print("Entry in NarfResults already exists for: %s, skipping.\n"%note)
-        return -1
+        session.close()
+        cluster_session.close()
+        return -1, 'skip'
     
     #query tQueue to check if entry with same cell/batch/model already exists
     qdata = (
@@ -195,49 +199,55 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
     # if it does, check its 'complete' status and take different action based on
     # status
     
+    job = None
+    message = None
+    
     if qdata and (int(qdata.complete) <= 0):
         #TODO:
         #incomplete entry for note already exists, skipping
         #update entry with same note? what does this accomplish?
         #moves it back into queue maybe?
-        print("Incomplete entry for: %s already exists, skipping.\n"%note)
-        return -1
+        message = "Incomplete entry for: %s already exists, skipping.\n"%note
+        job = qdata
     elif qdata and (int(qdata.complete) == 2):
         #TODO:
         #dead queue entry for note exists, resetting
         #update complete and progress status each to 0
         #what does this do? doesn't look like the sql is sent right away,
         #instead gets assigned to [res,r]
-        print("Dead queue entry for: %s already exists, resetting.\n"%note)
+        message = "Dead queue entry for: %s already exists, resetting.\n"%note
         qdata.complete = 0
         qdata.progress = 0
-        return -1
+        job = qdata
     elif qdata and (int(qdata.complete) == 1):
         #TODO:
         #resetting existing queue entry for note
         #update complete and progress status each to 0
         #same as above, what does this do?
-        print("Resetting existing queue entry for: %s\n"%note)
+        message = "Resetting existing queue entry for: %s\n"%note
         qdata.complete = 0
         qdata.progress = 0
-        return -1
-    else: #result must not have existed? or status value was greater than 2
+        job = qdata
+    else:
+        #result must not have existed, or status value was greater than 2
         # add new entry
-        print("Adding job to queue for: %s\n"%note)
+        message = "Adding job to queue for: %s\n"%note
         job = add_model_to_queue(commandPrompt, note, user)
-        session.add(job)
+        cluster_session.add(job)
     
-    # uncomment session.commit() when ready to test saving to database
-    session.commit()
-    tQueueId = job.id
+    queueid = job.id
+    
+    # don't need to commit the regular session since results don't change
+    cluster_session.commit()
+    cluster_session.close()
     session.close()
     
     if AWS:
         check_instance_count()
     else:
         pass
-    
-    return tQueueId
+
+    return queueid, message
     
 def add_model_to_queue(commandPrompt, note, user, priority=1, rundataid=0):
     """Not yet developed, likely to change a lot.
@@ -301,7 +311,7 @@ def update_job_complete(queueid):
     #.filter(tQueue.note == note)
     qdata = (
             cluster_session.query(cluster_tQueue)
-            .filter(tQueue.id == queueid)
+            .filter(cluster_tQueue.id == queueid)
             .first()
             )
     if not qdata:
