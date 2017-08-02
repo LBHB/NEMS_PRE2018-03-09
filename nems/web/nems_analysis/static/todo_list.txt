@@ -15,8 +15,6 @@ In no particular order:
 - fix issues w/ positioning of bokeh toolbar - it either sit way off to the right
   or mashes into title/whatever axis it sits on. waiting on fix from bokeh
   for non-sticky toolbar.
-  
-- link up enqueue models to cluster
 
 - switch analysis editor to use id instead of name for querying
 

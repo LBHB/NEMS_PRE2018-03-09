@@ -807,7 +807,7 @@ $(document).ready(function(){
             // TODO: should POST be used in this case?
             type: 'GET',
             success: function(data){
-                py_console_log(data.data);
+                py_console_log("Queueing complete.");
                 removeLoad();
             },
             error: function(error){

@@ -140,11 +140,13 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
             else:
                 pass_fail.append(
                         '\n queueid: {0},'
-                        '\n message: {1}.'
+                        '\n message: {1}'
                         .format(queueid, message)
                         )
     
-    return pass_fail
+    # Can return pass_fail instead if prefer to do something with it in views
+    print('\n'.join(pass_fail))
+    return
 
 
 def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
@@ -167,7 +169,8 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
     # TODO: anything else needed here? this is syntax for nems_fit_single
     #       command prompt wrapper in main nems folder.
     commandPrompt = (
-            "python3 /auto/users/nems/nems/nems_fit_single.py {0} {1} {2}"
+            "/auto/users/nems/anaconda3/bin/python "
+            "/auto/users/nems/nems/nems_fit_single.py {0} {1} {2}"
             .format(cellid, batch, modelname)
             )
 
@@ -224,6 +227,7 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
         message = "Resetting existing queue entry for: %s\n"%note
         qdata.complete = 0
         qdata.progress = 0
+        job = qdata
     else:
         #result must not have existed, or status value was greater than 2
         # add new entry

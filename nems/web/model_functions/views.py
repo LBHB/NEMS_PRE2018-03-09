@@ -138,11 +138,11 @@ def enqueue_models_view():
     mSelected = request.args.getlist('mSelected[]')
     force_rerun = request.args.get('forceRerun', type=int)
     
-    pass_fail = enqueue_models(
+    enqueue_models(
             cSelected, bSelected, mSelected,
             force_rerun=bool(force_rerun), user=user.username,
             )
-    return jsonify(data=pass_fail)
+    return jsonify(data=True)
     
 
 

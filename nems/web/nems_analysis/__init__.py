@@ -37,6 +37,7 @@ def py_console():
                     #line = '{0}:{1}:{2}: {3}'.format(
                     #            now.hour, now.minute, now.second, line,
                     #            )
+                    line = line.replace('\n', '<br>')
                     socketio.emit(
                             'console_update',
                             {'data':line},
