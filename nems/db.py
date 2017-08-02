@@ -311,7 +311,7 @@ def update_job_complete(queueid):
     #.filter(tQueue.note == note)
     qdata = (
             cluster_session.query(cluster_tQueue)
-            .filter(tQueue.id == queueid)
+            .filter(cluster_tQueue.id == queueid)
             .first()
             )
     if not qdata:
