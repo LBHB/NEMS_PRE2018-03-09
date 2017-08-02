@@ -24,9 +24,9 @@ import copy
 stack=ns.nems_stack()
     
 stack.meta['batch']=293
-stack.meta['cellid']='eno048f-b1'
-stack.meta['modelname']='fb16ch50u_wc03_fir10_polypupgain03_fit02'
-    
+stack.meta['cellid']='BOL006b-60-1'
+stack.meta['modelname']='parm50_wc03_fir10_fit00_nested20'
+stack.keywords=stack.meta['modelname'].split("_")
 # extract keywords from modelname    
 if 'nested' in stack.keywords[-1]:
     print('Using nested cross-validation, fitting will take longer!')
@@ -45,12 +45,9 @@ stack.valmode=True
 alldata=stack.data  
 stack.evaluate(1)
 
-alldata=stack.data   
-    
-corridx=nu.find_modules(stack,'correlation')
-if not corridx:
-       # add MSE calculator module to stack if not there yet
-    stack.append(nm.correlation)
+alldata=stack.data
+
+stack.append(nm.correlation)
                     
 #print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                  #stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))

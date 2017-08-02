@@ -34,6 +34,23 @@ def parm50(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.crossval,valfrac=stack.valfrac)
+    
+def parm50test(stack):
+    """
+    Specifically for batch293 tone-pip data
+    """
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
+                                     fs=100,stimfmt='parm',chancount=16)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
+    stack.append(nm.standard_est_val)
+    
+def parm50a(stack):
+    file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
+                                     fs=100,stimfmt='parm',chancount=16)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
 
 def fb24ch200(stack):
     file=baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
@@ -241,14 +258,9 @@ def butterworth04(stack):
 ###############################################################################
 
 def fit00(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-        
+    stack.append(nm.mean_square_error)  
+    # set error (for minimization) for this stack to be output of last module
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack)
@@ -257,14 +269,8 @@ def fit00(stack):
     create_parmlist(stack)
     
 def fit01(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-        
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack)
@@ -273,14 +279,8 @@ def fit01(stack):
     create_parmlist(stack)
     
 def fit02(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-        
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
     stack.fitter=nf.basic_min(stack,routine='SLSQP')
@@ -289,10 +289,8 @@ def fit02(stack):
     create_parmlist(stack)
     
 def fit00h1(stack):
-    hubidx=nu.find_modules(stack,'pseudo_huber_error')
-    if not hubidx:
-        stack.append(nm.pseudo_huber_error,b=1.0)
-        stack.error=stack.modules[-1].error
+    stack.append(nm.pseudo_huber_error,b=1.0)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
     stack.fitter=nf.basic_min(stack)
@@ -303,14 +301,8 @@ def fit00h1(stack):
     stack.append(nm.mean_square_error)
     
 def fitannl00(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-    
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
     stack.fitter=nf.anneal_min(stack,anneal_iter=50,stop=5,up_int=10,bounds=None)
@@ -320,14 +312,8 @@ def fitannl00(stack):
     
     
 def fitannl01(stack):
-    mseidx=nu.find_modules(stack,'mean_square_error')
-    if not mseidx:
-        # add MSE calculator module to stack if not there yet
-        stack.append(nm.mean_square_error)
-        
-        # set error (for minimization) for this stack to be output of last module
-        stack.error=stack.modules[-1].error
-    
+    stack.append(nm.mean_square_error)
+    stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
     stack.fitter=nf.anneal_min(stack,anneal_iter=100,stop=10,up_int=5,bounds=None)
@@ -336,7 +322,6 @@ def fitannl01(stack):
     create_parmlist(stack)
     
 def fititer00(stack):
-    
     stack.append(nm.mean_square_error,shrink=0.5)
     stack.error=stack.modules[-1].error
     
@@ -390,6 +375,7 @@ def perfectpupil50(stack):
     #stack.nests=20
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model)
+    
  
     
 # Nested Crossval

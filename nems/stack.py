@@ -77,18 +77,14 @@ class nems_stack:
             print('Evaluating validation data')
             mse_idx=nu.find_modules(self,'mean_square_error')
             mse_idx=int(mse_idx[0])
-                #xval_idx=nu.find_modules(self,'crossval')
-                #xval_idx=xval_idx[0]
-                #print(xval_idx)
-                #self.modules[xval_idx].evaluate()
-                #print(self.data[2][1]['stim'][3].shape)
-                
-                #TODO: there is definitely a more efficient way to do this, but this
-                #works reliably. In the future, should make it so that crossval is
-                #only evaluated once on nested fits. However, it isn't such a big deal
-                # since it doesn't fit crossval (e.e. isn't called thousands of times)
-                #---njs 24 July 2017, updated July 31 2017
-                
+            try:
+                xval_idx=nu.find_modules(self,'crossval')
+            except:
+                xval_idx=nu.find_modules(self,'standard_est_val')
+            xval_idx=xval_idx[0]
+            if start<=xval_idx:
+                self.modules[xval_idx].evaluate()
+                start=xval_idx+1
             for ii in range(start,mse_idx):
                 for i in range(0,self.nests):
                     st=0
@@ -98,7 +94,7 @@ class nems_stack:
                         self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
                         st+=np.prod(s)
                     self.modules[ii].evaluate(nest=i)
-            nu.concatenate_helper(self,start=start+1,end=mse_idx+1)
+            nu.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
             for ij in range(mse_idx,len(self.modules)):
                 self.modules[ij].evaluate() 
         else:
