@@ -129,11 +129,6 @@ class basic_min(nems_fitter):
         opt['maxiter']=int(self.maxit)
         if self.routine=='L-BFGS-B':
             opt['eps']=1e-7
-        #if function=='tanhON':
-            #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
-            #routine='COBYLA'
-        #else:
-            #
         cons=()
         self.phi0=self.fit_to_phi() 
         self.counter=0

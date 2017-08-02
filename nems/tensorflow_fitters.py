@@ -76,6 +76,8 @@ class tf_nems_fitter:
             print('Eval #{0}. MSE={1}'.format(self.counter,self.stack.error()))
         return self.stack.error()
     
+    #def update(phi):
+    
     def do_fit(self):
         # run the fitter
         self.counter=0
@@ -103,15 +105,48 @@ class ADADELTA_min(tf_nems_fitter):
         self.iters=iters
         print('Initializing ADADELTA fitter')
         
-    def setup(phi):
         
+    def update(self,phi,ticker):
+        s=phi.shape 
+        self.phi_to_fit(phi)
+        self.stack.evaluate(self.fit_modules[0])
+        #err=self.stack.error()
+        #tick=ticker[0]
+        stim_up=tf.identity(self.stack.data[-1][ticker]['stim']) #This won't work if the arrays are shaped differently
+        #resp=np.concatenate(self.stack.data[-1][:]['resp'],axis=1)
+        return stim_up
         
         
     def do_fit(self):
+        phi0=self.fit_to_phi() 
+        phi=tf.Variable(phi0)
+        ticker=tf.placeholder(tf.float32)
+        resp=tf.placeholder(tf.float32,[None,None])
+        #cost=tf.py_func(self.cost_fn,[phi],[tf.float32],name='Cost')
+        stim=tf.identity(tf.py_func(self.update,[phi,ticker],tf.float32,name='Update'))
+        cost=tf.losses.mean_squared_error(labels=resp,predictions=stim)
+        train_step=tf.train.AdadeltaOptimizer().minimize(cost)
         
         with tf.Session as sess:
+            sess.run(tf.global_variables_initializer())
+            for i in range(0,self.iters):
+                if i%1000==0:
+                    current_err=cost.eval(feed_dict={resp:self.stack.data[-1][0]['resp'],
+                                      ticker:list(range(0,len(self.stack.data[-1])))})
+                    print('Iteration {0}, Error={2}'.format(i,current_err))
+                train_step.run(feed_dict={resp:self.stack.data[-1][0]['resp'],
+                                      ticker:list(range(0,len(self.stack.data[-1])))})
+            phi_final=sess.run(phi)
+        self.phi_to_fit(phi_final)
+        self.stack.evaluate(self.fi_modules[0])
             
-            
+                
+"""
+This implementation has issues stemming from how Tensorflow does backpropagation.
+Essentially, Tensorflow can't do the backpropagation with the nems stack evaluations
+
+I'm not really sure where to go from here...
+"""
     
     
     

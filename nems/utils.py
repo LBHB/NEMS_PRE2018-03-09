@@ -227,6 +227,7 @@ def plot_stim_psth(m,idx=None,size=FIGSIZE):
     resp, =plt.plot(s2,'r',label='Post-'+m.name)
     plt.legend(handles=[resp])
     #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
+        
   
 def plot_strf(m,idx=None,size=FIGSIZE):
     if idx:
