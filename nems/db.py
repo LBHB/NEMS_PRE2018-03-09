@@ -18,7 +18,7 @@ from sqlalchemy.ext.automap import automap_base
 
 try:
     import nems_config.AWS_Config as awsc
-    AWS = awsc.Use_AWS
+    AWS = awsc.USE_AWS
     if AWS:
         from nems.EC2_Mgmt import check_instance_count
 except:
@@ -48,6 +48,7 @@ try:
     # format:      dialect+driver://username:password@host:port/database
     # to-do default port = 3306
     if not hasattr(clst_db, 'port'):
+        print("No port specified for cluster db info, using default port")
         port = 3306
     else:
         port = clst_db.port
@@ -338,10 +339,6 @@ def save_results(stack, preview_file, queueid=None):
     session = Session()
     cluster_session = cluster_Session()
     
-    cellid = stack.meta['cellid']
-    batch = stack.meta['batch']
-    modelname = stack.meta['modelname']
-    
     # Can't retrieve user info without queueid, so if none was passed
     # use the default blank user info
     if queueid:
@@ -350,18 +347,31 @@ def save_results(stack, preview_file, queueid=None):
                 .filter(cluster_tQueue.id == queueid)
                 .first()
                 )
-        user = job.user
+        username = job.user
         narf_user = (
                 session.query(NarfUsers)
-                .filter(NarfUsers.username == user)
+                .filter(NarfUsers.username == username)
                 .first()
                 )
         labgroup = narf_user.labgroup
     else:
-        user = ''
+        username = ''
         labgroup = 'SPECIAL_NONE_FLAG'
 
+    results_id = update_results_table(stack, preview_file, username, labgroup)
+    
+    session.close()
+    cluster_session.close()
+    
+    return results_id
 
+def update_results_table(stack, preview, username, labgroup):
+    session = Session()
+    
+    cellid = stack.meta['cellid']
+    batch = stack.meta['batch']
+    modelname = stack.meta['modelname']
+    
     r = (
             session.query(NarfResults)
             .filter(NarfResults.cellid == cellid)
@@ -371,13 +381,16 @@ def save_results(stack, preview_file, queueid=None):
             )
     collist = ['%s'%(s) for s in NarfResults.__table__.columns]
     attrs = [s.replace('NarfResults.', '') for s in collist]
-    attrs.remove('id')
-    attrs.remove('figurefile')
-    attrs.remove('lastmod')
+    removals = [
+            'id', 'figurefile', 'lastmod', 'public', 'labgroup', 'username'
+            ]
+    for col in removals:
+        attrs.remove(col)
+        
     if not r:
         r = NarfResults()
-        r.figurefile = preview_file
-        r.username = user
+        r.figurefile = preview
+        r.username = username
         if not labgroup == 'SPECIAL_NONE_FLAG':
             try:
                 if not labgroup in r.labgroup:
@@ -386,13 +399,12 @@ def save_results(stack, preview_file, queueid=None):
                 # if r.labgroup is none, ca'nt check if user.labgroup is in it
                 r.labgroup = labgroup
         fetch_meta_data(stack, r, attrs)
-        # TODO: assign performance variables from stack.meta
         session.add(r)
     else:
-        r.figurefile = preview_file
+        r.figurefile = preview
         # TODO: This overrides any existing username or labgroup assignment.
         #       Is this the desired behavior?
-        r.username = user
+        r.username = username
         if not labgroup == 'SPECIAL_NONE_FLAG':
             try:
                 if not labgroup in r.labgroup:
@@ -401,13 +413,13 @@ def save_results(stack, preview_file, queueid=None):
                 # if r.labgroup is none, can't check if labgroup is in it
                 r.labgroup = labgroup
         fetch_meta_data(stack, r, attrs)
-        
-    results_id = r.id
+    
     session.commit()
+    results_id = r.id
     session.close()
     
     return results_id
-
+    
 def fetch_meta_data(stack, r, attrs):
     """Assign attributes from model fitter object to NarfResults object.
     
@@ -468,6 +480,8 @@ def _fetch_attr_value(stack,k,default=0.0):
                         pass
             else:
                 v = stack.meta[k]
+        else:
+            v = default
     else:
         v = default
         

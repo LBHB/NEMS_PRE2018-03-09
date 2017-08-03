@@ -36,5 +36,3 @@ In no particular order:
   (ex. which views should require a 'fresh' login even for saved session?)
   
 - integrate AWS
-
-- figure out why user name and labgroup won't save to narfresults

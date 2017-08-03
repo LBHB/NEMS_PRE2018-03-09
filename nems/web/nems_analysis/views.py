@@ -544,17 +544,9 @@ def edit_analysis():
     checkExists = (
             session.query(NarfAnalysis)
             .filter(NarfAnalysis.name == eName)
-            .all()
+            .first()
             )
-    if len(checkExists) > 1:
-        session.close()
-        return Response(
-                """
-                Oops! More than one analysis with the same name\
-                already exists, something is wrong!
-                """
-                )
-    elif len(checkExists) == 1:
+    if checkExists:
         a = checkExists[0]
         if (
                 a.public
