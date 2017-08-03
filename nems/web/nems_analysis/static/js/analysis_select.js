@@ -22,7 +22,9 @@ $(document).ready(function(){
         if ((msg.data === 'Login required') || (msg.data === 'Fit failed.')){
             color = 'style="color: red"';
         }
-        $('#py_console').prepend("<p class='py_con_msg'" + color + ">" + msg.data + "</p>");
+        $('#py_console').prepend(
+                "<p class='py_con_msg'" + color + ">" + msg.data + "</p>"
+                );
     });
     
     // use this in place of console.log to send to py_console
@@ -32,8 +34,9 @@ $(document).ready(function(){
         if ((message === 'Login required') || (message === 'Fit failed.')){
             color = 'style="color: red"';
         }
-        $('#py_console').prepend("<p class='py_con_msg'" + color + ">" + message + "</p>");
-             
+        $('#py_console').prepend(
+                "<p class='py_con_msg'" + color + ">" + message + "</p>"
+                );
     }
 
     //initializes bootstrap popover elements
@@ -244,9 +247,28 @@ $(document).ready(function(){
     ordSelected = updateOrder();
     sortSelected = updateSort();
 
+    function addLinksToTable(){
+        // Iterate through each table row and convert each result
+        // to a link to detailed info for that result
+        var $table = $("#tableWrapper").children('table');
+        $table.find('tbody').find('tr').each(function(){
+            var cellid = $(this).children().eq(0).html();
+            var modelname = $(this).children().eq(1).html();
+            var cell_link = $SCRIPT_ROOT + '/cell_details/';
+            var model_link = $SCRIPT_ROOT + '/model_details/';
+            $(this).children().eq(0).html(
+                    "<a href='" + cell_link + cellid + "' target='_blank'"
+                    + ">" + cellid + "</a>"
+                    );
+            $(this).children().eq(1).html(
+                    "<a href='" + model_link + modelname + "' target='_blank'"
+                    + ">" + modelname + "</a>"
+                    );
+        });
+    }
+    
     $("#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(updateResults);
-            
     function updateResults(){
         
         updatecols();
@@ -272,7 +294,9 @@ $(document).ready(function(){
                 //results.draggable("destroy");
                 results.html(data.resultstable)
                 //sizeDragTable();
-                initTable(results.children("table"));
+                var table = results.children("table");
+                initTable(table);
+                addLinksToTable();
             },
             error: function(error) {
                 console.log(error);

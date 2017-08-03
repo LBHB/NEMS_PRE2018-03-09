@@ -28,7 +28,11 @@ In no particular order:
 
 - able to reload modules/lib stuff
   (how would this affect saved models if module changed)
-
+  (note: use importlib.reload(module))
+  (note: looks like pickle loads the old module -- had error when loading
+   an old fit model that was still trying to point to lib.xxx imports, but
+   re-fitting the model fixed it)
+  
 - ability to run custom scripts from directory on selected results
 
 - finish config for session/cookie management w/ flask login
@@ -36,3 +40,5 @@ In no particular order:
   (ex. which views should require a 'fresh' login even for saved session?)
   
 - integrate AWS
+
+- set up SSL context for neuralprediction (i.e. https / secure hosting )

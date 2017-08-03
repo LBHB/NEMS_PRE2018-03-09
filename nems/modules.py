@@ -905,7 +905,7 @@ class state_gain(nems_module):
     """
     #Changed to helper function based general module --njs June 29 2017
     name='state_gain'
-    plot_fns=[nu.pre_post_psth,nu.non_plot]
+    plot_fns=[nu.pred_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
     
     def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False,
                 order=None):
