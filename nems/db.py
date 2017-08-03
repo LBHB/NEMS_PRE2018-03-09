@@ -18,7 +18,7 @@ from sqlalchemy.ext.automap import automap_base
 
 try:
     import nems_config.AWS_Config as awsc
-    AWS = awsc.Use_AWS
+    AWS = awsc.USE_AWS
     if AWS:
         from nems.EC2_Mgmt import check_instance_count
 except:

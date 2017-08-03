@@ -16,7 +16,7 @@ import copy
 import boto3
 try:
     import nems_config.AWS_Config as awsc
-    AWS = awsc.Use_AWS
+    AWS = awsc.USE_AWS
 except:
     AWS = False
     
@@ -88,13 +88,22 @@ def load_model(file_path):
             with open(file_path, 'rb') as handle:
                 stack = pickle.load(handle)
             print('stack successfully loaded')
+            
+            # Note: print statements for debugging loading of empty stack
+            print('stack.modules:')
+            print(stack.modules)
+            print('stack.data: ')
+            print(stack.data)
+            if not stack.data[0][0]['stim']:
+                raise Exception("Loaded stack from pickle, but data is empty")
+                
             return stack
-        except:
+        except Exception as e:
             # TODO: need to do something else here maybe? removed return stack
             #       at the end b/c it was being returned w/o assignment when
             #       open file failed.
             print("error loading {0}".format(file_path))
-            return
+            raise e
 
 
 #

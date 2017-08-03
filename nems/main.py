@@ -105,17 +105,14 @@ example:
 """
 def load_single_model(cellid, batch, modelname):
     
-    filename=(
+    filename = (
             "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
             .format(batch, cellid, modelname)
             )
-    # For now don't do anything different to cross validated models.
-    # TODO: should these be loaded differently in the future?
-    #filename = filename.strip('_xval')
     
-    stack=nu.load_model(filename)
+    stack = nu.load_model(filename)
     try:
-        stack.valmode=True
+        stack.valmode = True
         stack.evaluate()
     except Exception as e:
         print("Error evaluating stack")
