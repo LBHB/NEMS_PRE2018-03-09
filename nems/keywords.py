@@ -334,6 +334,9 @@ def fititer00(stack):
     create_parmlist(stack)
 
 def adadelta00(stack):
+    """
+    Very unoperational attempt at using tensorflow
+    """
     stack.fitter=ntf.ADADELTA_min(stack)
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -427,7 +430,7 @@ def nest_helper(stack):
     """
     stack.cond=False
     while stack.cond is False:
-        print('iter loop='+str(stack.cv_counter))
+        print('Nest #'+str(stack.cv_counter))
         stack.clear()
         stack.valmode=False
         for k in range(0,len(stack.keywords)-1):

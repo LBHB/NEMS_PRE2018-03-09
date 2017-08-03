@@ -548,18 +548,32 @@ class crossval(nems_module):
                             d_val['repcount']=copy.deepcopy(d['repcount'])
                         d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
                         d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
-                            
+                        
+                      
+                    #TODO: this code runs if crossval allocated
+                    #an empty nest at the end of the validation list. This 
+                    #should not happen as often as it does, and it would be a 
+                    #better long term thing to do to change how the indices for
+                    #allocating the datasets are chosen (something better than 
+                    #mt.ceil), since then estimation nests with no validation
+                    #nest would not be fit, as they are currently.
+                    #    ----njs, August 2 2017
+                    
                     s=d_val['stim'][-1].shape
                     sr=d_val['resp'][-1].shape
-                    if s[1]==0 or sr[0]==0:
+                    while s[1]==0 or sr[0]==0:
                         del(d_val['stim'][-1])
                         del(d_val['resp'][-1])
                         del(d_val['pupil'][-1])
-                        del(d_val['replist'][-1])
+                        try:
+                            del(d_val['replist'][-1])
+                        except:
+                            pass
                         self.parent_stack.nests-=1
+                        s=d_val['stim'][-1].shape
+                        sr=d_val['resp'][-1].shape
                         print('Final nest has no stimuli, updating to have {0} nests'.format(
                                 self.parent_stack.nests))
-                    
                     self.d_out.append(d_val)
                 
                 if self.parent_stack.cv_counter==self.iter:
