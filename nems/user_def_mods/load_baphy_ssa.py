@@ -64,9 +64,6 @@ class load_baphy_ssa(nems_module):
             data['prestim'] = prestim
             duration = m['tags'][0]['Duration'][0][0][0]
             data['duration'] = duration
-            respdur=data['resp'].shape[0]/data['respFs']
-            if data['duration'] !=respdur:
-                data['duration']=respdur
             poststim = data['resp'].shape[0] - (prestim + duration) * data['respFs']
             data['poststim'] = -poststim / data['respFs']
 
@@ -76,7 +73,11 @@ class load_baphy_ssa(nems_module):
                 data['pupil'] = m['pupil']
             except:
                 data['pupil'] = None
-                
+            
+            sr=data['resp'].shape[0]/data['respFs']
+            data['duration']=sr-data['prestim']
+            
+            
             self.parent_stack.unresampled={'resp':data['resp'],'respFs':data['respFs'],'duration':data['duration'],
                                                'pupil':data['pupil']}
             
@@ -85,9 +86,7 @@ class load_baphy_ssa(nems_module):
                 stim = stim / stim.max()
                 stim = np.where(stim < 0.5, 0, 1)  # trasnforms stim to binary
                 stim = np.swapaxes(stim, 1, 2)
-                pre=data['prestim']*data['stimFs']
-                stim = stim[:,:,pre:data['resp'].shape[0]+pre]
-                data['prestim']=0
+                stim = stim[:,:,0:data['resp'].shape[0]]
                 data['poststim']=0
                 self.parent_stack.unresampled['prestim']=data['prestim']
                 self.parent_stack.unresampled['poststim']=data['poststim']

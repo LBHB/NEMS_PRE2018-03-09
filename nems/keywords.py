@@ -112,7 +112,7 @@ def loadlocal(stack):
 def jitterload(stack):
     filepath='/auto/users/shofer/data/batch296mateo/'+str(stack.meta['cellid'])+'_b'+str(stack.meta['batch'])+'_envelope_fs1000.mat'
     print("Initializing load_mat with file {0}".format(filepath))
-    stack.append(lbs.load_baphy_ssa,file=filepath,fs=250)
+    stack.append(lbs.load_baphy_ssa,file=filepath,fs=500)
     stack.append(nm.crossval,valfrac=stack.valfrac)
 
 
