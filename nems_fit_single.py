@@ -62,5 +62,5 @@ if __name__ == '__main__':
         else:
             queueid = None
         r_id = nd.save_results(stack, preview_file, queueid=queueid)
-        print("Fit results saved to NarfResults, id=%s"%r_id)
+        print("Fit results saved to NarfResults, id={0}".format(r_id))
        

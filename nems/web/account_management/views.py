@@ -7,8 +7,7 @@
 
 from urllib.parse import urlparse, urljoin
 
-import flask
-from flask import redirect, request, url_for, render_template, g
+from flask import redirect, request, url_for, render_template, g, Response
 from flask_login import (
         LoginManager, login_required, login_user, logout_user, current_user
         )
@@ -21,8 +20,11 @@ from account_management.forms import LoginForm, RegistrationForm
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.session_protection = 'basic'
+# TODO: how to get this to show up on site through ajax?
+def login_required_callback():
+    return Response('Login required')
+login_manager.unauthorized = login_required_callback
 bcrypt = Bcrypt(app)
-
 
 @login_manager.user_loader
 def load_user(user_id):

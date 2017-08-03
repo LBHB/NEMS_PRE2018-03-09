@@ -531,7 +531,9 @@ def edit_analysis():
     
     # Make sure the keyword combination is valid using nems.keyword_rules
     try:
-        keyword_test_routine(eTree)
+        mf = ModelFinder(eTree)
+        for modelname in mf.modellist:
+            keyword_test_routine(modelname)
     except Exception as e:
         return jsonify(success='Analysis not saved: \n' + str(e))
     
