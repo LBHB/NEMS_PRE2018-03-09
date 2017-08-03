@@ -13,10 +13,22 @@ the server, potentially causing harm.
 """
 
 from nems.web.nems_analysis import app, socketio
+#import nems_config.NEMS_Path as np
+
+#from OpenSSL import SSL
+#context = SSL.Context(SSL.PROTOCOL_TLSv1_2)
+#context.use_privatekey_file(np.path + '/nems_config/host.key')
+#context.use_certificate_file(np.path + '/nems_config/host.cert')
+
+# TODO: figure out how to correctly configure the certificate for
+#       desired host name, then turn this back on for neuralprediction.
+#context = (
+#        np.path + '/nems_config/host.cert', np.path + '/nems_config/host.key'
+#        )
 
 socketio.run(
         app, host="0.0.0.0", port=8000, debug=True,
-        use_reloader=True,
+        use_reloader=True, #ssl_context=context
         )
 
 #app.run(host="0.0.0.0", port=8000, debug=True)

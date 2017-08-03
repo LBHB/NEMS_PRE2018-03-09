@@ -68,3 +68,4 @@ import nems.web.model_functions.views
 import nems.web.modelpane.views
 import nems.web.account_management.views
 import nems.web.upload.views
+import nems.web.table_details.views
