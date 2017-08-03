@@ -14,7 +14,7 @@ def cell_details(cellid):
     
 @app.route('/model_details/<modelname>')
 def model_details(modelname):
-    return Response('Details for modelname: ' + modelname)
+    #return Response('Details for modelname: ' + modelname)
     # test code below this, won't run until response removed
     keyword_list = modelname.split('_')
     kw_funcs = [
@@ -23,6 +23,14 @@ def model_details(modelname):
             else "Couldn't find keyword: {0}".format(kw)
             for kw in keyword_list
             ]
+    docs = [
+            func.__doc__ + '              '
+            if func.__doc__
+            else 'blank doc string'
+            for func in kw_funcs
+            ]
+        
+    return Response('         '.join(docs))
     # TODO: parse the stack.append() lines inside each kw function
     #       into a description of which module(s) is/are added and which
     #       arguments are specified
