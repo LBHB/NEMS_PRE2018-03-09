@@ -220,6 +220,36 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
+def pred_act_psth_all(m,size=FIGSIZE,idx=None):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    s=m.unpack_data(m.output_name,use_dout=True)
+    r=m.unpack_data("resp",use_dout=True)
+    s2=np.append(s.transpose(),r.transpose(),0)
+    try:
+        p=m.unpack_data("pupil",use_dout=True)
+        s2=np.append(s2,p.transpose(),0)
+        p_avail=True
+    except:
+        p_avail=False
+    
+    bincount=np.min([5000,s2.shape[1]])
+    T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=np.reshape(s2[:,0:(T*bincount)],[3,T,bincount])
+    s2=np.mean(s2,1)
+    s2=np.squeeze(s2)
+    
+    pred, =plt.plot(s2[0,:],label='Predicted')
+    act, =plt.plot(s2[0,:],'r',label='Actual')
+    if p_avail:
+        pup, =plt.plot(s2[0,:],'g',label='Pupil')
+        plt.legend(handles=[pred,act,pup])
+    else:
+        plt.legend(handles=[pred,act])
+        
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Time Step')
+    plt.ylabel('Firing rate (unitless)')
 
 def pre_post_psth(m,size=FIGSIZE,idx=None):
     if idx:

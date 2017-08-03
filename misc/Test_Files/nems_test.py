@@ -40,8 +40,11 @@ cellid='bbl031f-a1'
 batch=291
 modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 
-stack=main.fit_single_model(cellid, batch, modelname)
+cellid="eno052d-a1"
+batch=294
+modelname="perfectpupil50_pupgain_fit01"
 
+stack=main.fit_single_model(cellid, batch, modelname)
 
 '''
 
