@@ -1,14 +1,11 @@
 import numpy as np
-import numpy.ma as npma
 import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
-import scipy.signal as sps
 import scipy.stats as spstats
 import copy
 import nems.utils as nu
 import math as mt
 import scipy.special as sx
-import warnings as wn
 #from nems.user_def_mods import load_baphy_ssa
 
 class nems_module:

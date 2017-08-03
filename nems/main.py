@@ -5,15 +5,10 @@ Created on Sun Jun 18 20:16:37 2017
 
 @author: svd
 """
-import numpy as np
 import nems.modules as nm
 import nems.stack as ns
-import nems.fitters as nf
 import nems.utils as nu
 import nems.keywords as nk
-import nems.baphy_utils as baphy_utils
-import copy
-import scipy.stats as spstats
 
 
 """

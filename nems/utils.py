@@ -6,7 +6,6 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
-import scipy as sp
 import scipy.signal as sps
 import numpy as np
 import numpy.ma as npma

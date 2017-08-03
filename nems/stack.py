@@ -6,11 +6,9 @@ Created on Fri Jul 14 15:54:26 2017
 @author: shofer
 """
 
-import nems.modules as nm
 import matplotlib.pyplot as plt,mpld3
 import nems.utils as nu
 import numpy as np
-import copy
 import os
 
 class nems_stack:
