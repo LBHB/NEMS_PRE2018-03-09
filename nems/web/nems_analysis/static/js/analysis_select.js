@@ -258,11 +258,11 @@ $(document).ready(function(){
             var model_link = $SCRIPT_ROOT + '/model_details/';
             $(this).children().eq(0).html(
                     "<a href='" + cell_link + cellid + "' target='_blank'"
-                    + ">" + cellid + "</a>"
+                    + "id='" + cellid + "'>" + cellid + "</a>"
                     );
             $(this).children().eq(1).html(
                     "<a href='" + model_link + modelname + "' target='_blank'"
-                    + ">" + modelname + "</a>"
+                    + "id='" + modelname + "'>" + modelname + "</a>"
                     );
         });
     }
@@ -665,10 +665,10 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(0).html());
+            cSelected.push($(this).children().eq(0).children('a').attr('id'));
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(1).html());
+            mSelected.push($(this).children().eq(1).children('a').attr('id'));
         });
 
         // only proceed if selections have been made
@@ -855,13 +855,13 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(0).html());
+            cSelected.push($(this).children().eq(0).children('a').attr('id'));
             if (cSelected.length > 0){
                 return false;
             }
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(1).html());
+            mSelected.push($(this).children().eq(1).children('a').attr('id'));
             if (mSelected.length > 0){
                 return false;
             }
