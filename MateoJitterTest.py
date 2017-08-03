@@ -22,7 +22,7 @@ import nems.user_def_mods.load_baphy_ssa as lbs
 
 
 batch=296
-cellid='gus019d-a1'
-keyword='jitterload_fir15_fit02'
+cellid='gus018d-d1'
+keyword='jitterload_fir15_dexp_fit02'
 
 stack=mn.fit_single_model(cellid,batch,keyword,autoplot=True)

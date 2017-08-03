@@ -96,7 +96,7 @@ def load_model(file_path):
             print(stack.modules)
             print('stack.data: ')
             print(stack.data)
-            if not stack.data[0][0]['stim']:
+            if not stack.data:
                 raise Exception("Loaded stack from pickle, but data is empty")
                 
             return stack

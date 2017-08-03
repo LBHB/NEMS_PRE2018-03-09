@@ -8,7 +8,7 @@ Created on Fri Jun 16 05:20:07 2017
 
 import nems.modules as nm
 import nems.fitters as nf
-import nems.tensorflow_fitters as ntf
+#import nems.tensorflow_fitters as ntf
 import nems.utils as nu
 import nems.baphy_utils as baphy_utils
 import numpy as np
@@ -175,12 +175,10 @@ def fir_mini_fit(stack):
 def fir10(stack):
     stack.append(nm.fir_filter,num_coefs=10)
     fir_mini_fit(stack)
-    #stack.append(nm.normalize)
     
 def fir15(stack):
     stack.append(nm.fir_filter,num_coefs=15)
     fir_mini_fit(stack)
-    #stack.append(nm.normalize)
 
 # static NL keywords
 ###############################################################################
@@ -343,14 +341,14 @@ def fititer00(stack):
     stack.fitter.do_fit()
     create_parmlist(stack)
 
-def adadelta00(stack):
-    """
-    Very unoperational attempt at using tensorflow
-    """
-    stack.fitter=ntf.ADADELTA_min(stack)
-    stack.fitter.do_fit()
-    create_parmlist(stack)
-    stack.append(nm.mean_square_error)
+#def adadelta00(stack):
+#    """
+#    Very unoperational attempt at using tensorflow
+#    """
+#    stack.fitter=ntf.ADADELTA_min(stack)
+#   stack.fitter.do_fit()
+#    create_parmlist(stack)
+#    stack.append(nm.mean_square_error)
 
 
 
