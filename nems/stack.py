@@ -106,17 +106,10 @@ class nems_stack:
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
         if mod is None:
-            raise ValueError('stack.append: module not specifified')
+            raise ValueError('stack.append: module not specified')
         else:
             m=mod(self, **xargs)
-        
         self.append_instance(m)
-        # svd removed redundant code
-        #        self.modules.append(m)
-        #        self.data.append(m.d_out)
-        #        self.mod_names.append(m.name)
-        #        self.mod_ids.append(m.id)
-        #        m.evaluate()
         
     def append_instance(self, mod=None):
         """Same as append but takes an instance of a module instead
@@ -128,7 +121,7 @@ class nems_stack:
         
         """
         if not mod:
-            raise ValueError('stack.append: module not specifified')
+            raise ValueError('stack.append: module not specified')
             #mod=nm.nems_module(self)
         self.modules.append(mod)
         self.data.append(mod.d_out)

@@ -7,7 +7,9 @@ Created on Fri Jun 16 05:20:07 2017
 """
 
 import scipy as sp
+import scipy.signal as sps
 import numpy as np
+import numpy.ma as npma
 import matplotlib.pyplot as plt
 import pickle
 import os
@@ -218,6 +220,36 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
+def pred_act_psth_all(m,size=FIGSIZE,idx=None):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    s=m.unpack_data(m.output_name,use_dout=True)
+    r=m.unpack_data("resp",use_dout=True)
+    s2=np.append(s.transpose(),r.transpose(),0)
+    try:
+        p=m.unpack_data("pupil",use_dout=True)
+        s2=np.append(s2,p.transpose(),0)
+        p_avail=True
+    except:
+        p_avail=False
+    
+    bincount=np.min([5000,s2.shape[1]])
+    T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=np.reshape(s2[:,0:(T*bincount)],[3,T,bincount])
+    s2=np.mean(s2,1)
+    s2=np.squeeze(s2)
+    
+    pred, =plt.plot(s2[0,:],label='Predicted')
+    act, =plt.plot(s2[0,:],'r',label='Actual')
+    if p_avail:
+        pup, =plt.plot(s2[0,:],'g',label='Pupil')
+        plt.legend(handles=[pred,act,pup])
+    else:
+        plt.legend(handles=[pred,act])
+        
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Time Step')
+    plt.ylabel('Firing rate (unitless)')
 
 def pre_post_psth(m,size=FIGSIZE,idx=None):
     if idx:
@@ -252,7 +284,10 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     h=m.coefs
     
     # if weight channels exist and dimensionality matches, generate a full STRF
-    wcidx=find_modules(m.parent_stack,"weight_channels")
+    try:
+        wcidx=find_modules(m.parent_stack,"weight_channels")
+    except:
+        wcidx=[]
     if m.name=="fir_filter" and len(wcidx):
         w=m.parent_stack.modules[wcidx[0]].coefs
         if w.shape[0]==h.shape[0]:
@@ -471,3 +506,55 @@ def concatenate_helper(stack,start=1,**kwargs):
                     pass
             except:
                 pass
+            
+def thresh_resamp(data,resamp_factor,thresh=0,ax=0):
+    """
+    Helper function to apply an FIR downsample to data. If thresh is specified, 
+    the function will send all values in data below thresh to 0; this is often 
+    useful to reduce the ringing caused by FIR downsampling.
+    """
+    resamp=sps.decimate(data,resamp_factor,ftype='fir',axis=ax,zero_phase=True)
+    s_indices=resamp<thresh
+    resamp[s_indices]=0
+    return resamp
+
+def stretch_trials(data):
+    """
+    Helper function to "stretch" trials to be treated individually as stimuli. 
+    This function is used when it is not desirable to average over the trials
+    of the stimuli in a dataset, such as when the effects of state variables such 
+    as pupil diameter are being explored.
+    
+    'data' should be the imported data dictionary, and must contain 'resp',
+    'stim', 'pupil', and 'repcount'. Note that 'stim' should be formatted as 
+    (channels,stimuli,time), while 'resp' and 'pupil' should be formatted as
+    (time,trials,stimuli). These are the configurations used in the default 
+    loading module nems.modules.load_mat
+    """
+    r=data['repcount']
+    s=copy.deepcopy(data['resp'].shape)
+    resp=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='F'),(1,0))
+    #data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
+    mask=np.logical_not(npma.getmask(npma.masked_invalid(resp)))
+    R=resp[mask]
+    resp=np.reshape(R,(-1,s[0]),order='C')
+    try:
+        pupil=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='F'),(1,0))
+        P=pupil[mask]
+        pupil=np.reshape(P,(-1,s[0]),order='C')
+        #data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
+    except ValueError:
+        pupil=None
+    Y=data['stim'][:,0,:]
+    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
+    for i in range(1,s[2]):
+        Y=data['stim'][:,i,:]
+        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
+        stim=np.append(stim,Y,axis=1)
+    lis=[]
+    for i in range(0,r.shape[0]):
+        lis.extend([i]*data['repcount'][i])
+    replist=np.array(lis)
+    return stim, resp, pupil, replist
+
+

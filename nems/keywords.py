@@ -12,6 +12,8 @@ import nems.tensorflow_fitters as ntf
 import nems.utils as nu
 import nems.baphy_utils as baphy_utils
 import numpy as np
+import nems.user_def_mods.load_baphy_ssa as lbs
+from nems.user_def_mods import *
 
 #thismod=sys.modules(__name__)
 
@@ -107,6 +109,11 @@ def loadlocal(stack):
     #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil_model,tile_data=True)
     
+def jitterload(stack):
+    filepath='/auto/users/shofer/data/batch296mateo/'+str(stack.meta['cellid'])+'_b'+str(stack.meta['batch'])+'_envelope_fs1000.mat'
+    print("Initializing load_mat with file {0}".format(filepath))
+    stack.append(lbs.load_baphy_ssa,file=filepath,fs=500)
+    stack.append(nm.crossval,valfrac=stack.valfrac)
 
 
 #Est/val now incorporated into most loader keywords, but these still work if 
@@ -156,7 +163,10 @@ def fir_mini_fit(stack):
     stack.fitter.tol=0.0001
     #stack.fitter=nf.coordinate_descent(stack)
     #stack.fitter.tol=0.001
-    fitidx=nu.find_modules(stack,'weight_channels') + nu.find_modules(stack,'fir_filter')
+    try:
+        fitidx=nu.find_modules(stack,'weight_channels') + nu.find_modules(stack,'fir_filter')
+    except:
+        fitidx=nu.find_modules(stack,'fir_filter')
     stack.fitter.fit_modules=fitidx
     
     stack.fitter.do_fit()

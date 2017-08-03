@@ -22,16 +22,18 @@ import copy
 #cellid='BOL006b-60-1'
 #"""
 stack=ns.nems_stack()
-    
+stack.meta['batch']=296
+stack.meta['cellid']='gus019d-a1'
+stack.meta['modelname']='jitterload_fir15_fit00'  
 #stack.meta['batch']=293
 #stack.meta['cellid']='BOL006b-60-1'
 #stack.meta['modelname']='parm50a_wc03_fir10_fit00_nested10'
-stack.meta['batch']=294
-stack.meta['cellid']='zee018c-d2'
+#stack.meta['batch']=294
+#stack.meta['cellid']='zee018c-d2'
 #eno052d-a1
 #zee018c-d2
 #zee017c-a1
-stack.meta['modelname']='perfectpupil50_pupgain_fit00_nested20'
+#stack.meta['modelname']='perfectpupil50_pupgain_fit00_nested20'
 stack.keywords=stack.meta['modelname'].split("_")
 # extract keywords from modelname    
 if 'nested' in stack.keywords[-1]:
