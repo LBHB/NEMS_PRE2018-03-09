@@ -137,6 +137,7 @@ class basic_min(nems_fitter):
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
                              constraints=cons,options=opt,tol=self.tol)
         print("Final {0}: {1}".format(self.stack.modules[-1].name,self.stack.error()))
+        print('           ')
         return(self.stack.error())
     
 
@@ -220,6 +221,7 @@ class anneal_min(nems_fitter):
         phi_final=opt_res.lowest_optimization_result.x
         self.cost_fn(phi_final)
         print("Final MSE: {0}".format(self.stack.error()))
+        print('           ')
         return(self.stack.error())
 
 """

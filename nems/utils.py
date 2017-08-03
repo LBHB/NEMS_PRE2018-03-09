@@ -369,6 +369,9 @@ def raster_plot(m,idx=None,size=(12,6)):
     plt.title('Stimulus #'+str(stims))
 
 def sorted_raster(m,idx=None,size=FIGSIZE):
+    """
+    Creates a raster plot sorted by mean pupil diameter of a given trial
+    """
     resp=m.parent_stack.unresampled['resp']
     pre=m.parent_stack.unresampled['prestim']
     dur=m.parent_stack.unresampled['duration']
@@ -386,6 +389,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
             lis.extend([i]*reps[i])
     ids=lis[idi]
     b=np.nanmean(pup[:,:,ids],axis=0)
+    np.nan_to_num(b,copy=False)
     bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
     bc=bc[:,1]
     resp[:,:,ids]=resp[:,bc,ids]
@@ -440,7 +444,7 @@ def concatenate_helper(stack,start=1,**kwargs):
                         stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
                     else:
                         stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
-                        stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
+                    stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
                     try:
                         stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
                     except ValueError:
@@ -455,8 +459,6 @@ def concatenate_helper(stack,start=1,**kwargs):
                         pass
                         #stack.data[k][n]['repcount']=stack.data[k][n]['repcount']
                 else:
-                    #print('didnt concatenate')
                     pass
             except:
-                #print('skippd the whole damn thing')
                 pass
