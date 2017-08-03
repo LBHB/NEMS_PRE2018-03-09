@@ -82,7 +82,7 @@ class nems_stack:
             except:
                 xval_idx=nu.find_modules(self,'standard_est_val')
             xval_idx=xval_idx[0]
-            if start<=xval_idx:
+            if start !=0 and start<=xval_idx:
                 self.modules[xval_idx].evaluate()
                 start=xval_idx+1
             for ii in range(start,mse_idx):

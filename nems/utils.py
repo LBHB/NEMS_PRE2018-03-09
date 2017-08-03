@@ -90,13 +90,8 @@ def load_model(file_path):
             with open(file_path, 'rb') as handle:
                 stack = pickle.load(handle)
             print('stack successfully loaded')
-            
-            # Note: print statements for debugging loading of empty stack
-            print('stack.modules:')
-            print(stack.modules)
-            print('stack.data: ')
-            print(stack.data)
-            if not stack.data[0][0]['stim']:
+
+            if not stack.data:
                 raise Exception("Loaded stack from pickle, but data is empty")
                 
             return stack
