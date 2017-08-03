@@ -490,7 +490,7 @@ class crossval(nems_module):
                 count=self.parent_stack.cv_counter
                 re=d['resp'].shape
                 if re[0]<self.parent_stack.nests:
-                    raise IndexError('Fewer stimuli than nests; use a higher valfrac')
+                    raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
                 spl=mt.ceil(re[0]*self.valfrac)
                 count=count*spl
                 
@@ -788,6 +788,12 @@ class fir_filter(nems_module):
     fir_filter - the workhorse linear filter module. Takes in a 3D stim array 
     (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
     offset, and outputs a 2D stim array (stims,time).
+    
+    Inputs: 
+        num_dims: number of stimulus channels (y axis of STRF)
+        num_coefs: number of temporal channels of STRF
+        baseline: initial value of DC offset
+        fit_fields: names of fitted variables
     """
     name='fir_filter'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
