@@ -303,24 +303,6 @@ $(document).ready(function(){
             }
         });
     }
-
-    $("#batchSelector,#modelSelector,#cellSelector,#measureSelector,#analysisSelector")
-    .change(function(){
-        var empty = false;
-        $(".plot-form").each(function() {
-            if (!($(this).val()) || ($(this).val().length == 0)) {
-                    empty = true;
-                }
-        });
-        
-        if (empty){
-            $(".plotsub").attr('disabled','disabled');
-            //$("#form-warning").html("<p>Selection required for each option before submission</p>")
-        } else {
-            $(".plotsub").removeAttr('disabled');
-            //$("#form-warning").html("")
-        }   
-    });
     
 
     ////////////////////////////////////////////////////////////////////////
@@ -965,25 +947,44 @@ $(document).ready(function(){
         if (document.getElementById("includeOutliers").checked){
             includeOutliers = 1;
         }
+        var plotNewWindow = 0;
+        if (document.getElementById("plotNewWindow").checked){
+            plotNewWindow = 1;        
+        }
         
         addLoad();
         $.ajax({
             url: $SCRIPT_ROOT + '/generate_plot_html',
             data: { plotType:plotType, bSelected:bSelected, cSelected:cSelected,
                     mSelected:mSelected, measure:measure, onlyFair:onlyFair,
-                    includeOutliers:includeOutliers,
-                    iso:iso, snr:snr, snri:snri },
+                    includeOutliers:includeOutliers, iso:iso, snr:snr, 
+                    snri:snri, plotNewWindow:plotNewWindow },
             type: 'GET',
             success: function(data){
-                //plotDiv.resizable("destroy");
-                //plotDiv.draggable("destroy");
                 if (data.hasOwnProperty('script')){
-                    plotDiv.html(data.script + data.div);
+                    if(plotNewWindow){
+                        var w = window.open(
+                                $SCRIPT_ROOT + '/plot_window',
+                                )
+                        $(w.document.body).ready(function(){
+                            $(w.document.body).append(data.script + data.div);
+                        });
+                    } else{
+                        plotDiv.html(data.script + data.div);  
+                    }
                 }
                 if (data.hasOwnProperty('html')){
-                    plotDiv.html(data.html);
+                    if(plotNewWindow){
+                        var w = window.open(
+                                $SCRIPT_ROOT + '/plot_window',
+                                )
+                        $(w.document.body).ready(function(){
+                            $(w.document.body).append(data.html);
+                        });
+                    } else{
+                        plotDiv.html(data.html);
+                    }
                 }
-                //sizeDragDisplay();
                 removeLoad();
             },
             error: function(error){
