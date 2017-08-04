@@ -17,4 +17,4 @@ import nems.modules.pupil
 import nems.modules.metrics
 import nems.modules.aux
 
-__all__:['base','loaders','est_val','filters','nonlin','pupil','metrics','aux']
+__all__=['base','loaders','est_val','filters','nonlin','pupil','metrics','aux']

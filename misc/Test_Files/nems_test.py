@@ -16,7 +16,7 @@ import nems.modules as nm
 import nems.main as main
 import nems.fitters as nf
 import nems.keywords as nk
-import nems.utils as nu
+import nems.utilities.utils as nu
 import nems.stack as ns
 
 #imp.reload(nf)
@@ -40,9 +40,9 @@ cellid='bbl031f-a1'
 batch=291
 modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 
-cellid="eno052d-a1"
-batch=294
-modelname="perfectpupil50_pupgain_fit01"
+#cellid="eno052d-a1"
+#batch=294
+#modelname="perfectpupil50_pupgain_fit01"
 
 stack=main.fit_single_model(cellid, batch, modelname)
 

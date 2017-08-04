@@ -62,7 +62,7 @@ class weight_channels(nems_module):
  
 class fir(nems_module):
     """
-    fir_filter - the workhorse linear filter module. Takes in a 3D stim array 
+    fir - the workhorse linear fir filter module. Takes in a 3D stim array 
     (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
     offset, and outputs a 2D stim array (stims,time).
     """
@@ -100,3 +100,47 @@ class fir(nems_module):
         X=X.sum(0)+self.baseline
         Y=np.reshape(X,s[1:])
         return Y
+    
+class stp(nems_module):
+    """
+    stp - simulate short-term plasticity with the Tsodyks and Markram model
+ m.editable_fields = {'num_channels', 'strength', 'tau', 'strength2', 'tau2',...
+                    'per_channel', 'offset_in', 'facil_on', 'crosstalk',...
+                    'input', 'input_mod','time', 'output' };
+    """
+    name='stp'
+    user_editable_fields=['input_name','output_name','num_channels','u','tau','offset_in']
+    plot_fns=[nu.pre_post_psth, nu.plot_spectrogram]
+    coefs=None
+    baseline=np.zeros([1,1])
+    num_dims=0
+    
+    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs']):
+        """
+        num_dims: number of stimulus channels (y axis of STRF)
+        num_coefs: number of temporal channels of STRF
+        baseline: initial value of DC offset
+        fit_fields: names of fitted variables
+        """
+        if self.d_in and not(num_dims):
+            num_dims=self.d_in[0]['stim'].shape[0]
+        self.num_dims=num_dims
+        self.num_coefs=num_coefs
+        self.baseline[0]=baseline
+        self.coefs=np.zeros([num_dims,num_coefs])
+        self.fit_fields=fit_fields
+        self.do_trial_plot=self.plot_fns[0]
+        
+    def my_eval(self,X):
+        #if not self.d_out:
+        #    # only allocate memory once, the first time evaling. rish is that output_name could change
+        s=X.shape
+        X=np.reshape(X,[s[0],-1])
+        for i in range(0,s[0]):
+            y=np.convolve(X[i,:],self.coefs[i,:])
+            X[i,:]=y[0:X.shape[1]]
+        X=X.sum(0)+self.baseline
+        Y=np.reshape(X,s[1:])
+        return Y
+    
+        

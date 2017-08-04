@@ -77,3 +77,4 @@ class gain(nems_module):
     def my_eval(self,X):
         Z=getattr(self,self.nltype+'_fn')(X)
         return(Z)
+        
