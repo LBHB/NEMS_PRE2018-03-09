@@ -7,7 +7,7 @@ Created on Fri Jul 14 15:54:26 2017
 """
 
 import matplotlib.pyplot as plt,mpld3
-import nems.utilities.utils as nu
+import nems.utilities as ut
 import numpy as np
 import os
 
@@ -73,12 +73,12 @@ class nems_stack:
         """
         if self.valmode is True: 
             print('Evaluating validation data')
-            mse_idx=nu.find_modules(self,'mean_square_error')
+            mse_idx=ut.utils.find_modules(self,'mean_square_error')
             mse_idx=int(mse_idx[0])
             try:
-                xval_idx=nu.find_modules(self,'crossval')
+                xval_idx=ut.utils.find_modules(self,'crossval')
             except:
-                xval_idx=nu.find_modules(self,'standard_est_val')
+                xval_idx=ut.utils.find_modules(self,'standard_est_val')
             xval_idx=xval_idx[0]
             if start !=0 and start<=xval_idx:
                 self.modules[xval_idx].evaluate()
@@ -92,7 +92,7 @@ class nems_stack:
                         self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
                         st+=np.prod(s)
                     self.modules[ii].evaluate(nest=i)
-            nu.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
+            ut.utils.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
             for ij in range(mse_idx,len(self.modules)):
                 self.modules[ij].evaluate() 
         else:
@@ -166,7 +166,7 @@ class nems_stack:
         ----------
         idx : int
             Index of module to be removed. If no idx is given, but a mod is
-            given, nu.find_modules will be used to find idx.
+            given, ut.utils.find_modules will be used to find idx.
         mod : nems_module
             Module to be removed. Only needs to be passed if index is not
             given, or if all matching indices should be removed.
@@ -186,7 +186,7 @@ class nems_stack:
         """
         
         if mod and not idx:
-            idx = nu.find_modules(self, mod.name)
+            idx = ut.utils.find_modules(self, mod.name)
             if not idx:
                 print("Module does not exist in stack.")
                 return

@@ -7,3 +7,7 @@ Created on Thu Aug  3 17:02:00 2017
 """
 
 #Init file for nems/fitters
+
+import nems.fitters.fitters
+
+__all__=['fitters']

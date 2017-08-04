@@ -741,7 +741,7 @@ class weight_channels(nems_module):
     """
     weight_channels - apply a weighting matrix across a variable in the data
     stream. Used to provide spectral filters, directly imported from NARF.
-    a helper function parm_fun can be defined to parameterized the weighting
+    a helper function parm_fun can be defined to parameterize the weighting
     matrix. but by default the weights are each independent
     """
     name='weight_channels'

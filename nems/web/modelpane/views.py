@@ -19,6 +19,7 @@ import nems.modules as nm
 import nems.keywords as nk
 import nems.utilities.utils as nu
 import nems.main as nems
+import pkgutil as pk
 
 from nems.web.nems_analysis import app
 
@@ -55,7 +56,7 @@ def modelpane_view():
                 "or there was an error when loading the model."
                 )
         
-    all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
+    all_mods = [cls.name for cls in nm.base.nems_module.__subclasses__()]
     # remove any modules that shouldn't show up as an option in modelpane
     all_mods.remove('load_mat')
     
@@ -360,11 +361,17 @@ def append_module():
     global mp_stack
     
     module_name = request.form.get('a_module')
-    
-    try:
-        m = getattr(nm, module_name)
-    except Exception as e:
-        print(e)
+    mod_found=False
+    for importer, modname, ispkg in pk.iter_modules(nm.__path__):
+        try:
+            m=getattr(importer.find_module(modname).load_module(modname),module_name)
+            print('Found %s'%module_name)
+            mod_found=True
+            break
+        except:
+            pass
+    if mod_found is False:
+        print('Module not found')
         m = None
     try:    
         mp_stack.append(m)
@@ -386,11 +393,17 @@ def insert_module():
         print("No insertion index selected")
         return redirect(url_for('refresh_modelpane'))
     idx = int(idx)
-    
-    try:
-        m = getattr(nm, module_name)
-    except Exception as e:
-        print(e)
+    mod_found=False
+    for importer, modname, ispkg in pk.iter_modules(nm.__path__):
+        try:
+            m=getattr(importer.find_module(modname).load_module(modname),module_name)
+            print('Found %s'%module_name)
+            mod_found=True
+            break
+        except:
+            pass
+    if mod_found is False:
+        print('Module not found')
         m = None
     try:
         mp_stack.insert(mod=m, idx=idx)
@@ -412,11 +425,17 @@ def remove_module():
         all_idx = False
     else:
         all_idx = True
-    
-    try:
-        m = getattr(nm, module_name)
-    except Exception as e:
-        print(e)
+    mod_found=False
+    for importer, modname, ispkg in pk.iter_modules(nm.__path__):
+        try:
+            m=getattr(importer.find_module(modname).load_module(modname),module_name)
+            print('Found %s'%module_name)
+            mod_found=True
+            break
+        except:
+            pass
+    if mod_found is False:
+        print('Module not found')
         m = None
     try:
         mp_stack.remove(mod=m, all_idx=all_idx)
@@ -438,7 +457,7 @@ def printable_plot_name(plot_fn):
 
 @app.route('/get_kw_defaults')
 def get_kw_defaults():
-    """DEPRECATED"""
+    """VERY DEPRECATED"""
     
     global mp_stack
     kw = request.args.get('kSelected')
@@ -535,7 +554,7 @@ def refresh_modelpane():
     cell = mp_stack.meta['cellid']
     model = mp_stack.meta['modelname']
     
-    all_mods = [cls.name for cls in nm.nems_module.__subclasses__()]
+    all_mods = [cls.name for cls in nm.base.nems_module.__subclasses__()]
     # remove any modules that shouldn't show up as an option in modelpane
     all_mods.remove('load_mat')
     

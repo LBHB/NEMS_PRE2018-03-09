@@ -7,7 +7,7 @@ Created on Sun Jun 18 20:16:37 2017
 """
 import nems.modules as nm
 import nems.stack as ns
-import nems.utilities.utils as nu
+import nems.utilities as ut
 import nems.keywords as nk
 
 
@@ -60,7 +60,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     stack.valmode=True
     stack.evaluate(1)
     
-    stack.append(nm.correlation)
+    stack.append(nm.metrics.correlation)
                     
     print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                  stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
@@ -81,7 +81,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
         .format(batch, cellid, modelname)
         )
-    nu.save_model(stack,filename) 
+    ut.utils.save_model(stack,filename) 
     
 
     return(stack)
@@ -105,7 +105,7 @@ def load_single_model(cellid, batch, modelname):
             .format(batch, cellid, modelname)
             )
     
-    stack = nu.load_model(filename)
+    stack = ut.utils.load_model(filename)
     try:
         stack.valmode = True
         stack.evaluate()

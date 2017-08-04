@@ -1,32 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jul 14 19:03:10 2017
+Modules that apply a non-pupil dependent nonlinearity to the data
+
+Created on Fri Aug  4 13:39:49 2017
 
 @author: shofer
 """
-from lib.nems_modules import nems_module
-import lib.nems_utils as nu
+from nems.modules.base import nems_module
+import nems.utilities.utils as nu
+
 import numpy as np
 
 
 
-
-class nonlinearity(nems_module): 
+class gain(nems_module): 
     """
-    nonlinearity - apply a static nonlinearity. TODO: use helper functions
-    rather than a look-up table to determine which NL to apply. parameters can
-    be saved in a generic vector self.phi - see NARF implementation for reference 
+    nonlinearity - apply a static nonlinearity to the data. This modules uses helper 
+    functions and a generic fit field ('phi') to specify the type of nonlinearity 
+    applied. Look at nems/keywords to see how to apply different nonlinearities, as
+    each kind has a specific nltype and phi.
     
     @author: shofer
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlinearity'
-    plot_fns=[nu.pre_post_psth,nu.plot_spectrogram]
+    plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
     
     def my_init(self,d_in=None,my_eval=None,nltype='dlog',fit_fields=['phi'],phi=[1],premodel=False):
+        """
+        
+        """
         if premodel is True:
             self.do_plot=self.plot_fns[2]
         self.fit_fields=fit_fields
@@ -34,6 +40,7 @@ class nonlinearity(nems_module):
         self.phi=np.array([phi])
         #setattr(self,nltype,phi0)
         if my_eval is None:
+            #TODO: could do this more cleanly, see pupil.gain
             if nltype=='dlog':
                 self.my_eval=self.dlog_fn
                 self.plot_fns=[nu.plot_spectrogram]
@@ -47,6 +54,8 @@ class nonlinearity(nems_module):
             
         
     def dlog_fn(self,X):
+        s_indices= X<=0
+        X[s_indices]=0
         Y=np.log(X+self.phi[0,0])
         return(Y)
     def exp_fn(self,X):
@@ -68,6 +77,3 @@ class nonlinearity(nems_module):
     def my_eval(self,X):
         Z=getattr(self,self.nltype+'_fn')(X)
         return(Z)
-
-                 
-
