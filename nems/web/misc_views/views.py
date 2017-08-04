@@ -27,13 +27,15 @@ def status_report():
     bSelected = request.form['bSelected'][:3]
     
     results = psql.read_sql_query(
-            session.query(NarfResults)
+            session.query(
+                    NarfResults.cellid, NarfResults.modelname, NarfResults.r_test
+                    )
             .filter(NarfResults.batch == bSelected)
             .statement,
             session.bind
             )
     
-    report = Status_Report(results)
+    report = Status_Report(results, bSelected)
     report.generate_plot()
     
     return render_template(

@@ -5,21 +5,18 @@ been separated here.
 
 """
 
-from bokeh.plotting import figure
 from bokeh.embed import components
 from bokeh.models import (
-        ColumnDataSource, HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
-        PanTool, ResetTool, Range1d, FactorRange,
+        HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
+        PanTool, ResetTool,
         )
 from bokeh.charts import HeatMap
-import pandas as pd
-import numpy as np
 
 
 class Status_Report():
-    def __init__(self, data):
+    def __init__(self, data, batch):
         self.data = data
-        self.batch = data['batch'].iat[0]
+        self.batch = batch
     
     def generate_plot(self):
         tools = [
