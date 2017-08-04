@@ -965,11 +965,14 @@ $(document).ready(function(){
                     if(plotNewWindow){
                         var w = window.open(
                                 $SCRIPT_ROOT + '/plot_window',
+                                //"_blank",
+                                //"width=600, height=600"
                                 )
-                        $(w.document.body).ready(function(){
-                            $(w.document.body).append(data.script + data.div);
+                        $(w.document).ready(function(){
+                            w.$(w.document.body).append(data.script + data.div);
                         });
                     } else{
+                        $("#statusReportWrapper").html('');
                         plotDiv.html(data.script + data.div);  
                     }
                 }
@@ -977,11 +980,14 @@ $(document).ready(function(){
                     if(plotNewWindow){
                         var w = window.open(
                                 $SCRIPT_ROOT + '/plot_window',
+                                //"_blank",
+                                //"width=600, height=600" 
                                 )
-                        $(w.document.body).ready(function(){
-                            $(w.document.body).append(data.html);
+                        $(w.document).ready(function(){
+                            w.$(w.document.body).append(data.html);
                         });
                     } else{
+                        $("#statusReportWrapper").html('');
                         plotDiv.html(data.html);
                     }
                 }
@@ -991,7 +997,17 @@ $(document).ready(function(){
                 console.log(error)
                 removeLoad();
             }
-        })
+        });
+    }
+                        
+    $("#batchSelector").change(function(){
+        bSelected = $("#batchSelector").val();
+        $("#statRepBatch").val(bSelected);
+    });
+                        
+    $("#statusReport").on('click', statusReport);
+    function statusReport(){
+        $("#statRepForm").submit();
     }
 
 });

@@ -311,6 +311,11 @@
                                 </option>
                             {% endfor %}
                             </select>
+                            <button type="button"
+                                    class="btn btn-default btn-xs"
+                                    id="statusReport">
+                                    Status Report
+                            </button>
                         </div><!-- form-group -->
                     </div><!-- batch col -->
                 </div><!-- batch row -->
@@ -729,6 +734,8 @@
                 <!--<label for="displayWrapper"> Plot Display </label>-->
                 <div id="displayWrapper">
                 </div>
+                <div id="statusReportWrapper">
+                </div>
             </div><!-- preview/plot area col -->
             
 
@@ -846,6 +853,14 @@
         <input type="text" id="p_batch" name="batch" value="">
         <input type="text" id="p_cellid" name="cellid" value="">
         <input type="text" id="p_modelname" name="modelname" value="">
+    </form>
+    </div>
+    
+    <!-- hidden form for stat rep submission -->
+    <div style="display:none;">
+    <form class="form" id="statRepForm" method="POST" target="_blank"
+          action="{{ url_for('status_report') }}">
+          <input type="text" id="statRepBatch" name="bSelected" value="">
     </form>
     </div>
     
