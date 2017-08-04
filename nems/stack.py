@@ -7,7 +7,7 @@ Created on Fri Jul 14 15:54:26 2017
 """
 
 import matplotlib.pyplot as plt,mpld3
-import nems.utils as nu
+import nems.utilities.utils as nu
 import numpy as np
 import os
 

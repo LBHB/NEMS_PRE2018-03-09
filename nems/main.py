@@ -7,7 +7,7 @@ Created on Sun Jun 18 20:16:37 2017
 """
 import nems.modules as nm
 import nems.stack as ns
-import nems.utils as nu
+import nems.utilities.utils as nu
 import nems.keywords as nk
 
 

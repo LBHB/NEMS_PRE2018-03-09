@@ -7,7 +7,7 @@ Created on Wed Aug  2 18:25:25 2017
 """
 import numpy as np
 import scipy.io as si
-import nems.utils as nu
+import nems.utilities.utils as nu
 from nems.modules import nems_module
 
 

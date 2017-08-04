@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
 import scipy.stats as spstats
 import copy
-import nems.utils as nu
+import nems.utilities.utils as nu
 import math as mt
 import scipy.special as sx
 #from nems.user_def_mods import load_baphy_ssa

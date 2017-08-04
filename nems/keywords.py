@@ -7,10 +7,10 @@ Created on Fri Jun 16 05:20:07 2017
 """
 
 import nems.modules as nm
-import nems.fitters as nf
+import nems.fitters.fitters as nf
 #import nems.tensorflow_fitters as ntf
-import nems.utils as nu
-import nems.baphy_utils as baphy_utils
+import nems.utilities.utils as nu
+import nems.utilities.baphy_utils as baphy_utils
 import numpy as np
 import nems.user_def_mods.load_baphy_ssa as lbs
 from nems.user_def_mods import *
