@@ -157,6 +157,19 @@ plotOpGroup {
   width: 100%;
 }
 
+plotOpLabelsTwo {
+  width: 100%;        
+}
+
+#plotOpLabelsTwo label {
+  width: 20%;
+  text-align: center;
+}
+
+plotOpGroupTwo {
+  width: 100%;
+}
+
 #plotOpSelect {
   width: 20%;        
 }

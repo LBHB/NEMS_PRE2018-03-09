@@ -2,13 +2,14 @@ In no particular order:
 
 - User login with saved selections.
 
-- Link to details for cellid/modelname etc when click on results table rows.
-
 - Finish implementing plot types from NARF Analysis
 
 - Add significance info to bar plot
 
 - Customize pareto plot to match NARF instead of using box plot
+
+- Speed up status report for large batches
+  (need to filter query somehow? or is performance limited by heatmap?)
 
 - Get bokeh to save grid plots as one file instead of individuals
 

@@ -139,6 +139,10 @@ def generate_plot_html():
         return jsonify(script="Couldn't find anything ", div="to return")
     
     
+@app.route('/plot_window')
+def plot_window():
+    return render_template('/plot/plot.html')
+
 
 
 ######      DEPRECATED BELOW        ######
