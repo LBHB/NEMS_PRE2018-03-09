@@ -17,6 +17,12 @@ from nems.user_def_mods import *
 
 #thismod=sys.modules(__name__)
 
+# TODO: Add docstring for each function that explains which modules get added,
+#       which parameters are passed to loaders, etc.
+#       These will now show up on website when a modelname is clicked in table.
+#       Did an example one for wc01.
+#       --Jacob 8/4/17
+
 # loader keywords
 def parm100(stack):
     """
@@ -140,6 +146,22 @@ def xval05(stack):
 ###############################################################################
 
 def wc01(stack):
+    """
+    Example:
+    ~~~~(What does it do?)
+    Appends the weight_channels module to the stack with arguments:
+        num_chans = 1
+    
+    ~~~~(Why does it do it / what's the purpose or goal of the module?)
+    ~~~~(copied from the doc string for weight_channels)
+    weight_channels:
+    Apply a weighting matrix across a variable in the data
+    stream. Used to provide spectral filters, directly imported from NARF.
+    A helper function parm_fun can be defined to parameterized the
+    weighting matrix, but by default the weights are each independent
+    
+    """
+    
     stack.append(nm.weight_channels,num_chans=1)
 
 def wc02(stack):

@@ -131,7 +131,7 @@ def main_view():
     # TODO: let user choose their defaults and save for later sessions
     # cols are in addition to cellid, modelname and batch,
     # which are set up to be required
-    defaultcols = ['r_test', 'r_fit', 'n_parms', 'batch']
+    defaultcols = ['r_test', 'r_fit', 'n_parms']
     defaultrowlimit = 500
     defaultsort = 'cellid'
     measurelist = [

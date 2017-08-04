@@ -82,6 +82,7 @@ tQueue = Base.classes.tQueue
 tComputer = Base.classes.tComputer
 sCellFile = Base.classes.sCellFile
 sBatch = Base.classes.sBatch
+gCellMaster = Base.classes.gCellMaster
 
 # import this when another module needs to use the database connection.
 # used like a class - ex: 'session = Session()'

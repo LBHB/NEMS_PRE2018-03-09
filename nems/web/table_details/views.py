@@ -1,16 +1,33 @@
-from flask import redirect, Response, url_for
+from flask import redirect, Response, url_for, render_template
 
 from nems.web.nems_analysis import app
 import nems.keywords as nk
+from nems.db import Session, gCellMaster
 
 @app.route('/cell_details/<cellid>')
 def cell_details(cellid):
-    return Response('Details for cellid: ' + cellid)
-    # test code below this, won't run until response removed
-    # TODO: parse cellid into animal info via gCellMaster?
-    #       info should all be there already, just need to figure out the
-    #       correct combination of queries.
+    # Just redirects to celldb penetration info for now
+    # Keeping as separate function incase want to add extra stuff later
+    # (as opposed to just putting link directly in javascript)
+    session = Session()
     
+    url_root = 'http://hyrax.ohsu.edu/celldb/peninfo.php?penid='
+    i = cellid.find('-')
+    cellid = cellid[:i]
+    result = (
+            session.query(gCellMaster)
+            .filter(gCellMaster.cellid == cellid)
+            .first()
+            )
+    if not result:
+        # return an error response instead?
+        # or make it a dud link? seems wasteful to refresh page
+        # could also redirect to celldb home page
+        return redirect(url_for('main_view'))
+    penid = result.penid
+    session.close()
+    
+    return redirect(url_root + str(penid))    
     
 @app.route('/model_details/<modelname>')
 def model_details(modelname):
@@ -23,14 +40,21 @@ def model_details(modelname):
             else "Couldn't find keyword: {0}".format(kw)
             for kw in keyword_list
             ]
-    docs = [
+    kwdocs = [
             func.__doc__ + '              '
             if func.__doc__
             else 'blank doc string'
             for func in kw_funcs
             ]
+    splitdocs = [
+            doc.split('\n')
+            for doc in kwdocs
+            ]
+    for i, doc in enumerate(splitdocs):
+        doc.insert(0, '     ')
+        doc.insert(0, kw_funcs[i].__name__)
         
-    return Response('         '.join(docs))
+    return render_template('model_details.html', docs=splitdocs)
     # TODO: parse the stack.append() lines inside each kw function
     #       into a description of which module(s) is/are added and which
     #       arguments are specified

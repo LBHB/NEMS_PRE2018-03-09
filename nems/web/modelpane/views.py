@@ -17,7 +17,7 @@ import numpy as np
 
 import nems.modules as nm
 import nems.keywords as nk
-import nems.utils as nu
+import nems.utilities.utils as nu
 import nems.main as nems
 
 from nems.web.nems_analysis import app
