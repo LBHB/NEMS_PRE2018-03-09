@@ -112,24 +112,30 @@ class stp(nems_module):
     user_editable_fields=['input_name','output_name','num_channels','u','tau','offset_in']
     plot_fns=[nu.pre_post_psth, nu.plot_spectrogram]
     coefs=None
-    baseline=np.zeros([1,1])
-    num_dims=0
+    baseline=0
+    u=0
+    tau=100
+    num_channels=1
+    num_dims=1
     
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs']):
+    def my_init(self, num_dims=0, num_channels=1, u=0, tau=100, offset_in=100, fit_fields=['tau','u']):
         """
-        num_dims: number of stimulus channels (y axis of STRF)
-        num_coefs: number of temporal channels of STRF
-        baseline: initial value of DC offset
-        fit_fields: names of fitted variables
+        num_channels: 
+        u: 
+        tau: 
         """
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
-        self.num_coefs=num_coefs
-        self.baseline[0]=baseline
-        self.coefs=np.zeros([num_dims,num_coefs])
+        self.num_channels=num_channels
         self.fit_fields=fit_fields
         self.do_trial_plot=self.plot_fns[0]
+        
+        # stp parameters should be matrices num_dims X num_channels or 1 X num_channels,
+        # and in the latter case be replicated across num_dims
+        self.u=u
+        self.tau=tau
+        self.offset_in=offset_in
         
     def my_eval(self,X):
         #if not self.d_out:
