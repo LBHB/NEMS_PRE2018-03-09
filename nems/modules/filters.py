@@ -109,16 +109,18 @@ class stp(nems_module):
                     'input', 'input_mod','time', 'output' };
     """
     name='stp'
-    user_editable_fields=['input_name','output_name','num_channels','u','tau','offset_in']
+    user_editable_fields=['input_name','output_name','num_channels','u','tau','offset_in','crosstalk']
     plot_fns=[nu.pre_post_psth, nu.plot_spectrogram]
     coefs=None
     baseline=0
-    u=0
-    tau=100
+    u=np.zeros([1,1])
+    tau=np.zeros([1,1])+0.1
+    offset_in=np.zeros([1,1])
+    crosstalk=0
     num_channels=1
     num_dims=1
     
-    def my_init(self, num_dims=0, num_channels=1, u=0, tau=100, offset_in=100, fit_fields=['tau','u']):
+    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, crosstalk=0, fit_fields=['tau','u']):
         """
         num_channels: 
         u: 
@@ -126,6 +128,14 @@ class stp(nems_module):
         """
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
+        Zmat=np.zeros([num_dims,num_channels])
+        if not u:
+            u=Zmat
+        if not tau:
+            tau=Zmat+0.1
+        if not offset_in:
+            offset_in=Zmat
+            
         self.num_dims=num_dims
         self.num_channels=num_channels
         self.fit_fields=fit_fields
@@ -136,17 +146,48 @@ class stp(nems_module):
         self.u=u
         self.tau=tau
         self.offset_in=offset_in
+        self.crosstalk=crosstalk
         
     def my_eval(self,X):
-        #if not self.d_out:
-        #    # only allocate memory once, the first time evaling. rish is that output_name could change
         s=X.shape
-        X=np.reshape(X,[s[0],-1])
+        tstim=(X>0)*X;
+        di=np.ones(s);
+        #print(s)
+        # TODO : enable crosstalk
+        
+        # TODO : for each stp channel, current just forcing 1
+        ui=np.absolute(self.u[:,0])
+        taui=self.tau[:,0]*100  # norm by sampling rate so that tau is in units of sec
+        
+        # go through each stimulus channel
         for i in range(0,s[0]):
-            y=np.convolve(X[i,:],self.coefs[i,:])
-            X[i,:]=y[0:X.shape[1]]
-        X=X.sum(0)+self.baseline
-        Y=np.reshape(X,s[1:])
+                
+            # limits:
+            if ui[i]>0.5:
+                ui[i]=0.5
+                
+            tdi=np.ones([1,s[1],s[2]])
+            for tt in range(1,s[2]):
+                td=tdi[0,:,tt-1]
+                if ui[i]>0:
+                    delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
+                    td=td+delta
+                    td[td<0]=0
+                else:
+                    delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
+                    td=td+delta
+                    td[td<1]=1
+                tdi[0,:,tt]=td
+            
+            di[i,:,:]=tdi
+            
+        Y=di*X
+        #plt.figure()
+        #pre, =plt.plot(X[0,0,:],label='Pre-nonlinearity')
+        #post, =plt.plot(Y[0,0,:],'r',label='Post-nonlinearity')
+        #plt.legend(handles=[pre,post])
+                
+        #Y=np.reshape(dstim,s[1:])
         return Y
     
         

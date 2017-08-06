@@ -194,6 +194,13 @@ def fir15(stack):
     stack.append(nm.filters.fir,num_coefs=15)
     fir_mini_fit(stack)
 
+def stp1pc(stack):
+    #stack.append(nm.aux.normalize)
+    #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])
+    stack.append(nm.filters.stp,num_channels=1)
+    stack.modules[-1].u[:]=0.05
+    
+    
 # static NL keywords
 ###############################################################################
 def nonlin_mini_fit(stack):

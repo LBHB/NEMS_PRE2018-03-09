@@ -19,6 +19,13 @@ import nems.keywords as nk
 import nems.utilities.utils as nu
 import nems.stack as ns
 
+imp.reload(nm)
+imp.reload(main)
+imp.reload(nf)
+imp.reload(nk)
+imp.reload(nu)
+imp.reload(ns)
+
 #imp.reload(nf)
 
 #datapath='/Users/svd/python/nems/ref/week5_TORCs/'
@@ -38,13 +45,49 @@ modelname="parm50_wc01_fir15_fititer00"
 #cellid='bbl034e-a1'
 cellid='bbl031f-a1'
 batch=291
+modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
 modelname="fb18ch100_wc01_fir15_dexp_fititer00"
+#modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fit01"
+#modelname="fb18ch100_wc01_fir15_dexp_fit01"
 
 #cellid="eno052d-a1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
-stack=main.fit_single_model(cellid, batch, modelname)
+#stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
+stack=ns.nems_stack()
+
+stack.meta['batch']=batch
+stack.meta['cellid']=cellid
+stack.meta['modelname']=modelname
+
+# extract keywords from modelname    
+stack.keywords=modelname.split("_")
+if 'nested' in stack.keywords[-1]:
+    print('Using nested cross-validation, fitting will take longer!')
+    f=getattr(nk,stack.keywords[-1])
+    f(stack)
+else:
+    print('Using standard est/val conditions')
+    stack.valmode=False
+    for k in stack.keywords:
+        f = getattr(nk, k)
+        f(stack)
+
+stack.valmode=True
+stack.evaluate(1)
+
+stack.append(nm.metrics.correlation)
+                
+print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+             stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+if valdata:
+    stack.plot_dataidx=valdata[0]
+else:
+    stack.plot_dataidx=0
+
+stack.quick_plot()
 
 '''
 
