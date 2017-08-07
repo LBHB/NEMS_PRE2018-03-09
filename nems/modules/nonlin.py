@@ -47,8 +47,10 @@ class gain(nems_module):
                 self.do_plot=self.plot_fns[0]
             elif nltype=='exp':
                 self.my_eval=self.exp_fn
+                self.do_plot=self.plot_fns[1]
             elif nltype=='dexp':
                 self.my_eval=self.dexp_fn
+                self.do_plot=self.plot_fns[1]
         else:
             self.my_eval=my_eval
             

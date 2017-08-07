@@ -150,44 +150,52 @@ class stp(nems_module):
         
     def my_eval(self,X):
         s=X.shape
+
         tstim=(X>0)*X;
-        di=np.ones(s);
-        #print(s)
+
         # TODO : enable crosstalk
         
         # TODO : for each stp channel, current just forcing 1
-        ui=np.absolute(self.u[:,0])
-        taui=self.tau[:,0]*100  # norm by sampling rate so that tau is in units of sec
-        
-        # go through each stimulus channel
-        for i in range(0,s[0]):
-                
-            # limits:
-            if ui[i]>0.5:
-                ui[i]=0.5
-                
-            tdi=np.ones([1,s[1],s[2]])
-            for tt in range(1,s[2]):
-                td=tdi[0,:,tt-1]
-                if ui[i]>0:
-                    delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
-                    td=td+delta
-                    td[td<0]=0
-                else:
-                    delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
-                    td=td+delta
-                    td[td<1]=1
-                tdi[0,:,tt]=td
+        Y=np.zeros([0,s[1],s[2]])
+        di=np.ones(s)
+        for j in range(0,self.num_channels):
+            ui=np.absolute(self.u[:,j])
+            #ui=self.u[:,j]
+            taui=self.tau[:,j]*100  # norm by sampling rate so that tau is in units of sec
             
-            di[i,:,:]=tdi
+            # go through each stimulus channel
+            for i in range(0,s[0]):
+                
+                # limits:
+                if ui[i]>0.5:
+                    ui[i]=0.5
+                elif ui[i]<-0.5:
+                    ui[i]=-0.5
+                    
+                if taui[i]<0.001:
+                    taui[i]=0.001
+                    
+                for tt in range(1,s[2]):
+                    td=di[i,:,tt-1]
+                    if ui[i]>0:
+                        delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
+                        td=td+delta
+                        td[td<0]=0
+                    else:
+                        delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
+                        td=td+delta
+                        td[td<1]=1
+                    di[i,:,tt]=td
+                    
+            Y=np.append(Y,di*X,0)
+            #print(np.sum(np.isnan(Y),1))
+            #print(np.sum(np.isnan(di*X),1))
             
-        Y=di*X
         #plt.figure()
         #pre, =plt.plot(X[0,0,:],label='Pre-nonlinearity')
         #post, =plt.plot(Y[0,0,:],'r',label='Post-nonlinearity')
         #plt.legend(handles=[pre,post])
                 
-        #Y=np.reshape(dstim,s[1:])
         return Y
     
         

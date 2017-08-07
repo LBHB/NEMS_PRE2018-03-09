@@ -46,15 +46,16 @@ modelname="parm50_wc01_fir15_fititer00"
 cellid='bbl031f-a1'
 batch=291
 modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
-modelname="fb18ch100_wc01_fir15_dexp_fititer00"
-#modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fit01"
-#modelname="fb18ch100_wc01_fir15_dexp_fit01"
+#modelname="fb18ch100_wc01_fir15_dexp_fititer00"
+#modelname="fb18ch100_wc01_stp2pc_fir15_dexp"
 
 #cellid="eno052d-a1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
+# following is equivalent of --
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
+
 stack=ns.nems_stack()
 
 stack.meta['batch']=batch

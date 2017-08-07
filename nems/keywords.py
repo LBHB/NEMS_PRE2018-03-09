@@ -200,7 +200,13 @@ def stp1pc(stack):
     stack.append(nm.filters.stp,num_channels=1)
     stack.modules[-1].u[:]=0.05
     
+def stp2pc(stack):
+    stack.append(nm.filters.stp,num_channels=2)
+    stack.modules[-1].u[:,0]=0.01
+    stack.modules[-1].u[:,1]=0.1
     
+    
+
 # static NL keywords
 ###############################################################################
 def nonlin_mini_fit(stack):
