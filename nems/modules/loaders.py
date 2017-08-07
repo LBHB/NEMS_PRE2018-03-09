@@ -66,7 +66,7 @@ class load_mat(nems_module):
                     
         # load contents of Matlab data file
         for f in self.est_files:
-            matdata = scipy.io.loadmat(f,chars_as_strings=True)
+            matdata = nu.get_mat_file(f)
             for s in matdata['data'][0]:
                 try:
                     data={}
