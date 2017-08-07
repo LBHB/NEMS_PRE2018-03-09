@@ -73,19 +73,23 @@ class fir(nems_module):
     baseline=np.zeros([1,1])
     num_dims=0
     
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs']):
+    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random=False):
         """
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
         baseline: initial value of DC offset
         fit_fields: names of fitted variables
+        random: randomize initial values of fir coefficients
         """
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
         self.num_coefs=num_coefs
         self.baseline[0]=baseline
-        self.coefs=np.zeros([num_dims,num_coefs])
+        if random is True:
+            self.coefs=np.random.normal(loc=0.0,scale=0.0025,size=[num_dims,num_coefs])
+        else:
+            self.coefs=np.zeros([num_dims,num_coefs])
         self.fit_fields=fit_fields
         self.do_trial_plot=self.plot_fns[0]
         
@@ -104,7 +108,7 @@ class fir(nems_module):
 class stp(nems_module):
     """
     stp - simulate short-term plasticity with the Tsodyks and Markram model
- m.editable_fields = {'num_channels', 'strength', 'tau', 'strength2', 'tau2',...
+    m.editable_fields = {'num_channels', 'strength', 'tau', 'strength2', 'tau2',...
                     'per_channel', 'offset_in', 'facil_on', 'crosstalk',...
                     'input', 'input_mod','time', 'output' };
     """
@@ -120,7 +124,8 @@ class stp(nems_module):
     num_channels=1
     num_dims=1
     
-    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, crosstalk=0, fit_fields=['tau','u']):
+    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, 
+                crosstalk=0, fit_fields=['tau','u']):
         """
         num_channels: 
         u: 
