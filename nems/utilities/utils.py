@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 import copy
+import io
 
 import boto3
 try:
@@ -80,11 +81,12 @@ def save_model(stack, file_path):
 def load_model(file_path):
     if AWS:
         # TODO: need to set up AWS credentials to test this
-        s3 = boto3.resource('s3')
-        bucket = s3.Bucket(awsc.PRIMARY_BUCKET)
+        s3_client = boto3.client('s3')
+        s3_resource = boto3.resource('s3')
+        bucket = s3_resource.Bucket(awsc.PRIMARY_BUCKET)
         key = file_path.strip(awsc.DIRECTORY_ROOT)
-        fileobj = s3.get_object(bucket, key)
-        stack = pickle.load(fileobj)
+        fileobj = s3_client.get_object(Bucket=bucket, Key=key)
+        stack = pickle.loads(BytesIO(fileobj['body'].read()))
         
         return stack
     else:
