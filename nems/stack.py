@@ -326,7 +326,7 @@ class nems_stack:
         
         if AWS:
             s3 = boto3.resource('s3')
-            key = filename.strip(sc.DIRECTORY_ROOT)
+            key = filename[len(sc.DIRECTORY_ROOT):]
             fileobj = io.BytesIO()
             fig.savefig(fileobj)
             s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)

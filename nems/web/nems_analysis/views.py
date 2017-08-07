@@ -754,14 +754,14 @@ def get_preview():
     if AWS:
         s3_client = boto3.client('s3')
         try:
-            key = path.strip(sc.DIRECTORY_ROOT)
+            key = path[len(sc.DIRECTORY_ROOT):]
             fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
             with open(fileobj, 'r+b') as img:
                 image = str(b64encode(img.read()))[2:-1]
             return jsonify(image=image)
         except:
             try:
-                key = path.strip(sc.DIRECTORY_ROOT).strip('/')
+                key = path[len(sc.DIRECTORY_ROOT)-1:]
                 fileobj = s3_client.get_object(
                         Bucket=sc.PRIMARY_BUCKET, 
                         Key=key
