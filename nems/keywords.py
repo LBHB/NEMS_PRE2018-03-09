@@ -11,7 +11,7 @@ import nems.fitters as nf
 #import nems.tensorflow_fitters as ntf
 import nems.utilities as ut
 import numpy as np
-import nems.user_def_mods.load_baphy_ssa as lbs
+import nems.modules.user_def as ud
 
 #thismod=sys.modules(__name__)
 
@@ -116,7 +116,7 @@ def loadlocal(stack):
 def jitterload(stack):
     filepath='/auto/users/shofer/data/batch296mateo/'+str(stack.meta['cellid'])+'_b'+str(stack.meta['batch'])+'_envelope_fs1000.mat'
     print("Initializing load_mat with file {0}".format(filepath))
-    stack.append(lbs.load_baphy_ssa,file=filepath,fs=500)
+    stack.append(ud.load_baphy_ssa.load_baphy_ssa,file=filepath,fs=500)
     stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
 
 
@@ -193,6 +193,19 @@ def fir10(stack):
 def fir15(stack):
     stack.append(nm.filters.fir,num_coefs=15)
     fir_mini_fit(stack)
+
+def stp1pc(stack):
+    #stack.append(nm.aux.normalize)
+    #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])
+    stack.append(nm.filters.stp,num_channels=1)
+    stack.modules[-1].u[:]=0.05
+    
+def stp2pc(stack):
+    stack.append(nm.filters.stp,num_channels=2)
+    stack.modules[-1].u[:,0]=0.01
+    stack.modules[-1].u[:,1]=0.1
+    
+    
 
 # static NL keywords
 ###############################################################################

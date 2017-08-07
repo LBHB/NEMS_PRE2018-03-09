@@ -62,7 +62,7 @@ class weight_channels(nems_module):
  
 class fir(nems_module):
     """
-    fir_filter - the workhorse linear filter module. Takes in a 3D stim array 
+    fir - the workhorse linear fir filter module. Takes in a 3D stim array 
     (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
     offset, and outputs a 2D stim array (stims,time).
     """
@@ -100,3 +100,102 @@ class fir(nems_module):
         X=X.sum(0)+self.baseline
         Y=np.reshape(X,s[1:])
         return Y
+    
+class stp(nems_module):
+    """
+    stp - simulate short-term plasticity with the Tsodyks and Markram model
+ m.editable_fields = {'num_channels', 'strength', 'tau', 'strength2', 'tau2',...
+                    'per_channel', 'offset_in', 'facil_on', 'crosstalk',...
+                    'input', 'input_mod','time', 'output' };
+    """
+    name='stp'
+    user_editable_fields=['input_name','output_name','num_channels','u','tau','offset_in','crosstalk']
+    plot_fns=[nu.pre_post_psth, nu.plot_spectrogram]
+    coefs=None
+    baseline=0
+    u=np.zeros([1,1])
+    tau=np.zeros([1,1])+0.1
+    offset_in=np.zeros([1,1])
+    crosstalk=0
+    num_channels=1
+    num_dims=1
+    
+    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, crosstalk=0, fit_fields=['tau','u']):
+        """
+        num_channels: 
+        u: 
+        tau: 
+        """
+        if self.d_in and not(num_dims):
+            num_dims=self.d_in[0]['stim'].shape[0]
+        Zmat=np.zeros([num_dims,num_channels])
+        if not u:
+            u=Zmat
+        if not tau:
+            tau=Zmat+0.1
+        if not offset_in:
+            offset_in=Zmat
+            
+        self.num_dims=num_dims
+        self.num_channels=num_channels
+        self.fit_fields=fit_fields
+        self.do_trial_plot=self.plot_fns[0]
+        
+        # stp parameters should be matrices num_dims X num_channels or 1 X num_channels,
+        # and in the latter case be replicated across num_dims
+        self.u=u
+        self.tau=tau
+        self.offset_in=offset_in
+        self.crosstalk=crosstalk
+        
+    def my_eval(self,X):
+        s=X.shape
+
+        tstim=(X>0)*X;
+
+        # TODO : enable crosstalk
+        
+        # TODO : for each stp channel, current just forcing 1
+        Y=np.zeros([0,s[1],s[2]])
+        di=np.ones(s)
+        for j in range(0,self.num_channels):
+            ui=np.absolute(self.u[:,j])
+            #ui=self.u[:,j]
+            taui=self.tau[:,j]*100  # norm by sampling rate so that tau is in units of sec
+            
+            # go through each stimulus channel
+            for i in range(0,s[0]):
+                
+                # limits:
+                if ui[i]>0.5:
+                    ui[i]=0.5
+                elif ui[i]<-0.5:
+                    ui[i]=-0.5
+                    
+                if taui[i]<0.001:
+                    taui[i]=0.001
+                    
+                for tt in range(1,s[2]):
+                    td=di[i,:,tt-1]
+                    if ui[i]>0:
+                        delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
+                        td=td+delta
+                        td[td<0]=0
+                    else:
+                        delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
+                        td=td+delta
+                        td[td<1]=1
+                    di[i,:,tt]=td
+                    
+            Y=np.append(Y,di*X,0)
+            #print(np.sum(np.isnan(Y),1))
+            #print(np.sum(np.isnan(di*X),1))
+            
+        #plt.figure()
+        #pre, =plt.plot(X[0,0,:],label='Pre-nonlinearity')
+        #post, =plt.plot(Y[0,0,:],'r',label='Post-nonlinearity')
+        #plt.legend(handles=[pre,post])
+                
+        return Y
+    
+        

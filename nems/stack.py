@@ -259,15 +259,22 @@ class nems_stack:
     
     def quick_plot(self,size=(12,24)):
         plt.figure(figsize=size)
-        #plt.subplot(len(self.modules)-1,1,1)
+        
+        # find all modules with plotfn
+        plot_set=[]
         for idx,m in enumerate(self.modules):
-            # skip first module
-            if idx>0:
-                print(self.modules[idx].name)
-                plt.subplot(len(self.modules)-1,1,idx)
-                #plt.subplot(len(self.modules),1,idx+1)
-                m.do_plot(m)
-        plt.tight_layout()
+            if m.auto_plot:
+                plot_set.append(idx)
+        
+        spidx=1
+        for idx in plot_set:
+            print("quick_plot: {}".format(self.modules[idx].name))
+            plt.subplot(len(plot_set),1,spidx)
+            #plt.subplot(len(self.modules),1,idx+1)
+            self.modules[idx].do_plot(self.modules[idx])
+            spidx+=1
+        
+        #plt.tight_layout()
         #TODO: Use gridspec to fix spacing issue? Addition of labels makes
         #      the subplots look "scrunched" vertically.
     

@@ -54,6 +54,7 @@ class load_mat(nems_module):
     def my_init(self,est_files=[],fs=100,avg_resp=True):
         self.est_files=est_files.copy()
         self.do_trial_plot=self.plot_fns[0]
+        self.auto_plot=False
         self.fs=fs
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
@@ -96,7 +97,7 @@ class load_mat(nems_module):
                     
                                     
                 data['fs']=self.fs
-                noise_thresh=0.04
+                noise_thresh=0.05
                 stim_resamp_factor=int(data['stimFs']/self.fs)
                 resp_resamp_factor=int(data['respFs']/self.fs)
                 

@@ -250,10 +250,17 @@ def pred_act_psth_all(m,size=FIGSIZE,idx=None):
 def pre_post_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
-    in1=m.d_in[m.parent_stack.plot_dataidx]
-    out1=m.d_out[m.parent_stack.plot_dataidx]
-    s1=in1['stim'][m.parent_stack.plot_stimidx,:]
-    s2=out1['stim'][m.parent_stack.plot_stimidx,:]
+    in1=m.d_in[m.parent_stack.plot_dataidx][m.input_name]
+    out1=m.d_out[m.parent_stack.plot_dataidx][m.output_name]
+    if len(in1.shape)>2:
+        s1=in1[0,m.parent_stack.plot_stimidx,:]
+    else:
+        s1=in1[m.parent_stack.plot_stimidx,:]
+    if len(out1.shape)>2:
+        s2=out1[0,m.parent_stack.plot_stimidx,:]
+    else:
+        s2=out1[m.parent_stack.plot_stimidx,:]
+        
     pre, =plt.plot(s1,label='Pre-nonlinearity')
     post, =plt.plot(s2,'r',label='Post-nonlinearity')
     plt.legend(handles=[pre,post])
@@ -282,9 +289,10 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     # if weight channels exist and dimensionality matches, generate a full STRF
     try:
         wcidx=find_modules(m.parent_stack,"weight_channels")
+        #print(wcidx)
     except:
         wcidx=[]
-    if m.name=="fir_filter" and len(wcidx):
+    if m.name=="fir" and len(wcidx):
         w=m.parent_stack.modules[wcidx[0]].coefs
         if w.shape[0]==h.shape[0]:
             h=np.matmul(w.transpose(), h)
