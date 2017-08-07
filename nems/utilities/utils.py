@@ -14,6 +14,7 @@ import pickle
 import os
 import copy
 
+
 import boto3
 try:
     import nems_config.AWS_Config as awsc
@@ -49,8 +50,8 @@ def save_model(stack, file_path):
         # this leaves 'nems_saved_models/' as a prefix, so that s3 will
         # mimick a saved models folder
         key = file_path.strip('/auto/data/code/')
-        fileobj = 'binary container'
-        pickle.dump(stack2, fileobj, protocol=pickle.HIGHEST_PROTOCOL)
+
+        fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
         s3.Object(awsc.PRIMARY_BUCKET, key).put(Body=fileobj)
     else:
         directory = os.path.dirname(file_path)
