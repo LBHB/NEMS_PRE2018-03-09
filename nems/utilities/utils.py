@@ -84,7 +84,7 @@ def load_model(file_path):
     if AWS:
         # TODO: need to set up AWS credentials to test this
         s3_client = boto3.client('s3')
-        key = file_path.strip(sc.DIRECTORY_ROOT)
+        key = file_path.strip(sc.DIRECTORY_ROOT) 
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
         stack = pickle.loads(fileobj['Body'].read())
         
@@ -125,6 +125,8 @@ def get_mat_file(filename, chars_as_strings=True):
     if AWS:
         s3_client = boto3.client('s3')
         key = filename.strip(sc.DIRECTORY_ROOT)
+        print('Filename after removing dir root: ')
+        print(key)
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
         file = scipy.io.loadmat(fileobj['Body'], chars_as_strings=chars_as_strings)
         return file
