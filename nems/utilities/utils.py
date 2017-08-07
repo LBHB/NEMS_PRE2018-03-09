@@ -14,7 +14,6 @@ import pickle
 import os
 import copy
 
-
 import boto3
 try:
     import nems_config.AWS_Config as awsc
@@ -49,8 +48,7 @@ def save_model(stack, file_path):
         s3 = boto3.resource('s3')
         # this leaves 'nems_saved_models/' as a prefix, so that s3 will
         # mimick a saved models folder
-        key = file_path.strip('/auto/data/code/')
-
+        key = file_path.strip(awsc.DIRECTORY_ROOT)
         fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
         s3.Object(awsc.PRIMARY_BUCKET, key).put(Body=fileobj)
     else:
@@ -83,9 +81,12 @@ def load_model(file_path):
     if AWS:
         # TODO: need to set up AWS credentials to test this
         s3 = boto3.resource('s3')
-        bucket = s3.Bucket('nems_saved_models')
-        key = file_path.strip('/auto/data/code/nems_saved_models/')
-        bucket.download_file(key, file_path)
+        bucket = s3.Bucket(awsc.PRIMARY_BUCKET)
+        key = file_path.strip(awsc.DIRECTORY_ROOT)
+        fileobj = s3.get_object(bucket, key)
+        stack = pickle.load(fileobj)
+        
+        return stack
     else:
         try:
             # Load data (deserialize)
