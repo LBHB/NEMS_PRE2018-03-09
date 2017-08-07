@@ -13,7 +13,7 @@ try:
     import nems_config.Storage_Config as sc
 except Exception as e:
     print(e)
-    import nems_config.STORAGE_DEFAULTS as sc
+    #import nems_config.STORAGE_DEFAULTS as sc
 
 def load_baphy_file(filepath):
     """

@@ -119,6 +119,8 @@ def get_file_name(cellid, batch, modelname):
 
 
 def get_mat_file(filename, chars_as_strings=True):
+    print('filename inside get_mat_file: ')
+    print(filename)
     
     if AWS:
         s3_client = boto3.client('s3')
