@@ -46,10 +46,12 @@ def save_model(stack, file_path):
         # TODO: Can file key contain a directory structure, or do we need to
         #       set up nested 'buckets' on s3 itself?
         s3 = boto3.resource('s3')
-        key = file_path.strip('/auto/data/code/nems_saved_models/')
+        # this leaves 'nems_saved_models/' as a prefix, so that s3 will
+        # mimick a saved models folder
+        key = file_path.strip('/auto/data/code/')
         fileobj = 'binary container'
         pickle.dump(stack2, fileobj, protocol=pickle.HIGHEST_PROTOCOL)
-        s3.Object('nems_saved_models', key).put(Body=fileobj)
+        s3.Object(awsc.PRIMARY_BUCKET, key).put(Body=fileobj)
     else:
         directory = os.path.dirname(file_path)
     
