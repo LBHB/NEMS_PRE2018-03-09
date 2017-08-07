@@ -51,6 +51,9 @@ class gain(nems_module):
             elif nltype=='dexp':
                 self.my_eval=self.dexp_fn
                 self.do_plot=self.plot_fns[1]
+            elif nltype=='logsig':
+                self.my_eval=self.logsig_fn
+                self.do_plot=self.plot_fns[1]
         else:
             self.my_eval=my_eval
             
@@ -75,7 +78,14 @@ class gain(nems_module):
     def tanh_fn(self,X):
         Y=self.phi[0,0]*np.tanh(self.phi[0,1]*X-self.phi[0,2])+self.phi[0,0]
         return(Y)
-        
+    def logsig_fn(self,X):
+        # from Rabinowitz et al 2011
+        a=self.phi[0,0]
+        b=self.phi[0,1]
+        c=self.phi[0,2]
+        d=self.phi[0,3]
+        Y=a+b/(1+np.exp(-(X-c)/d))
+        return(Y)
     def my_eval(self,X):
         Z=getattr(self,self.nltype+'_fn')(X)
         return(Z)

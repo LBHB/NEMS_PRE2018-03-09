@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 import copy
+import io
 
 import boto3
 try:
@@ -46,10 +47,11 @@ def save_model(stack, file_path):
         # TODO: Can file key contain a directory structure, or do we need to
         #       set up nested 'buckets' on s3 itself?
         s3 = boto3.resource('s3')
-        key = file_path.strip('/auto/data/code/nems_saved_models/')
-        fileobj = 'binary container'
-        pickle.dump(stack2, fileobj, protocol=pickle.HIGHEST_PROTOCOL)
-        s3.Object('nems_saved_models', key).put(Body=fileobj)
+        # this leaves 'nems_saved_models/' as a prefix, so that s3 will
+        # mimick a saved models folder
+        key = file_path.strip(awsc.DIRECTORY_ROOT)
+        fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
+        s3.Object(awsc.PRIMARY_BUCKET, key).put(Body=fileobj)
     else:
         directory = os.path.dirname(file_path)
     
@@ -79,10 +81,13 @@ def save_model(stack, file_path):
 def load_model(file_path):
     if AWS:
         # TODO: need to set up AWS credentials to test this
-        s3 = boto3.resource('s3')
-        bucket = s3.Bucket('nems_saved_models')
-        key = file_path.strip('/auto/data/code/nems_saved_models/')
-        bucket.download_file(key, file_path)
+        s3_client = boto3.client('s3')
+        s3_resource = boto3.resource('s3') 
+        key = file_path.strip(awsc.DIRECTORY_ROOT)
+        fileobj = s3_client.get_object(Bucket=awsc.PRIMARY_BUCKET, Key=key)
+        stack = pickle.loads(fileobj['Body'].read())
+        
+        return stack
     else:
         try:
             # Load data (deserialize)

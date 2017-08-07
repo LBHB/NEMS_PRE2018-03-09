@@ -303,6 +303,12 @@ def dexp(stack):
     #choose phi s.t. dexp starts as almost a straight line 
     nonlin_mini_fit(stack)
     
+def logsig(stack):
+    phi=[0,1,0,1]
+    stack.append(nm.nonlin.gain,nltype='logsig',fit_fields=['phi'],phi=phi) 
+    #choose phi s.t. dexp starts as almost a straight line 
+    nonlin_mini_fit(stack)
+    
 def poly01(stack):
     """
     Applies a polynomial function entry-by-entry to the datastream:
