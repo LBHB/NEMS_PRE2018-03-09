@@ -17,12 +17,13 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 
 try:
-    import nems_config.AWS_Config as awsc
-    AWS = awsc.USE_AWS
-    if AWS:filepaths=['/missing_preview']
-        from nems.EC2_Mgmt import check_instance_count
+    import nems_config.Storage_Config as sc
+    AWS = sc.USE_AWS
+    #if AWS:
+        #from nems.EC2_Mgmt import check_instance_count
 except Exception as e:
     print(e)
+    #import nems_config.STORAGE_DEFAULTS as sc
     AWS = False
 
 # Database settings

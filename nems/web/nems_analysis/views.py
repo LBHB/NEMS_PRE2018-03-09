@@ -44,7 +44,7 @@ try:
     import nems_config.Storage_Config as sc
     AWS = sc.AWS
 except:
-    import nems_config.STORAGE_DEFAULTS as sc
+    #import nems_config.STORAGE_DEFAULTS as sc
     AWS = False
 
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
