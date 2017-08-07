@@ -42,8 +42,8 @@ def model_details(modelname):
             ]
     kwdocs = [
             func.__doc__ + '              '
-            if func.__doc__
-            else 'blank doc string'
+            if func.__doc__ and not isinstance(func, str)
+            else 'blank doc string or missing keyword'
             for func in kw_funcs
             ]
     splitdocs = [
@@ -52,7 +52,10 @@ def model_details(modelname):
             ]
     for i, doc in enumerate(splitdocs):
         doc.insert(0, '     ')
-        doc.insert(0, kw_funcs[i].__name__)
+        if not isinstance(kw_funcs[i], str):
+            doc.insert(0, kw_funcs[i].__name__)
+        else:
+            doc.insert(0, kw_funcs[i])
         
     return render_template('model_details.html', docs=splitdocs)
     # TODO: parse the stack.append() lines inside each kw function
