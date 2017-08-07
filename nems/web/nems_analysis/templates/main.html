@@ -639,15 +639,25 @@
                                 </div><!-- table sort drop down -->
                             </div><!-- input-group-btn -->
 
-                            <div class="input-group">
+                            <div class="input-group" id="rowLimitDiv">
                                 <span class="input-group-addon input-sm"
-                                      id="row-limit-label">
+                                      id="row-limit-label"
+                                      size="10">
                                           Limit
                                 </span>
                                 <input type="text"
                                        id="rowLimit"
                                        value="{{ defaultrowlimit }}"
                                        class="form-control input-sm">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="autoPreview"
+                                       id="autoPreviewLabel">
+                                          Auto Preview
+                                <input type="checkbox"
+                                       id="autoPreview"
+                                       value="1">
                             </div>
                         </div><!-- outer form group -->
                     </div><!-- top table buttons col -->

@@ -167,6 +167,7 @@ plotOpLabelsTwo {
 }
 
 plotOpGroupTwo {
+  text-align: center;
   width: 100%;
 }
 
@@ -193,9 +194,14 @@ plotOpGroupTwo {
   width: 100%;
 }
 
+#rowLimitDiv {
+  width: 25%;
+}
+
 #rowLimit {
+  width: 60px;
   height: 100%;
-  width: 35%;
+
   text-align: center;
 }
 

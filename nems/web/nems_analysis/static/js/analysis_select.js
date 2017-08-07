@@ -638,10 +638,14 @@ $(document).ready(function(){
                 });
             }
             $(this).addClass('selectedRow');
+            if (document.getElementById("autoPreview").checked){
+                refreshPreview();
+            }
         }
     });
 
-    $(document).on('click','#preview',function(e){
+    $(document).on('click','#preview', refreshPreview);
+    function refreshPreview(){
         var cSelected = [];
         var mSelected = [];
         var bSelected = $("#batchSelector").val();
@@ -677,7 +681,7 @@ $(document).ready(function(){
                 console.log(error);        
             }
         });
-    });
+    };
                 
     $("#clearSelected").on('click',function(){
         $(".dataframe tr.selectedRow").each(function(){
