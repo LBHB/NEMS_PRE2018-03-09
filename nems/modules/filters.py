@@ -78,7 +78,7 @@ class fir(nems_module):
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
         baseline: initial value of DC offset
-        fit_fields: names of fitted variables
+        fit_fields: names of fitted parameters
         random: randomize initial values of fir coefficients
         """
         if self.d_in and not(num_dims):
@@ -94,8 +94,6 @@ class fir(nems_module):
         self.do_trial_plot=self.plot_fns[0]
         
     def my_eval(self,X):
-        #if not self.d_out:
-        #    # only allocate memory once, the first time evaling. rish is that output_name could change
         s=X.shape
         X=np.reshape(X,[s[0],-1])
         for i in range(0,s[0]):

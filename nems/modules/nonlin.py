@@ -29,36 +29,23 @@ class gain(nems_module):
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
     
-    def my_init(self,d_in=None,my_eval=None,nltype='dlog',fit_fields=['phi'],phi=[1],premodel=False):
+    def my_init(self,nltype='dlog',fit_fields=['phi'],phi=[1]):
         """
-        
+        nltype: type of nonlinearity
+        fit_fields: name of fitted parameters
+        phi: initial values for fitted parameters
         """
-        if premodel is True:
-            self.do_plot=self.plot_fns[2]
         self.fit_fields=fit_fields
         self.nltype=nltype
         self.phi=np.array([phi])
-        #setattr(self,nltype,phi0)
-        if my_eval is None:
-            #TODO: could do this more cleanly, see pupil.gain
-            if nltype=='dlog':
-                self.my_eval=self.dlog_fn
-                self.plot_fns=[nu.plot_spectrogram]
-                self.do_plot=self.plot_fns[0]
-            elif nltype=='exp':
-                self.my_eval=self.exp_fn
-                self.do_plot=self.plot_fns[1]
-            elif nltype=='dexp':
-                self.my_eval=self.dexp_fn
-                self.do_plot=self.plot_fns[1]
-            elif nltype=='logsig':
-                self.my_eval=self.logsig_fn
-                self.do_plot=self.plot_fns[1]
+        #removed extraneous code ---njs August 7 2017
+        if nltype=='dlog':
+            self.do_plot=self.plot_fns[2]
         else:
-            self.my_eval=my_eval
-            
+            self.do_plot=self.plot_fns[0]
         
     def dlog_fn(self,X):
+        #TODO: need to find a good way to weed out negative and zero values
         s_indices= X<=0
         X[s_indices]=0
         Y=np.log(X+self.phi[0,0])
@@ -86,6 +73,7 @@ class gain(nems_module):
         d=self.phi[0,3]
         Y=a+b/(1+np.exp(-(X-c)/d))
         return(Y)
+        
     def my_eval(self,X):
         Z=getattr(self,self.nltype+'_fn')(X)
         return(Z)
