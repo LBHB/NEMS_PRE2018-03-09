@@ -19,9 +19,10 @@ from sqlalchemy.ext.automap import automap_base
 try:
     import nems_config.AWS_Config as awsc
     AWS = awsc.USE_AWS
-    if AWS:
+    if AWS:filepaths=['/missing_preview']
         from nems.EC2_Mgmt import check_instance_count
-except:
+except Exception as e:
+    print(e)
     AWS = False
 
 # Database settings
@@ -245,7 +246,10 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
     session.close()
     
     if AWS:
-        check_instance_count()
+        # TODO: turn this back on after automated cluster management is
+        #       implemented.
+        pass
+        #check_instance_count()
     else:
         pass
 

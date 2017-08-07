@@ -77,12 +77,8 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         stack.quick_plot()
     
     # save
-    filename=(
-        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
-        .format(batch, cellid, modelname)
-        )
-    ut.utils.save_model(stack,filename) 
-    
+    filename = ut.utils.get_file_name(cellid, batch, modelname)
+    ut.utils.save_model(stack, filename)
 
     return(stack)
 
@@ -100,12 +96,9 @@ example:
 """
 def load_single_model(cellid, batch, modelname):
     
-    filename = (
-            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
-            .format(batch, cellid, modelname)
-            )
-    
+    filename = ut.utils.get_file_name(cellid, batch, modelname)
     stack = ut.utils.load_model(filename)
+    
     try:
         stack.valmode = True
         stack.evaluate()

@@ -7,19 +7,21 @@ Created on Fri Jun 16 05:20:07 2017
 """
 
 import scipy.signal as sps
+import scipy
 import numpy as np
 import numpy.ma as npma
 import matplotlib.pyplot as plt
 import pickle
 import os
 import copy
-import io
 
-import boto3
 try:
-    import nems_config.AWS_Config as awsc
-    AWS = awsc.USE_AWS
-except:
+    import boto3
+    import nems_config.Storage_Config as sc
+    AWS = sc.USE_AWS
+except Exception as e:
+    print(e)
+    import nems_config.STORAGE_DEFAULTS as sc
     AWS = False
     
     
@@ -49,9 +51,9 @@ def save_model(stack, file_path):
         s3 = boto3.resource('s3')
         # this leaves 'nems_saved_models/' as a prefix, so that s3 will
         # mimick a saved models folder
-        key = file_path.strip(awsc.DIRECTORY_ROOT)
+        key = file_path.strip(sc.DIRECTORY_ROOT)
         fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
-        s3.Object(awsc.PRIMARY_BUCKET, key).put(Body=fileobj)
+        s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
     else:
         directory = os.path.dirname(file_path)
     
@@ -82,9 +84,8 @@ def load_model(file_path):
     if AWS:
         # TODO: need to set up AWS credentials to test this
         s3_client = boto3.client('s3')
-        s3_resource = boto3.resource('s3') 
-        key = file_path.strip(awsc.DIRECTORY_ROOT)
-        fileobj = s3_client.get_object(Bucket=awsc.PRIMARY_BUCKET, Key=key)
+        key = file_path.strip(sc.DIRECTORY_ROOT)
+        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
         stack = pickle.loads(fileobj['Body'].read())
         
         return stack
@@ -106,6 +107,29 @@ def load_model(file_path):
             print("error loading {0}".format(file_path))
             raise e
 
+
+def get_file_name(cellid, batch, modelname):
+    
+    filename=(
+        sc.DIRECTORY_ROOT + "nems_saved_models/batch{0}/{1}_{2}.pkl"
+        .format(batch, cellid, modelname)
+        )
+    
+    return filename
+
+
+def get_mat_file(filename, chars_as_strings=True):
+    
+    if AWS:
+        s3_client = boto3.client('s3')
+        key = filename.strip(sc.DIRECTORY_ROOT)
+        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+        file = scipy.io.loadmat(fileobj['Body'], chars_as_strings=chars_as_strings)
+        return file
+    else:
+        file = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
+        return file
+    
 
 #
 # PLOTTING FUNCTIONS

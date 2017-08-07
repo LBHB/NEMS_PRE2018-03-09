@@ -6,10 +6,19 @@ Created on Fri Jul 14 15:54:26 2017
 @author: shofer
 """
 
-import matplotlib.pyplot as plt,mpld3
+import matplotlib.pyplot as plt, mpld3
 import nems.utilities as ut
 import numpy as np
 import os
+import io
+
+try:
+    import boto3
+    import nems_config.Storage_Config as sc
+    AWS = sc.AWS
+except:
+    import nems_config.STORAGE_DEFAULTS as sc
+    AWS = False
 
 class nems_stack:
         
@@ -311,24 +320,31 @@ class nems_stack:
         plt.tight_layout()
 
         filename = (
-                    "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.{3}"
+                    sc.DIRECTORY_ROOT + "nems_saved_models/batch{0}/{1}_{2}.{3}"
                     .format(batch, cellid, modelname, mode)
                     )
-        if os.path.isfile(filename):
-            os.remove(filename)
-        try:
-            fig.savefig(filename)
-        except Exception as e:
-            print("Bad file extension for figure or couldn't save")
-            print(e)
-            return filename
         
-        try:
-            os.chmod(filename, 0o666)
-        except Exception as e:
-            print("Couldn't modify file permissions for figure")
-            print(e)
-            return filename
+        if AWS:
+            s3 = boto3.resource('s3')
+            key = filename.strip(sc.DIRECTORY_ROOT)
+            fileobj = io.BytesIO()
+            fig.savefig(fileobj)
+            s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+        else:
+            if os.path.isfile(filename):
+                os.remove(filename)
+            try:
+                fig.savefig(filename)
+            except Exception as e:
+                print("Bad file extension for figure or couldn't save")
+                print(e)
+                raise e
+        
+            try:
+                os.chmod(filename, 0o666)
+            except Exception as e:
+                print("Couldn't modify file permissions for figure")
+                raise e
 
         return filename
     

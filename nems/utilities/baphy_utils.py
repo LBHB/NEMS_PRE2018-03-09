@@ -9,6 +9,12 @@ Created on Wed Jun 14 09:33:47 2017
 import scipy.io as si
 import numpy as np
 
+try:
+    import nems_config.Storage_Config as sc
+except Exception as e:
+    print(e)
+    import nems_config.STORAGE_DEFAULTS as sc
+
 def load_baphy_file(filepath):
     """
     This function loads data from a BAPHY .mat file located at 'filepath'. 
@@ -54,7 +60,9 @@ def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
     
     @author: svd
     """
-    rootpath="/auto/data/code/nems_in_cache"
+    
+    rootpath=sc.DIRECTORY_ROOT + "nems_in_cache"
+        
     fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
     
     # placeholder. Need to check if file exists in nems_in_cache.
@@ -62,62 +70,4 @@ def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
     # fn=export_cellfile(batchid,cellid,fs,stimfmt,chancount)
     
     return fn
-
-
-def get_kw_file(batch,cellid,keyword):
-    """
-    Given a keyword, translate to stim/resp preprocessing parameters and get relevant filename
-    
-    @author: svd
-    """
-       
-    lookup={};
-    
-    lookup['fb18ch100']={}
-    lookup['fb18ch100']['fs']=100
-    lookup['fb18ch100']['stimfmt']='ozgf'
-    lookup['fb18ch100']['chancount']=18
-    lookup['fb18ch200']={}
-    lookup['fb18ch200']['fs']=200
-    lookup['fb18ch200']['stimfmt']='ozgf'
-    lookup['fb18ch200']['chancount']=18
-    lookup['fb18ch400']={}
-    lookup['fb18ch400']['fs']=400
-    lookup['fb18ch400']['stimfmt']='ozgf'
-    lookup['fb18ch400']['chancount']=18
-    lookup['fb24ch100']={}
-    lookup['fb24ch100']['fs']=100
-    lookup['fb24ch100']['stimfmt']='ozgf'
-    lookup['fb24ch100']['chancount']=24
-    lookup['fb36ch100']={}
-    lookup['fb36ch100']['fs']=100
-    lookup['fb36ch100']['stimfmt']='ozgf'
-    lookup['fb36ch100']['chancount']=36
-    lookup['fb48ch100']={}
-    lookup['fb48ch100']['fs']=100
-    lookup['fb48ch100']['stimfmt']='ozgf'
-    lookup['fb48ch100']['chancount']=36
-    lookup['env100']={}
-    lookup['env100']['fs']=100
-    lookup['env100']['stimfmt']='envelope'
-    lookup['env100']['chancount']=0
-    lookup['env200']={}
-    lookup['env200']['fs']=200
-    lookup['env200']['stimfmt']='envelope'
-    lookup['env200']['chancount']=0
-   
-    if keyword == '' or keyword==None:
-        fn='no preproc, just use filename passed by NEMS_analysis'
-        
-    elif keyword in lookup.keys():
-        fs=lookup[keyword]['fs']
-        stimfmt=lookup[keyword]['stimfmt']
-        chancount=lookup[keyword]['chancount']
-        fn=get_celldb_file(batch,cellid,fs,stimfmt,chancount)
-        
-    else:
-        raise NameError('keyword not found')
-    
-    return fn
-
 
