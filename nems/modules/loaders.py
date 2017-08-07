@@ -54,6 +54,7 @@ class load_mat(nems_module):
     def my_init(self,est_files=[],fs=100,avg_resp=True):
         self.est_files=est_files.copy()
         self.do_trial_plot=self.plot_fns[0]
+        self.auto_plot=False
         self.fs=fs
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp

@@ -41,6 +41,7 @@ class nems_module:
     d_in=None  # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
     d_out=None # pointer to output, parent_stack.d[i+!]
     fit_fields=[]  # what fields should be fed to phi for fitting
+    auto_plot=True  # whether to include in quick_plot
     
     #
     # Begin standard functions
@@ -64,6 +65,7 @@ class nems_module:
             self.idm="{0}{1}".format(self.name,len(parent_stack.modules))
         
         self.d_out=copy.deepcopy(self.d_in)
+        self.auto_plot=True
         self.do_plot=self.plot_fns[0]  # default is first in list
         self.do_trial_plot=self.plot_fns[0]
         self.my_init(**xargs)

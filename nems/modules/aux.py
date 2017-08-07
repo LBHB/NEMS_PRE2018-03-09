@@ -40,11 +40,12 @@ class normalize(nems_module):
     def my_init(self, force_positive=True,data='stim'):
         self.force_positive=force_positive
         self.input_name=data
+        self.auto_plot=False
         if self.parent_stack.cv_counter==0:
             print('norm lists created')
             self.parent_stack.d=[0]*self.parent_stack.nests
             self.parent_stack.g=[1]*self.parent_stack.nests
-    
+            
     def evaluate(self,nest=0):
         c=self.parent_stack.cv_counter
         X=self.unpack_data()

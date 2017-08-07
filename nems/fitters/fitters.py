@@ -391,7 +391,9 @@ class fit_iteratively(nems_fitter):
         self.sub_fitter.tol=self.tol
         itr=0
         err=self.stack.error()
+        this_itr=0
         while itr<self.max_iter:
+            this_itr+=1
             for i in self.fit_modules:
                 print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i].name,itr,self.sub_fitter.tol))
                 self.sub_fitter.fit_modules=[i]
@@ -401,6 +403,14 @@ class fit_iteratively(nems_fitter):
                 print("error improvement less than tol, starting new outer iteration")
                 itr+=1
                 self.sub_fitter.tol=self.sub_fitter.tol/2
+                this_itr=0
+            elif this_itr>20:
+                print("")
+                print("too many loops at this tolerance, stuck?")
+                itr+=1
+                self.sub_fitter.tol=self.sub_fitter.tol/2
+                this_itr=0
+                
             err=new_err
             
         return(self.stack.error())
