@@ -82,11 +82,10 @@ def load_model(file_path):
     if AWS:
         # TODO: need to set up AWS credentials to test this
         s3_client = boto3.client('s3')
-        s3_resource = boto3.resource('s3')
-        bucket = s3_resource.Bucket(awsc.PRIMARY_BUCKET)
+        s3_resource = boto3.resource('s3') 
         key = file_path.strip(awsc.DIRECTORY_ROOT)
-        fileobj = s3_client.get_object(Bucket=bucket, Key=key)
-        stack = pickle.loads(io.BytesIO(fileobj['body'].read()))
+        fileobj = s3_client.get_object(Bucket=awsc.PRIMARY_BUCKET, Key=key)
+        stack = pickle.loads(fileobj['Body'].read())
         
         return stack
     else:
