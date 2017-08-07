@@ -105,13 +105,12 @@ def loadlocal(stack):
     This keyword is just to load up a local file that is not yet on the BAPHY database.
     Right now just loads files from my computer --njs, June 27 2017
     """
-    file='/Users/HAL-9000/Desktop/CompNeuro/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'_nat_export.mat'
+    file='/Users/HAL-9000/Desktop/CompNeuro/batch'+str(stack.meta['batch'])+'/'+str(stack.meta['cellid'])+'_b'+str(stack.meta['batch'])+'_ozgf_c18_fs100.mat'
     #file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
-    stack.append(nm.est_val.crossval,valfrac=0.05,use_trials=True)
-    #stack.append(nm.standard_est_val, valfrac=0.05)
-    stack.append(nm.pupil.model,tile_data=True)
+    stack.append(nm.est_val.crossval)
+    #stack.append(nm.pupil.model,tile_data=True)
     
 def jitterload(stack):
     filepath='/auto/users/shofer/data/batch296mateo/'+str(stack.meta['cellid'])+'_b'+str(stack.meta['batch'])+'_envelope_fs1000.mat'
@@ -139,30 +138,30 @@ def xval05(stack):
 
 def wc01(stack):
     """
-    Example:
-    ~~~~(What does it do?)
-    Appends the weight_channels module to the stack with arguments:
-        num_chans = 1
-    
-    ~~~~(Why does it do it / what's the purpose or goal of the module?)
-    ~~~~(copied from the doc string for weight_channels)
-    weight_channels:
-    Apply a weighting matrix across a variable in the data
-    stream. Used to provide spectral filters, directly imported from NARF.
-    A helper function parm_fun can be defined to parameterized the
-    weighting matrix, but by default the weights are each independent
-    
+    Applies a 1 channel spectral filter matrix to the data
+    stream.
     """
-    
     stack.append(nm.filters.weight_channels,num_chans=1)
 
 def wc02(stack):
+    """
+    Applies a 2 channel spectral filter matrix to the data
+    stream.
+    """
     stack.append(nm.filters.weight_channels,num_chans=2)
 
 def wc03(stack):
+    """
+    Applies a 3 channel spectral filter matrix to the data
+    stream.
+    """
     stack.append(nm.filters.weight_channels,num_chans=3)
 
 def wc04(stack):
+    """
+    Applies a 4 channel spectral filter matrix to a the data
+    stream.
+    """
     stack.append(nm.filters.weight_channels,num_chans=4)
 
 
@@ -170,13 +169,19 @@ def wc04(stack):
 ###############################################################################
 
 def fir_mini_fit(stack):
-    # mini fit
+    """
+    Helper function that fits weight channel and fir coefficients prior to fitting 
+    all the model coefficients. This is often helpful, as it gets the model in the
+    right ballpark before fitting other model parameters, especially when nonlinearities
+    are included in the model.
+    
+    This function is not appended directly to the stack, but instead is included
+    in fir keywords (see help for fir10, fir15)
+    """
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
     stack.fitter.tol=0.0001
-    #stack.fitter=nf.fitters.coordinate_descent(stack)
-    #stack.fitter.tol=0.001
     try:
         fitidx=ut.utils.find_modules(stack,'weight_channels') + ut.utils.find_modules(stack,'fir')
     except:
@@ -187,10 +192,44 @@ def fir_mini_fit(stack):
     stack.popmodule()
     
 def fir10(stack):
+    """
+    Appends a 10 temporal bin finite impluse response (FIR) filter to the datastream. 
+    This filter can serve as either the entire STRF for the cell and be fitted as such, 
+    or as the temporal filter in the factorized STRF if used in conjuction with the 
+    weight channel spectral filter. 
+    
+    This keyword initializes the FIR coefficients to 0, and performs a fit on the 
+    FIR coefficients (and weight channel coefficients, if a weight channel matrix
+    is included in the model).
+    """
     stack.append(nm.filters.fir,num_coefs=10)
     fir_mini_fit(stack)
     
+def fir10r(stack):
+    """
+    Appends a 10 temporal bin finite impluse response (FIR) filter to the datastream. 
+    This filter can serve as either the entire STRF for the cell and be fitted as such, 
+    or as the temporal filter in the factorized STRF if used in conjuction with the 
+    weight channel spectral filter. 
+    
+    This keyword draws the intial FIR coeffcients from a normal distribution about 0 
+    with a standard distribution of 0.0025, and performs a fit on the FIR coefficients 
+    (and weight channel coefficients, if a weight channel matrix is included in the model).
+    """
+    stack.append(nm.filters.fir,num_coefs=10,random=True)
+    fir_mini_fit(stack)
+    
 def fir15(stack):
+    """
+    Appends a 15 temporal bin finite impluse response (FIR) filter to the datastream. 
+    This filter can serve as either the entire STRF for the cell and be fitted as such, 
+    or as the temporal filter in the factorized STRF if used in conjuction with the 
+    weight channel spectral filter. 
+    
+    This keyword initializes the FIR coefficients to 0, and performs a fit on the 
+    FIR coefficients (and weight channel coefficients, if a weight channel matrix
+    is included in the model).
+    """
     stack.append(nm.filters.fir,num_coefs=15)
     fir_mini_fit(stack)
 
@@ -210,7 +249,15 @@ def stp2pc(stack):
 # static NL keywords
 ###############################################################################
 def nonlin_mini_fit(stack):
-    # mini fit
+    """
+    Helper function that fits nonlinearity coefficients prior to fitting 
+    all the model coefficients. This is often helpful, as just fitting the
+    nonlinearities tends to reduce the tendency of the nonlinearities to send 
+    the predicted response to a constant DC offset.
+    
+    This function is not appended directly to the stack, but instead is included
+    in certain nonlinearity keywords (see help for dexp, tanhsig)
+    """
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
@@ -222,68 +269,186 @@ def nonlin_mini_fit(stack):
     stack.popmodule()
     
 def dlog(stack):
+    """
+    Applies a natural logarithm entry-by-entry to the datastream: 
+        y = log(x+v1)
+    where x is the input matrix and v1 is a fitted parameter applied to each
+    matrix entry (the same across all entries)
+    """
     stack.append(nm.nonlin.gain,nltype='dlog',fit_fields=['phi'],phi=[1])
     #stack.append(nm.normalize)
     
 def exp(stack):
+    """
+    Applies an exponential function entry-by-entry to the datastream:
+        y = exp(v1*(x+v2))
+    where x is the input matrix and v1, v2 are fitted parameters applied to each
+    matrix entry (the same across all entries)
+    
+    Performs a fit on the nonlinearity parameters, as well.
+    """
     stack.append(nm.nonlin.gain,nltype='exp',fit_fields=['phi'],phi=[1,1])
+    nonlin_mini_fit(stack)
 
 def dexp(stack):
+    """
+    Applies a double-exponential function entry-by-entry to the datastream:
+        y = v1 - v2*exp[-exp{v3*(x-v4)}]
+    where x is the input matrix and v1,v2,v3,v4 are fitted parameters applied to each
+    matrix entry (the same across all entries)
+    
+    Performs a fit on the nonlinearity parameters, as well.
+    """
     stack.append(nm.nonlin.gain,nltype='dexp',fit_fields=['phi'],phi=[1,.01,.001,0]) 
     #choose phi s.t. dexp starts as almost a straight line 
     nonlin_mini_fit(stack)
     
 def poly01(stack):
+    """
+    Applies a polynomial function entry-by-entry to the datastream:
+        y = v1 + v2*x
+    where x is the input matrix and v1,v2 are fitted parameters applied to each
+    matrix entry (the same across all entries)
+    """
     stack.append(nm.nonlin.gain,nltype='poly',fit_fields=['phi'],phi=[0,1])
     
 def poly02(stack):
+    """
+    Applies a polynomial function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*(x^2)
+    where x is the input matrix and v1,v2,v3 are fitted parameters applied to each
+    matrix entry (the same across all entries)
+    """
     stack.append(nm.nonlin.gain,nltype='poly',fit_fields=['phi'],phi=[0,1,0])
     
 def poly03(stack):
+    """
+    Applies a polynomial function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*(x^2) + v4*(x^3)
+    where x is the input matrix and v1,v2,v3,v4 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    """
     stack.append(nm.nonlin.gain,nltype='poly',fit_fields=['phi'],phi=[0,1,0,0])
 
 def tanhsig(stack):
+    """
+    Applies a tanh sigmoid function(commonly used as a neural net activation function) 
+    entry-by-entry to the datastream:
+        y = v1*tanh(v2*x - v3) + v1
+    where x is the input matrix and v1,v2,v3 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    
+    Performs a fit on the nonlinearity parameters, as well.
+    """
     stack.append(nm.nonlin.gain,nltype='tanh',fit_fields=['phi'],phi=[1,1,0])
+    nonlin_mini_fit(stack)
 
 
 # state variable keyowrds
 ###############################################################################
 
 def nopupgain(stack):
+    """
+    Applies a DC gain function entry-by-entry to the datastream:
+        y = v1 + v2*x
+    where x is the input matrix and v1,v2 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
-
     
 def pupgain(stack):
+    """
+    Applies a linear pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*p + v4*x*p
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2 
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
 
-def polypupgain04(stack): #4th degree polynomial gain fn
+def polypupgain04(stack):#4th degree polynomial gain fn
+    """
+    Applies a poynomial pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*x*p + v4*x*(p^2) + v5*x*(p^3) + v6*x*(p^4)
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2,v3,v4,v5,v6 
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,0,1])
     
 def polypupgain03(stack): #3rd degree polynomial gain fn
+    """
+    Applies a poynomial pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*x*p + v4*x*(p^2) + v5*x*(p^3)
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2,v3,v4,v5 
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
     
 def polypupgain02(stack): #2nd degree polynomial gain fn
+    """
+    Applies a poynomial pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*x*p + v4*x*(p^2) 
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2,v3,v4
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,1])
     
 def exppupgain(stack):
+    """
+    Applies an exponential pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x*exp(v3*p-v4)
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2,v3,v4
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
 
 def logpupgain(stack):
+    """
+    Applies a logarithmic pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x*log(v3*p-v4)
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2,v3,v4
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,1,0,1])
 
 def powergain02(stack): #This is equivalent ot what Zach is using
+    """
+    Applies a poynomial pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*(p^2) + v4*x*(p^2) 
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2,v3,v4
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
     stack.append(nm.pupil.pupgain,gain_type='powerpupgain',fit_fields=['theta'],theta=[0,1,0,0],order=2)
     
 def butterworth01(stack):
+    """
+    Applies a 1st-order Butterworth high-pass filter entry-by-entry to the datastream,
+    where the pupil diameter is used as the "frequency", and the -3dB is fit, along
+    with a scalar gain term and a DC offset. 
+    """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=1)
     
 def butterworth02(stack):
+    """
+    Applies a 2nd-order Butterworth high-pass filter entry-by-entry to the datastream,
+    where the pupil diameter is used as the "frequency", and the -3dB is fit, along
+    with a scalar gain term and a DC offset. 
+    """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=2)
     
 def butterworth03(stack):
+    """
+    Applies a 3rd-order Butterworth high-pass filter entry-by-entry to the datastream,
+    where the pupil diameter is used as the "frequency", and the -3dB is fit, along
+    with a scalar gain term and a DC offset. 
+    """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=3)
     
 def butterworth04(stack):
+    """
+    Applies a 4th-order Butterworth high-pass filter entry-by-entry to the datastream,
+    where the pupil diameter is used as the "frequency", and the -3dB is fit, along
+    with a scalar gain term and a DC offset. 
+    """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=4)
 
 
@@ -291,6 +456,12 @@ def butterworth04(stack):
 ###############################################################################
 
 def fit00(stack):
+    """
+    Fits the model parameters using a mean squared error loss function with 
+    the L-BFGS-B algorithm, to a cost function tolerance of 0.001.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
     stack.append(nm.metrics.mean_square_error)  
     # set error (for minimization) for this stack to be output of last module
     stack.error=stack.modules[-1].error
@@ -302,6 +473,12 @@ def fit00(stack):
     create_parmlist(stack)
     
 def fit01(stack):
+    """
+    Fits the model parameters using a mean squared error loss function with 
+    the L-BFGS-B algorithm, to a cost function tolerance of 10^-8.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
@@ -312,6 +489,12 @@ def fit01(stack):
     create_parmlist(stack)
     
 def fit02(stack):
+    """
+    Fits the model parameters using a mean squared error loss function with 
+    the SLSQP algorithm, to a cost function tolerance of 10^-6.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
@@ -322,6 +505,12 @@ def fit02(stack):
     create_parmlist(stack)
     
 def fit00h1(stack):
+    """
+    Fits the model parameters using a pseudo-huber loss function with 
+    the L-BFGS-B algorithm, to a cost function tolerance of 0.001.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
     stack.append(nm.metrics.pseudo_huber_error,b=1.0)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
@@ -334,6 +523,18 @@ def fit00h1(stack):
     stack.append(nm.metrics.mean_square_error)
     
 def fitannl00(stack):
+    """
+    Fits the model parameters using a simulated annealing fitting procedure.
+    
+    Each repetition of annealing is performed with a mean_square_error cost function 
+    using the L-BFGS-B algorithm, to a tolerance of 0.001. 
+    
+    50 rounds of annealing are performed, with the step size updated dynamically
+    every 10 rounds. The routine will stop if the minimum function value remains
+    the same for 5 rounds of annealing.
+    
+    Note that this routine takes a long time.
+    """
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
@@ -345,6 +546,18 @@ def fitannl00(stack):
     
     
 def fitannl01(stack):
+    """
+    Fits the model parameters using a simulated annealing fitting procedure.
+    
+    Each repetition of annealing is performed with a mean_square_error cost function 
+    using the L-BFGS-B algorithm, to a tolerance of 10^-6. 
+    
+    100 rounds of annealing are performed, with the step size updated dynamically
+    every 5 rounds. The routine will stop if the minimum function value remains
+    the same for 10 rounds of annealing.
+    
+    Note that this routine takes a very long time.
+    """
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
@@ -355,6 +568,15 @@ def fitannl01(stack):
     create_parmlist(stack)
     
 def fititer00(stack):
+    """
+    Fits the model parameters using a mean-squared-error loss function with 
+    a coordinate descent algorithm. However, rather than fitting all model 
+    parameters at once, it only fits the parameters for one model at a time.
+    The routine fits each module to a tolerance of 0.001, than halves the tolerance
+    and repeats up to 9 more times.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
     stack.append(nm.metrics.mean_square_error,shrink=0.5)
     stack.error=stack.modules[-1].error
     
