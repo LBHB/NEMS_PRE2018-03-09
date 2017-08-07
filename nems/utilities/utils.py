@@ -86,7 +86,7 @@ def load_model(file_path):
         bucket = s3_resource.Bucket(awsc.PRIMARY_BUCKET)
         key = file_path.strip(awsc.DIRECTORY_ROOT)
         fileobj = s3_client.get_object(Bucket=bucket, Key=key)
-        stack = pickle.loads(BytesIO(fileobj['body'].read()))
+        stack = pickle.loads(io.BytesIO(fileobj['body'].read()))
         
         return stack
     else:
