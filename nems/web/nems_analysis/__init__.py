@@ -62,7 +62,7 @@ def start_logging():
 # these don't get used for anything within this module, 
 # just have to be loaded when app is initiated
 import nems.web.nems_analysis.views
-import nems.web.misc_views.views
+import nems.web.reports.views
 import nems.web.plot_functions.views
 import nems.web.model_functions.views
 import nems.web.modelpane.views

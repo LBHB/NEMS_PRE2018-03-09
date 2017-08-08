@@ -1004,15 +1004,37 @@ $(document).ready(function(){
         });
     }
                         
-    $("#batchSelector").change(function(){
-        bSelected = $("#batchSelector").val();
-        $("#statRepBatch").val(bSelected);
-    });
-                        
-    $("#statusReport").on('click', statusReport);
-    function statusReport(){
-        $("#statRepForm").submit();
+    $("#batchPerformance").on('click', batchPerformance);
+    function batchPerformance(){
+        var bSelected = $("#batchSelector").val();
+        var mSelected = $("#modelSelector").val();
+        var cSelected = $("#cellSelector").val();
+        var findAll = 0;
+        if (document.getElementById("findAll").checked){
+            findAll = 1;
+        }
+        
+        var formInfo = document.getElementById('batchPerfForm');
+        formInfo.bSelected.value = bSelected;
+        formInfo.cSelected.value = cSelected;
+        formInfo.mSelected.value = mSelected;
+        formInfo.findAll.value = findAll;
+        
+        formInfo.submit();
     }
-
+    
+    $("#fitReport").on('click', fitReport);
+    function fitReport(){
+        var bSelected = $("#batchSelector").val();
+        var mSelected = $("#modelSelector").val();
+        var cSelected = $("#cellSelector").val();
+        
+        var formInfo = document.getElementById('fitRepForm');
+        formInfo.bSelected.value = bSelected;
+        formInfo.cSelected.value = cSelected;
+        formInfo.mSelected.value = mSelected;
+        
+        formInfo.submit();        
+    }
 });
         

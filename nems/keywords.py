@@ -398,7 +398,26 @@ def tanhsig(stack):
 
 # state variable keyowrds
 ###############################################################################
-
+def pupil_mini_fit(stack):
+    """
+    Helper function that fits nonlinearity coefficients prior to fitting 
+    all the model coefficients. This is often helpful, as just fitting the
+    nonlinearities tends to reduce the tendency of the nonlinearities to send 
+    the predicted response to a constant DC offset.
+    
+    This function is not appended directly to the stack, but instead is included
+    in certain nonlinearity keywords (see help for dexp, tanhsig)
+    """
+    stack.append(nm.metrics.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter.tol=0.00001
+    fitidx=ut.utils.find_modules(stack,'pupgain')
+    stack.fitter.fit_modules=fitidx
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
+    
 def nopupgain(stack):
     """
     Applies a DC gain function entry-by-entry to the datastream:
@@ -407,6 +426,7 @@ def nopupgain(stack):
     each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
+    pupil_mini_fit(stack)
     
 def pupgain(stack):
     """
@@ -416,6 +436,7 @@ def pupgain(stack):
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
+    pupil_mini_fit(stack)
 
 def polypupgain04(stack):#4th degree polynomial gain fn
     """
@@ -425,6 +446,7 @@ def polypupgain04(stack):#4th degree polynomial gain fn
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,0,1])
+    pupil_mini_fit(stack)
     
 def polypupgain03(stack): #3rd degree polynomial gain fn
     """
@@ -434,6 +456,7 @@ def polypupgain03(stack): #3rd degree polynomial gain fn
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
+    pupil_mini_fit(stack)
     
 def polypupgain02(stack): #2nd degree polynomial gain fn
     """
@@ -443,6 +466,7 @@ def polypupgain02(stack): #2nd degree polynomial gain fn
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,1])
+    pupil_mini_fit(stack)
     
 def exppupgain(stack):
     """
@@ -452,6 +476,7 @@ def exppupgain(stack):
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
+    pupil_mini_fit(stack)
 
 def logpupgain(stack):
     """
@@ -461,7 +486,8 @@ def logpupgain(stack):
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,1,0,1])
-
+    pupil_mini_fit(stack)
+    
 def powergain02(stack): #This is equivalent ot what Zach is using
     """
     Applies a poynomial pupil gain function entry-by-entry to the datastream:
@@ -470,6 +496,7 @@ def powergain02(stack): #This is equivalent ot what Zach is using
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='powerpupgain',fit_fields=['theta'],theta=[0,1,0,0],order=2)
+    pupil_mini_fit(stack)
     
 def butterworth01(stack):
     """
@@ -478,6 +505,7 @@ def butterworth01(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=1)
+    pupil_mini_fit(stack)
     
 def butterworth02(stack):
     """
@@ -486,6 +514,7 @@ def butterworth02(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=2)
+    pupil_mini_fit(stack)
     
 def butterworth03(stack):
     """
@@ -494,6 +523,7 @@ def butterworth03(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=3)
+    pupil_mini_fit(stack)
     
 def butterworth04(stack):
     """
@@ -502,7 +532,7 @@ def butterworth04(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=4)
-
+    pupil_mini_fit(stack)
 
 # fitter keywords
 ###############################################################################
