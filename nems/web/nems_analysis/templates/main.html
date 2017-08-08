@@ -294,6 +294,14 @@
                                     </ul>
                                 </div><!-- tag filters -->
                             </div><!-- dropdown outer -->
+                            
+                            <div class="btn-group editorGroup">
+                                 <button type="button"
+                                         class="btn btn-defualt btn-xs"
+                                         id="fitReport">
+                                             Fit Report
+                            </div>
+                                 
                         </div><!-- button form-group end -->
                     </div><!-- button col end -->
                 </div><!-- analysis row end -->
@@ -315,9 +323,13 @@
                             </select>
                             <button type="button"
                                     class="btn btn-default btn-xs"
-                                    id="statusReport">
-                                    Status Report
+                                    id="batchPerformance">
+                                    Batch Performance
                             </button>
+                                Find All Models
+                            <input type="checkbox"
+                                   id="findAll"
+                                   value="1">
                         </div><!-- form-group -->
                     </div><!-- batch col -->
                 </div><!-- batch row -->
@@ -870,9 +882,22 @@
     
     <!-- hidden form for stat rep submission -->
     <div style="display:none;">
-    <form class="form" id="statRepForm" method="POST" target="_blank"
-          action="{{ url_for('status_report') }}">
-          <input type="text" id="statRepBatch" name="bSelected" value="">
+    <form class="form" id="batchPerfForm" method="POST" target="_blank"
+          action="{{ url_for('batch_performance') }}">
+          <input type="hidden" id="batchPerfBatch" name="bSelected" value="">
+          <input type="hidden" id="batchPerfCells" name="cSelected" value="">
+          <input type="hidden" id="batchPerfModels" name="mSelected" value="">
+          <input type="hidden" id="batchPerfFindAll" name="findAll" value="">
+    </form>
+    </div>
+    
+    <!-- hidden form for fit rep submission -->
+    <div style="display:none;">
+    <form class="form" id="fitRepForm" method="POST" target="_blank"
+          action="{{ url_for('fit_report') }}">
+          <input type="hidden" id="fitRepBatch" name="bSelected" value="">
+          <input type="hidden" id="fitRepCells" name="cSelected" value="">
+          <input type="hidden" id="fitRepModels" name="mSelected" value="">
     </form>
     </div>
     
