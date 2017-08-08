@@ -37,7 +37,7 @@ from nems.db import Session, NarfAnalysis, NarfBatches, NarfResults, sBatch
 from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
-from nems.keyword_rules import keyword_test_routine
+from nems.keyword.keyword_rules import keyword_test_routine
 
 try:
     import boto3
