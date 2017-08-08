@@ -1,27 +1,59 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jul 14 18:55:42 2017
+Modules for manipulating pupil data
+
+
+Created on Fri Aug  4 13:29:30 2017
 
 @author: shofer
 """
-import numpy as np
-import lib.nems_utils as nu
-from lib.nems_modules import nems_module
-import scipy.special as sx
-import copy
+from nems.modules.base import nems_module
+import nems.utilities.utils as nu
 
-class state_gain(nems_module): 
+import numpy as np
+import copy 
+import scipy.special as sx
+
+class model(nems_module):
+    name='pupil_model'
+    plot_fns=[nu.sorted_raster,nu.raster_plot]
     """
-    state_gain - apply a gain/offset based on continuous pupil diameter, or some other continuous variable.
-    my not be able to use standard my_eval() because needs access to two 
-    variables in the data stream rather than just one.
+    Replaces stim with average resp for each stim. This is the 'perfect' model
+    used for comparing different models of pupil state gain.
+    """
+    
+    def evaluate(self,nest=0):
+        if nest==0:
+            del self.d_out[:]
+            for i,val in enumerate(self.d_in):
+                self.d_out.append(copy.deepcopy(val))
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            Xa=f_in['avgresp']
+            if f_in['est'] is False:
+                R=f_in['replist'][nest]
+                X=np.zeros(f_in['resp'][nest].shape)
+                for i in range(0,R.shape[0]):
+                    X[i,:]=Xa[R[i],:]
+                f_out['stim'][nest]=X
+            else:
+                R=f_in['replist']
+                X=np.zeros(f_in['resp'].shape)
+                for i in range(0,R.shape[0]):
+                    X[i,:]=Xa[R[i],:]
+                f_out['stim']=X
+                
+class pupgain(nems_module): 
+    """
+    state_gain - apply a gain/offset based on continuous pupil diameter, or some 
+    other continuous variable. Does not use standard my_eval, instead uses its own
+    evaluate() that overrides the nems_module evaluate()
     
     @author: shofer
     """
     #Changed to helper function based general module --njs June 29 2017
     name='state_gain'
-    plot_fns=[nu.pre_post_psth,nu.non_plot]
+    plot_fns=[nu.pred_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
     
     def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False,
                 order=None):
@@ -88,17 +120,20 @@ class state_gain(nems_module):
         Y=self.theta[0,2]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
-    
-    
-    def evaluate(self):
-        del self.d_out[:]
-        for i, val in enumerate(self.d_in):
-            #self.d_out.append(copy.deepcopy(val))
-            self.d_out.append(val.copy())
-            self.d_out[-1][self.output_name]=copy.deepcopy(self.d_out[-1][self.output_name])        
+              
+    def evaluate(self,nest=0):
+        if nest==0:
+            del self.d_out[:]
+            for i,val in enumerate(self.d_in):
+                self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            Xp=copy.deepcopy(f_in['pupil'])
-            Z=getattr(self,self.gain_type+'_fn')(X,Xp)
-            f_out[self.output_name]=Z
-        
+            if f_in['est'] is False:
+                X=copy.deepcopy(f_in[self.input_name][nest])
+                Xp=copy.deepcopy(f_in[self.state_var][nest])
+                Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+                f_out[self.output_name][nest]=Z
+            else:
+                X=copy.deepcopy(f_in[self.input_name])
+                Xp=copy.deepcopy(f_in[self.state_var])
+                Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+                f_out[self.output_name]=Z

@@ -6,18 +6,23 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
-import scipy as sp
+import scipy.signal as sps
+import scipy
 import numpy as np
+import numpy.ma as npma
 import matplotlib.pyplot as plt
 import pickle
 import os
 import copy
+import io
 
-import boto3
 try:
-    import nems_config.AWS_Config as awsc
-    AWS = awsc.Use_AWS
-except:
+    import boto3
+    import nems_config.Storage_Config as sc
+    AWS = sc.USE_AWS
+except Exception as e:
+    print(e)
+    #import nems_config.STORAGE_DEFAULTS as sc
     AWS = False
     
     
@@ -45,10 +50,11 @@ def save_model(stack, file_path):
         # TODO: Can file key contain a directory structure, or do we need to
         #       set up nested 'buckets' on s3 itself?
         s3 = boto3.resource('s3')
-        key = file_path.strip('/auto/data/code/nems_saved_models/')
-        fileobj = 'binary container'
-        pickle.dump(stack2, fileobj, protocol=pickle.HIGHEST_PROTOCOL)
-        s3.Object('nems_saved_models', key).put(Body=fileobj)
+        # this leaves 'nems_saved_models/' as a prefix, so that s3 will
+        # mimick a saved models folder
+        key = file_path[len(sc.DIRECTORY_ROOT):]
+        fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
+        s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
     else:
         directory = os.path.dirname(file_path)
     
@@ -78,24 +84,52 @@ def save_model(stack, file_path):
 def load_model(file_path):
     if AWS:
         # TODO: need to set up AWS credentials to test this
-        s3 = boto3.resource('s3')
-        bucket = s3.Bucket('nems_saved_models')
-        key = file_path.strip('/auto/data/code/nems_saved_models/')
-        bucket.download_file(key, file_path)
+        s3_client = boto3.client('s3')
+        key = file_path[len(sc.DIRECTORY_ROOT):]
+        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+        stack = pickle.loads(fileobj['Body'].read())
+        
+        return stack
     else:
         try:
             # Load data (deserialize)
             with open(file_path, 'rb') as handle:
                 stack = pickle.load(handle)
             print('stack successfully loaded')
+
+            if not stack.data:
+                raise Exception("Loaded stack from pickle, but data is empty")
+                
             return stack
-        except:
+        except Exception as e:
             # TODO: need to do something else here maybe? removed return stack
             #       at the end b/c it was being returned w/o assignment when
             #       open file failed.
             print("error loading {0}".format(file_path))
-            return
+            raise e
 
+
+def get_file_name(cellid, batch, modelname):
+    
+    filename=(
+        sc.DIRECTORY_ROOT + "nems_saved_models/batch{0}/{1}/{2}.pkl"
+        .format(batch, cellid, modelname)
+        )
+    
+    return filename
+
+
+def get_mat_file(filename, chars_as_strings=True):
+    if AWS:
+        s3_client = boto3.client('s3')
+        key = filename[len(sc.DIRECTORY_ROOT):]
+        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+        file = scipy.io.loadmat(io.BytesIO(fileobj['Body'].read()), chars_as_strings=chars_as_strings)
+        return file
+    else:
+        file = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
+        return file
+    
 
 #
 # PLOTTING FUNCTIONS
@@ -209,14 +243,51 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
+def pred_act_psth_all(m,size=FIGSIZE,idx=None):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    s=m.unpack_data(m.output_name,use_dout=True)
+    r=m.unpack_data("resp",use_dout=True)
+    s2=np.append(s.transpose(),r.transpose(),0)
+    try:
+        p=m.unpack_data("pupil",use_dout=True)
+        s2=np.append(s2,p.transpose(),0)
+        p_avail=True
+    except:
+        p_avail=False
+    
+    bincount=np.min([5000,s2.shape[1]])
+    T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=np.reshape(s2[:,0:(T*bincount)],[3,T,bincount])
+    s2=np.mean(s2,1)
+    s2=np.squeeze(s2)
+    
+    pred, =plt.plot(s2[0,:],label='Predicted')
+    act, =plt.plot(s2[0,:],'r',label='Actual')
+    if p_avail:
+        pup, =plt.plot(s2[0,:],'g',label='Pupil')
+        plt.legend(handles=[pred,act,pup])
+    else:
+        plt.legend(handles=[pred,act])
+        
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Time Step')
+    plt.ylabel('Firing rate (unitless)')
 
 def pre_post_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
-    in1=m.d_in[m.parent_stack.plot_dataidx]
-    out1=m.d_out[m.parent_stack.plot_dataidx]
-    s1=in1['stim'][m.parent_stack.plot_stimidx,:]
-    s2=out1['stim'][m.parent_stack.plot_stimidx,:]
+    in1=m.d_in[m.parent_stack.plot_dataidx][m.input_name]
+    out1=m.d_out[m.parent_stack.plot_dataidx][m.output_name]
+    if len(in1.shape)>2:
+        s1=in1[0,m.parent_stack.plot_stimidx,:]
+    else:
+        s1=in1[m.parent_stack.plot_stimidx,:]
+    if len(out1.shape)>2:
+        s2=out1[0,m.parent_stack.plot_stimidx,:]
+    else:
+        s2=out1[m.parent_stack.plot_stimidx,:]
+        
     pre, =plt.plot(s1,label='Pre-nonlinearity')
     post, =plt.plot(s2,'r',label='Post-nonlinearity')
     plt.legend(handles=[pre,post])
@@ -243,8 +314,12 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     h=m.coefs
     
     # if weight channels exist and dimensionality matches, generate a full STRF
-    wcidx=find_modules(m.parent_stack,"weight_channels")
-    if m.name=="fir_filter" and len(wcidx):
+    try:
+        wcidx=find_modules(m.parent_stack,"weight_channels")
+        #print(wcidx)
+    except:
+        wcidx=[]
+    if m.name=="fir" and len(wcidx):
         w=m.parent_stack.modules[wcidx[0]].coefs
         if w.shape[0]==h.shape[0]:
             h=np.matmul(w.transpose(), h)
@@ -369,6 +444,9 @@ def raster_plot(m,idx=None,size=(12,6)):
     plt.title('Stimulus #'+str(stims))
 
 def sorted_raster(m,idx=None,size=FIGSIZE):
+    """
+    Creates a raster plot sorted by mean pupil diameter of a given trial
+    """
     resp=m.parent_stack.unresampled['resp']
     pre=m.parent_stack.unresampled['prestim']
     dur=m.parent_stack.unresampled['duration']
@@ -386,6 +464,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
             lis.extend([i]*reps[i])
     ids=lis[idi]
     b=np.nanmean(pup[:,:,ids],axis=0)
+    np.nan_to_num(b,copy=False)
     bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
     bc=bc[:,1]
     resp[:,:,ids]=resp[:,bc,ids]
@@ -440,7 +519,7 @@ def concatenate_helper(stack,start=1,**kwargs):
                         stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
                     else:
                         stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
-                        stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
+                    stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
                     try:
                         stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
                     except ValueError:
@@ -455,8 +534,58 @@ def concatenate_helper(stack,start=1,**kwargs):
                         pass
                         #stack.data[k][n]['repcount']=stack.data[k][n]['repcount']
                 else:
-                    #print('didnt concatenate')
                     pass
             except:
-                #print('skippd the whole damn thing')
                 pass
+            
+def thresh_resamp(data,resamp_factor,thresh=0,ax=0):
+    """
+    Helper function to apply an FIR downsample to data. If thresh is specified, 
+    the function will send all values in data below thresh to 0; this is often 
+    useful to reduce the ringing caused by FIR downsampling.
+    """
+    resamp=sps.decimate(data,resamp_factor,ftype='fir',axis=ax,zero_phase=True)
+    s_indices=resamp<thresh
+    resamp[s_indices]=0
+    return resamp
+
+def stretch_trials(data):
+    """
+    Helper function to "stretch" trials to be treated individually as stimuli. 
+    This function is used when it is not desirable to average over the trials
+    of the stimuli in a dataset, such as when the effects of state variables such 
+    as pupil diameter are being explored.
+    
+    'data' should be the imported data dictionary, and must contain 'resp',
+    'stim', 'pupil', and 'repcount'. Note that 'stim' should be formatted as 
+    (channels,stimuli,time), while 'resp' and 'pupil' should be formatted as
+    (time,trials,stimuli). These are the configurations used in the default 
+    loading module nems.modules.load_mat
+    """
+    r=data['repcount']
+    s=copy.deepcopy(data['resp'].shape)
+    resp=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='F'),(1,0))
+    #data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
+    mask=np.logical_not(npma.getmask(npma.masked_invalid(resp)))
+    R=resp[mask]
+    resp=np.reshape(R,(-1,s[0]),order='C')
+    try:
+        pupil=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='F'),(1,0))
+        P=pupil[mask]
+        pupil=np.reshape(P,(-1,s[0]),order='C')
+        #data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
+    except ValueError:
+        pupil=None
+    Y=data['stim'][:,0,:]
+    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
+    for i in range(1,s[2]):
+        Y=data['stim'][:,i,:]
+        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
+        stim=np.append(stim,Y,axis=1)
+    lis=[]
+    for i in range(0,r.shape[0]):
+        lis.extend([i]*data['repcount'][i])
+    replist=np.array(lis)
+    return stim, resp, pupil, replist
+
+

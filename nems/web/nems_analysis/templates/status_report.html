@@ -24,12 +24,8 @@
     <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.js"></script>
     <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
 </head>
-<style>
-    div {
-      max-width: 100vw;
-      max-height: 100vh;      
-    }
-</style>
 <body>
+    {{ div|safe }}
+    {{ script|safe }}
 </body>
 </html>

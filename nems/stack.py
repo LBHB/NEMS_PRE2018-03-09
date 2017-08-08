@@ -6,12 +6,19 @@ Created on Fri Jul 14 15:54:26 2017
 @author: shofer
 """
 
-import nems.modules as nm
-import matplotlib.pyplot as plt,mpld3
-import nems.utils as nu
+import matplotlib.pyplot as plt, mpld3
+import nems.utilities as ut
 import numpy as np
-import copy
 import os
+import io
+
+try:
+    import boto3
+    import nems_config.Storage_Config as sc
+    AWS = sc.USE_AWS
+except:
+    #import nems_config.STORAGE_DEFAULTS as sc
+    AWS = False
 
 class nems_stack:
         
@@ -75,14 +82,14 @@ class nems_stack:
         """
         if self.valmode is True: 
             print('Evaluating validation data')
-            mse_idx=nu.find_modules(self,'mean_square_error')
+            mse_idx=ut.utils.find_modules(self,'mean_square_error')
             mse_idx=int(mse_idx[0])
             try:
-                xval_idx=nu.find_modules(self,'crossval')
+                xval_idx=ut.utils.find_modules(self,'crossval')
             except:
-                xval_idx=nu.find_modules(self,'standard_est_val')
+                xval_idx=ut.utils.find_modules(self,'standard_est_val')
             xval_idx=xval_idx[0]
-            if start<=xval_idx:
+            if start !=0 and start<=xval_idx:
                 self.modules[xval_idx].evaluate()
                 start=xval_idx+1
             for ii in range(start,mse_idx):
@@ -94,7 +101,7 @@ class nems_stack:
                         self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
                         st+=np.prod(s)
                     self.modules[ii].evaluate(nest=i)
-            nu.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
+            ut.utils.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
             for ij in range(mse_idx,len(self.modules)):
                 self.modules[ij].evaluate() 
         else:
@@ -106,17 +113,10 @@ class nems_stack:
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
         if mod is None:
-            raise ValueError('stack.append: module not specifified')
+            raise ValueError('stack.append: module not specified')
         else:
             m=mod(self, **xargs)
-        
         self.append_instance(m)
-        # svd removed redundant code
-        #        self.modules.append(m)
-        #        self.data.append(m.d_out)
-        #        self.mod_names.append(m.name)
-        #        self.mod_ids.append(m.id)
-        #        m.evaluate()
         
     def append_instance(self, mod=None):
         """Same as append but takes an instance of a module instead
@@ -128,7 +128,7 @@ class nems_stack:
         
         """
         if not mod:
-            raise ValueError('stack.append: module not specifified')
+            raise ValueError('stack.append: module not specified')
             #mod=nm.nems_module(self)
         self.modules.append(mod)
         self.data.append(mod.d_out)
@@ -175,7 +175,7 @@ class nems_stack:
         ----------
         idx : int
             Index of module to be removed. If no idx is given, but a mod is
-            given, nu.find_modules will be used to find idx.
+            given, ut.utils.find_modules will be used to find idx.
         mod : nems_module
             Module to be removed. Only needs to be passed if index is not
             given, or if all matching indices should be removed.
@@ -195,7 +195,7 @@ class nems_stack:
         """
         
         if mod and not idx:
-            idx = nu.find_modules(self, mod.name)
+            idx = ut.utils.find_modules(self, mod.name)
             if not idx:
                 print("Module does not exist in stack.")
                 return
@@ -268,15 +268,22 @@ class nems_stack:
     
     def quick_plot(self,size=(12,24)):
         plt.figure(figsize=size)
-        #plt.subplot(len(self.modules)-1,1,1)
+        
+        # find all modules with plotfn
+        plot_set=[]
         for idx,m in enumerate(self.modules):
-            # skip first module
-            if idx>0:
-                print(self.modules[idx].name)
-                plt.subplot(len(self.modules)-1,1,idx)
-                #plt.subplot(len(self.modules),1,idx+1)
-                m.do_plot(m)
-        plt.tight_layout()
+            if m.auto_plot:
+                plot_set.append(idx)
+        
+        spidx=1
+        for idx in plot_set:
+            print("quick_plot: {}".format(self.modules[idx].name))
+            plt.subplot(len(plot_set),1,spidx)
+            #plt.subplot(len(self.modules),1,idx+1)
+            self.modules[idx].do_plot(self.modules[idx])
+            spidx+=1
+        
+        #plt.tight_layout()
         #TODO: Use gridspec to fix spacing issue? Addition of labels makes
         #      the subplots look "scrunched" vertically.
     
@@ -294,7 +301,7 @@ class nems_stack:
         --------
         filename : string
             Path to saved file, currently of the form:
-            "/auto/data/code/nems_saved_models/batch{#}/{cell}_{modelname}.type"
+            "/auto/data/code/nems_saved_images/batch{#}/{cell}/{modelname}.type"
                         
         @author: jacob
         
@@ -313,24 +320,32 @@ class nems_stack:
         plt.tight_layout()
 
         filename = (
-                    "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.{3}"
+                    sc.DIRECTORY_ROOT + "nems_saved_images/batch{0}/{1}/{2}.{3}"
                     .format(batch, cellid, modelname, mode)
                     )
-        if os.path.isfile(filename):
-            os.remove(filename)
-        try:
-            fig.savefig(filename)
-        except Exception as e:
-            print("Bad file extension for figure or couldn't save")
-            print(e)
-            return filename
         
-        try:
-            os.chmod(filename, 0o666)
-        except Exception as e:
-            print("Couldn't modify file permissions for figure")
-            print(e)
-            return filename
+        if AWS:
+            s3 = boto3.resource('s3')
+            key = filename[len(sc.DIRECTORY_ROOT):]
+            fileobj = io.BytesIO()
+            fig.savefig(fileobj, format=mode)
+            fileobj.seek(0)
+            s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+        else:
+            if os.path.isfile(filename):
+                os.remove(filename)
+            try:
+                fig.savefig(filename)
+            except Exception as e:
+                print("Bad file extension for figure or couldn't save")
+                print(e)
+                raise e
+        
+            try:
+                os.chmod(filename, 0o666)
+            except Exception as e:
+                print("Couldn't modify file permissions for figure")
+                raise e
 
         return filename
     

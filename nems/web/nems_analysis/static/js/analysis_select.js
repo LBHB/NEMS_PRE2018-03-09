@@ -22,7 +22,9 @@ $(document).ready(function(){
         if ((msg.data === 'Login required') || (msg.data === 'Fit failed.')){
             color = 'style="color: red"';
         }
-        $('#py_console').prepend("<p class='py_con_msg'" + color + ">" + msg.data + "</p>");
+        $('#py_console').prepend(
+                "<p class='py_con_msg'" + color + ">" + msg.data + "</p>"
+                );
     });
     
     // use this in place of console.log to send to py_console
@@ -32,8 +34,9 @@ $(document).ready(function(){
         if ((message === 'Login required') || (message === 'Fit failed.')){
             color = 'style="color: red"';
         }
-        $('#py_console').prepend("<p class='py_con_msg'" + color + ">" + message + "</p>");
-             
+        $('#py_console').prepend(
+                "<p class='py_con_msg'" + color + ">" + message + "</p>"
+                );
     }
 
     //initializes bootstrap popover elements
@@ -244,9 +247,28 @@ $(document).ready(function(){
     ordSelected = updateOrder();
     sortSelected = updateSort();
 
+    function addLinksToTable(){
+        // Iterate through each table row and convert each result
+        // to a link to detailed info for that result
+        var $table = $("#tableWrapper").children('table');
+        $table.find('tbody').find('tr').each(function(){
+            var cellid = $(this).children().eq(0).html();
+            var modelname = $(this).children().eq(1).html();
+            var cell_link = $SCRIPT_ROOT + '/cell_details/';
+            var model_link = $SCRIPT_ROOT + '/model_details/';
+            $(this).children().eq(0).html(
+                    "<a href='" + cell_link + cellid + "' target='_blank'"
+                    + "id='" + cellid + "'>" + cellid + "</a>"
+                    );
+            $(this).children().eq(1).html(
+                    "<a href='" + model_link + modelname + "' target='_blank'"
+                    + "id='" + modelname + "'>" + modelname + "</a>"
+                    );
+        });
+    }
+    
     $("#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
     .change(updateResults);
-            
     function updateResults(){
         
         updatecols();
@@ -272,31 +294,15 @@ $(document).ready(function(){
                 //results.draggable("destroy");
                 results.html(data.resultstable)
                 //sizeDragTable();
-                initTable(results.children("table"));
+                var table = results.children("table");
+                initTable(table);
+                addLinksToTable();
             },
             error: function(error) {
                 console.log(error);
             }
         });
     }
-
-    $("#batchSelector,#modelSelector,#cellSelector,#measureSelector,#analysisSelector")
-    .change(function(){
-        var empty = false;
-        $(".plot-form").each(function() {
-            if (!($(this).val()) || ($(this).val().length == 0)) {
-                    empty = true;
-                }
-        });
-        
-        if (empty){
-            $(".plotsub").attr('disabled','disabled');
-            //$("#form-warning").html("<p>Selection required for each option before submission</p>")
-        } else {
-            $(".plotsub").removeAttr('disabled');
-            //$("#form-warning").html("")
-        }   
-    });
     
 
     ////////////////////////////////////////////////////////////////////////
@@ -632,19 +638,23 @@ $(document).ready(function(){
                 });
             }
             $(this).addClass('selectedRow');
+            if (document.getElementById("autoPreview").checked){
+                refreshPreview();
+            }
         }
     });
 
-    $(document).on('click','#preview',function(e){
+    $(document).on('click','#preview', refreshPreview);
+    function refreshPreview(){
         var cSelected = [];
         var mSelected = [];
         var bSelected = $("#batchSelector").val();
         
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(0).html());
+            cSelected.push($(this).children().eq(0).children('a').attr('id'));
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(1).html());
+            mSelected.push($(this).children().eq(1).children('a').attr('id'));
         });
 
         // only proceed if selections have been made
@@ -671,7 +681,7 @@ $(document).ready(function(){
                 console.log(error);        
             }
         });
-    });
+    };
                 
     $("#clearSelected").on('click',function(){
         $(".dataframe tr.selectedRow").each(function(){
@@ -831,13 +841,13 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(0).html());
+            cSelected.push($(this).children().eq(0).children('a').attr('id'));
             if (cSelected.length > 0){
                 return false;
             }
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(1).html());
+            mSelected.push($(this).children().eq(1).children('a').attr('id'));
             if (mSelected.length > 0){
                 return false;
             }
@@ -941,32 +951,67 @@ $(document).ready(function(){
         if (document.getElementById("includeOutliers").checked){
             includeOutliers = 1;
         }
+        var plotNewWindow = 0;
+        if (document.getElementById("plotNewWindow").checked){
+            plotNewWindow = 1;        
+        }
         
         addLoad();
         $.ajax({
             url: $SCRIPT_ROOT + '/generate_plot_html',
             data: { plotType:plotType, bSelected:bSelected, cSelected:cSelected,
                     mSelected:mSelected, measure:measure, onlyFair:onlyFair,
-                    includeOutliers:includeOutliers,
-                    iso:iso, snr:snr, snri:snri },
+                    includeOutliers:includeOutliers, iso:iso, snr:snr, 
+                    snri:snri, plotNewWindow:plotNewWindow },
             type: 'GET',
             success: function(data){
-                //plotDiv.resizable("destroy");
-                //plotDiv.draggable("destroy");
                 if (data.hasOwnProperty('script')){
-                    plotDiv.html(data.script + data.div);
+                    if(plotNewWindow){
+                        var w = window.open(
+                                $SCRIPT_ROOT + '/plot_window',
+                                //"_blank",
+                                //"width=600, height=600"
+                                )
+                        $(w.document).ready(function(){
+                            w.$(w.document.body).append(data.script + data.div);
+                        });
+                    } else{
+                        $("#statusReportWrapper").html('');
+                        plotDiv.html(data.script + data.div);  
+                    }
                 }
                 if (data.hasOwnProperty('html')){
-                    plotDiv.html(data.html);
+                    if(plotNewWindow){
+                        var w = window.open(
+                                $SCRIPT_ROOT + '/plot_window',
+                                //"_blank",
+                                //"width=600, height=600" 
+                                )
+                        $(w.document).ready(function(){
+                            w.$(w.document.body).append(data.html);
+                        });
+                    } else{
+                        $("#statusReportWrapper").html('');
+                        plotDiv.html(data.html);
+                    }
                 }
-                //sizeDragDisplay();
                 removeLoad();
             },
             error: function(error){
                 console.log(error)
                 removeLoad();
             }
-        })
+        });
+    }
+                        
+    $("#batchSelector").change(function(){
+        bSelected = $("#batchSelector").val();
+        $("#statRepBatch").val(bSelected);
+    });
+                        
+    $("#statusReport").on('click', statusReport);
+    function statusReport(){
+        $("#statRepForm").submit();
     }
 
 });

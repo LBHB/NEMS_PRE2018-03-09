@@ -20,7 +20,7 @@ from flask import jsonify, request
 from flask_login import login_required
 
 from nems.web.nems_analysis import app
-from nems.db import Session, NarfResults, enqueue_models, fetch_meta_data
+from nems.db import Session, NarfResults, enqueue_models, update_results_table
 import nems.main as nems
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
@@ -30,7 +30,6 @@ def fit_single_model_view():
     """Call lib.nems_main.fit_single_model with user selections as args."""
     
     user = get_current_user()
-    session = Session()
     
     cSelected = request.args.getlist('cSelected[]')
     bSelected = request.args.get('bSelected')[:3]
@@ -64,56 +63,13 @@ def fit_single_model_view():
         print("Fit failed.")
         raise e
         
-    plotfile = stack.quick_plot_save(mode="png")
-
-    r = (
-            session.query(NarfResults)
-            .filter(NarfResults.cellid == cSelected[0])
-            .filter(NarfResults.batch == bSelected)
-            .filter(NarfResults.modelname == mSelected[0])
-            .first()
-            )
-    collist = ['%s'%(s) for s in NarfResults.__table__.columns]
-    attrs = [s.replace('NarfResults.', '') for s in collist]
-    attrs.remove('id')
-    attrs.remove('figurefile')
-    attrs.remove('lastmod')
-    if not r:
-        r = NarfResults()
-        r.figurefile = plotfile
-        r.username = user.username
-        if not user.labgroup == 'SPECIAL_NONE_FLAG':
-            try:
-                if not user.labgroup in r.labgroup:
-                    r.labgroup += ', %s'%user.labgroup
-            except TypeError:
-                # if r.labgroup is none, ca'nt check if user.labgroup is in it
-                r.labgroup = user.labgroup
-        fetch_meta_data(stack, r, attrs)
-        # TODO: assign performance variables from stack.meta
-        session.add(r)
-    else:
-        r.figurefile = plotfile
-        # TODO: This overrides any existing username or labgroup assignment.
-        #       Is this the desired behavior?
-        r.username = user.username
-        if not user.labgroup == 'SPECIAL_NONE_FLAG':
-            try:
-                if not user.labgroup in r.labgroup:
-                    r.labgroup += ', %s'%user.labgroup
-            except TypeError:
-                # if r.labgroup is none, can't check if user.labgroup is in it
-                r.labgroup = user.labgroup
-        fetch_meta_data(stack, r, attrs)
-    
-    print(r.username)
-    print(r.labgroup)
-    
-    session.commit()
-    session.close()
+    preview = stack.quick_plot_save(mode="png")
+    r_id = update_results_table(stack, preview, user.username, user.labgroup)
+    print("Results saved with id: {0}".format(r_id))
     
     r_est = stack.meta['r_est'][0]
     r_val = stack.meta['r_val'][0]
+    
     # Manually release stack for garbage collection -- having memory issues?
     stack = None
     

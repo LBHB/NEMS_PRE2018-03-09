@@ -1,69 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jul 14 18:48:25 2017
+Modules for computing scores/ assessing model performance
+
+Created on Fri Aug  4 13:44:42 2017
 
 @author: shofer
 """
-import lib.nems_utils as nu
+from nems.modules.base import nems_module
+import nems.utilities.utils as nu
+
 import numpy as np
 import scipy.stats as spstats
-from nems_modules import nems_module
-import copy
 
-
-class normalize(nems_module):
-    """
-    normalize - rescale a variable, typically stim, to put it in a range that
-    works well with fit algorithms --
-    either mean 0, variance 1 (if sign doesn't matter) or
-    min 0, max 1 (if positive values desired)
-    IMPORTANT NOTE: normalization factors are computed from estimation data 
-    only but applied to both estimation and validation data streams
-    """
-    name='normalize'
-    user_editable_fields=['output_name','valfrac','valmode']
-    force_positive=True
-    d=0
-    g=1
-    
-    def my_init(self, force_positive=True,data='stim'):
-        self.force_positive=force_positive
-        self.input_name=data
-    
-    def evaluate(self):
-        X=self.unpack_data()
-        name=self.input_name
-        
-        if self.d_in[0][name].ndim==2:
-            if self.force_positive:
-                self.d=X.min()
-                self.g=1/(X-self.d).max()
-            else:
-                self.d=X.mean()
-                self.g=X.std()
-        else:
-            s=self.d_in[0][name].shape
-            if self.force_positive:
-                self.d=X[:,:].min(axis=1).reshape([s[0],1,1])
-                self.g=1/(X[:,:]-self.d.reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
-            else:
-                self.d=X[:,:].mean(axis=1).reshape([s[0],1,1])
-                self.g=X[:,:].std(axis=1).reshape([s[0],1,1])
-                self.g[np.isinf(g)]=0
-                
-        # apply the normalization
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-        
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            X=copy.deepcopy(f_in[self.input_name])
-            f_out[self.output_name]=np.multiply(X-self.d,self.g)
-
-"""
-modules for computing scores/ assessing model performance
-"""
 class mean_square_error(nems_module):
  
     name='mean_square_error'
@@ -76,19 +25,20 @@ class mean_square_error(nems_module):
     mse_est=np.ones([1,1])
     mse_val=np.ones([1,1])
         
-    def my_init(self, input1='stim',input2='resp',norm=True,shrink=0):
+    def my_init(self, input1='stim',input2='resp',norm=True,shrink=False):
         self.input1=input1
         self.input2=input2
         self.norm=norm
         self.shrink=shrink
         self.do_trial_plot=self.plot_fns[1]
         
-    def evaluate(self):
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
+    def evaluate(self,nest=0):
+        if nest==0:
+            del self.d_out[:]
+            for i, d in enumerate(self.d_in):
+                self.d_out.append(d.copy())
             
-        if self.shrink:
+        if self.shrink is True:
             X1=self.unpack_data(self.input1,est=True)
             X2=self.unpack_data(self.input2,est=True)
             bounds=np.round(np.linspace(0,len(X1)+1,11)).astype(int)
@@ -110,12 +60,16 @@ class mean_square_error(nems_module):
             P=np.zeros([1,1])
             N=0
             for f in self.d_out:
-                #E+=np.sum(np.sum(np.sum(np.square(f[self.input1]-f[self.input2]))))
+                #try:
                 E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-                #P+=np.sum(np.sum(np.sum(np.square(f[self.input2]))))
                 P+=np.sum(np.square(f[self.input2]))
+                #except TypeError:
+                    #print('error eval')
+                    #nu.concatenate_helper(self.parent_stack)
+                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+                    #P+=np.sum(np.square(f[self.input2]))
                 N+=f[self.input2].size
-        
+
             if self.norm:
                 mse=E/P
             else:
@@ -176,7 +130,7 @@ class pseudo_huber_error(nems_module):
         self.b=b
         self.do_trial_plot=self.plot_fns[1]
         
-    def evaluate(self):
+    def evaluate(self,nest=0):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
@@ -199,7 +153,7 @@ class correlation(nems_module):
  
     name='correlation'
     user_editable_fields=['input1','input2']
-    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter]
+    plot_fns=[nu.pred_act_psth, nu.pred_act_scatter, nu.pred_act_scatter_smooth]
     input1='stim'
     input2='resp'
     r_est=np.ones([1,1])
@@ -210,7 +164,7 @@ class correlation(nems_module):
         self.input2=input2
         self.do_plot=self.plot_fns[1]
         
-    def evaluate(self):
+    def evaluate(self,**kwargs):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
@@ -231,5 +185,3 @@ class correlation(nems_module):
             return r_val
         else:
             return (r_est)
-    
- 

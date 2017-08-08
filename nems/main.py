@@ -5,15 +5,10 @@ Created on Sun Jun 18 20:16:37 2017
 
 @author: svd
 """
-import numpy as np
 import nems.modules as nm
 import nems.stack as ns
-import nems.fitters as nf
-import nems.utils as nu
+import nems.utilities as ut
 import nems.keywords as nk
-import nems.baphy_utils as baphy_utils
-import copy
-import scipy.stats as spstats
 
 
 """
@@ -65,7 +60,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     stack.valmode=True
     stack.evaluate(1)
     
-    stack.append(nm.correlation)
+    stack.append(nm.metrics.correlation)
                     
     print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                  stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
@@ -82,12 +77,8 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         stack.quick_plot()
     
     # save
-    filename=(
-        "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
-        .format(batch, cellid, modelname)
-        )
-    nu.save_model(stack,filename) 
-    
+    filename = ut.utils.get_file_name(cellid, batch, modelname)
+    ut.utils.save_model(stack, filename)
 
     return(stack)
 
@@ -105,17 +96,11 @@ example:
 """
 def load_single_model(cellid, batch, modelname):
     
-    filename=(
-            "/auto/data/code/nems_saved_models/batch{0}/{1}_{2}.pkl"
-            .format(batch, cellid, modelname)
-            )
-    # For now don't do anything different to cross validated models.
-    # TODO: should these be loaded differently in the future?
-    #filename = filename.strip('_xval')
+    filename = ut.utils.get_file_name(cellid, batch, modelname)
+    stack = ut.utils.load_model(filename)
     
-    stack=nu.load_model(filename)
     try:
-        stack.valmode=True
+        stack.valmode = True
         stack.evaluate()
     except Exception as e:
         print("Error evaluating stack")

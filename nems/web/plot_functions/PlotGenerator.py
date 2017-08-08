@@ -672,7 +672,7 @@ class Tabular_Plot(PlotGenerator):
         
         #self.script, self.div = components(data_table)
 
-            
+
             
             
             

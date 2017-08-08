@@ -1,7 +1,7 @@
 import boto3
 from sqlalchemy.sql import not_
 
-import nems_config.AWS_Config as awsc
+import nems_config.Storage_Config as sc
 from nems.db import Session, tQueue, tComputer
 
 def check_instance_count():
@@ -22,7 +22,7 @@ def check_instance_count():
     if num_jobs/run_count > awsc.JOBS_PER_INSTANCE:
         # TODO: Where to get image id?
         ec2.create_instances(ImageId='<ami-image-id>', MinCount=1, MaxCount=5)
-    elif num_jobs/run_count-1 < awsc.JOBS_PER_INSTANCE:
+    elif num_jobs/run_count-1 < sc.JOBS_PER_INSTANCE:       
         ids = (
                 session.query(tComputer)
                 .filter(not_(tComputer.name.in_(awsc.LOCAL_MACHINES)))

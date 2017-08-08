@@ -157,6 +157,20 @@ plotOpGroup {
   width: 100%;
 }
 
+plotOpLabelsTwo {
+  width: 100%;        
+}
+
+#plotOpLabelsTwo label {
+  width: 20%;
+  text-align: center;
+}
+
+plotOpGroupTwo {
+  text-align: center;
+  width: 100%;
+}
+
 #plotOpSelect {
   width: 20%;        
 }
@@ -180,9 +194,14 @@ plotOpGroup {
   width: 100%;
 }
 
+#rowLimitDiv {
+  width: 25%;
+}
+
 #rowLimit {
+  width: 60px;
   height: 100%;
-  width: 35%;
+
   text-align: center;
 }
 

@@ -1,14 +1,12 @@
 import numpy as np
-import numpy.ma as npma
 import matplotlib.pyplot as plt, mpld3 #mpld3 alias needed for quick_plot_save
 import scipy.io
-import scipy.signal as sps
 import scipy.stats as spstats
 import copy
-import nems.utils as nu
+import nems.utilities.utils as nu
 import math as mt
 import scipy.special as sx
-import warnings as wn
+#from nems.user_def_mods import load_baphy_ssa
 
 class nems_module:
     """nems_module
@@ -279,30 +277,29 @@ class load_mat(nems_module):
                 self.parent_stack.unresampled={'resp':data['resp'],'respFs':data['respFs'],'duration':data['duration'],
                                                'poststim':data['poststim'],'prestim':data['prestim'],'pupil':data['pupil']}
                 
-                
                 # reshape stimulus to be channel X time
                 data['stim']=np.transpose(data['stim'],(0,2,1))
                 if stim_resamp_factor != 1:
-                    s=data['stim'].shape
-                    resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
-                    s_indices=resamp<noise_thresh
-                    resamp[s_indices]=0
-                    data['stim']=resamp
+                    data['stim']=nu.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
+                    #resamp=sps.decimate(data['stim'],stim_resamp_factor,ftype='fir',axis=2,zero_phase=True)
+                    #s_indices=resamp<noise_thresh
+                    #resamp[s_indices]=0
+                    #data['stim']=resamp
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 if resp_resamp_factor != 1:
-                    s=data['resp'].shape
-                    resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
-                    s_indices=resamp<noise_thresh
-                    resamp[s_indices]=0
-                    data['resp']=resamp
+                    data['resp']=nu.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
+                    #resamp=sps.decimate(data['resp'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
+                    #s_indices=resamp<noise_thresh
+                    #resamp[s_indices]=0
+                    #data['resp']=resamp
                     
                 if data['pupil'] is not None and resp_resamp_factor != 1:
-                    s=data['pupil'].shape
-                    resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
-                    s_indices=resamp<noise_thresh
-                    resamp[s_indices]=0
-                    data['pupil']=resamp
+                    data['pupil']=nu.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
+                    #resamp=sps.decimate(data['pupil'],resp_resamp_factor,ftype='fir',axis=0,zero_phase=True)
+                    #s_indices=resamp<noise_thresh
+                    #resamp[s_indices]=0
+                    #data['pupil']=resamp
                     
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
@@ -318,6 +315,7 @@ class load_mat(nems_module):
                 if self.avg_resp is True: 
                     data['resp']=data['avgresp']
                 else:
+                    """
                     r=data['repcount']
                     s=copy.deepcopy(data['resp'].shape)
                     data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='F'),(1,0))
@@ -343,17 +341,13 @@ class load_mat(nems_module):
                     for i in range(0,r.shape[0]):
                         lis.extend([i]*data['repcount'][i])
                     data['replist']=np.array(lis)
+                    """
+                    data['stim'],data['resp'],data['pupil'],data['replist']=nu.stretch_trials(data)
 
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 print('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
-
-            
-            # each trial is (PreStimSilence + Duration + PostStimSilence) sec long
-            #Duration=data['Duration'][0,0] # Duration of TORC sounds
-            #PreStimSilence=data['PreStimSilence'][0,0]
-            #PostStimSilence=data['PostStimSilence'][0,0]
 
 class standard_est_val(nems_module):
     """
@@ -490,11 +484,15 @@ class crossval(nems_module):
                 count=self.parent_stack.cv_counter
                 re=d['resp'].shape
                 if re[0]<self.parent_stack.nests:
-                    raise IndexError('Fewer stimuli than nests; use a higher valfrac')
+                    raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
                 spl=mt.ceil(re[0]*self.valfrac)
                 count=count*spl
                 
                 d_est=d.copy()
+                
+                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
+                d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                
                 if self.parent_stack.avg_resp is True:
                     try:
                         d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
@@ -508,9 +506,11 @@ class crossval(nems_module):
                     except TypeError:
                         print('No pupil data')
                         d_est['pupil']=[]
-                    d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
-                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                    try:
+                        d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
+                    except KeyError:
+                        d_est['replist']=None
+                
 
                 d_est['est']=True
                 
@@ -548,18 +548,32 @@ class crossval(nems_module):
                             d_val['repcount']=copy.deepcopy(d['repcount'])
                         d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
                         d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
-                            
+                        
+                      
+                    #TODO: this code runs if crossval allocated
+                    #an empty nest at the end of the validation list. This 
+                    #should not happen as often as it does, and it would be a 
+                    #better long term thing to do to change how the indices for
+                    #allocating the datasets are chosen (something better than 
+                    #mt.ceil), since then estimation nests with no validation
+                    #nest would not be fit, as they are currently.
+                    #    ----njs, August 2 2017
+                    
                     s=d_val['stim'][-1].shape
                     sr=d_val['resp'][-1].shape
-                    if s[1]==0 or sr[0]==0:
+                    while s[1]==0 or sr[0]==0:
                         del(d_val['stim'][-1])
                         del(d_val['resp'][-1])
                         del(d_val['pupil'][-1])
-                        del(d_val['replist'][-1])
+                        try:
+                            del(d_val['replist'][-1])
+                        except:
+                            pass
                         self.parent_stack.nests-=1
+                        s=d_val['stim'][-1].shape
+                        sr=d_val['resp'][-1].shape
                         print('Final nest has no stimuli, updating to have {0} nests'.format(
                                 self.parent_stack.nests))
-                    
                     self.d_out.append(d_val)
                 
                 if self.parent_stack.cv_counter==self.iter:
@@ -620,8 +634,7 @@ class normalize(nems_module):
     name='normalize'
     user_editable_fields=['output_name','valfrac','valmode']
     force_positive=True
-    #d=0
-    #g=1
+
     
     def my_init(self, force_positive=True,data='stim'):
         self.force_positive=force_positive
@@ -728,7 +741,7 @@ class weight_channels(nems_module):
     """
     weight_channels - apply a weighting matrix across a variable in the data
     stream. Used to provide spectral filters, directly imported from NARF.
-    a helper function parm_fun can be defined to parameterized the weighting
+    a helper function parm_fun can be defined to parameterize the weighting
     matrix. but by default the weights are each independent
     """
     name='weight_channels'
@@ -783,6 +796,12 @@ class fir_filter(nems_module):
     num_dims=0
     
     def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs']):
+        """
+        num_dims: number of stimulus channels (y axis of STRF)
+        num_coefs: number of temporal channels of STRF
+        baseline: initial value of DC offset
+        fit_fields: names of fitted variables
+        """
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
@@ -822,6 +841,9 @@ class nonlinearity(nems_module):
     phi=np.array([1])
     
     def my_init(self,d_in=None,my_eval=None,nltype='dlog',fit_fields=['phi'],phi=[1],premodel=False):
+        """
+        
+        """
         if premodel is True:
             self.do_plot=self.plot_fns[2]
         self.fit_fields=fit_fields
@@ -839,6 +861,8 @@ class nonlinearity(nems_module):
                 self.my_eval=self.dexp_fn
         else:
             self.my_eval=my_eval
+        #if 'nltype':
+        #   self.my
             
         
     #TODO: could even put these functions in a separate module?
@@ -878,7 +902,7 @@ class state_gain(nems_module):
     """
     #Changed to helper function based general module --njs June 29 2017
     name='state_gain'
-    plot_fns=[nu.pre_post_psth,nu.non_plot]
+    plot_fns=[nu.pred_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
     
     def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False,
                 order=None):

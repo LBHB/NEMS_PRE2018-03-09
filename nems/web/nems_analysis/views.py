@@ -39,6 +39,14 @@ from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
 
+try:
+    import boto3
+    import nems_config.Storage_Config as sc
+    AWS = sc.USE_AWS
+except:
+    #import nems_config.STORAGE_DEFAULTS as sc
+    AWS = False
+
 # TODO: Figure out how to use SQLAlchemy's built-in flask context support
 #       to avoid having to manually open and close a db session for each
 #       request context? Or just leave it manual for clarity?
@@ -131,7 +139,7 @@ def main_view():
     # TODO: let user choose their defaults and save for later sessions
     # cols are in addition to cellid, modelname and batch,
     # which are set up to be required
-    defaultcols = ['r_test', 'r_fit', 'n_parms', 'batch']
+    defaultcols = ['r_test', 'r_fit', 'n_parms']
     defaultrowlimit = 500
     defaultsort = 'cellid'
     measurelist = [
@@ -544,18 +552,11 @@ def edit_analysis():
     checkExists = (
             session.query(NarfAnalysis)
             .filter(NarfAnalysis.name == eName)
-            .all()
+            .first()
             )
-    if len(checkExists) > 1:
-        session.close()
-        return Response(
-                """
-                Oops! More than one analysis with the same name\
-                already exists, something is wrong!
-                """
-                )
-    elif len(checkExists) == 1:
-        a = checkExists[0]
+    
+    if checkExists:
+        a = checkExists
         if (
                 a.public
                 or (user.labgroup in a.labgroup)
@@ -747,68 +748,47 @@ def get_preview():
             )
     
     if not path:
-        return jsonify(filepaths=['/missing_preview'])
+        return jsonify(image='missing preview')
     
-    #return jsonify(filepaths=path.figurefile)
+    # TODO: Make this not ugly.
     
-    try:
-        with open('/' + path.figurefile, 'r+b') as img:
-            image = str(b64encode(img.read()))[2:-1]
-        #return Response(image, mimetype="image/png")
-        return jsonify(image=image)
-    except:
-        #return Response(
-        #        """
-        #        Image path exists in DB but
-        #        image not in local storage
-        #        """
-        #        )
+    if AWS:
+        s3_client = boto3.client('s3')
         try:
-            with open(path.figurefile, 'r+b') as img:
-                image = str(b64encode(img.read()))[2:-1]
+            key = path.figurefile[len(sc.DIRECTORY_ROOT):]
+            fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+            image = str(b64encode(fileobj['Body'].read()))[2:-1]
+
             return jsonify(image=image)
         except Exception as e:
             print(e)
-            with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
+            try:
+                key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
+                fileobj = s3_client.get_object(
+                        Bucket=sc.PRIMARY_BUCKET, 
+                        Key=key
+                        )
+                image = str(b64encode(fileobj['Body'].read()))[2:-1]
+                return jsonify(image=image)
+            except Exception as e:
+                print(e)
+                with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
+                    image = str(b64encode(img.read()))[2:-1]
+                return jsonify(image=image)
+    else:
+        try:
+            with open('/' + path.figurefile, 'r+b') as img:
                 image = str(b64encode(img.read()))[2:-1]
             return jsonify(image=image)
-        
+        except:
+            try:
+                with open(path.figurefile, 'r+b') as img:
+                    image = str(b64encode(img.read()))[2:-1]
+                return jsonify(image=image)
+            except Exception as e:
+                print(e)
+                with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
+                    image = str(b64encode(img.read()))[2:-1]
+                return jsonify(image=image)
 
-@app.route('/missing_preview')
-def missing_preview():
-    """
-    DEPRECATED
-    Return an error message if no preview filepath has been stored
-    in the database.
-    
-    """
-    
-    return Response('No preview image exists for this result')
-
-@app.route('/preview/<path:filepath>')
-def preview(filepath):
-    """
-    DEPRECATED
-    Open the .png preview image at the specified path, or display
-    an error message if the file is missing in local storage.
-    
-    """
-    
-    try:
-        with open('/' + filepath, 'r+b') as img:
-            image = img.read()
-        #return Response(image, mimetype="image/png")
-        return jsonify(image=image)
-    except:
-        #return Response(
-        #        """
-        #        Image path exists in DB but
-        #        image not in local storage
-        #        """
-        #        )
-        return jsonify(
-                "Image path exists in DB, "
-                "but image is not in local storage."
-                )
-        
     

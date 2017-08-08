@@ -63,8 +63,10 @@
             Source & Info</a></li>
             <li><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
             CellDB</a></li>
-            <li><a href="{{ url_for('error_log') }}" target="_blank">
-            TODO</a></li>
+            <li><a href="https://bitbucket.org/lbhb/nems/issues?status=new&status=open"
+                   target="_blank">
+                       Issue Tracker
+            </a></li>
             <li><a href="#" id="enableDraggable">Enable Draggable</a></li>
             <li><a href="#" id="disableDraggable">Disable Draggable</a></li>
             <li>
@@ -311,6 +313,11 @@
                                 </option>
                             {% endfor %}
                             </select>
+                            <button type="button"
+                                    class="btn btn-default btn-xs"
+                                    id="statusReport">
+                                    Status Report
+                            </button>
                         </div><!-- form-group -->
                     </div><!-- batch col -->
                 </div><!-- batch row -->
@@ -508,6 +515,21 @@
                                        name="plotOpVal"
                                        value="0">
                             </div><!-- form-group -->
+                            
+                            <div class="form-group form-inline"
+                                 id="plotOpLabelsTwo">
+                                 <label for="plotNewWindow">
+                                     New Window
+                                 </label>
+                            </div>
+                            
+                            <div class="form-group form-inline"
+                                 id="plotOpGroupTwo">
+                                 <input type="checkbox"
+                                        id="plotNewWindow"
+                                        name="plotNewWindow"
+                                        value="1">
+                            </div>
                         </div><!-- plotOpWrapper -->
                     </div><!-- plot col -->
                 </div><!-- plot row -->     
@@ -619,15 +641,25 @@
                                 </div><!-- table sort drop down -->
                             </div><!-- input-group-btn -->
 
-                            <div class="input-group">
+                            <div class="input-group" id="rowLimitDiv">
                                 <span class="input-group-addon input-sm"
-                                      id="row-limit-label">
+                                      id="row-limit-label"
+                                      size="10">
                                           Limit
                                 </span>
                                 <input type="text"
                                        id="rowLimit"
                                        value="{{ defaultrowlimit }}"
                                        class="form-control input-sm">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="autoPreview"
+                                       id="autoPreviewLabel">
+                                          Auto Preview
+                                <input type="checkbox"
+                                       id="autoPreview"
+                                       value="1">
                             </div>
                         </div><!-- outer form group -->
                     </div><!-- top table buttons col -->
@@ -713,6 +745,8 @@
                  id="displayOuter">
                 <!--<label for="displayWrapper"> Plot Display </label>-->
                 <div id="displayWrapper">
+                </div>
+                <div id="statusReportWrapper">
                 </div>
             </div><!-- preview/plot area col -->
             
@@ -831,6 +865,14 @@
         <input type="text" id="p_batch" name="batch" value="">
         <input type="text" id="p_cellid" name="cellid" value="">
         <input type="text" id="p_modelname" name="modelname" value="">
+    </form>
+    </div>
+    
+    <!-- hidden form for stat rep submission -->
+    <div style="display:none;">
+    <form class="form" id="statRepForm" method="POST" target="_blank"
+          action="{{ url_for('status_report') }}">
+          <input type="text" id="statRepBatch" name="bSelected" value="">
     </form>
     </div>
     
