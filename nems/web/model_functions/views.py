@@ -23,7 +23,7 @@ from nems.web.nems_analysis import app
 from nems.db import Session, NarfResults, enqueue_models, update_results_table
 import nems.main as nems
 from nems.web.account_management.views import get_current_user
-from nems.keyword.keyword_rules import keyword_test_routine
+from nems.keyword_rules import keyword_test_routine
 
 @app.route('/fit_single_model')
 def fit_single_model_view():

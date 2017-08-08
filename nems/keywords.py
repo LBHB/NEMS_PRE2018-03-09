@@ -703,8 +703,7 @@ def nested20(stack):
         
 def nested10(stack):
     """
-    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks. This 
-    is often better for small datasets than the 20-fold nested cross-validation.
+    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
     
     MUST be last keyowrd in modelname string. DO NOT include twice.
     """
