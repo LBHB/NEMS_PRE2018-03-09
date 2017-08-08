@@ -24,16 +24,25 @@ class nems_stack:
         
     """
     Key components:
-     modules = list of nems_modules in sequence of execution
-     data = stream of data as it is evaluated through the sequence
-            of modules
-     fitter = pointer to the fit module
-     quick_plot = generates a plot of something about the transformation
-                  that takes place at each modules step
+        modules: list of nems_modules in sequence of execution
+        data: stream of data as it is evaluated through the sequence of modules
+        fitter: pointer to the fit module
+        quick_plot: generates a plot of something about the transformation
+                     that takes place at each modules step
+        nests: number validation sets to create. Used for nested crossvalidation. 
+                If 5% validation sets are wanted, use 20 nests, etc.
+        parm_fits: The fitted parameters for each nest. A list of phi vectors.
+        plot_dataidx: which dataset to plot (estimation or validation). Usually, 
+                        0 is the estimation set and 1 is the validation set, but
+                        sometimes there are more sets. Even numbers (and zero) 
+                        are estimation sets, while odd numbers are validation sets.
+        plot_stimidx: which stimulus to plot
+        
+    
 
     """
     
-    modelname=None
+    #modelname=None
     modules=[]  # stack of modules
     mod_names=[]
     mod_ids=[]
@@ -41,10 +50,8 @@ class nems_stack:
     meta={}
     fitter=None
     valmode=False
-    #cross_val=False
-    #nests=1
+    nests=1
     avg_resp=True
-    
     plot_dataidx=0
     plot_stimidx=0
     parm_fits=[]
@@ -52,6 +59,7 @@ class nems_stack:
     cv_counter=0
     keywords=[]
     valfrac=0.05
+    parm_fits=[]
     
     def __init__(self):
         print("Creating new stack")
@@ -59,12 +67,12 @@ class nems_stack:
         self.mod_names=[]
         self.data=[]
         self.data.append([])
-        self.data[0].append({})
-        self.data[0][0]['resp']=[]
-        self.data[0][0]['stim']=[]
+        self.data[0].append({})    #Also this?
+        self.data[0][0]['resp']=[] #Do we need these? 
+        self.data[0][0]['stim']=[] #This one too?
         
-        self.meta={}
-        self.modelname='Empty stack'
+        self.meta={}  #Dictionary that will contain cellid, batch, modelname
+        #self.modelname='Empty stack'
         self.error=self.default_error
         self.valmode=False
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
@@ -74,11 +82,20 @@ class nems_stack:
         self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
         self.keywords=[] #The split modelname string
         self.mod_ids=[]
-        self.valfrac=0.05
+        self.valfrac=0.05 #Fraction of the data used to create each validation nest
         
     def evaluate(self,start=0):
         """
-        evaluate stack, starting at module # start
+        Evaluate modules in stack, starting at module # start. When stack is 
+        fitting (valmode is False), simply calls mod.evaluate() for each module
+        in the stack. However, when the stack is testing (valmode is True), 
+        evaluate first calls an est/val function to create a list of validation
+        datasets ("nest"). It then extracts the fitted parameters for each list, and calls
+        mod.evaluate for each module in the stack for each validation set in the
+        list. 
+        
+        Note that during valmode, the estimation dataset that is returned is the
+        last dataset fit.
         """
         if self.valmode is True: 
             print('Evaluating validation data')
@@ -105,13 +122,17 @@ class nems_stack:
             for ij in range(mse_idx,len(self.modules)):
                 self.modules[ij].evaluate() 
         else:
-            #This condition evaluates for fitting and est data set
+            #This condition evaluates for fitting
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
             
     
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
+        """
+        Creates an instance of a module and appends it to the stack. Evaluates 
+        module in doing so. 
+        """
         if mod is None:
             raise ValueError('stack.append: module not specified')
         else:
