@@ -554,8 +554,9 @@ def edit_analysis():
             .filter(NarfAnalysis.name == eName)
             .first()
             )
+    
     if checkExists:
-        a = checkExists[0]
+        a = checkExists
         if (
                 a.public
                 or (user.labgroup in a.labgroup)
@@ -755,8 +756,6 @@ def get_preview():
         s3_client = boto3.client('s3')
         try:
             key = path.figurefile[len(sc.DIRECTORY_ROOT):]
-            print('key after first try: ')
-            print(key)
             fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
             image = str(b64encode(fileobj['Body'].read()))[2:-1]
 
@@ -765,8 +764,6 @@ def get_preview():
             print(e)
             try:
                 key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
-                print('key after second try: ')
-                print(key)
                 fileobj = s3_client.get_object(
                         Bucket=sc.PRIMARY_BUCKET, 
                         Key=key

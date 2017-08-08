@@ -301,7 +301,7 @@ class nems_stack:
         --------
         filename : string
             Path to saved file, currently of the form:
-            "/auto/data/code/nems_saved_models/batch{#}/{cell}_{modelname}.type"
+            "/auto/data/code/nems_saved_images/batch{#}/{cell}/{modelname}.type"
                         
         @author: jacob
         
@@ -320,7 +320,7 @@ class nems_stack:
         plt.tight_layout()
 
         filename = (
-                    sc.DIRECTORY_ROOT + "nems_saved_models/batch{0}/{1}_{2}.{3}"
+                    sc.DIRECTORY_ROOT + "nems_saved_images/batch{0}/{1}/{2}.{3}"
                     .format(batch, cellid, modelname, mode)
                     )
         
@@ -329,6 +329,7 @@ class nems_stack:
             key = filename[len(sc.DIRECTORY_ROOT):]
             fileobj = io.BytesIO()
             fig.savefig(fileobj, format=mode)
+            fileobj.seek(0)
             s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
         else:
             if os.path.isfile(filename):
