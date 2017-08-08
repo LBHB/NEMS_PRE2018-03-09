@@ -15,7 +15,7 @@ import io
 try:
     import boto3
     import nems_config.Storage_Config as sc
-    AWS = sc.AWS
+    AWS = sc.USE_AWS
 except:
     #import nems_config.STORAGE_DEFAULTS as sc
     AWS = False
@@ -328,7 +328,7 @@ class nems_stack:
             s3 = boto3.resource('s3')
             key = filename[len(sc.DIRECTORY_ROOT):]
             fileobj = io.BytesIO()
-            fig.savefig(fileobj)
+            fig.savefig(fileobj, format=mode)
             s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
         else:
             if os.path.isfile(filename):

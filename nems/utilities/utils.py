@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 import copy
+import io
 
 try:
     import boto3
@@ -119,16 +120,11 @@ def get_file_name(cellid, batch, modelname):
 
 
 def get_mat_file(filename, chars_as_strings=True):
-    print('filename inside get_mat_file: ')
-    print(filename)
-    
     if AWS:
         s3_client = boto3.client('s3')
         key = filename[len(sc.DIRECTORY_ROOT):]
-        print('Filename after removing dir root: ')
-        print(key)
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-        file = scipy.io.loadmat(fileobj['Body'], chars_as_strings=chars_as_strings)
+        file = scipy.io.loadmat(io.BytesIO(fileobj['Body'].read()), chars_as_strings=chars_as_strings)
         return file
     else:
         file = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)

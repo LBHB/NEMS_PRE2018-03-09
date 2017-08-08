@@ -42,7 +42,7 @@ from nems.keyword.keyword_rules import keyword_test_routine
 try:
     import boto3
     import nems_config.Storage_Config as sc
-    AWS = sc.AWS
+    AWS = sc.USE_AWS
 except:
     #import nems_config.STORAGE_DEFAULTS as sc
     AWS = False
@@ -754,20 +754,24 @@ def get_preview():
     if AWS:
         s3_client = boto3.client('s3')
         try:
-            key = path[len(sc.DIRECTORY_ROOT):]
+            key = path.figurefile[len(sc.DIRECTORY_ROOT):]
+            print('key after first try: ')
+            print(key)
             fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-            with open(fileobj, 'r+b') as img:
-                image = str(b64encode(img.read()))[2:-1]
+            image = str(b64encode(fileobj['Body'].read()))[2:-1]
+
             return jsonify(image=image)
-        except:
+        except Exception as e:
+            print(e)
             try:
-                key = path[len(sc.DIRECTORY_ROOT)-1:]
+                key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
+                print('key after second try: ')
+                print(key)
                 fileobj = s3_client.get_object(
                         Bucket=sc.PRIMARY_BUCKET, 
                         Key=key
                         )
-                with open(fileobj, 'r+b') as img:
-                    image = str(b64encode(img.read()))[2:-1]
+                image = str(b64encode(fileobj['Body'].read()))[2:-1]
                 return jsonify(image=image)
             except Exception as e:
                 print(e)
