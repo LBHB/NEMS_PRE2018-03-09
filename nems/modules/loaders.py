@@ -120,7 +120,6 @@ class load_mat(nems_module):
                 #-njs June 16, 2017
                     
                 # average across trials
-                #TODO: need to fix repcount for data with varying trial numbers (in pupil_est_val)
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 self.parent_stack.unresampled['repcount']=data['repcount']
                 
@@ -134,7 +133,7 @@ class load_mat(nems_module):
 
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
-                print('load_mat: appending {0} to d_out stack'.format(f))
+                #print('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
                 
 class dummy_data(nems_module):
