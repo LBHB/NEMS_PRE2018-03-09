@@ -130,11 +130,15 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
     """
     # Not yet ready for testing - still need to coordinate the supporting
     # functions with the model queuer.
+    session = Session()
+    cluster_session = cluster_Session()
+    
     pass_fail = []
     for model in modellist:
         for cell in celllist:
             queueid, message = enqueue_single_model(
-                        cell, batch, model, force_rerun, user
+                        cell, batch, model, force_rerun, user,
+                        session, cluster_session,
                         )
             if not queueid:
                 pass_fail.append(
@@ -150,25 +154,33 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
     
     # Can return pass_fail instead if prefer to do something with it in views
     print('\n'.join(pass_fail))
+    
+    session.close()
+    cluster_session.close()
     return
 
 
-def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
-    """Not yet developed, likely to change a lot.
+def enqueue_single_model(
+        cellid, batch, modelname, force_rerun, user,
+        session, cluster_session,
+        ):
+    
+    """Adds a particular model to the queue to be fitted.
     
     Returns:
     --------
-    tQueueId : int
+    queueid : int
         id (primary key) that was assigned to the new tQueue entry, or -1.
+    message : str
+        description of the action taken, to be reported to the console by
+        the calling enqueue_models function.
         
     See Also:
     ---------
     Narf_Analysis : enqueue_single_model
     
     """
-    
-    session = Session()
-    cluster_session = cluster_Session()
+
     
     # TODO: anything else needed here? this is syntax for nems_fit_single
     #       command prompt wrapper in main nems folder.
@@ -243,8 +255,6 @@ def enqueue_single_model(cellid, batch, modelname, force_rerun, user):
     
     # don't need to commit the regular session since results don't change
     cluster_session.commit()
-    cluster_session.close()
-    session.close()
     
     if AWS:
         # TODO: turn this back on after automated cluster management is
