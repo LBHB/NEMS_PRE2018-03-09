@@ -15,7 +15,7 @@ import scipy.stats as spstats
 
 class mean_square_error(nems_module):
  
-    name='mean_square_error'
+    name='metrics.mean_square_error'
     user_editable_fields=['input1','input2','norm']
     plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
@@ -31,6 +31,7 @@ class mean_square_error(nems_module):
         self.norm=norm
         self.shrink=shrink
         self.do_trial_plot=self.plot_fns[1]
+        self.save_dict={'input1':input1,'input2':input2,'norm':norm,'shrink':shrink}
         
     def evaluate(self,nest=0):
         if nest==0:
@@ -116,7 +117,7 @@ class pseudo_huber_error(nems_module):
     #potentially useful, depending on what is being fit? --njs, June 30 2017
     
     
-    name='pseudo_huber_error'
+    name='metrics.pseudo_huber_error'
     plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
@@ -129,6 +130,7 @@ class pseudo_huber_error(nems_module):
         self.input2=input2
         self.b=b
         self.do_trial_plot=self.plot_fns[1]
+        self.save_dict={'input1':input1,'input2':input2,'b':b}
         
     def evaluate(self,nest=0):
         del self.d_out[:]
@@ -151,7 +153,7 @@ class pseudo_huber_error(nems_module):
         
 class correlation(nems_module):
  
-    name='correlation'
+    name='metrics.correlation'
     user_editable_fields=['input1','input2']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter, nu.pred_act_scatter_smooth]
     input1='stim'
@@ -163,6 +165,7 @@ class correlation(nems_module):
         self.input1=input1
         self.input2=input2
         self.do_plot=self.plot_fns[1]
+        self.save_dict={'input1':input1,'input2':input2,'norm':norm}
         
     def evaluate(self,**kwargs):
         del self.d_out[:]

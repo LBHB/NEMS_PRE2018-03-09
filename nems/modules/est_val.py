@@ -26,7 +26,7 @@ class standard(nems_module):
     crossvalidation.
     """
     #TODO: make this work given changes to stack
-    name='standard_est_val'
+    name='est_val.standard'
     user_editable_fields=['output_name','valfrac']
     
     def my_init(self):
@@ -120,7 +120,7 @@ class crossval(nems_module):
     
     @author: shofer
     """
-    name='crossval'
+    name='est_val.crossval'
     plot_fns=[nu.raster_plot]
     valfrac=0.05
     
@@ -130,6 +130,7 @@ class crossval(nems_module):
             self.iter=int(1/valfrac)-1
         except:
             self.iter=0
+        self.save_dict={'valfrac':valfrac}
         
     def evaluate(self,nest=0):
 

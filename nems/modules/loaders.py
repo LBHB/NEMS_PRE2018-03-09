@@ -45,7 +45,7 @@ class load_mat(nems_module):
                 3 times and stimulus 2 that was played 2 times, replist would
                 be [1,1,1,2,2].
     """
-    name='load_mat'
+    name='loaders.load_mat'
     user_editable_fields=['output_name','est_files','fs']
     plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
     est_files=[]
@@ -53,11 +53,11 @@ class load_mat(nems_module):
     
     def my_init(self,est_files=[],fs=100,avg_resp=True):
         self.est_files=est_files.copy()
-        self.do_trial_plot=self.plot_fns[0]
-        self.auto_plot=False
         self.fs=fs
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
+        self.auto_plot=False
+        self.save_dict={'est_files':self.est_files,'fs':fs,'avg_resp':avg_resp}
 
     def evaluate(self,**kwargs):
         del self.d_out[:]
@@ -141,13 +141,14 @@ class dummy_data(nems_module):
     dummy_data - generate some very dumb test data without loading any files. 
     Maybe deprecated? 
     """
-    name='dummy_data'
+    name='loaders.dummy_data'
     user_editable_fields=['output_name','data_len']
     plot_fns=[nu.plot_spectrogram]
     data_len=100
     
     def my_init(self,data_len=100):
         self.data_len=data_len
+        self.save_dict={'data_len':data_len}
 
     def evaluate(self):
         del self.d_out[:]

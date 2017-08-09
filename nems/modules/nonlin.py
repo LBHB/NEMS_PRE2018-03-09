@@ -24,7 +24,7 @@ class gain(nems_module):
     @author: shofer
     """
     #Added helper functions and removed look up table --njs June 29 2017
-    name='nonlinearity'
+    name='nonlin.gain'
     plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
     user_editable_fields = ['nltype', 'fit_fields','phi']
     phi=np.array([1])
@@ -43,6 +43,7 @@ class gain(nems_module):
             self.do_plot=self.plot_fns[2]
         else:
             self.do_plot=self.plot_fns[0]
+        self.save_dict={'fit_fields':fit_fields,'nltype':nltype,'phi':phi}
         
     def dlog_fn(self,X):
         #TODO: need to find a good way to weed out negative and zero values

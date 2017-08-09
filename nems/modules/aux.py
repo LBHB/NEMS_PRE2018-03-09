@@ -32,7 +32,7 @@ class normalize(nems_module):
     #---this definitely has something to do with where this module is appended
     #in the stack.
     
-    name='normalize'
+    name='aux.normalize'
     user_editable_fields=['output_name','valfrac','valmode']
     force_positive=True
 
@@ -45,6 +45,7 @@ class normalize(nems_module):
             print('norm lists created')
             self.parent_stack.d=[0]*self.parent_stack.nests
             self.parent_stack.g=[1]*self.parent_stack.nests
+        self.save_dict={'force_positive':force_positive,'data':data}
             
     def evaluate(self,nest=0):
         c=self.parent_stack.cv_counter
@@ -91,13 +92,14 @@ class add_scalar(nems_module):
     add_scalar -- pretty much a dummy test module but may be useful for
     some reason
     """
-    name='add_scalar'
+    name='aux.add_scalar'
     user_editable_fields=['output_name','n']
     n=np.zeros([1,1])
     
     def my_init(self, n=0, fit_fields=['n']):
         self.fit_fields=fit_fields
         self.n[0,0]=n
+        self.save_dict={'n':n,'fit_fields':fit_fields}
                    
     def my_eval(self,X):
         Y=X+self.n
@@ -108,7 +110,7 @@ class dc_gain(nems_module):
     dc_gain -- apply a scale and offset term
     """
  
-    name='dc_gain'
+    name='aux.dc_gain'
     user_editable_fields=['output_name','d','g']
     d=np.zeros([1,1])
     g=np.ones([1,1])
@@ -117,6 +119,7 @@ class dc_gain(nems_module):
         self.fit_fields=fit_fields
         self.d[0,0]=d
         self.g[0,0]=g
+        self.save_dict={'d':d,'g':g,'fit_fields':fit_fields}
     
     def my_eval(self,X):
         Y=X*self.g+self.d
@@ -127,12 +130,13 @@ class sum_dim(nems_module):
     """
     sum_dim - sum a matrix across one dimension. maybe useful? mostly testing
     """
-    name='sum_dim'
+    name='aux.sum_dim'
     user_editable_fields=['output_name','dim']
     dim=0
     
     def my_init(self, dim=0):
         self.dim=dim
+        self.save_dict={'dim':dim}
         
     def my_eval(self,X):
         Y=X.sum(axis=self.dim)

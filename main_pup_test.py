@@ -7,8 +7,8 @@ Created on Wed Jul  5 12:02:27 2017
 """
 import numpy as np
 import nems.keywords as nk
-import nems.utils as nu
-import nems.baphy_utils as bu
+import nems.utilities.utils as nu
+import nems.utilities.baphy_utils as bu
 import nems.modules as nm
 import nems.stack as ns
 import nems.fitters as nf
@@ -16,49 +16,8 @@ import nems.main as mn
 import os
 import os.path
 import copy
-"""
-filelist=os.listdir('/auto/users/shofer/data/batch294')
-files=[]
-for i in filelist:
-    f=i.split('_')
-    files.append(f[0])
-"""
-#stack.meta['batch']=294
-#stack.meta['cellid']='eno022e-b1'
-"""modlist=['nopupgain','pupgain','polypupgain02','polypupgain03','polypupgain04','exppupgain','logpupgain',
-         'butterworth01','butterworth02','butterworth03','butterworth04','poissonpupgain']"""
-#BOL006b-43-1
-#BOL006b-60-1
-#BOL006b-18-2
-stack=mn.fit_single_model('eno050c-a1', 293, 'parm50_wc03_fir10_dexp_powergain02_fit01', autoplot=True)
+import operator as op
 
-#stack.plot_dataidx=0
-#stack.plot_stimidx=10
-#stack.quick_plot()
-#stack=mn.load_single_model('bbl031f-a1', 291, 'fb18ch50_wc03_fir10_dexp_fit00')
-
-#din=stack.modules[3].d_in
-#print(stack.data.__len__())
-#print(stack.modules[-1].d_in[0]['stim'].shape)
-#stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_pupgain_fit00_nested10', autoplot=True)
-#print(stack.data[3][1]['stim'].shape)
-#alldata=stack.data
-#alldata=stack.data
-#stack=mn.fit_single_model('eno052d-a1', 294, 'perfectpupil50_pupgain_dexp_fit01_nested10', autoplot=True)
-alldata=stack.data
-#print(slist.__len__())
-#dat1=slist[1].data
-#dat2=slist[19].data[-1][1]['repcount'].shape[0]
-
-#valarr=np.split(slist[0].data[-1][1]['stim'],slist[0].data[-1][1]['repcount'].shape[0],0)
-#for i in slist[1:]:
-    #valarr=np.append(valarr,i.data[-1][1]['stim'],axis=0)
-    
-#cellid='eno052b-c1'
-#batch=293
-#modelname="parm50_wc03_fir10_dexp_fit02"
-
-"""
 stack=ns.nems_stack()
 cellid='eno052b-c1'
 batch=293
@@ -71,7 +30,15 @@ stack.meta['modelname']=modelname
 file=bu.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
                                      fs=100,stimfmt='parm',chancount=16)
 print("Initializing load_mat with file {0}".format(file))
-stack.append(nm.load_mat,est_files=[file],fs=50,avg_resp=True)
+ldict={'est_files':[file],'fs':50,'avg_resp':True}
+name=nm.loaders.load_mat.name
+stack.append(op.attrgetter(name)(nm),**ldict)
+
+
+
+alldata=stack.data
+
+"""
 stack.append(nm.crossval,valfrac=0.05)
 #stack.append(nm.weight_channels,num_chans=3)
 stack.append(nm.fir_filter,num_coefs=10)

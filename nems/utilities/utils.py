@@ -15,6 +15,8 @@ import pickle
 import os
 import copy
 import io
+import json
+#import nems.modules as nm
 
 try:
     import boto3
@@ -80,6 +82,47 @@ def save_model(stack, file_path):
         
         os.chmod(file_path, 0o666)
         print("Saved model to {0}".format(file_path))
+        
+def save_model_dict(stack,filepath):
+    sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','cellid','batch',
+                        'modelname','nests'])
+    sdict['modlist']=[]
+    sdict['mod_dicts']=[]
+    parm_list=[]
+    for i in stack.parm_fits:
+        parm_list.append(i.tolist())
+    sdict['parm_fits']=parm_list
+    sdict['nests']=stack.nests
+    sdict['batch']=stack.meta['batch']
+    sdict['cellid']=stack.meta['cellid']
+    sdict['modelname']=stack.meta['modelname']
+    sdict['cv_counter']=stack.cv_counter
+    sdict['fitted_modules']=stack.fitted_modules
+    
+    for m in stack.modules:
+        sdict['modlist'].append(m.name)
+        sdict['mod_dicts'].append(m.save_dict)
+    try:
+        d=stack.d
+        g=stack.g
+        sdict['d']=d
+        sdict['g']=g
+    except:
+        pass
+    
+    #TODO: need to add AWS stuff
+    with open(filepath,'w') as fp:
+        json.dump(sdict,fp)
+    return sdict
+        
+
+def load_model_dict(filepath):
+    #TODO: need to add AWS stuff
+    with open(filepath,'r') as fp:
+        sdict=json.load(fp)
+    
+    return sdict
+    
 
 def load_model(file_path):
     if AWS:
@@ -334,47 +377,6 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     # Is this correct? I think so...
     plt.ylabel('Latency')
     
-"""
-Potentially useful trial plotting stuff...not currently in use, however --njs July 5 2017   
-def plot_trials(m,idx=None,size=(12,4)):
-    out1=m.d_out[m.parent_stack.plot_dataidx]
-    u=0
-    c=out1['repcount'][m.parent_stack.plot_stimidx]
-    h=out1['stim'][m.parent_stack.plot_stimidx].shape
-    scl=int(h[0]/c)
-    tr=m.parent_stack.plot_trialidx
-    
-    #Could also rewrite this so all plots are in a single figure (i.e. each 
-    #trial is a subplot, rather than its own figure)
-    for i in range(tr[0],tr[1]):
-        plt.figure(num=str(idx)+str(i),figsize=size)
-        s=out1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        r=out1['resp'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        pred, =plt.plot(s,label='Predicted')
-        resp, =plt.plot(r,'r',label='Response')
-        plt.legend(handles=[pred,resp])
-        plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
-        u=u+scl
-        
-def trial_prepost_psth(m,idx=None,size=(12,4)):
-    in1=m.d_in[m.parent_stack.plot_dataidx]
-    out1=m.d_out[m.parent_stack.plot_dataidx]
-    u=0
-    c=out1['repcount'][m.parent_stack.plot_stimidx]
-    h=out1['stim'][m.parent_stack.plot_stimidx].shape
-    scl=int(h[0]/c)
-    tr=m.parent_stack.plot_trialidx
-    
-    for i in range(tr[0],tr[1]):
-        plt.figure(num=str(idx)+str(i),figsize=size)
-        s1=in1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        s2=out1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        pred, =plt.plot(s1,label='Pre-'+m.name)
-        resp, =plt.plot(s2,'r',label='Post-'+m.name)
-        plt.legend(handles=[pred,resp])
-        plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
-        u=u+scl
-"""
 def non_plot(m):
     pass
 

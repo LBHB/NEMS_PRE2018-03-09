@@ -29,7 +29,7 @@ class nems_module:
     #
     # common attributes for all modules
     #
-    name='pass-through'
+    name='base.nems_module'
     user_editable_fields=['input_name','output_name']
     plot_fns=[nu.plot_spectrogram]
     
@@ -42,7 +42,7 @@ class nems_module:
     d_out=None # pointer to output, parent_stack.d[i+!]
     fit_fields=[]  # what fields should be fed to phi for fitting
     auto_plot=True  # whether to include in quick_plot
-    
+    save_dict={}
     #
     # Begin standard functions
     #
@@ -158,7 +158,7 @@ class nems_module:
         Placeholder for module specific initialization. my_init is defined for each 
         module (with some specific exceptions). 
         """
-        pass 
+        pass
         
     def my_eval(self,X):
         """

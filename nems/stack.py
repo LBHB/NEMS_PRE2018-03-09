@@ -99,12 +99,12 @@ class nems_stack:
         """
         if self.valmode is True: 
             print('Evaluating validation data')
-            mse_idx=ut.utils.find_modules(self,'mean_square_error')
+            mse_idx=ut.utils.find_modules(self,'metrics.mean_square_error')
             mse_idx=int(mse_idx[0])
             try:
-                xval_idx=ut.utils.find_modules(self,'crossval')
+                xval_idx=ut.utils.find_modules(self,'est_val.crossval')
             except:
-                xval_idx=ut.utils.find_modules(self,'standard_est_val')
+                xval_idx=ut.utils.find_modules(self,'est_val.standard')
             xval_idx=xval_idx[0]
             if start !=0 and start<=xval_idx:
                 self.modules[xval_idx].evaluate()
@@ -157,6 +157,21 @@ class nems_stack:
         self.mod_ids.append(mod.idm)
         
         mod.evaluate()
+        
+    def append_no_eval(self,mod=None,**xargs):
+        """
+        Creates an instance of a module and appends it to the stack. Evaluates 
+        module in doing so. 
+        """
+        if mod is None:
+            raise ValueError('stack.append: module not specified')
+        else:
+            m=mod(self, **xargs)
+        self.modules.append(mod)
+        self.data.append(mod.d_out)
+        self.mod_names.append(mod.name)
+        self.mod_ids.append(mod.idm)
+        
         
     def insert(self, mod=None, idx=None, **xargs):
         """Insert a module at index in stack, then evaluate the inserted

@@ -16,13 +16,12 @@ import copy
 import scipy.special as sx
 
 class model(nems_module):
-    name='pupil_model'
+    name='pupil.model'
     plot_fns=[nu.sorted_raster,nu.raster_plot]
     """
     Replaces stim with average resp for each stim. This is the 'perfect' model
     used for comparing different models of pupil state gain.
     """
-    
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
@@ -52,23 +51,19 @@ class pupgain(nems_module):
     @author: shofer
     """
     #Changed to helper function based general module --njs June 29 2017
-    name='pupgain'
+    name='pupil.pupgain'
     plot_fns=[nu.pred_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
     
-    def my_init(self,d_in=None,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],premodel=False,
+    def my_init(self,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
                 order=None):
-        if premodel is True:
-            self.do_plot=self.plot_fns[1]
-        #self.linpupgain=np.zeros([1,4])
-        #self.linpupgain[0][1]=0
         self.fit_fields=fit_fields
         self.gain_type=gain_type
-        theta=np.array([theta])
-        self.theta=theta
+        self.theta=np.array([theta])
         self.order=order
         self.do_plot=self.plot_fns[0]
-        #self.data_setup(d_in)
         print('state_gain parameters created')
+        self.save_dict={'gain_type':gain_type,'fit_fields':fit_fields,'theta':theta,
+                        'order':order}
         
     def nopupgain_fn(self,X,Xp):
         """

@@ -229,7 +229,7 @@ def fir_mini_fit(stack):
     stack.fitter=nf.fitters.basic_min(stack)
     stack.fitter.tol=0.0001
     try:
-        fitidx=ut.utils.find_modules(stack,'weight_channels') + ut.utils.find_modules(stack,'fir')
+        fitidx=ut.utils.find_modules(stack,'filters.weight_channels') + ut.utils.find_modules(stack,'filters.fir')
     except:
         fitidx=ut.utils.find_modules(stack,'fir')
     stack.fitter.fit_modules=fitidx
@@ -308,7 +308,7 @@ def nonlin_mini_fit(stack):
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
     stack.fitter.tol=0.00001
-    fitidx=ut.utils.find_modules(stack,'nonlinearity')
+    fitidx=ut.utils.find_modules(stack,'nonlin.gain')
     stack.fitter.fit_modules=fitidx
     
     stack.fitter.do_fit()
@@ -412,7 +412,7 @@ def pupil_mini_fit(stack):
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
     stack.fitter.tol=0.00001
-    fitidx=ut.utils.find_modules(stack,'pupgain')
+    fitidx=ut.utils.find_modules(stack,'pupil.pupgain')
     stack.fitter.fit_modules=fitidx
     
     stack.fitter.do_fit()

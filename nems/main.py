@@ -9,7 +9,8 @@ import nems.modules as nm
 import nems.stack as ns
 import nems.utilities as ut
 import nems.keywords as nk
-
+import operator as op
+import numpy as np
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -109,4 +110,40 @@ def load_single_model(cellid, batch, modelname):
         #       did something just go wrong?
     #stack.quick_plot()
     return stack
+
+def load_from_dict(batch,cellid,modelname,filepath=None):
+    sdict=ut.utils.load_model_dict(filepath)
+    #Maybe move some of this to the load_model_dict function?
+    stack=ns.nems_stack()
+    #stack.valmode=True
+    stack.meta['batch']=batch
+    stack.meta['cellid']=cellid
+    stack.meta['modelname']=modelname
+    stack.nests=sdict['nests']
+    parm_list=[]
+    for i in sdict['parm_fits']:
+        parm_list.append(np.array(i))
+    stack.parm_fits=parm_list
+    stack.cv_counter=sdict['cv_counter']
+    stack.fitted_modules=sdict['fitted_modules']
+    
+    for i in range(0,len(sdict['modlist'])):
+        stack.append(op.attrgetter(sdict['modlist'][i])(nm),**sdict['mod_dicts'][i])
+        #stack.evaluate()
+        
+    stack.valmode=True
+    stack.evaluate()
+    stack.quick_plot()
+    return stack
+
+
+
+
+
+
+
+
+
+
+
     

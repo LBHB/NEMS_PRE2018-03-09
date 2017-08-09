@@ -22,7 +22,7 @@ class weight_channels(nems_module):
     a helper function parm_fun can be defined to parameterize the weighting
     matrix. but by default the weights are each independent
     """
-    name='weight_channels'
+    name='filters.weight_channels'
     user_editable_fields=['output_name','num_dims','coefs','baseline','phi','parm_fun']
     plot_fns=[nu.plot_strf,nu.plot_spectrogram]
     coefs=None
@@ -30,13 +30,13 @@ class weight_channels(nems_module):
     num_chans=1
     parm_fun=None
     
-    def my_init(self, num_dims=0, num_chans=1, baseline=np.zeros([1,1]), 
-                fit_fields=['coefs'], parm_fun=None, phi=np.zeros([1,1])):
+    def my_init(self, num_dims=0, num_chans=1, baseline=[[0]], 
+                fit_fields=['coefs'], parm_fun=None, phi=[[0]]):
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
         self.num_chans=num_chans
-        self.baseline=baseline
+        self.baseline=np.array(baseline)
         self.fit_fields=fit_fields
         if parm_fun:
             self.parm_fun=parm_fun
@@ -44,7 +44,9 @@ class weight_channels(nems_module):
         else:
             #self.coefs=np.ones([num_chans,num_dims])/num_dims/100
             self.coefs=np.random.normal(1,0.1,[num_chans,num_dims])/num_dims
-        self.phi=phi
+        self.phi=np.array(phi)
+        self.save_dict={'num_dims':num_dims,'num_chans':num_chans,'baseline':baseline,
+                        'fit_fields':fit_fields,'parm_fun':parm_fun,'phi':phi}
         
     def my_eval(self,X):
         #if not self.d_out:
@@ -66,7 +68,7 @@ class fir(nems_module):
     (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
     offset, and outputs a 2D stim array (stims,time).
     """
-    name='fir'
+    name='filters.fir'
     user_editable_fields=['output_name','num_dims','coefs','baseline']
     plot_fns=[nu.plot_strf, nu.plot_spectrogram]
     coefs=None
@@ -92,6 +94,8 @@ class fir(nems_module):
             self.coefs=np.zeros([num_dims,num_coefs])
         self.fit_fields=fit_fields
         self.do_trial_plot=self.plot_fns[0]
+        self.save_dict={'num_dims':num_dims,'num_coefs':num_coefs,'baseline':baseline,
+                        'fit_fields':fit_fields,'random':random}
         
     def my_eval(self,X):
         s=X.shape
@@ -110,7 +114,7 @@ class stp(nems_module):
                     'per_channel', 'offset_in', 'facil_on', 'crosstalk',...
                     'input', 'input_mod','time', 'output' };
     """
-    name='stp'
+    name='filters.stp'
     user_editable_fields=['input_name','output_name','num_channels','u','tau','offset_in','crosstalk']
     plot_fns=[nu.pre_post_psth, nu.plot_spectrogram]
     coefs=None
@@ -150,6 +154,9 @@ class stp(nems_module):
         self.tau=tau
         self.offset_in=offset_in
         self.crosstalk=crosstalk
+        self.save_dict={'num_dims':num_dims,'num_channels':num_channels,'u':u,
+                        'tau':tau,'offset_in':offset_in,'crosstalk':crosstalk,
+                        'fit_fields':fit_fields}
         
     def my_eval(self,X):
         s=X.shape
