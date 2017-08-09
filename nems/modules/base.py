@@ -54,7 +54,6 @@ class nems_module:
         optionally be defined to perform module-specific initialization.
         """
         print("creating module "+self.name)
-        
         if parent_stack is None:
             self.d_in=[]
         else:
@@ -69,6 +68,7 @@ class nems_module:
         self.do_plot=self.plot_fns[0]  # default is first in list
         self.do_trial_plot=self.plot_fns[0]
         self.my_init(**xargs)
+        self.user_editable_fields=['input_name','output_name']+list(self.field_dict.keys())
         
     def parms2phi(self):
         """

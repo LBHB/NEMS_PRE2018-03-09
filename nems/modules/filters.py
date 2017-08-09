@@ -23,7 +23,7 @@ class weight_channels(nems_module):
     matrix. but by default the weights are each independent
     """
     name='filters.weight_channels'
-    user_editable_fields=['output_name','num_dims','coefs','baseline','phi','parm_fun']
+    user_editable_fields=['num_dims','num_chans','fit_fields','baseline','phi','parm_fun']
     plot_fns=[nu.plot_strf,nu.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
@@ -32,6 +32,8 @@ class weight_channels(nems_module):
     
     def my_init(self, num_dims=0, num_chans=1, baseline=[[0]], 
                 fit_fields=['coefs'], parm_fun=None, phi=[[0]]):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
@@ -45,8 +47,6 @@ class weight_channels(nems_module):
             #self.coefs=np.ones([num_chans,num_dims])/num_dims/100
             self.coefs=np.random.normal(1,0.1,[num_chans,num_dims])/num_dims
         self.phi=np.array(phi)
-        self.save_dict={'num_dims':num_dims,'num_chans':num_chans,'baseline':baseline,
-                        'fit_fields':fit_fields,'parm_fun':parm_fun,'phi':phi}
         
     def my_eval(self,X):
         #if not self.d_out:
@@ -69,7 +69,7 @@ class fir(nems_module):
     offset, and outputs a 2D stim array (stims,time).
     """
     name='filters.fir'
-    user_editable_fields=['output_name','num_dims','coefs','baseline']
+    user_editable_fields=['num_dims','num_coefs','baseline','fit_fields','random']
     plot_fns=[nu.plot_strf, nu.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
@@ -83,6 +83,8 @@ class fir(nems_module):
         fit_fields: names of fitted parameters
         random: randomize initial values of fir coefficients
         """
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
         self.num_dims=num_dims
@@ -94,8 +96,6 @@ class fir(nems_module):
             self.coefs=np.zeros([num_dims,num_coefs])
         self.fit_fields=fit_fields
         self.do_trial_plot=self.plot_fns[0]
-        self.save_dict={'num_dims':num_dims,'num_coefs':num_coefs,'baseline':baseline,
-                        'fit_fields':fit_fields,'random':random}
         
     def my_eval(self,X):
         s=X.shape
@@ -133,6 +133,8 @@ class stp(nems_module):
         u: 
         tau: 
         """
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0]['stim'].shape[0]
         Zmat=np.zeros([num_dims,num_channels])
@@ -154,9 +156,6 @@ class stp(nems_module):
         self.tau=tau
         self.offset_in=offset_in
         self.crosstalk=crosstalk
-        self.save_dict={'num_dims':num_dims,'num_channels':num_channels,'u':u,
-                        'tau':tau,'offset_in':offset_in,'crosstalk':crosstalk,
-                        'fit_fields':fit_fields}
         
     def my_eval(self,X):
         s=X.shape

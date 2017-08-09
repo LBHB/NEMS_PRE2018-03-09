@@ -25,11 +25,12 @@ class standard(nems_module):
     This estimation/validation routine is not compatible with nested
     crossvalidation.
     """
-    #TODO: make this work given changes to stack
     name='est_val.standard'
     user_editable_fields=['output_name','valfrac']
     
     def my_init(self):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         print('Using standard est/val')
     
     def evaluate(self,**kwargs):
@@ -75,15 +76,7 @@ class standard(nems_module):
                 except:
                     print('No pupil data')
                     d_est['pupil']=[]
-
-                #d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
-                    #for j in (d_est,d_val):
-                    #    for i in ('resp','pupil'):
-                    #        s=j[i].shape
-                    #        j[i]=np.reshape(j[i],(s[0]*s[1],s[2]),order='F')
-                    #        j[i]=np.transpose(j[i],(1,0))
-                    #    j['stim']=np.tile(j['stim'],(1,1,s[1]))
-                
+                    
                 d_est['est']=True
                 #d_val['est']=False
                 
@@ -125,12 +118,13 @@ class crossval(nems_module):
     valfrac=0.05
     
     def my_init(self,valfrac=0.05):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.valfrac=valfrac
         try:
             self.iter=int(1/valfrac)-1
         except:
             self.iter=0
-        self.save_dict={'valfrac':valfrac}
         
     def evaluate(self,nest=0):
 

@@ -22,6 +22,11 @@ class model(nems_module):
     Replaces stim with average resp for each stim. This is the 'perfect' model
     used for comparing different models of pupil state gain.
     """
+    def my_init(self):
+        print('Replacing stimulus with averaged response raster')
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
+    
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
@@ -56,14 +61,13 @@ class pupgain(nems_module):
     
     def my_init(self,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
                 order=None):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
         self.gain_type=gain_type
         self.theta=np.array([theta])
         self.order=order
         self.do_plot=self.plot_fns[0]
-        print('state_gain parameters created')
-        self.save_dict={'gain_type':gain_type,'fit_fields':fit_fields,'theta':theta,
-                        'order':order}
         
     def nopupgain_fn(self,X,Xp):
         """
@@ -132,3 +136,7 @@ class pupgain(nems_module):
                 Xp=copy.deepcopy(f_in[self.state_var])
                 Z=getattr(self,self.gain_type+'_fn')(X,Xp)
                 f_out[self.output_name]=Z
+                
+                
+                
+                

@@ -38,6 +38,8 @@ class normalize(nems_module):
 
     
     def my_init(self, force_positive=True,data='stim'):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.force_positive=force_positive
         self.input_name=data
         self.auto_plot=False
@@ -45,7 +47,6 @@ class normalize(nems_module):
             print('norm lists created')
             self.parent_stack.d=[0]*self.parent_stack.nests
             self.parent_stack.g=[1]*self.parent_stack.nests
-        self.save_dict={'force_positive':force_positive,'data':data}
             
     def evaluate(self,nest=0):
         c=self.parent_stack.cv_counter
@@ -97,9 +98,10 @@ class add_scalar(nems_module):
     n=np.zeros([1,1])
     
     def my_init(self, n=0, fit_fields=['n']):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
         self.n[0,0]=n
-        self.save_dict={'n':n,'fit_fields':fit_fields}
                    
     def my_eval(self,X):
         Y=X+self.n
@@ -116,10 +118,11 @@ class dc_gain(nems_module):
     g=np.ones([1,1])
     
     def my_init(self, d=0, g=1, fit_fields=['d','g']):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
         self.d[0,0]=d
         self.g[0,0]=g
-        self.save_dict={'d':d,'g':g,'fit_fields':fit_fields}
     
     def my_eval(self,X):
         Y=X*self.g+self.d
@@ -135,8 +138,10 @@ class sum_dim(nems_module):
     dim=0
     
     def my_init(self, dim=0):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.dim=dim
-        self.save_dict={'dim':dim}
+        #self.save_dict={'dim':dim}
         
     def my_eval(self,X):
         Y=X.sum(axis=self.dim)

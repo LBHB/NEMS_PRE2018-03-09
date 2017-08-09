@@ -52,12 +52,13 @@ class load_mat(nems_module):
     fs=100
     
     def my_init(self,est_files=[],fs=100,avg_resp=True):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.est_files=est_files.copy()
         self.fs=fs
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
         self.auto_plot=False
-        self.save_dict={'est_files':self.est_files,'fs':fs,'avg_resp':avg_resp}
 
     def evaluate(self,**kwargs):
         del self.d_out[:]
@@ -147,8 +148,9 @@ class dummy_data(nems_module):
     data_len=100
     
     def my_init(self,data_len=100):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.data_len=data_len
-        self.save_dict={'data_len':data_len}
 
     def evaluate(self):
         del self.d_out[:]

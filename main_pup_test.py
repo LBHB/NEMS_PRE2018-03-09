@@ -33,7 +33,7 @@ print("Initializing load_mat with file {0}".format(file))
 ldict={'est_files':[file],'fs':50,'avg_resp':True}
 name=nm.loaders.load_mat.name
 stack.append(op.attrgetter(name)(nm),**ldict)
-
+stack.append(nm.filters.fir,num_coefs=10)
 
 
 alldata=stack.data

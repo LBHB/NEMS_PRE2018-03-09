@@ -13,13 +13,6 @@ import nems.utilities as ut
 import numpy as np
 import nems.modules.user_def as ud
 
-#thismod=sys.modules(__name__)
-
-# TODO: Add docstring for each function that explains which modules get added,
-#       which parameters are passed to loaders, etc.
-#       These will now show up on website when a modelname is clicked in table.
-#       Did an example one for wc01.
-#       --Jacob 8/4/17
 
 # loader keywords
 def parm100(stack):
@@ -740,6 +733,35 @@ def nested10(stack):
     stack.nests=10
     stack.valfrac=0.1
     nest_helper(stack)
+    
+# DEMO KEYWORDS
+###############################################################################
+
+def simpledemo00(stack):
+    """
+    Keyword for the simple_demo DC gain module. Appends the simple_demo module
+    with its default arguments.
+    
+    Applies a simple DC gain and offset to the input data:
+        y = v1*x + v2
+    where x is the input variable, and v1,v2 are fitted parameters. 
+    
+    """
+    stack.append(ud.demo.simple_demo)
+    
+def simpledemo01(stack):
+    """
+    Keyword for the simple_demo DC gain module. Uses arguments different than the
+    default.
+    
+    Applies a simple DC gain and offset to the input data with a 0 output threshold:
+        y = v1*x + v2
+    where x is the input variable, and v1,v2 are fitted parameters. 
+    """
+    stack.append(ud.demo.simple_demo,thresh=True)
+    
+def advdemo00(stack):
+    stack.append(ud.demo.adv_demo)
     
     
 # Helper/Support Functions

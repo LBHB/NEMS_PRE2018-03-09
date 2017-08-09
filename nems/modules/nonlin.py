@@ -35,15 +35,15 @@ class gain(nems_module):
         fit_fields: name of fitted parameters
         phi: initial values for fitted parameters
         """
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
         self.nltype=nltype
         self.phi=np.array([phi])
-        #removed extraneous code ---njs August 7 2017
         if nltype=='dlog':
             self.do_plot=self.plot_fns[2]
         else:
             self.do_plot=self.plot_fns[0]
-        self.save_dict={'fit_fields':fit_fields,'nltype':nltype,'phi':phi}
         
     def dlog_fn(self,X):
         #TODO: need to find a good way to weed out negative and zero values

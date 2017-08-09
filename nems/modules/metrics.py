@@ -26,12 +26,13 @@ class mean_square_error(nems_module):
     mse_val=np.ones([1,1])
         
     def my_init(self, input1='stim',input2='resp',norm=True,shrink=False):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.input1=input1
         self.input2=input2
         self.norm=norm
         self.shrink=shrink
         self.do_trial_plot=self.plot_fns[1]
-        self.save_dict={'input1':input1,'input2':input2,'norm':norm,'shrink':shrink}
         
     def evaluate(self,nest=0):
         if nest==0:
@@ -126,11 +127,12 @@ class pseudo_huber_error(nems_module):
     huber_val=np.ones([1,1])
     
     def my_init(self, input1='stim',input2='resp',b=0.9):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.input1=input1
         self.input2=input2
         self.b=b
         self.do_trial_plot=self.plot_fns[1]
-        self.save_dict={'input1':input1,'input2':input2,'b':b}
         
     def evaluate(self,nest=0):
         del self.d_out[:]
@@ -162,10 +164,11 @@ class correlation(nems_module):
     r_val=np.ones([1,1])
         
     def my_init(self, input1='stim',input2='resp',norm=True):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.input1=input1
         self.input2=input2
         self.do_plot=self.plot_fns[1]
-        self.save_dict={'input1':input1,'input2':input2,'norm':norm}
         
     def evaluate(self,**kwargs):
         del self.d_out[:]

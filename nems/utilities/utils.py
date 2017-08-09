@@ -101,7 +101,7 @@ def save_model_dict(stack,filepath):
     
     for m in stack.modules:
         sdict['modlist'].append(m.name)
-        sdict['mod_dicts'].append(m.save_dict)
+        sdict['mod_dicts'].append(m.field_dict)
     try:
         d=stack.d
         g=stack.g
