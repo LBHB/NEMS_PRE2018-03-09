@@ -8,7 +8,10 @@ Created on Fri Jun 16 05:20:07 2017
 
 import scipy as sp
 import numpy as np
-import sys
+#import sys
+import nems.db as nd
+import os
+
 #sys.path.append('/auto/users/shofer/scikit-optimize')
 #import skopt.optimizer.gbrt as skgb
 #import skopt.optimizer.gp as skgp
@@ -87,6 +90,10 @@ class nems_fitter:
         phi=sp.optimize.fmin(self.test_cost, self.phi0, maxiter=1000)
         return phi
     
+    def tick_queue(self):
+        if 'QUEUEID' in os.environ:
+            queueid = os.environ['QUEUEID']
+            nd.update_job_tick(queueid)
     
 class basic_min(nems_fitter):
     """
@@ -121,6 +128,8 @@ class basic_min(nems_fitter):
         if self.counter % 1000==0:
             print('Eval #'+str(self.counter))
             print('Error='+str(err))
+            self.tick_queue()
+            
         return(err)
     
     def do_fit(self):

@@ -321,7 +321,16 @@ def update_job_complete(queueid):
     #sql="UPDATE tQueue SET complete=1 WHERE id={}".format(queueid)
     #result = conn.execute(sql)
     #conn.close()
-   
+    conn = cluster_engine.connect()
+    # tick off progress, job is live
+    sql = (
+            "UPDATE tQueue SET complete=1 WHERE id={}"
+            .format(queueid)
+            )
+    r = conn.execute(sql)
+    conn.close()
+    return r
+    """
     cluster_session = cluster_Session()
     # also filter based on note? - should only be one result to match either
     # filter, but double checks to make sure there's no conflict
@@ -342,15 +351,29 @@ def update_job_complete(queueid):
         cluster_session.commit()
        
     cluster_session.close()
+    """
     
 def update_job_start(queueid):
     conn = cluster_engine.connect()
-    # tick off progress, job is live
+    # mark job as active and progress set to 1
     sql = (
-            "UPDATE tQueue SET complete=-1,progress=progress+1 WHERE id={}"
+            "UPDATE tQueue SET complete=-1,progress=1 WHERE id={}"
             .format(queueid)
             )
-    return conn.execute(sql)
+    r = conn.execute(sql)
+    conn.close()
+    return r
+
+def update_job_tick(queueid):
+    conn = cluster_engine.connect()
+    # tick off progress, job is live
+    sql = (
+            "UPDATE tQueue SET progress=progress+1 WHERE id={}"
+            .format(queueid)
+            )
+    r = conn.execute(sql)
+    conn.close()
+    return r
 
 def save_results(stack, preview_file, queueid=None):
     session = Session()
