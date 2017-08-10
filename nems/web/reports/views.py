@@ -74,13 +74,12 @@ def fit_report():
     
     # TODO: what kind of plot for this?
     
-    status = {}
-    for i, model in enumerate(mSelected):
-        status.update({model:{}})
-        for cell in cSelected:
+    status = pd.DataFrame(index=cSelected, columns=mSelected)
+    for cell in cSelected:
+        for model in mSelected:
             yn = np.nan
-            note = "%s/%s/%s"%(cell, bSelected, model)
             
+            note = "%s/%s/%s"%(cell, bSelected, model)
             qdata = (
                     cluster_session.query(cluster_tQueue)
                     .filter(cluster_tQueue.note == note)
@@ -100,10 +99,11 @@ def fit_report():
                     yn = 'X'
                 else:
                     pass
-            status[model].update({cell:yn})
-
-    table = pd.DataFrame(status).T.to_html()
-
+                
+            status[model].at[cell] = yn
+            
+    table = status.to_html()
+    
     session.close()
     cluster_session.close()
     return render_template(
