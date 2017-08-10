@@ -23,7 +23,8 @@ try:
         #from nems.EC2_Mgmt import check_instance_count
 except Exception as e:
     print(e)
-    #import nems_config.STORAGE_DEFAULTS as sc
+    from nems_config.defaults import STORAGE_DEFAULTS
+    sc = STORAGE_DEFAULTS
     AWS = False
 
 # Database settings

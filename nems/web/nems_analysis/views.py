@@ -25,9 +25,9 @@ import datetime
 from base64 import b64encode
 
 from flask import (
-        render_template, jsonify, request, redirect, url_for, Response, g
+        render_template, jsonify, request, 
         )
-from flask_login import login_required, login_user
+from flask_login import login_required
 import pandas.io.sql as psql
 from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc, or_
@@ -38,18 +38,17 @@ from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
+from nems_config.defaults import UI_OPTIONS
+n_ui = UI_OPTIONS
 
 try:
     import boto3
     import nems_config.Storage_Config as sc
     AWS = sc.USE_AWS
 except:
-    #import nems_config.STORAGE_DEFAULTS as sc
+    from nems_config.defaults import STORAGE_DEFAULTS
+    sc = STORAGE_DEFAULTS
     AWS = False
-
-# TODO: Figure out how to use SQLAlchemy's built-in flask context support
-#       to avoid having to manually open and close a db session for each
-#       request context? Or just leave it manual for clarity?
 
 # TODO: Currently, analysis edit/delete/etc are handled by name, 
 #       which requires enforcing a unique name for each analysis. 
@@ -139,14 +138,10 @@ def main_view():
     # TODO: let user choose their defaults and save for later sessions
     # cols are in addition to cellid, modelname and batch,
     # which are set up to be required
-    defaultcols = ['r_test', 'r_fit', 'n_parms']
-    defaultrowlimit = 500
-    defaultsort = 'cellid'
-    measurelist = [
-            'r_ceiling', 'r_test', 'r_fit', 'r_active', 'mse_test',
-            'mse_fit', 'mi_test', 'mi_fit', 'nlogl_test',
-            'nlogl_fit', 'cohere_test', 'cohere_fit',
-            ]
+    defaultcols = n_ui.cols
+    defaultrowlimit = n_ui.rowlimit
+    defaultsort = n_ui.sort
+    measurelist = n_ui.measurelist
     statuslist = [
             i[0] for i in
             session.query(NarfAnalysis.status)
@@ -176,8 +171,9 @@ def main_view():
     collist = ['%s'%(s) for s in NarfResults.__table__.columns]
     collist = [s.replace('NarfResults.', '') for s in collist]
     # Remove cellid and modelname from options toggles- make them required.
-    collist.remove('cellid')
-    collist.remove('modelname')
+    required_cols = n_ui.required_cols
+    for col in required_cols:
+        collist.remove(col)
 
     # imported at top from PlotGenerator
     plotTypeList = PLOT_TYPES
@@ -190,6 +186,7 @@ def main_view():
             defaultrowlimit=defaultrowlimit,sortlist=collist,
             defaultsort=defaultsort,statuslist=statuslist, taglist=taglist,
             plotTypeList=plotTypeList, username=user.username,
+            iso=n_ui.iso, snr=n_ui.snr, snri=n_ui.snri,
             )
 
 
@@ -412,7 +409,7 @@ def update_analysis_details():
     session = Session()
     # TODO: Find a better/centralized place to store these options.
     # Columns to display in detail popup - add/subtract here if desired.
-    detailcols = ['id', 'status', 'question', 'answer']
+    detailcols = n_ui.detailcols
     
     aSelected = request.args.get('aSelected')
     

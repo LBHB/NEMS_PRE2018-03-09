@@ -24,7 +24,8 @@ try:
     AWS = sc.USE_AWS
 except Exception as e:
     print(e)
-    #import nems_config.STORAGE_DEFAULTS as sc
+    from nems_config.defaults import STORAGE_DEFAULTS
+    sc = STORAGE_DEFAULTS
     AWS = False
     
     

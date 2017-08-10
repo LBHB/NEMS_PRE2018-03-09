@@ -69,6 +69,11 @@ def fit_report():
     cSelected = cSelected.split(',')
     mSelected = mSelected.split(',')
     
+    # TODO: build dataframe directly instead of building dict then reading
+    #       into pandas
+    
+    # TODO: what kind of plot for this?
+    
     status = {}
     for i, model in enumerate(mSelected):
         status.update({model:{}})

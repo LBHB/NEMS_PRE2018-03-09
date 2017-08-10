@@ -903,6 +903,12 @@
     </form>
     </div>
     
+    <div style="display:none;" id="plotValDefaults">
+        <input type="hidden" id="default_iso" value="{{ iso }}">
+        <input type="hidden" id="default_snr" value="{{ snr }}">
+        <input type="hidden" id="default_snri" value="{{ snri }}">
+    </div>
+    
     <!-- load jquery -->
     <script type=text/javascript src=
         "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>

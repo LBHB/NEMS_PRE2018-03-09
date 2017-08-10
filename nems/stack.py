@@ -17,7 +17,8 @@ try:
     import nems_config.Storage_Config as sc
     AWS = sc.USE_AWS
 except:
-    #import nems_config.STORAGE_DEFAULTS as sc
+    from nems_config.defaults import STORAGE_DEFAULTS
+    sc = STORAGE_DEFAULTS
     AWS = False
 
 class nems_stack:

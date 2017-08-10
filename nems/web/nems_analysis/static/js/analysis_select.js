@@ -891,9 +891,9 @@ $(document).ready(function(){
     })
     
     // Default values -- based on 'good' from NarfAnalysis > filter_cells
-    var snr = 0.0;
-    var iso = 85.0;
-    var snri = 0.1;     
+    var snr = $("#default_snr").val();
+    var iso = $("#default_iso").val();
+    var snri = $("#default_snri").val();     
     
     $("#plotOpSelect").val('snri');
     $("#plotOpVal").val(snri); 
