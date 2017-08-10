@@ -111,7 +111,8 @@ def load_single_model(cellid, batch, modelname):
     #stack.quick_plot()
     return stack
 
-def load_from_dict(batch,cellid,modelname,filepath=None):
+def load_from_dict(batch,cellid,modelname):
+    filepath = ut.utils.get_file_name(cellid, batch, modelname)
     sdict=ut.utils.load_model_dict(filepath)
     #Maybe move some of this to the load_model_dict function?
     stack=ns.nems_stack()

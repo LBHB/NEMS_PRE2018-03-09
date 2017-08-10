@@ -84,7 +84,7 @@ def save_model(stack, file_path):
         os.chmod(file_path, 0o666)
         print("Saved model to {0}".format(file_path))
         
-def save_model_dict(stack,filepath):
+def save_model_dict(stack, filepath):
     sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','cellid','batch',
                         'modelname','nests'])
     sdict['modlist']=[]
@@ -111,16 +111,28 @@ def save_model_dict(stack,filepath):
     except:
         pass
     
-    #TODO: need to add AWS stuff
-    with open(filepath,'w') as fp:
-        json.dump(sdict,fp)
+    if AWS:
+        s3 = boto3.resource('s3')
+        key = filepath[len(sc.DIRECTORY_ROOT):]
+        fileobj = json.dumps(sdict)
+        s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+    else:
+        with open(filepath,'w') as fp:
+            json.dump(sdict,fp)
+    
     return sdict
         
 
 def load_model_dict(filepath):
     #TODO: need to add AWS stuff
-    with open(filepath,'r') as fp:
-        sdict=json.load(fp)
+    if AWS:
+        s3_client = boto3.client('s3')
+        key = filepath[len(sc.DIRECTORY_ROOT):]
+        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+        sdict = json.loads(fileobj['Body'].read())
+    else:
+        with open(filepath,'r') as fp:
+            sdict=json.load(fp)
     
     return sdict
     
