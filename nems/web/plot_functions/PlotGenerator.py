@@ -144,6 +144,11 @@ class PlotGenerator():
         
         """
         
+        # TODO: figure out a good way to form this from the existing
+        #       dataframe instead of making a new one then copying over.
+        #       Should be able to just re-index then apply some
+        #       lambda function over vectorized dataframe for filtering?
+        
         celllist = [
                 cell for cell in
                 list(set(data['cellid'].values.tolist()))

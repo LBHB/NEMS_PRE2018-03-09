@@ -1,6 +1,10 @@
 """ Helper functions for filtering cells and forming data matrix. """
 
-from nems.db import NarfBatches
+import pandas as pd
+import numpy as np
+import pandas.io.sql as psql
+
+from nems.db import NarfBatches, NarfResults
 
 def filter_cells(batch, session, cells, min_snr=0, min_iso=0, min_snri=0):
     """ Returns a list of cells that don't meet the minimum snr/iso/snri
@@ -81,3 +85,130 @@ def filter_cells(batch, session, cells, min_snr=0, min_iso=0, min_snri=0):
     print("Out of total cell count: {0}".format(len(cells)))
     
     return bad_cells
+
+
+def form_data_array(
+        batch, cells, models, session, columns=None, include_outliers=False,
+        only_fair=True,
+        ):
+
+    # TODO: figure out a good way to form this from the existing
+    #       dataframe instead of making a new one then copying over.
+    #       Should be able to just re-index then apply some
+    #       lambda function over vectorized dataframe for filtering?
+    
+    data = psql.read_sql_query(
+            session.query(NarfResults)
+            .filter(NarfResults.batch == batch)
+            .filter(NarfResults.cellid.in_(cells))
+            .filter(NarfResults.modelname.in_(models))
+            .statement,
+            session.bind
+            )
+    if not columns:
+        columns = data.anycolumns.values.tolist()
+        
+    multiIndex = pd.MultiIndex.from_product(
+            [cells, models], names=['cellid','modelname'],
+            )
+    newData = pd.DataFrame(
+            index=multiIndex, columns=columns,
+            )
+        
+    newData.sort_index()
+
+    for c in cells:
+        for m in models:
+            dataRow = data.loc[(data.cellid == c) & (data.modelname == m)]
+            
+            for col in columns:
+                value = np.nan 
+                newData[col].loc[c,m] = value
+                # If loop hits a continue, value will be left as NaN.
+                # Otherwise, will be assigned a value from data 
+                # after passing all checks.
+                try:
+                    value = dataRow[col].values.tolist()[0]
+                except Exception as e:
+                    # Error should mean no value was recorded,
+                    # so leave as NaN.
+                    # No need to run outlier checks if value is missing.
+                    print("No %s recorded for %s,%s"%(col,c,m))
+                    continue
+                    
+                if not include_outliers:
+                    # If outliers is false, run a bunch of checks based on
+                    # measure and if a check fails, step out of the loop.
+                    
+                    # Comments for each check are copied from
+                    # from Narf_Analysis : compute_data_matrix
+                    
+                    # "Drop r_test values below threshold"
+                    a1 = (col == 'r_test')
+                    b1 = (value < dataRow['r_floor'].values.tolist()[0])
+                    a2 = (col == 'r_ceiling')
+                    b2 = (
+                        dataRow['r_test'].values.tolist()[0]
+                        < dataRow['r_floor'].values.tolist()[0]
+                        )
+                    a3 = (col == 'r_floor')
+                    b3 = b1
+                    if (a1 and b1) or (a2 and b2) or (a3 and b3):
+                        continue
+                
+                    # "Drop MI values greater than 1"
+                    a1 = (col == 'mi_test')
+                    b1 = (value > 1)
+                    a2 = (col == 'mi_fit')
+                    b2 = (0 <= value <= 1)
+                    if (a1 and b1) or (a2 and not b2):
+                        continue
+                           
+                    # "Drop MSE values greater than 1.1"
+                    a1 = (col == 'mse_test')
+                    b1 = (value > 1.1)
+                    a2 = (col == 'mse_fit')
+                    b2 = b1
+                    if (a1 and b1) or (a2 and b2):
+                        continue
+                           
+                    # "Drop NLOGL outside normalized region"
+                    a1 = (col == 'nlogl_test')
+                    b1 = (-1 <= value <= 0)
+                    a2 = (col == 'nlogl_fit')
+                    b2 = b1
+                    if (a1 and b1) or (a2 and b2):
+                        continue
+                           
+                    # TODO: is this still used? not listed in NarfResults
+                    # "Drop gamma values that are too low"
+                    a1 = (col == 'gamma_test')
+                    b1 = (value < 0.15)
+                    a2 = (col == 'gamma_fit')
+                    b2 = b1
+                    if (a1 and b1) or (a2 and b2):
+                        continue
+
+                # TODO: is an outlier check needed for cohere_test
+                #       and/or cohere_fit?
+                    
+                # If value existed and passed outlier checks,
+                # re-assign it to the proper DataFrame position
+                # to overwrite the NaN value.
+                newData[col].loc[c,m] = value
+
+    if only_fair:
+        # If fair is checked, drop all rows that contain a NaN value for
+        # any column.
+        for c in cells:
+            for m in models:
+                if newData.loc[c,m].isnull().values.any():
+                    newData.drop(c, level='cellid', inplace=True)
+                    break
+        
+
+    # Swap the 0th and 1st levels so that modelname is the primary index,
+    # since most plots group by model.
+    newData = newData.swaplevel(i=0, j=1, axis=0)
+
+    return newData
