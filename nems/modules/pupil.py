@@ -78,6 +78,21 @@ class pupgain(nems_module):
         """
         Y=self.theta[0,0]+self.theta[0,1]*X
         return(Y)   
+    def linpupgainctl_fn(self,X,Xp):
+        """
+        Applies a simple dc gain & offset to the stim data. Does not actually involve 
+        state variable. This is the "control" for the state_gain exploration.
+        
+        SVD mod: shuffle pupil, keep same number of parameters for proper control
+        """
+        s=Xp.shape
+        n=np.int(np.ceil(s[0]/2))
+        #print(s)
+        #print(n)
+        #print(Xp.shape)
+        Xp=np.roll(Xp,n,0)
+        Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
+        return(Y)
     def linpupgain_fn(self,X,Xp):
         Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
         return(Y)
