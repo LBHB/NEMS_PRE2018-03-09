@@ -7,6 +7,7 @@ Only used for testing the template right now.
 import copy
 import inspect
 import json
+import pkgutil
 
 from flask import (
         request, render_template, Response, jsonify, redirect, 
@@ -55,10 +56,14 @@ def modelpane_view():
                 "is not in local storage, "
                 "or there was an error when loading the model."
                 )
-        
-    all_mods = [cls.name for cls in nm.base.nems_module.__subclasses__()]
+    # TODO: need to fix this for new split package structure
+    #package = nm
+    #all_mods = [
+    #       modname for importer, modname, ispkg
+    #        in pkgutil.iter_modules(package.__path__)
+    #        ]
     # remove any modules that shouldn't show up as an option in modelpane
-    all_mods.remove('load_mat')
+    #all_mods.remove('load_mat')
     
     stackmods = mp_stack.modules[1:]
     plots = re_render_plots()
@@ -124,7 +129,7 @@ def modelpane_view():
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
             fields_values_types=fields_values_types,
             plottypes=plot_fns,
-            all_mods=all_mods,
+            #all_mods=all_mods,
             plot_stimidx=mp_stack.plot_stimidx,
             plot_dataidx=mp_stack.plot_dataidx,
             plot_stimidx_max=stim_max,
