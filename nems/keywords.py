@@ -753,6 +753,16 @@ def nested10(stack):
     stack.valfrac=0.1
     nest_helper(stack)
     
+def nested5(stack):
+    """
+    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
+    """
+    stack.nests=5
+    stack.valfrac=0.2
+    nest_helper(stack)
+    
 # DEMO KEYWORDS
 ###############################################################################
 

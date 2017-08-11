@@ -59,7 +59,7 @@ class pupgain(nems_module):
     name='pupil.pupgain'
     user_editable_fields = ['input_name','output_name','fit_fields','state_var','gain_type','theta']
     gain_type='linpupgain'
-    plot_fns=[nu.pred_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
+    plot_fns=[nu.state_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
     
     def my_init(self,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
                 order=None):
