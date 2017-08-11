@@ -117,9 +117,7 @@ def load_from_dict(batch,cellid,modelname):
     #Maybe move some of this to the load_model_dict function?
     stack=ns.nems_stack()
     #stack.valmode=True
-    stack.meta['batch']=batch
-    stack.meta['cellid']=cellid
-    stack.meta['modelname']=modelname
+    stack.meta=meta
     stack.nests=sdict['nests']
     parm_list=[]
     for i in sdict['parm_fits']:

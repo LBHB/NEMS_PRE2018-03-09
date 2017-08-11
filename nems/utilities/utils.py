@@ -84,9 +84,8 @@ def save_model(stack, file_path):
         os.chmod(file_path, 0o666)
         print("Saved model to {0}".format(file_path))
         
-def save_model_dict(stack, filepath):
-    sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','cellid','batch',
-                        'modelname','nests'])
+def save_model_dict(stack, filepath=None):
+    sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','meta','nests'])
     sdict['modlist']=[]
     sdict['mod_dicts']=[]
     parm_list=[]
@@ -94,15 +93,16 @@ def save_model_dict(stack, filepath):
         parm_list.append(i.tolist())
     sdict['parm_fits']=parm_list
     sdict['nests']=stack.nests
-    sdict['batch']=stack.meta['batch']
-    sdict['cellid']=stack.meta['cellid']
-    sdict['modelname']=stack.meta['modelname']
+    
+    # svd 2017-08-10 -- pull out all of meta
+    sdict['meta']=stack.meta
+    sdict['meta']['mse_est']=[]
     sdict['cv_counter']=stack.cv_counter
     sdict['fitted_modules']=stack.fitted_modules
     
     for m in stack.modules:
         sdict['modlist'].append(m.name)
-        sdict['mod_dicts'].append(m.field_dict)
+        sdict['mod_dicts'].append(m.get_user_fields())
     try:
         d=stack.d
         g=stack.g
@@ -111,14 +111,16 @@ def save_model_dict(stack, filepath):
     except:
         pass
     
-    if AWS:
-        s3 = boto3.resource('s3')
-        key = filepath[len(sc.DIRECTORY_ROOT):]
-        fileobj = json.dumps(sdict)
-        s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
-    else:
-        with open(filepath,'w') as fp:
-            json.dump(sdict,fp)
+    # to do: this info should go to a table in celldb if compact enough
+    if filepath:
+        if AWS:
+            s3 = boto3.resource('s3')
+            key = filepath[len(sc.DIRECTORY_ROOT):]
+            fileobj = json.dumps(sdict)
+            s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+        else:
+            with open(filepath,'w') as fp:
+                json.dump(sdict,fp)
     
     return sdict
         

@@ -15,7 +15,7 @@ import scipy.signal
 import nems.modules as nm
 import nems.main as main
 import nems.fitters as nf
-import nems.keyword as nk
+import nems.keywords as nk
 import nems.utilities.utils as nu
 import nems.stack as ns
 
@@ -50,7 +50,7 @@ modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
 modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_stp2pc_fir15_dexp"
 #modelname="fb18ch100_wc01_fir15"
-modelname="fb18ch100_wc01_fir15_logsig_fititer00"
+modelname="fb18ch100_wc01_fir15_dexp_fit01"
 
 #cellid="eno052d-a1"
 #batch=294
@@ -59,7 +59,7 @@ modelname="fb18ch100_wc01_fir15_logsig_fititer00"
 # following is equivalent of --
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 
-if 1:
+if 0:
     stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 else:
     stack=ns.nems_stack()
@@ -81,7 +81,7 @@ else:
             f = getattr(nk, k)
             f(stack)
 
-if 0:
+if 1:
     # validation stuff
     stack.valmode=True
     stack.evaluate(1)
@@ -96,7 +96,8 @@ if 0:
     else:
         stack.plot_dataidx=0
 
-    
+nlidx=nu.find_modules(stack,'nonlin.gain')
+stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
 stack.quick_plot()
 
 
