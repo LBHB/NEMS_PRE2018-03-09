@@ -60,7 +60,6 @@ class nems_stack:
     cv_counter=0
     keywords=[]
     valfrac=0.05
-    parm_fits=[]
     
     def __init__(self):
         print("Creating new stack")
