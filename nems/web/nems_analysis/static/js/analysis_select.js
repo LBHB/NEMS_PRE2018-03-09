@@ -1003,7 +1003,59 @@ $(document).ready(function(){
             }
         });
     }
-                        
+           
+    $("#submitCustom").on('click', getCustomScript);
+    function getCustomScript(){
+        var scriptName = $("#customSelector").val();
+        var bSelected = $("#batchSelector").val();
+        var cSelected = $("#cellSelector").val();
+        var mSelected = $("#modelSelector").val();
+        var measure = $("#measureSelector").val();
+        var onlyFair = 0;
+        if (document.getElementById("onlyFair").checked){
+            onlyFair = 1;
+        }
+        var includeOutliers = 0;
+        if (document.getElementById("includeOutliers").checked){
+            includeOutliers = 1;
+        }
+        var plotNewWindow = 0;
+        if (document.getElementById("plotNewWindow").checked){
+            plotNewWindow = 1;        
+        }
+        
+        addLoad();
+        $.ajax({
+            url: $SCRIPT_ROOT + '/run_custom',
+            data: { scriptName:scriptName, bSelected:bSelected,
+                    cSelected:cSelected, mSelected:mSelected, measure:measure,
+                    onlyFair:onlyFair, includeOutliers:includeOutliers,
+                    iso:iso, snr:snr, snri:snri },
+            type: 'GET',
+            success: function(data){
+                if(plotNewWindow){
+                    var w = window.open(
+                        $SCRIPT_ROOT + '/plot_window',
+                        //"_blank",
+                        //"width=600, height=600" 
+                        )
+                    $(w.document).ready(function(){
+                        w.$(w.document.body).append(data.html);
+                    });
+                } else{
+                    $("#statusReportWrapper").html('');
+                    $("#displayWrapper").html(data.html);
+                    }
+                removeLoad();
+            },
+            error: function(error){
+                console.log(error)
+                removeLoad();
+            }
+        });
+    }
+
+             
     $("#batchPerformance").on('click', batchPerformance);
     function batchPerformance(){
         var bSelected = $("#batchSelector").val();

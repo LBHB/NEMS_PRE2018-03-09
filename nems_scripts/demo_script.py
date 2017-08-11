@@ -183,7 +183,9 @@ def run_script(argsdict):
                 'Make sure you selected two models.'
                 )
         
-    script_output = {'html' : (script + div)}
+    script_output = {'html' : (script + div),
+                     'data' : plot_data,
+                     }
     return script_output
     
     

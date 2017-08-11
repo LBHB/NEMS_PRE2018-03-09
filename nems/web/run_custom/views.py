@@ -5,7 +5,7 @@ import importlib
 from flask import request, jsonify
 from nems.web.nems_analysis import app
 
-@app.route('run_custom')
+@app.route('/run_custom')
 def run_custom():
     argsdict = {
             'batch' : request.args.get('bSelected')[:3],
@@ -18,7 +18,7 @@ def run_custom():
             'snri' : float(request.args.get('snri')),
             'measure' : request.args.get('measure'),
             }
-    script_name = request.args.get('scriptName')
+    script_name = ('nems_scripts.' + request.args.get('scriptName'))
     script = importlib.import_module(script_name)
     script_output = script.run_script(argsdict)
     
