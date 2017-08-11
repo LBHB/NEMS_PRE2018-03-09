@@ -245,6 +245,10 @@ def pred_act_scatter(m,idx=None,size=FIGSIZE):
     axes = plt.gca()
     ymin, ymax = axes.get_ylim()
     xmin, xmax = axes.get_xlim()
+    if ymin==ymax:
+        ymax=ymin+1
+    if xmin==xmax:
+        xmax=xmin+1
     plt.text(xmin+(xmax-xmin)/50,ymax-(ymax-ymin)/20,"r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0],m.parent_stack.meta['r_val'][0]),
              verticalalignment='top')
     
@@ -260,6 +264,7 @@ def io_scatter_smooth(m,idx=None,size=FIGSIZE):
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
     T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=s2[:,0:(T*bincount)]
     s2=np.reshape(s2,[3,bincount,T])
     s2=np.mean(s2,2)
     s2=np.squeeze(s2)
@@ -279,13 +284,14 @@ def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
     T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=s2[:,0:(T*bincount)]
     s2=np.reshape(s2,[2,bincount,T])
     s2=np.mean(s2,2)
     s2=np.squeeze(s2)
     plt.plot(s2[0,:],s2[1,:],'k.')
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
-    m.parent_stack.meta['r_val']
+    #m.parent_stack.meta['r_val']
     #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
 
 def pred_act_psth(m,size=FIGSIZE,idx=None):

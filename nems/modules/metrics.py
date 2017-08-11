@@ -185,7 +185,10 @@ class correlation(nems_module):
         X1=self.unpack_data(self.input1,est=False)            
         if X1.size:
             X2=self.unpack_data(self.input2,est=False)
-            r_val,p=spstats.pearsonr(X1,X2)
+            if not X1.sum() or not X2.sum():
+                r_val=np.zeros(1)
+            else:
+                r_val,p=spstats.pearsonr(X1,X2)
             self.r_val=r_val
             self.parent_stack.meta['r_val']=r_val
         

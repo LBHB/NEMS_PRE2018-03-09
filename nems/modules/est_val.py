@@ -145,29 +145,31 @@ class crossval(nems_module):
                 re=d['resp'].shape
                 if re[0]<self.parent_stack.nests:
                     raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
-                spl=mt.ceil(re[0]*self.valfrac)
-                count=count*spl
+                spl=re[0]*self.valfrac
+                c1=mt.floor((count)*spl)
+                c2=mt.floor((count+1)*spl)
+                print("Nest {0}, File {1}, c1-c2: {2}-{3}".format(count,i,c1,c2))
                 
                 d_est=d.copy()
                 
-                d_est['resp']=np.delete(d['resp'],np.s_[count:(count+spl)],0)
-                d_est['stim']=np.delete(d['stim'],np.s_[count:(count+spl)],1)
+                d_est['resp']=np.delete(d['resp'],np.s_[c1:c2],0)
+                d_est['stim']=np.delete(d['stim'],np.s_[c1:c2],1)
                 
                 if self.parent_stack.avg_resp is True:
                     try:
-                        d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],2)
+                        d_est['pupil']=np.delete(d['pupil'],np.s_[c1:c2],2)
                     except TypeError:
                         print('No pupil data')
                         d_est['pupil']=[]  
-                    d_est['repcount']=np.delete(d['repcount'],np.s_[count:(count+spl)],0)
+                    d_est['repcount']=np.delete(d['repcount'],np.s_[c1:c2],0)
                 else:
                     try:
-                        d_est['pupil']=np.delete(d['pupil'],np.s_[count:(count+spl)],0)
+                        d_est['pupil']=np.delete(d['pupil'],np.s_[c1:c2],0)
                     except TypeError:
                         print('No pupil data')
                         d_est['pupil']=[]
                     try:
-                        d_est['replist']=np.delete(d['replist'],np.s_[count:(count+spl)],0)
+                        d_est['replist']=np.delete(d['replist'],np.s_[c1:c2],0)
                     except KeyError:
                         d_est['replist']=None
                 
@@ -186,28 +188,34 @@ class crossval(nems_module):
                     d_val['replist']=[]
                     d_val['repcount']=[]
 
-                    for count in range(0,self.parent_stack.nests):
+                    nests=self.parent_stack.nests
+                    valfrac=self.valfrac
+                    avg_resp=self.parent_stack.avg_resp
+                    import copy
+                    for count in range(0,nests):
                         #print(count)
                         re=d['resp'].shape
-                        spl=mt.ceil(re[0]*self.valfrac)
-                        count=count*spl
-                        if self.parent_stack.avg_resp is True:
+                        spl=re[0]*valfrac
+                        c1=mt.floor((count)*spl)
+                        c2=mt.floor((count+1)*spl)
+                        print("V nest {0}, File {1}, c1-c2: {2}-{3}".format(count,i,c1,c2))
+                        if avg_resp:
                             try:
-                                d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,count:(count+spl)]))
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,c1:c2]))
                             except TypeError:
                                 print('No pupil data')
                                 d_val['pupil']=[]
-                            d_val['repcount'].append(copy.deepcopy(d['repcount'][count:(count+spl)]))
+                            d_val['repcount'].append(copy.deepcopy(d['repcount'][c1:c2]))
                         else:
                             try:
-                                d_val['pupil'].append(copy.deepcopy(d['pupil'][count:(count+spl),:]))
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][c1:c2,:]))
                             except TypeError:
                                 print('No pupil data')
                                 d_val['pupil']=[]
-                            d_val['replist'].append(copy.deepcopy(d['replist'][count:(count+spl)]))
+                            d_val['replist'].append(copy.deepcopy(d['replist'][c1:c2]))
                             d_val['repcount']=copy.deepcopy(d['repcount'])
-                        d_val['resp'].append(copy.deepcopy(d['resp'][count:(count+spl),:]))
-                        d_val['stim'].append(copy.deepcopy(d['stim'][:,count:(count+spl),:]))
+                        d_val['resp'].append(copy.deepcopy(d['resp'][c1:c2,:]))
+                        d_val['stim'].append(copy.deepcopy(d['stim'][:,c1:c2,:]))
                         
                       
                     #TODO: this code runs if crossval allocated
@@ -218,7 +226,7 @@ class crossval(nems_module):
                     #mt.ceil), since then estimation nests with no validation
                     #nest would not be fit, as they are currently.
                     #    ----njs, August 2 2017
-                    
+                    """
                     s=d_val['stim'][-1].shape
                     sr=d_val['resp'][-1].shape
                     while s[1]==0 or sr[0]==0:
@@ -234,6 +242,7 @@ class crossval(nems_module):
                         sr=d_val['resp'][-1].shape
                         print('Final nest has no stimuli, updating to have {0} nests'.format(
                                 self.parent_stack.nests))
+                    """
                     self.d_out.append(d_val)
                 
                 if self.parent_stack.cv_counter==self.iter:
