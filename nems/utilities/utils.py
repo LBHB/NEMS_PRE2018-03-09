@@ -245,6 +245,10 @@ def pred_act_scatter(m,idx=None,size=FIGSIZE):
     axes = plt.gca()
     ymin, ymax = axes.get_ylim()
     xmin, xmax = axes.get_xlim()
+    if ymin==ymax:
+        ymax=ymin+1
+    if xmin==xmax:
+        xmax=xmin+1
     plt.text(xmin+(xmax-xmin)/50,ymax-(ymax-ymin)/20,"r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0],m.parent_stack.meta['r_val'][0]),
              verticalalignment='top')
     
