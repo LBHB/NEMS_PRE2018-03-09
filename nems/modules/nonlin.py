@@ -26,8 +26,9 @@ class gain(nems_module):
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlin.gain'
     plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
-    user_editable_fields = ['nltype', 'fit_fields','phi']
+    user_editable_fields = ['input_name','output_name','fit_fields','nltype','phi']
     phi=np.array([1])
+    nltype='dlog'
     
     def my_init(self,nltype='dlog',fit_fields=['phi'],phi=[1]):
         """

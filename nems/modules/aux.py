@@ -33,9 +33,10 @@ class normalize(nems_module):
     #in the stack.
     
     name='aux.normalize'
-    user_editable_fields=['output_name','valfrac','valmode']
+    user_editable_fields=['input_name','output_name','d','g']
     force_positive=True
-
+    d=0
+    g=1
     
     def my_init(self, force_positive=True,data='stim'):
         self.field_dict=locals()
@@ -94,7 +95,7 @@ class add_scalar(nems_module):
     some reason
     """
     name='aux.add_scalar'
-    user_editable_fields=['output_name','n']
+    user_editable_fields=['input_name','output_name','n']
     n=np.zeros([1,1])
     
     def my_init(self, n=0, fit_fields=['n']):
@@ -113,7 +114,7 @@ class dc_gain(nems_module):
     """
  
     name='aux.dc_gain'
-    user_editable_fields=['output_name','d','g']
+    user_editable_fields=['input_name','output_name','d','g']
     d=np.zeros([1,1])
     g=np.ones([1,1])
     
@@ -134,7 +135,7 @@ class sum_dim(nems_module):
     sum_dim - sum a matrix across one dimension. maybe useful? mostly testing
     """
     name='aux.sum_dim'
-    user_editable_fields=['output_name','dim']
+    user_editable_fields=['input_name','output_name','dim']
     dim=0
     
     def my_init(self, dim=0):

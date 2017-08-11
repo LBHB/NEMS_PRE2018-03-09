@@ -46,10 +46,11 @@ class load_mat(nems_module):
                 be [1,1,1,2,2].
     """
     name='loaders.load_mat'
-    user_editable_fields=['output_name','est_files','fs']
+    user_editable_fields=['output_name','est_files','fs','avg_resp']
     plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
     est_files=[]
     fs=100
+    avg_resp=True
     
     def my_init(self,est_files=[],fs=100,avg_resp=True):
         self.field_dict=locals()
@@ -143,14 +144,16 @@ class dummy_data(nems_module):
     Maybe deprecated? 
     """
     name='loaders.dummy_data'
-    user_editable_fields=['output_name','data_len']
+    user_editable_fields=['output_name','data_len','fs']
     plot_fns=[nu.plot_spectrogram]
     data_len=100
+    fs=100
     
-    def my_init(self,data_len=100):
+    def my_init(self,data_len=100,fs=100):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.data_len=data_len
+        self.fs=fs
 
     def evaluate(self):
         del self.d_out[:]

@@ -30,7 +30,7 @@ class nems_fitter:
     phi0=None
     counter=0
     fit_modules=[]
-    tol=0.001
+    tolerance=0.0001
     stack=None
     
     def __init__(self,parent,fit_modules=None,**xargs):
@@ -115,11 +115,12 @@ class basic_min(nems_fitter):
     maxit=50000
     routine='L-BFGS-B'
     
-    def my_init(self,routine='L-BFGS-B',maxit=50000):
+    def my_init(self,routine='L-BFGS-B',maxit=50000,tolerance=1e-7):
         print("initializing basic_min")
         self.maxit=maxit
         self.routine=routine
-                    
+        self.tolerance=tolerance
+        
     def cost_fn(self,phi):
         self.phi_to_fit(phi)
         self.stack.evaluate(self.fit_modules[0])
@@ -144,7 +145,7 @@ class basic_min(nems_fitter):
         print("basic_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
         #print("maxiter: {0}".format(opt['maxiter']))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
-                             constraints=cons,options=opt,tol=self.tol)
+                             constraints=cons,options=opt,tol=self.tolerance)
         print("Final {0}: {1}".format(self.stack.modules[-1].name,self.stack.error()))
         print('           ')
         return(self.stack.error())
@@ -165,7 +166,7 @@ class anneal_min(nems_fitter):
     stop=number of iterations after which to stop annealing if global min remains the same
     up_int=update step size every up_int iterations
     maxiter=maximum iterations for each round of minimization
-    tol=tolerance for each round of minimization
+    tolerance=tolerance for each round of minimization
     min_method=method used for each round of minimization. 'L-BFGS-B' works well
     bounds should be [(xmin,xmax),(ymin,ymax),(zmin,zmax),etc]
     
@@ -190,7 +191,7 @@ class anneal_min(nems_fitter):
     up_int=10
     min_method='L-BFGS-B'
     maxiter=10000
-    tol=0.01
+    tolerance=0.01
     
     def my_init(self,min_method='L-BFGS-B',anneal_iter=100,stop=5,maxiter=10000,up_int=10,bounds=None,
                 temp=0.01,stepsize=0.01,verb=False):
@@ -219,7 +220,7 @@ class anneal_min(nems_fitter):
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(self.maxiter)
         opt['eps']=1e-7
-        min_kwargs=dict(method=self.min_method,tol=self.tol,bounds=self.bounds,options=opt)
+        min_kwargs=dict(method=self.min_method,tolerance=self.tolerance,bounds=self.bounds,options=opt)
         self.phi0=self.fit_to_phi() 
         self.counter=0
         print("anneal_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
@@ -279,7 +280,7 @@ class forest_min(nems_fitter):
         print("gaussian_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
         #print("maxiter: {0}".format(opt['maxiter']))
         #sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
-                             #constraints=cons,options=opt,tol=self.tol)
+                             #constraints=cons,options=opt,tolerance=self.tolerance)
         #skgp.gp_minimize(self.cost_fn,self.dims,base_estimator=None, n_calls=100, 
                          #n_random_starts=10, acq_func='gp_hedge', acq_optimizer='auto', x0=self.phi0, 
                          #y0=self.y0, random_state=True, verbose=True)
@@ -296,17 +297,17 @@ class coordinate_descent(nems_fitter):
 
     name='coordinate_descent'
     maxit=1000
-    tol=0.001
+    tolerance=0.001
     step_init=0.01
-    step_change=np.sqrt(0.5)
+    step_change=0.5
     step_min=1e-7
     verbose=True
     
     
-    def my_init(self,tol=0.001,maxit=1000,verbose=True):
+    def my_init(self,tolerance=0.001,maxit=1000,verbose=True):
         print("initializing basic_min")
         self.maxit=maxit
-        self.tol=tol
+        self.tolerance=tolerance
         self.verbose=verbose
                     
     def cost_fn(self,phi):
@@ -338,8 +339,8 @@ class coordinate_descent(nems_fitter):
         step_size = self.step_init;  # Starting step size.
         #print("{0}: phi0 intialized (start error={1}, {2} parameters)".format(self.name,s,len(self.phi0)))
         #print(x)
-      
-        while (s_delta<0 or s_delta>self.tol) and n<self.maxit and step_size>self.step_min:
+        print("starting CD: step size: {0:.6f} tolerance: {1:.6f}".format(step_size, self.tolerance))
+        while (s_delta<0 or s_delta>self.tolerance) and n<self.maxit and step_size>self.step_min:
             for ii in range(0,n_params):
                 for ss in [0,1]:
                     x[:]=x_save[:]
@@ -355,10 +356,10 @@ class coordinate_descent(nems_fitter):
             
             if s_delta<0:
                 step_size=step_size*self.step_change
-                if self.verbose is True:
-                    print("{0}: Backwards (delta={1}), adjusting step size to {2}".format(n,s_delta,step_size))
+                #if self.verbose is True:
+                print("{0}: Backwards (delta={1}), adjusting step size to {2}".format(n,s_delta,step_size))
                 
-            elif s_delta<self.tol:
+            elif s_delta<self.tolerance:
                 if self.verbose is True:
                     print("{0}: Error improvement too small (delta={1}). Iteration complete.".format(n,s_delta))
                 
@@ -376,6 +377,7 @@ class coordinate_descent(nems_fitter):
             s=s_new[x_opt]
             
         # save final parameters back to model
+        print("done CD: step size: {0:.6f} steps: {1}".format(step_size, n))
         self.phi_to_fit(x)
         
         #print("Final MSE: {0}".format(s))
@@ -397,27 +399,27 @@ class fit_iteratively(nems_fitter):
         self.max_iter=max_iter
 
     def do_fit(self):
-        self.sub_fitter.tol=self.tol
+        self.sub_fitter.tolerance=self.tolerance
         itr=0
         err=self.stack.error()
         this_itr=0
         while itr<self.max_iter:
             this_itr+=1
             for i in self.fit_modules:
-                print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i].name,itr,self.sub_fitter.tol))
+                print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i].name,itr,self.sub_fitter.tolerance))
                 self.sub_fitter.fit_modules=[i]
                 new_err=self.sub_fitter.do_fit()
-            if err-new_err<self.sub_fitter.tol:
+            if err-new_err<self.sub_fitter.tolerance:
                 print("")
                 print("error improvement less than tol, starting new outer iteration")
                 itr+=1
-                self.sub_fitter.tol=self.sub_fitter.tol/2
+                self.sub_fitter.tolerance=self.sub_fitter.tolerance/2
                 this_itr=0
             elif this_itr>20:
                 print("")
                 print("too many loops at this tolerance, stuck?")
                 itr+=1
-                self.sub_fitter.tol=self.sub_fitter.tol/2
+                self.sub_fitter.tolerance=self.sub_fitter.tolerance/2
                 this_itr=0
                 
             err=new_err
@@ -461,22 +463,22 @@ class fit_by_type(nems_fitter):
         itr=0
         err=self.stack.error()
         while itr<self.maxiter:
-            self.fir_filter_sfit.tol=self.tol
-            self.nonlinearity_sfit.tol=self.tol
-            self.weight_channels_sfit.tol=self.tol
-            self.state_gain_sfit.tol=self.tol
+            self.fir_filter_sfit.tolerance=self.tolerance
+            self.nonlinearity_sfit.tolerance=self.tolerance
+            self.weight_channels_sfit.tolerance=self.tolerance
+            self.state_gain_sfit.tolerance=self.tolerance
             for i in self.fit_modules:
                 name=self.stack.modules[i].name
                 print('Sub-fitting on {0} module with {1}'.format(name,getattr(getattr(self,name+'_sfit'),'name')))
                 print('Current iter: {0}'.format(itr))
-                print('Current tol: {0}'.format(self.tol))
+                print('Current tolerance: {0}'.format(self.tolerance))
                 setattr(getattr(self,name+'_sfit'),'fit_modules',[i])
                 new_err=getattr(self,name+'_sfit').do_fit()
-            if err-new_err<self.tol:
+            if err-new_err<self.tolerance:
                 print("")
-                print("error improvement less than tol, starting new outer iteration")
+                print("error improvement less than tolerance, starting new outer iteration")
                 itr+=1
-                self.tol=self.tol/2
+                self.tolerance=self.tolerance/2
             err=new_err
         return(self.stack.error())
                     
