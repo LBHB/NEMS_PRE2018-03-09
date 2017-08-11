@@ -6,7 +6,7 @@ import pandas.io.sql as psql
 
 from nems.db import NarfBatches, NarfResults
 
-def filter_cells(batch, session, cells, min_snr=0, min_iso=0, min_snri=0):
+def filter_cells(session, batch, cells, min_snr=0, min_iso=0, min_snri=0):
     """ Returns a list of cells that don't meet the minimum snr/iso/snri
     criteria specified. The calling function can then remove them from the
     cell list if desired (ex: for cell in bad_cells, cell_list.remove(cell))
@@ -88,8 +88,8 @@ def filter_cells(batch, session, cells, min_snr=0, min_iso=0, min_snri=0):
 
 
 def form_data_array(
-        batch, cells, models, session, columns=None, include_outliers=False,
-        only_fair=True,
+        session, batch, cells, models, columns=None, only_fair=True,
+        include_outliers=False,
         ):
 
     # TODO: figure out a good way to form this from the existing

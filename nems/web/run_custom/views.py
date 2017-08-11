@@ -16,6 +16,7 @@ def run_custom():
             'snr' : float(request.args.get('snr')),
             'iso' : float(request.args.get('iso')),
             'snri' : float(request.args.get('snri')),
+            'measure' : request.args.get('measure'),
             }
     script_name = request.args.get('scriptName')
     script = importlib.import_module(script_name)
