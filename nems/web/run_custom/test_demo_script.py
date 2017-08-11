@@ -18,13 +18,26 @@ argsdict = {
         'cells' : ['bbl031f-a1', 'bbl034e-a1', 'bbl034e-a2', 'bbl036e-a1',
                    'bbl036e-a2', 'bbl038f-a1', 'bbl038f-a2'
                    ],
-        'onlyFair' : True,
+        'onlyFair' : False,
         'includeOutliers' : False,
         'snr' : 0.0,
-        'iso' : 75,
+        'iso' : 70.0,
         'snri' : 0.1,
         'measure' : 'r_test',
         }
 
-html = demo.run_script(argsdict)
-print(html)
+output = demo.run_script(argsdict)
+print('html string: ')
+print(output['html'])
+print('final dataframe used for plot: ')
+print(output['data'])
+# the cellid column is just a duplicate of the index, but necessary
+# because bokeh's hovertool will only display the index as an integer
+
+# TODO: make a public s3 bucket that stores script outputs for download by user?
+
+# Note that print statements will NOT show up in your local output unless you
+# are running a local copy of the web interface. If interacting with
+# neuralprediction.org, you would instead want to either return some
+# html-friendly string to display on the webpage or save the output to a file
+# that you can retrieve. 

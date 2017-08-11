@@ -38,6 +38,7 @@ from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
+from nems.web.run_custom.script_utils import scan_for_scripts
 from nems_config.defaults import UI_OPTIONS
 n_ui = UI_OPTIONS
 
@@ -177,7 +178,9 @@ def main_view():
 
     # imported at top from PlotGenerator
     plotTypeList = PLOT_TYPES
-
+    # imported at top from nems.web.run_scrits.script_utils
+    scriptList = scan_for_scripts()
+    
     session.close()
     
     return render_template(
@@ -186,7 +189,7 @@ def main_view():
             defaultrowlimit=defaultrowlimit,sortlist=collist,
             defaultsort=defaultsort,statuslist=statuslist, taglist=taglist,
             plotTypeList=plotTypeList, username=user.username,
-            iso=n_ui.iso, snr=n_ui.snr, snri=n_ui.snri,
+            iso=n_ui.iso, snr=n_ui.snr, snri=n_ui.snri, scripts=scriptList
             )
 
 

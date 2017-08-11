@@ -1,10 +1,22 @@
 """ Helper functions for filtering cells and forming data matrix. """
 
+import pkgutil
+
 import pandas as pd
 import numpy as np
 import pandas.io.sql as psql
 
 from nems.db import NarfBatches, NarfResults
+import nems_scripts as ns
+
+def scan_for_scripts():
+    package = ns
+    script_names = [
+            modname for importer, modname, ispkg
+            in pkgutil.iter_modules(package.__path__)
+            ]
+    return script_names
+    
 
 def filter_cells(session, batch, cells, min_snr=0, min_iso=0, min_snri=0):
     """ Returns a list of cells that don't meet the minimum snr/iso/snri
@@ -106,24 +118,39 @@ def form_data_array(
             session.bind
             )
     if not columns:
-        columns = data.anycolumns.values.tolist()
+        columns = data.columns.values.tolist()
         
     multiIndex = pd.MultiIndex.from_product(
-            [cells, models], names=['cellid','modelname'],
+            [models, cells], names=['modelname','cellid'],
             )
     newData = pd.DataFrame(
             index=multiIndex, columns=columns,
             )
-        
     newData.sort_index()
 
-    for c in cells:
-        for m in models:
-            dataRow = data.loc[(data.cellid == c) & (data.modelname == m)]
+    # columns that don't contain performance data - this will be excluded
+    # from outlier checks.
+    non_comp_columns = [
+            'id', 'cellid', 'modelname', 'batch', 'n_parms', 'figurefile',
+            'githash', 'lastmod', 'score', 'sparsity', 'modelpath', 'modelfile',
+            'username', 'labgroup', 'public',
+            ]
+    for m in models:
+        for c in cells:
+            dataRow = data.loc[(data.modelname == m) & (data.cellid == c)]
             
+            # if col is in the non_comp list, just copy the value if it exists
+            # then move on to the next iteration.
             for col in columns:
+                if col in non_comp_columns:
+                    try:
+                        newData[col].loc[m,c] = dataRow[col].values.tolist()[0]
+                        continue
+                    except:
+                        newData[col].loc[m,c] = np.nan
+                        continue
                 value = np.nan 
-                newData[col].loc[c,m] = value
+                newData[col].loc[m,c] = value
                 # If loop hits a continue, value will be left as NaN.
                 # Otherwise, will be assigned a value from data 
                 # after passing all checks.
@@ -133,7 +160,7 @@ def form_data_array(
                     # Error should mean no value was recorded,
                     # so leave as NaN.
                     # No need to run outlier checks if value is missing.
-                    print("No %s recorded for %s,%s"%(col,c,m))
+                    print("No %s recorded for %s,%s"%(col,m,c))
                     continue
                     
                 if not include_outliers:
@@ -195,20 +222,20 @@ def form_data_array(
                 # If value existed and passed outlier checks,
                 # re-assign it to the proper DataFrame position
                 # to overwrite the NaN value.
-                newData[col].loc[c,m] = value
+                newData[col].loc[m,c] = value
 
     if only_fair:
         # If fair is checked, drop all rows that contain a NaN value for
         # any column.
-        for c in cells:
-            for m in models:
-                if newData.loc[c,m].isnull().values.any():
-                    newData.drop(c, level='cellid', inplace=True)
+        for m in models:
+            for c in cells:
+                if newData.loc[m,c].isnull().values.any():
+                    newData.drop(m, level='modelname', inplace=True)
                     break
         
 
     # Swap the 0th and 1st levels so that modelname is the primary index,
     # since most plots group by model.
-    newData = newData.swaplevel(i=0, j=1, axis=0)
+    #newData = newData.swaplevel(i=0, j=1, axis=0)
 
     return newData

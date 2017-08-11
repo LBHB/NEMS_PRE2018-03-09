@@ -546,7 +546,26 @@
                             </div>
                         </div><!-- plotOpWrapper -->
                     </div><!-- plot col -->
-                </div><!-- plot row -->     
+                    <div class="col-xs-12"
+                         id="customCol">
+                         <div class="form-group form-inline"
+                              id="customGroup">
+                              <select class="form-control"
+                                      id="customSelector">
+                              {% for script in scripts %}
+                                  <option value="{{ script }}">
+                                      {{ script }}
+                                  </option>
+                              {% endfor %}
+                              </select>
+                              <button type="button"
+                                      class="btn btn-default btn-xs"
+                                      id="submitCustom">
+                                          Run Script
+                              </button>
+                        </div> <!-- customGroup -->
+                    </div> <!-- custom col -->
+                </div><!-- plot row -->
             </div><!-- select area col -->
             
 
