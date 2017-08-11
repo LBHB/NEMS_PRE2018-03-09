@@ -6,18 +6,19 @@ Created on Mon Apr 17 23:16:23 2017
 @author: svd
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
 import imp
-
 import scipy.io
-import scipy.signal
+
 import nems.modules as nm
 import nems.main as main
 import nems.fitters as nf
 import nems.keywords as nk
 import nems.utilities.utils as nu
 import nems.stack as ns
+
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.signal
 
 imp.reload(nm)
 imp.reload(main)
@@ -58,9 +59,9 @@ modelname="fb18ch100_wc01_fir15_dexp_fit01"
 
 # pupil gain test
 #cellid="BOL006b-11-1"
-cellid="eno052b-b1"
+cellid="eno048g-b1"
 batch=293
-modelname="parm50_wc01_fir15_dexp_pupgainctl_fit01_nested5"
+modelname="parm50_wc02_fir15_dexp_pupgainctl_fit01_nested5"
 
 # following is equivalent of --
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
@@ -87,7 +88,7 @@ else:
             f = getattr(nk, k)
             f(stack)
 
-if 1:
+if 0:
     # validation stuff
     stack.valmode=True
     stack.evaluate(1)
