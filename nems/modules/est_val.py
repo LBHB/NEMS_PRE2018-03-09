@@ -26,7 +26,7 @@ class standard(nems_module):
     crossvalidation.
     """
     name='est_val.standard'
-    user_editable_fields=['output_name','valfrac']
+    user_editable_fields=['input_name','output_name','valfrac']
     
     def my_init(self):
         self.field_dict=locals()
@@ -114,6 +114,7 @@ class crossval(nems_module):
     @author: shofer
     """
     name='est_val.crossval'
+    user_editable_fields=['input_name','output_name','valfrac']
     plot_fns=[nu.raster_plot]
     valfrac=0.05
     

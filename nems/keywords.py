@@ -220,7 +220,7 @@ def fir_mini_fit(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.0001
+    stack.fitter.tolerance=0.0001
     try:
         fitidx=ut.utils.find_modules(stack,'filters.weight_channels') + ut.utils.find_modules(stack,'filters.fir')
     except:
@@ -300,7 +300,7 @@ def nonlin_mini_fit(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.00001
+    stack.fitter.tolerance=0.0001
     fitidx=ut.utils.find_modules(stack,'nonlin.gain')
     stack.fitter.fit_modules=fitidx
     
@@ -404,7 +404,7 @@ def pupil_mini_fit(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.00001
+    stack.fitter.tolerance=0.00001
     fitidx=ut.utils.find_modules(stack,'pupil.pupgain')
     stack.fitter.fit_modules=fitidx
     
@@ -543,7 +543,7 @@ def fit00(stack):
     stack.evaluate(2)
 
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.001
+    stack.fitter.tolerance=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
@@ -559,7 +559,7 @@ def fit01(stack):
     stack.evaluate(2)
 
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.00000001
+    stack.fitter.tolerance=0.00000001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
@@ -575,7 +575,7 @@ def fit02(stack):
     stack.evaluate(2)
 
     stack.fitter=nf.fitters.basic_min(stack,routine='SLSQP')
-    stack.fitter.tol=0.000001
+    stack.fitter.tolerance=0.000001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
@@ -657,8 +657,27 @@ def fititer00(stack):
     
     stack.fitter=nf.fitters.fit_iteratively(stack,max_iter=5)
     #stack.fitter.sub_fitter=nf.fitters.basic_min(stack)
-    stack.fitter.sub_fitter=nf.fitters.coordinate_descent(stack,tol=0.001,maxit=10,verbose=False)
+    stack.fitter.sub_fitter=nf.fitters.coordinate_descent(stack,tolerance=0.001,maxit=10,verbose=False)
     stack.fitter.sub_fitter.step_init=0.05
+    
+    stack.fitter.do_fit()
+    create_parmlist(stack)
+
+def fititer01(stack):
+    """
+    Fits the model parameters using a mean-squared-error loss function with 
+    a coordinate descent algorithm. However, rather than fitting all model 
+    parameters at once, it only fits the parameters for one model at a time.
+    The routine fits each module to a tolerance of 0.001, than halves the tolerance
+    and repeats up to 9 more times.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
+    stack.append(nm.metrics.mean_square_error,shrink=0.5)
+    stack.error=stack.modules[-1].error
+    
+    stack.fitter=nf.fitters.fit_iteratively(stack,max_iter=5)
+    stack.fitter.sub_fitter=nf.fitters.basic_min(stack)
     
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -732,6 +751,16 @@ def nested10(stack):
     """
     stack.nests=10
     stack.valfrac=0.1
+    nest_helper(stack)
+    
+def nested5(stack):
+    """
+    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
+    """
+    stack.nests=5
+    stack.valfrac=0.2
     nest_helper(stack)
     
 # DEMO KEYWORDS

@@ -23,7 +23,7 @@ class weight_channels(nems_module):
     matrix. but by default the weights are each independent
     """
     name='filters.weight_channels'
-    user_editable_fields=['num_dims','num_chans','fit_fields','baseline','phi','parm_fun']
+    user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_chans','baseline','coefs','phi','parm_fun']
     plot_fns=[nu.plot_strf,nu.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
@@ -69,13 +69,14 @@ class fir(nems_module):
     offset, and outputs a 2D stim array (stims,time).
     """
     name='filters.fir'
-    user_editable_fields=['num_dims','num_coefs','baseline','fit_fields','random']
+    user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_coefs','coefs','baseline','random_init']
     plot_fns=[nu.plot_strf, nu.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_dims=0
+    random_init=False
     
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random=False):
+    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False):
         """
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
@@ -90,7 +91,8 @@ class fir(nems_module):
         self.num_dims=num_dims
         self.num_coefs=num_coefs
         self.baseline[0]=baseline
-        if random is True:
+        self.random_init=random_init
+        if random_init is True:
             self.coefs=np.random.normal(loc=0.0,scale=0.0025,size=[num_dims,num_coefs])
         else:
             self.coefs=np.zeros([num_dims,num_coefs])
@@ -115,7 +117,7 @@ class stp(nems_module):
                     'input', 'input_mod','time', 'output' };
     """
     name='filters.stp'
-    user_editable_fields=['input_name','output_name','num_channels','u','tau','offset_in','crosstalk']
+    user_editable_fields=['input_name','output_name','fit_fields','num_channels','u','tau','offset_in','deponly','crosstalk']
     plot_fns=[nu.pre_post_psth, nu.plot_spectrogram]
     coefs=None
     baseline=0
@@ -123,6 +125,7 @@ class stp(nems_module):
     tau=np.zeros([1,1])+0.1
     offset_in=np.zeros([1,1])
     crosstalk=0
+    dep_only=False
     num_channels=1
     num_dims=1
     

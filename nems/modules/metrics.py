@@ -16,7 +16,7 @@ import scipy.stats as spstats
 class mean_square_error(nems_module):
  
     name='metrics.mean_square_error'
-    user_editable_fields=['input1','input2','norm']
+    user_editable_fields=['input1','input2','norm','shrink']
     plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
@@ -119,6 +119,7 @@ class pseudo_huber_error(nems_module):
     
     
     name='metrics.pseudo_huber_error'
+    user_editable_fields=['input1','input2','b']
     plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
@@ -156,7 +157,7 @@ class pseudo_huber_error(nems_module):
 class correlation(nems_module):
  
     name='metrics.correlation'
-    user_editable_fields=['input1','input2']
+    user_editable_fields=['input1','input2','norm']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter, nu.pred_act_scatter_smooth]
     input1='stim'
     input2='resp'

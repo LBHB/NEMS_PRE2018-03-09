@@ -275,11 +275,16 @@ def io_scatter_smooth(m,idx=None,size=FIGSIZE):
     plt.ylabel("Output ({0})".format(m.output_name))
     #plt.title("{0}".format(m.name))
 
-def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+def scatter_smooth(m,idx=None,x_name=None,y_name=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
-    s=m.unpack_data(m.output_name,use_dout=True)
-    r=m.unpack_data("resp",use_dout=True)
+    if not x_name:
+        x_name=m.output_name
+    if not y_name:
+        y_name="resp"
+        
+    s=m.unpack_data(x_name,use_dout=True)
+    r=m.unpack_data(y_name,use_dout=True)
     s2=np.append(s.transpose(),r.transpose(),0)
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
@@ -289,11 +294,17 @@ def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
     s2=np.mean(s2,2)
     s2=np.squeeze(s2)
     plt.plot(s2[0,:],s2[1,:],'k.')
-    plt.xlabel('Predicted')
-    plt.ylabel('Actual')
+    plt.xlabel(x_name)
+    plt.ylabel(y_name)
     #m.parent_stack.meta['r_val']
     #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
 
+def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+    scatter_smooth(m,idx=idx,size=size,x_name=m.output_name,y_name="resp")
+
+def state_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+    scatter_smooth(m,idx=idx,size=size,x_name=m.state_var,y_name="resp")
+    
 def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)

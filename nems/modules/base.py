@@ -30,7 +30,7 @@ class nems_module:
     # common attributes for all modules
     #
     name='base.nems_module'
-    user_editable_fields=['input_name','output_name']
+    user_editable_fields=['input_name','output_name','fit_fields']
     plot_fns=[nu.plot_spectrogram]
     
     input_name='stim'  # name of input matrix in d_in
@@ -68,7 +68,8 @@ class nems_module:
         self.do_plot=self.plot_fns[0]  # default is first in list
         self.do_trial_plot=self.plot_fns[0]
         self.my_init(**xargs)
-        self.user_editable_fields=['input_name','output_name']+list(self.field_dict.keys())
+        # not sure that this is a complete list
+        #self.user_editable_fields=['input_name','output_name']+list(self.field_dict.keys())
         
     def parms2phi(self):
         """
@@ -92,7 +93,17 @@ class nems_module:
             #phi=np.array(phi)
             setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
             os+=np.prod(s)
-    
+            
+    def get_user_fields(self):
+        f={}
+        print(self.user_editable_fields)
+        for k in self.user_editable_fields:
+            t=getattr(self,k)
+            if type(t) is np.ndarray:
+                t=t.tolist()
+            f[k]=t
+        return f
+        
     def unpack_data(self,name='stim',est=True,use_dout=False):
         """
         unpack_data - extract a data variable from all files into a single
