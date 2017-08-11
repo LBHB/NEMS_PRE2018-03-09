@@ -56,6 +56,11 @@ modelname="fb18ch100_wc01_fir15_dexp_fit01"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
+# pupil gain test
+cellid="eno048g-c1"
+batch=293
+modelname="parm50_wc02_fir15_pupgain_dexp_fit01"
+
 # following is equivalent of --
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 
@@ -96,8 +101,8 @@ if 1:
     else:
         stack.plot_dataidx=0
 
-nlidx=nu.find_modules(stack,'nonlin.gain')
-stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
+#nlidx=nu.find_modules(stack,'nonlin.gain')
+#stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
 stack.quick_plot()
 
 
