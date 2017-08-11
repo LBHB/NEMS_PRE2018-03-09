@@ -8,9 +8,11 @@ Created on Sun Jun 18 20:16:37 2017
 import nems.modules as nm
 import nems.stack as ns
 import nems.utilities as ut
-import nems.keywords as nk
+import nems.keyword as nk
 import operator as op
 import numpy as np
+import pkgutil as pk
+import nems.nested as nn
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -48,13 +50,18 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     stack.keywords=modelname.split("_")
     if 'nested' in stack.keywords[-1]:
         print('Using nested cross-validation, fitting will take longer!')
-        f=getattr(nk,stack.keywords[-1])
+        f=getattr(nn,stack.keywords[-1])
         f(stack)
     else:
-        print('Using standard est/val conditions')
+        print('Using single est/val split')
         stack.valmode=False
         for k in stack.keywords:
-            f = getattr(nk, k)
+            for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+                try:
+                    f=getattr(importer.find_module(modname).load_module(modname),k)
+                    break
+                except:
+                    pass
             f(stack)
             
     # measure performance on both estimation and validation data
@@ -134,15 +141,6 @@ def load_from_dict(batch,cellid,modelname):
     stack.evaluate()
     stack.quick_plot()
     return stack
-
-
-
-
-
-
-
-
-
 
 
     

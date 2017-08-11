@@ -22,8 +22,10 @@
 
 import sys
 import inspect
+import pkgutil as pk
 
-import nems.keywords as nk
+import nems.keyword as nk
+import nems.nested as nn
 
 def keyword_test_routine(modelname):
     """ Runs the check_keywords() method of each test class defined in this
@@ -107,30 +109,45 @@ class Keywords_Exist(Keyword_Test):
     def __repr__(self):
         return 'Keywords_Exist'
     
-    def check_keywords(self, modelname):
+    def check_keywords(self,modelname):
         # put this in at top to turn off test for now, not working
-        kwtuples = inspect.getmembers(
-                        sys.modules[nk.__name__], inspect.isfunction
-                        )
-        kwfuncs = [k[0] for k in kwtuples]
+        #kwtuples = inspect.getmembers(
+                #sys.modules[nk.__name__], inspect.isfunction
+                #)
+        #kwfuncs = [k[0] for k in kwtuples]
         keywords = modelname.split('_')
-        for kw in keywords:
-            if kw in kwfuncs:
-                continue
+        for kw in keywords: 
+            found=False
+            print(kw)
+            if 'nested' in kw:
+                if hasattr(nn,kw) is True:
+                    break
+                else:
+                    self.missing_kw = kw
+                    self.error = Exception(
+                            'Keyword does not exist: {0}   '
+                            '\n Failed test: {1}'
+                            .format(self.missing_kw, self.__repr__())
+                            )
+                    return False
             else:
-                self.missing_kw = kw
-                self.error = Exception(
-                        'Keyword does not exist: {0}   '
-                        '\n Failed test: {1}'
-                        .format(self.missing_kw, self.__repr__())
-                        )
-                return False
+            #if kw in kwfuncs:
+                #continue
+                for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+                    if hasattr(importer.find_module(modname).load_module(modname),kw) is True:
+                        found=True
+                if found is False:
+                    self.missing_kw = kw
+                    self.error = Exception(
+                            'Keyword does not exist: {0}   '
+                            '\n Failed test: {1}'
+                            .format(self.missing_kw, self.__repr__())
+                            )
+                    return False
+                else: 
+                    continue
         return True
-        #if False in [(kw in kwfuncs) for kw in keywords]:
-        #    return False
-        #else:
-        #    return True
-    
+
     
     
     

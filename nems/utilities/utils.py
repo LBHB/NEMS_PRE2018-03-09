@@ -16,7 +16,6 @@ import os
 import copy
 import io
 import json
-#import nems.modules as nm
 
 try:
     import boto3

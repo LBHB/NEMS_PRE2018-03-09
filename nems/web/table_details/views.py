@@ -3,6 +3,7 @@ from flask import redirect, Response, url_for, render_template
 from nems.web.nems_analysis import app
 import nems.keywords as nk
 from nems.db import Session, gCellMaster
+import pkgutil as pk
 
 @app.route('/cell_details/<cellid>')
 def cell_details(cellid):
@@ -34,12 +35,20 @@ def model_details(modelname):
     #return Response('Details for modelname: ' + modelname)
     # test code below this, won't run until response removed
     keyword_list = modelname.split('_')
-    kw_funcs = [
-            getattr(nk, kw)
-            if hasattr(nk, kw)
-            else "Couldn't find keyword: {0}".format(kw)
-            for kw in keyword_list
-            ]
+    kw_funcs=[]
+    for kw in keyword_list:
+        for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+            try:
+                kw_funcs.append(getattr(importer.find_module(modname).load_module(modname),kw))
+                break
+            except:
+                pass
+    #kw_funcs = [
+    #        getattr(nk, kw)
+    #        if hasattr(nk, kw)
+    #        else "Couldn't find keyword: {0}".format(kw)
+    #        for kw in keyword_list
+    #        ]
     kwdocs = [
             func.__doc__ + '              '
             if func.__doc__ and not isinstance(func, str)
