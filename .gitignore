@@ -112,4 +112,5 @@ saved_models/
 
 **/nems_config/*
 !**/nems_config/__init__.py
+!**/nems_config/defaults.py
 
