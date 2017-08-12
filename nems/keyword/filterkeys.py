@@ -37,6 +37,13 @@ def wc04(stack):
     """
     stack.append(nm.filters.weight_channels,num_chans=4)
 
+def wcg02(stack):
+    """
+    Applies a 2 channel spectral filter matrix to the data
+    stream.
+    """
+    stack.append(nm.filters.weight_channels,num_chans=2,parm_type="gauss")
+
 def fir10(stack):
     """
     Appends a 10 temporal bin finite impluse response (FIR) filter to the datastream. 
