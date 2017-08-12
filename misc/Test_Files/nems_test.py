@@ -52,7 +52,7 @@ batch=291
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_stp2pc_fir15_dexp"
 #modelname="fb18ch100_wc01_fir15"
-modelname="fb18ch100_wcg02_fir15_dexp_fit01"
+modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 
 #cellid="eno052d-a1"
 #batch=294
@@ -97,7 +97,7 @@ else:
         #    f = getattr(nk, k)
         #    f(stack)
 
-if 0:
+if 1:
     # validation stuff
     stack.valmode=True
     stack.evaluate(1)

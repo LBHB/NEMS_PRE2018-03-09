@@ -181,7 +181,7 @@ class correlation(nems_module):
         r_est,p=spstats.pearsonr(X1,X2)
         self.r_est=r_est
         self.parent_stack.meta['r_est']=r_est
-                              
+        
         X1=self.unpack_data(self.input1,est=False)            
         if X1.size:
             X2=self.unpack_data(self.input2,est=False)
@@ -192,6 +192,18 @@ class correlation(nems_module):
             self.r_val=r_val
             self.parent_stack.meta['r_val']=r_val
         
+            # if running validation test, also measure r_floor
+            rf=np.zeros([1000,1]) 
+            rX1=X1.copy()
+            rX2=X2.copy()
+            mm=np.min([1000,len(rX1)])
+            for rr in range(0,len(rf)):
+               np.random.shuffle(rX1)
+               np.random.shuffle(rX2)
+               rf[rr],p=spstats.pearsonr(rX1[0:mm],rX2[0:mm])
+            rf=np.sort(rf,0)
+            self.parent_stack.meta['r_floor']=rf[np.int(len(rf)*0.95)]
+            
             return r_val
         else:
             return (r_est)

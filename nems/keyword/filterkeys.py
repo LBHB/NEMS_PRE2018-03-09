@@ -37,12 +37,33 @@ def wc04(stack):
     """
     stack.append(nm.filters.weight_channels,num_chans=4)
 
+def wcg01(stack):
+    """
+    Applies a 1 channel spectral filter matrix to the data stream.
+    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
+    """
+    stack.append(nm.filters.weight_channels,num_chans=1,parm_type="gauss")
+
 def wcg02(stack):
     """
-    Applies a 2 channel spectral filter matrix to the data
-    stream.
+    Applies a 2 channel spectral filter matrix to the data stream.
+    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
     """
     stack.append(nm.filters.weight_channels,num_chans=2,parm_type="gauss")
+
+def wcg03(stack):
+    """
+    Applies a 3 channel spectral filter matrix to the data stream.
+    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
+    """
+    stack.append(nm.filters.weight_channels,num_chans=3,parm_type="gauss")
+
+def wcg04(stack):
+    """
+    Applies a 4 channel spectral filter matrix to the data stream.
+    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
+    """
+    stack.append(nm.filters.weight_channels,num_chans=4,parm_type="gauss")
 
 def fir10(stack):
     """
