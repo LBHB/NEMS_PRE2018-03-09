@@ -56,6 +56,9 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         print('Using single est/val split')
         stack.valmode=False
         for k in stack.keywords:
+            #for k in stack.keywords:
+            #    f = getattr(nk, k)
+            #    f(stack)
             for importer, modname, ispkg in pk.iter_modules(nk.__path__):
                 try:
                     f=getattr(importer.find_module(modname).load_module(modname),k)

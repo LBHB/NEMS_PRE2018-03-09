@@ -8,11 +8,12 @@ Created on Mon Apr 17 23:16:23 2017
 
 import imp
 import scipy.io
+import pkgutil as pk
 
 import nems.modules as nm
 import nems.main as main
 import nems.fitters as nf
-import nems.keywords as nk
+import nems.keyword as nk
 import nems.utilities.utils as nu
 import nems.stack as ns
 
@@ -46,12 +47,12 @@ modelname="parm50_wc01_fir15_fititer00"
 #cellid='bbl034e-a1'
 cellid='bbl031f-a1'
 batch=291
-modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
+#modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
-modelname="fb18ch100_wc01_fir15_dexp_fititer00"
+#modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_stp2pc_fir15_dexp"
 #modelname="fb18ch100_wc01_fir15"
-modelname="fb18ch100_wc01_fir15_dexp_fit01"
+modelname="fb18ch100_wcg02_fir15_dexp_fit01"
 
 #cellid="eno052d-a1"
 #batch=294
@@ -59,9 +60,9 @@ modelname="fb18ch100_wc01_fir15_dexp_fit01"
 
 # pupil gain test
 #cellid="BOL006b-11-1"
-cellid="eno048g-b1"
-batch=293
-modelname="parm50_wc02_fir15_dexp_pupgainctl_fit01_nested5"
+#cellid="eno048g-b1"
+#batch=293
+#modelname="parm50_wc02_fir15_dexp_pupgainctl_fit01_nested5"
 
 # following is equivalent of --
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
@@ -85,8 +86,16 @@ else:
         print('Using standard est/val conditions')
         stack.valmode=False
         for k in stack.keywords:
-            f = getattr(nk, k)
+            for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+                try:
+                    f=getattr(importer.find_module(modname).load_module(modname),k)
+                    break
+                except:
+                    pass
             f(stack)
+        #for k in stack.keywords:
+        #    f = getattr(nk, k)
+        #    f(stack)
 
 if 0:
     # validation stuff
