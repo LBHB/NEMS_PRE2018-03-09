@@ -98,11 +98,10 @@ class nems_fitter:
 class basic_min(nems_fitter):
     """
     The basic fitting routine used to fit a model. This function defines a cost
-    function that evals the functions being fit using the current parameters
-    for those functions and outputs the current mean square error (mse). 
-    This cost function is evaulated by the scipy optimize.minimize routine,
-    which seeks to minimize the mse by changing the function parameters. 
-    This function has err, fit_to_phi, and phi_to_fit as dependencies.
+    function that evaluates the moduels being fit using the current parameters
+    and outputs the current mean square error (mse). The cost function is evaulated 
+    by the scipy optimize.minimize routine, which seeks to minimize the mse by 
+    changing the function parameters. 
     
     Scipy optimize.minimize is set to use the minimization algorithm 'L-BFGS-B'
     as a default, as this is memory efficient for large parameter counts and seems
@@ -116,12 +115,35 @@ class basic_min(nems_fitter):
     routine='L-BFGS-B'
     
     def my_init(self,routine='L-BFGS-B',maxit=50000,tolerance=1e-7):
+        """
+        Initializes the fitter.
+        
+        routine: the algorithm that scipy.optimize.minimize should use. L-BFGS-B
+                and SLSQP tend to work very well, while Nelder-Mead, Powell, and 
+                BFGS work, but not as well. The documentation for 
+                scipy.optimize.minimize has more details on algorithms that can
+                be used
+                
+        maxit: maximum number of iterations for the fitter to use. Different 
+                than number of function evaluations
+        tolerance: the "accuracy" to which the cost function is fit. E.g., if we
+                have a tolerance of 0.001, the fitter will fit until the value of
+                the cost function is stable at the third decimal place
+        """
         print("initializing basic_min")
         self.maxit=maxit
         self.routine=routine
         self.tolerance=tolerance
         
     def cost_fn(self,phi):
+        """
+        The cost function is the function that the fitting algorithm minimizes 
+        by changing the module parameters. This function takes in the vector of 
+        model parameters phi, applies the parameters in the fitted vector to 
+        the model using fit_to_phi, then calculates and returns the loss, here 
+        called error (usually mean squared error, but sometimes other functions 
+        such as huber loss). 
+        """
         self.phi_to_fit(phi)
         self.stack.evaluate(self.fit_modules[0])
         err=self.stack.error()
@@ -129,17 +151,32 @@ class basic_min(nems_fitter):
         if self.counter % 1000==0:
             print('Eval #'+str(self.counter))
             print('Error='+str(err))
-            self.tick_queue()
-            
+            self.tick_queue() #This just updates the prgress indicator
         return(err)
     
     def do_fit(self):
+        """
+        The function to call to actually perform the fitting. The first few lines
+        in this function set up some options specific to scipy.optimize.minimize.
+        Below these, we have the core components of the nems_fitter object. First,
+        we take the initial values of the model parameters and concatenate them 
+        all into a single vector, phi0, to pass to the fitting function. Counter
+        is just a counter that keeps track of how many times cost_fn has been 
+        evaluated. The cost function and initial parameter values phi0 are then 
+        fed into the fit function, along with whatever options are needed for 
+        the specific fit function. 
         
+        Since cost_fn updates the mdoel parameters every time it is evaluated, we
+        don't need to do anything else other than retun the final error (with the
+        exception of simulated annealing).
+        """
         opt=dict.fromkeys(['maxiter'])
         opt['maxiter']=int(self.maxit)
         if self.routine=='L-BFGS-B':
             opt['eps']=1e-7
         cons=()
+        
+        #Below here are the general need for a nems_fitter object. 
         self.phi0=self.fit_to_phi() 
         self.counter=0
         print("basic_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))

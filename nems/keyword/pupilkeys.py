@@ -55,6 +55,16 @@ def nopupgain(stack):
     stack.append(nm.pupil.pupgain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
     mini_fit(stack,mods=['pupil.pupgain'])
     
+def pupgainctl(stack):
+    """
+    Applies a DC gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + <randomly shuffled pupil dc-gain>
+    where x is the input matrix and v1,v2 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    """
+    stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=[0,1,0,0])
+    mini_fit(stack,mods=['pupil.pupgain'])
+    
 def pupgain(stack):
     """
     Applies a linear pupil gain function entry-by-entry to the datastream:

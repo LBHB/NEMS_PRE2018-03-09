@@ -380,6 +380,16 @@ def nopupgain(stack):
     stack.append(nm.pupil.pupgain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
     mini_fit(stack,mods=['pupil.pupgain'])
     
+def pupgainctl(stack):
+    """
+    Applies a DC gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + <randomly shuffled pupil dc-gain>
+    where x is the input matrix and v1,v2 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    """
+    stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=[0,1,0,0])
+    mini_fit(stack,mods=['pupil.pupgain'])
+    
 def pupgain(stack):
     """
     Applies a linear pupil gain function entry-by-entry to the datastream:
@@ -535,6 +545,22 @@ def fit02(stack):
 
     stack.fitter=nf.fitters.basic_min(stack,routine='SLSQP')
     stack.fitter.tolerance=0.000001
+    stack.fitter.do_fit()
+    create_parmlist(stack)
+    
+def fit03(stack):
+    """
+    Fits the model parameters using a mean squared error loss function with 
+    the L-BFGS-B algorithm, to a cost function tolerance of 10^-8.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
+    stack.append(nm.metrics.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter.tolerance=0.0000001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
