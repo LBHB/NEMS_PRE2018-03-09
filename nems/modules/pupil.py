@@ -155,5 +155,72 @@ class pupgain(nems_module):
                 f_out[self.output_name]=Z
                 
                 
+class state_weight(nems_module): 
+    """
+    pupweight - combined weighting of two predicted PSTHs, depending on state_var
+    @author: svd
+    """
+
+    name='pupil.state_weight'
+    user_editable_fields = ['input_name','output_name','fit_fields','state_var','input_name2','weight_type','theta']
+    weight_type='linear'
+    plot_fns=[nu.state_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
+    input_name2='stim2'
+    state_var='pupil'
+    theta=np.zeros([1,2])
+    def my_init(self,input_name="stim",input_name2="stim2",state_var="pupil",
+                weight_type='linear',fit_fields=['theta'],theta=[0,0.001]):
+        self.input_name=input_name
+        self.input_name2=input_name2
+        self.state_var=state_var
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
+        self.fit_fields=fit_fields
+        self.weight_type=weight_type
+        self.my_eval=getattr(self,self.weight_type+'_fn')
+        self.theta=np.array([theta])
+        self.do_plot=self.plot_fns[0]
+        
+    def linear_fn(self,X1,X2,Xp):
+        """
+        linear weighting of two predicted PSTHs, depending on state_var
+        w= a + b * p(t)  hard bounded at 0 and 1 
+        """
+        w=self.theta[0,0]+self.theta[0,1]*Xp
+        w[w<0]=0
+        w[w>1]=1
+        Y=(1-w)*X1+w*X2
+        return(Y)
+    
+    def linearctl_fn(self,X1,X2,Xp):
+        """
+        shuffle pupil, keep same number of parameters for proper control
+        """
+        s=Xp.shape
+        n=np.int(np.ceil(s[0]/2))
+        Xp=np.roll(Xp,n,0)
+        Y=self.linear_fn(X1,X2,Xp)
+        return(Y)
+              
+    def evaluate(self,nest=0):
+        if nest==0:
+            del self.d_out[:]
+            for i,val in enumerate(self.d_in):
+                self.d_out.append(copy.deepcopy(val))
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            if f_in['est'] is False:
+                X1=copy.deepcopy(f_in[self.input_name][nest])
+                X2=copy.deepcopy(f_in[self.input_name2][nest])
+                Xp=copy.deepcopy(f_in[self.state_var][nest])
+                Y=self.my_eval(X1,X2,Xp)
+                f_out[self.output_name][nest]=Y
+            else:
+                X1=copy.deepcopy(f_in[self.input_name])
+                X2=copy.deepcopy(f_in[self.input_name2])
+                Xp=copy.deepcopy(f_in[self.state_var])
+                Y=self.my_eval(X1,X2,Xp)
+                f_out[self.output_name]=Y
                 
+                
+             
                 

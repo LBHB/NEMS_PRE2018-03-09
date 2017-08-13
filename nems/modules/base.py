@@ -157,6 +157,8 @@ class nems_module:
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
+                # duplicate placeholder list in case output_name is a new variable
+                f_out[self.output_name]=copy.copy(f_in[self.input_name])
                 f_out[self.output_name][nest]=self.my_eval(X)
             else:
                 X=copy.deepcopy(f_in[self.input_name])

@@ -94,6 +94,7 @@ class fir(nems_module):
     baseline=np.zeros([1,1])
     num_dims=0
     random_init=False
+    num_coefs=20
     
     def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False):
         """

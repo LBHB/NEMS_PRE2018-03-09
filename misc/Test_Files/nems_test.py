@@ -60,9 +60,10 @@ modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 
 # pupil gain test
 #cellid="BOL006b-11-1"
-#cellid="eno048g-b1"
-#batch=293
-#modelname="parm50_wc02_fir15_dexp_pupgainctl_fit01_nested5"
+cellid="eno051h-b1"
+batch=293
+modelname="parm50_wc01_fir15_pupwgt_fit01_nested5"
+#modelname="parm50_wc01_fir15_pupwgt_fit01"
 
 # following is equivalent of --
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
@@ -78,24 +79,29 @@ else:
     
     # extract keywords from modelname    
     stack.keywords=modelname.split("_")
+    stack.keyfun={}
+    for k in stack.keywords:
+        for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+            try:
+                f=getattr(importer.find_module(modname).load_module(modname),k)
+                break
+            except:
+                pass
+        stack.keyfun[k]=f
+    
+    
     if 'nested' in stack.keywords[-1]:
         print('Using nested cross-validation, fitting will take longer!')
-        f=getattr(nk,stack.keywords[-1])
-        f(stack)
+        k=stack.keywords[-1]
+        stack.keyfun[k](stack)
     else:
         print('Using standard est/val conditions')
         stack.valmode=False
         for k in stack.keywords:
-            for importer, modname, ispkg in pk.iter_modules(nk.__path__):
-                try:
-                    f=getattr(importer.find_module(modname).load_module(modname),k)
-                    break
-                except:
-                    pass
-            f(stack)
-        #for k in stack.keywords:
-        #    f = getattr(nk, k)
-        #    f(stack)
+            stack.keyfun[k](stack)
+#        for k in stack.keywords:
+#            f = getattr(nk, k)
+#            f(stack)
 
 if 1:
     # validation stuff

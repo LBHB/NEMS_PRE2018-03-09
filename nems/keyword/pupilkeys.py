@@ -170,3 +170,52 @@ def butterworth04(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=4)
     mini_fit(stack,mods=['pupil.pupgain'])
+    
+# weighted combination 2 PSTHS usign pupil
+
+def pupwgt(stack,weight_type='linear'):
+    """
+    linear weighted sum of stim and stim2, determined by pupil
+        w=(phi[0]+phi[1] * p)
+        Y=stim1 * (1-w) + stim2 * w
+    hard bound on w  in (0,1)
+    """
+    # find fir and duplicate
+    wtidx=ut.utils.find_modules(stack,'filters.weight_channels')
+    firidx=ut.utils.find_modules(stack,'filters.fir')
+    wtidx=wtidx[0]
+    firidx=firidx[0]
+    num_chans=stack.modules[wtidx].num_chans
+    wcoefs=stack.modules[wtidx].coefs
+    num_coefs=stack.modules[firidx].num_coefs
+    coefs=stack.modules[firidx].coefs
+    baseline=stack.modules[firidx].baseline
+    stack.modules[wtidx].output_name='stim2'
+    stack.modules[firidx].input_name='stim2'
+    stack.modules[firidx].output_name='stim2'
+    stack.evaluate(wtidx)
+    stack.append(nm.filters.weight_channels,num_chans=num_chans)
+    stack.modules[-1].coefs=wcoefs
+    stack.append(nm.filters.fir,num_coefs=num_coefs)
+    stack.modules[-1].coefs=coefs*0.95
+    stack.modules[-1].baseline=baseline*0.95
+
+    stack.append(nm.pupil.state_weight,weight_type=weight_type,fit_fields=['theta'],theta=[0,0.01])
+    stack.evaluate(wtidx)
+    
+    #mini_fit(stack,mods=['pupil.state_weight'])
+    
+def pupwgtctl(stack):
+    """
+    linear weighted sum of stim and stim2, determined by shuffled pupil
+        w=(phi[0]+phi[1] * p_shuff)
+        Y=stim1 * (1-w) + stim2 * w
+    hard bound on w  in (0,1)
+    """
+    
+    # call pupwgt with different weight_type
+    pupwgt(stack,weight_type='linearctl')
+    
+    
+
+    
