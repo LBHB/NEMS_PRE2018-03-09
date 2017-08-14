@@ -1,4 +1,4 @@
-#!/bin/sh -f
+#!/bin/bash -f
 
 # runqueue
 # created svd 6/8/03
@@ -17,14 +17,24 @@ TMP="/tmp/$QUEUEID"
 export TMP
 mkdir -p $TMP
 
-MPLCONFIGDIR="/auto/users/nems/nems/nems_config/matplotlib"
+MPLCONFIGDIR="/home/nems/nems/nems_config/matplotlib"
 export MPLCONFIGDIR
 
 QUEUEIDROUNDED=`expr $QUEUEID / 1000 * 1000`
-DBSERVER="hyrax"
+DOMAIN=`hostname -d`
+if [ "$DOMAIN" == "us-west-2.compute.internal" ] ;
+then
+  DBSERVER="kamzik.org"
+  DBPORT="19555"
+  QUEUEOUTPATH="/auto/data/web/celldb/queue"
+else
+  DBSERVER="hyrax"
+  DBPORT="3306"
+  QUEUEOUTPATH="/auto/data/web/celldb/queue"
+fi
 DBUSER="david"
 DBPASSWORD="nine1997"
-QUEUEOUTPATH="/auto/data/web/celldb/queue"
+
 export QUEUEOUTPATH
 
 if [ ! -d "$QUEUEOUTPATH/$QUEUEIDROUNDED" ] 
@@ -40,7 +50,7 @@ QUEUEPARMS=$(mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --raw 
 export QUEUEPARMS
 
 # tell the queue where're starting
-mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --database=cell --execute="UPDATE tQueue SET complete=-1,pid=$QPID WHERE id=$1"
+mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --port=$DBPORT --database=cell --execute="UPDATE tQueue SET complete=-1,pid=$QPID WHERE id=$1"
 
 # run the queued command
 # pop first arg (QUEUEID), use rest of 
