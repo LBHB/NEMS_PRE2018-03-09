@@ -52,7 +52,7 @@ class standard(nems_module):
                 #--made a new est/val specifically for pupil --njs, June 28 2017
                 
                 # figure out number of distinct stim
-                s=d['repcount']
+                s=copy.deepcopy(d['repcount'])
                 
                 m=s.max()
                 validx = s==m
@@ -73,10 +73,11 @@ class standard(nems_module):
                 #d_val['resp']=copy.deepcopy(d['resp'][validx,:])
                 #d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
                 try:
-                    d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
+                    if d['pupil'].size:
+                        d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
                 except:
-                    print('No pupil data')
-                    d_est['pupil']=[]
+                    pass
+                    #print('No pupil data')
                     
                 d_est['est']=True
                 #d_val['est']=False
@@ -89,10 +90,11 @@ class standard(nems_module):
                     d_val['resp']=[copy.deepcopy(d['resp'][validx,:])]
                     d_val['stim']=[copy.deepcopy(d['stim'][:,validx,:])]
                     try:
-                        d_val['pupil']=[copy.deepcopy(d['pupil'][validx,:])]
+                        if d['pupil'].size:
+                            d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
                     except:
-                        print('No pupil data')
-                        d_val['pupil']=[]
+                        pass
+                        #print('No pupil data')
                         
                     d_val['est']=False
                     self.d_out.append(d_val)

@@ -47,25 +47,24 @@ modelname="parm50_wc01_fir15_fititer00"
 #cellid='bbl034e-a1'
 cellid='bbl031f-a1'
 batch=291
+cellid='zee015e-04-1'
+batch=271
 #modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_stp2pc_fir15_dexp"
-#modelname="fb18ch100_wc01_fir15"
 modelname="fb18ch100_wcg01_fir15_dexp_fit01"
-
 #cellid="eno052d-a1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
 # pupil gain test
 #cellid="BOL006b-11-1"
-cellid="eno051h-b1"
-batch=293
-modelname="parm50_wc01_fir15_pupwgt_fit01_nested2"
-#modelname="parm50_wc01_fir15_pupwgt_fit01"
+#cellid="eno051h-b1"
+#batch=293
+#modelname="parm50_wc01_fir15_pupwgt_fit01_nested2"
 
-# following is equivalent of --
+# following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 
 if 0:
