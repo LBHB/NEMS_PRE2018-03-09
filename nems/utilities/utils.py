@@ -554,6 +554,13 @@ def concatenate_helper(stack,start=1,**kwargs):
                         stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
                     stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
                     try:
+                        if stack.data[k][n]['stim2'][0].ndim==3:
+                            stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=1)
+                        else:
+                            stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=0)
+                    except ValueError:
+                        pass    
+                    try:
                         stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
                     except ValueError:
                         stack.data[k][n]['pupil']=None

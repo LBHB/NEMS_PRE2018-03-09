@@ -111,6 +111,7 @@ class nems_stack:
                 start=xval_idx+1
             for ii in range(start,mse_idx):
                 for i in range(0,self.nests):
+                    print("Eval {0} in valmode, nest={1}".format(ii,i))
                     st=0
                     for m in self.fitted_modules:
                         phi_old=self.modules[m].parms2phi()

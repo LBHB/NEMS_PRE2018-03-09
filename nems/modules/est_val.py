@@ -27,10 +27,11 @@ class standard(nems_module):
     """
     name='est_val.standard'
     user_editable_fields=['input_name','output_name','valfrac']
-    
-    def my_init(self):
+    valfrac=0.05
+    def my_init(self,valfrac=0.05):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
+        self.valfrac=valfrac
         print('Using standard est/val')
     
     def evaluate(self,**kwargs):
@@ -114,14 +115,19 @@ class crossval(nems_module):
     @author: shofer
     """
     name='est_val.crossval'
-    user_editable_fields=['input_name','output_name','valfrac']
-    plot_fns=[nu.raster_plot]
+    user_editable_fields=['input_name','output_name',
+                          'valfrac','interleave_valtrials','val_mult_repeats']
+    plot_fns=[nu.raster_plot,nu.plot_spectrogram]
     valfrac=0.05
+    interleave_valtrials=True
+    val_mult_repeats=True
     
-    def my_init(self,valfrac=0.05):
+    def my_init(self,valfrac=0.05,interleave_valtrials=True,val_mult_repeats=True):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.valfrac=valfrac
+        self.interleave_valtrials=interleave_valtrials
+        self.val_mult_repeats=val_mult_repeats
         try:
             self.iter=int(1/valfrac)-1
         except:

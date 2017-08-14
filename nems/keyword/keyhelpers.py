@@ -80,14 +80,24 @@ def nested10(stack):
     
 def nested5(stack):
     """
-    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    Keyword for 5-fold nested crossvalidation. Uses 10% validation chunks.
     
     MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=5
     stack.valfrac=0.2
     nest_helper(stack)
-  
+
+def nested2(stack):
+    """
+    Keyword for 2-fold nested crossvalidation. Uses 10% validation chunks.
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
+    """
+    stack.nests=2
+    stack.valfrac=0.5
+    nest_helper(stack)
+
 # Helper/Support Functions
 ###############################################################################
 
@@ -97,6 +107,7 @@ def nest_helper(stack):
     a loop with the estimation part of fit_single_model inside. 
     """
     stack.cond=False
+    stack.cv_counter=0  # reset to avoid problem with val stage
     while stack.cond is False:
         print('Nest #'+str(stack.cv_counter))
         stack.clear()
@@ -106,6 +117,7 @@ def nest_helper(stack):
 #        for k in range(0,len(stack.keywords)-1):
 #            f = globals()[stack.keywords[k]]
 #            f(stack)
-        
         stack.cv_counter+=1
+
+    stack.cv_counter=0  # reset to avoid problem with val stage
         

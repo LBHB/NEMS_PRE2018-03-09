@@ -68,7 +68,7 @@ def fb24ch200(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=200,avg_resp=True)
-    stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
+    stack.append(nm.est_val.standard)
     
 def fb24ch100(stack):
     """
@@ -80,7 +80,7 @@ def fb24ch100(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True) #Data not preprocessed to 100 Hz, internally converts
-    stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
+    stack.append(nm.est_val.standard)
     
 def fb18ch100(stack):
     """
@@ -92,7 +92,7 @@ def fb18ch100(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
+    stack.append(nm.est_val.standard)
     
 def fb18ch100u(stack):
     """
@@ -117,8 +117,7 @@ def fb18ch50(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=True)
-    #stack.append(nm.crossval,valfrac=stack.valfrac)
-    stack.append(nm.est_val.standard_est_val,valfrac=stack.valfrac)
+    stack.append(nm.est_val.standard)
 
 def loadlocal(stack):
     """

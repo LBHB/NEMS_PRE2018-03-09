@@ -151,16 +151,22 @@ class nems_module:
         """
         if nest==0:
             del self.d_out[:]
+            # create a copy of each input variable
             for i,d in enumerate(self.d_in):
                 self.d_out.append(copy.deepcopy(d))
+                # TODO- make it so don't deepcopy eveything. deal with nesting!
                 #self.d_out.append(copy.copy(d))
+                
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 # duplicate placeholder list in case output_name is a new variable
-                f_out[self.output_name]=copy.copy(f_in[self.input_name])
+                if nest==0:
+                    print("nest={0} deep copying in[{1}] to out[{2}]".format(nest,self.input_name,self.output_name))
+                    f_out[self.output_name]=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name][nest]=self.my_eval(X)
-            else:
+            elif nest==0:
+                # don't need to eval the est data for each nest, just the first one
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
 

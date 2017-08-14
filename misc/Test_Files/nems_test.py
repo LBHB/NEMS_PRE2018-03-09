@@ -62,7 +62,7 @@ modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 #cellid="BOL006b-11-1"
 cellid="eno051h-b1"
 batch=293
-modelname="parm50_wc01_fir15_pupwgt_fit01_nested5"
+modelname="parm50_wc01_fir15_pupwgt_fit01_nested2"
 #modelname="parm50_wc01_fir15_pupwgt_fit01"
 
 # following is equivalent of --
@@ -76,8 +76,10 @@ else:
     stack.meta['batch']=batch
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
+    stack.valmode=False
     
-    # extract keywords from modelname    
+    # extract keywords from modelname, look up relevant functions in nk and save
+    # so they don't have to be found again.
     stack.keywords=modelname.split("_")
     stack.keyfun={}
     for k in stack.keywords:
@@ -88,15 +90,15 @@ else:
             except:
                 pass
         stack.keyfun[k]=f
-    
-    
+
+    # evaluate the stack of keywords    
     if 'nested' in stack.keywords[-1]:
+        # special case for nested keywords. fix this somehow
         print('Using nested cross-validation, fitting will take longer!')
         k=stack.keywords[-1]
         stack.keyfun[k](stack)
     else:
         print('Using standard est/val conditions')
-        stack.valmode=False
         for k in stack.keywords:
             stack.keyfun[k](stack)
 #        for k in stack.keywords:
