@@ -1055,6 +1055,41 @@ $(document).ready(function(){
         });
     }
 
+    $("#reloadScripts").on('click', reloadScripts);
+    function reloadScripts(){
+        // call scan_for_scripts again in python then,
+        // then repopulate the select element with new list
+        $.ajax({
+            url: $SCRIPT_ROOT + '/reload_scripts',
+            data: {},
+            type: 'GET',
+            success: function(data){
+                scripts = $("#customSelector");
+                scripts.empty();
+
+                $.each(data.scriptlist, function(sName){
+                    scripts.append($("<option></option>")
+                        .attr("value", data.scriptlist[sName])
+                        .attr("name", "scriptOption[]")
+                        .text(data.scriptlist[sName])
+                        );
+                });
+            },
+            error: function(error){
+                console.log(error)
+            }
+        })
+            var models = $("#modelSelector");
+                models.empty();
+                             
+                $.each(data.modellist, function(modelname) {
+                    models.append($("<option></option>")
+                        .attr("value", data.modellist[modelname])
+                        .attr("name","modelOption[]")
+                        .text(data.modellist[modelname]));
+                });
+    }
+
              
     $("#batchPerformance").on('click', batchPerformance);
     function batchPerformance(){

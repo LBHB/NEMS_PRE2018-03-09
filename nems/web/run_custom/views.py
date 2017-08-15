@@ -4,6 +4,7 @@ import importlib
 
 from flask import request, jsonify
 from nems.web.nems_analysis import app
+from nems.web.run_custom.script_utils import scan_for_scripts
 
 @app.route('/run_custom')
 def run_custom():
@@ -29,3 +30,9 @@ def run_custom():
                 html="Script: {0} has no html output to display"
                 .format(script_name)
                 )
+        
+@app.route('/reload_scripts')
+def reload_scripts():
+    scriptlist = scan_for_scripts()
+    return jsonify(scriptlist=scriptlist)
+    
