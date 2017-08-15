@@ -14,7 +14,7 @@ class UI_OPTIONS():
     # specifies which columns from narf results can be used to quantify
     # performance for plots
     measurelist = [
-            'r_ceiling', 'r_test', 'r_fit', 'r_active', 'mse_test',
+            'r_test' , 'r_ceiling', 'r_fit', 'r_active', 'mse_test',
             'mse_fit', 'mi_test', 'mi_fit', 'nlogl_test',
             'nlogl_fit', 'cohere_test', 'cohere_fit',
             ]

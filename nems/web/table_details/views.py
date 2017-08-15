@@ -1,7 +1,7 @@
 from flask import redirect, Response, url_for, render_template
 
 from nems.web.nems_analysis import app
-import nems.keywords as nk
+import nems.keyword as nk
 from nems.db import Session, gCellMaster
 import pkgutil as pk
 
