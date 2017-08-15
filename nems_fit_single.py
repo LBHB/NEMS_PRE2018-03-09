@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script runs nems_main.fit_single_model from the command line
 
