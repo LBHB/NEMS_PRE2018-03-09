@@ -597,30 +597,46 @@ def stretch_trials(data):
     (time,trials,stimuli). These are the configurations used in the default 
     loading module nems.modules.load_mat
     """
-    r=data['repcount']
-    s=copy.deepcopy(data['resp'].shape)
-    resp=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='F'),(1,0))
+    #r=data['repcount']
+    s=data['resp'].shape # time X rep X stim
+    
+    # stack each rep on top of each other
+    resp=np.transpose(data['resp'],(0,2,1)) # time X stim X rep
+    resp=np.transpose(np.reshape(resp,(s[0],s[1]*s[2]),order='F'),(1,0))
+    
     #data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
-    mask=np.logical_not(npma.getmask(npma.masked_invalid(resp)))
-    R=resp[mask]
-    resp=np.reshape(R,(-1,s[0]),order='C')
+    #mask=np.logical_not(npma.getmask(npma.masked_invalid(resp)))
+    #R=resp[mask]
+    #resp=np.reshape(R,(-1,s[0]),order='C')
     try:
-        pupil=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='F'),(1,0))
-        P=pupil[mask]
-        pupil=np.reshape(P,(-1,s[0]),order='C')
+        # stack each rep on top of each other -- identical to resp
+        pupil=np.transpose(data['pupil'],(0,2,1))
+        pupil=np.transpose(np.reshape(pupil,(s[0],s[1]*s[2]),order='F'),(1,0))
+        #P=pupil[mask]
+        #pupil=np.reshape(P,(-1,s[0]),order='C')
         #data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
     except ValueError:
         pupil=None
-    Y=data['stim'][:,0,:]
-    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
-    for i in range(1,s[2]):
-        Y=data['stim'][:,i,:]
-        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
-        stim=np.append(stim,Y,axis=1)
-    lis=[]
-    for i in range(0,r.shape[0]):
-        lis.extend([i]*data['repcount'][i])
-    replist=np.array(lis)
+        
+    # copy stimulus as many times as there are repeats -- same stacking as resp??
+    stim=np.repeat(data['stim'],s[1],axis=1)
+    
+    # construct list of which stimulus idx was played on each trial
+    # should be able to do this much more simply!
+    lis=np.mat(np.arange(s[2])).transpose()
+    replist=np.repeat(lis,s[1],axis=1)
+    replist=np.reshape(replist.transpose(),(1,-1))
+    
+#    Y=data['stim'][:,0,:]
+#    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
+#    for i in range(1,s[2]):
+#        Y=data['stim'][:,i,:]
+#        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
+#        stim=np.append(stim,Y,axis=1)
+#    lis=[]
+#    for i in range(0,r.shape[0]):
+#        lis.extend([i]*data['repcount'][i])
+#    replist=np.array(lis)
     return stim, resp, pupil, replist
 
 

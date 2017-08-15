@@ -87,7 +87,7 @@ class pupgain(nems_module):
         SVD mod: shuffle pupil, keep same number of parameters for proper control
         """
         s=Xp.shape
-        n=np.int(np.ceil(s[0]/4))
+        n=np.int(np.ceil(s[0]/2))
         #print(s)
         #print(n)
         #print(Xp.shape)
