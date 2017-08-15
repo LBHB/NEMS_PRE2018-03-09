@@ -61,7 +61,8 @@ class pupgain(nems_module):
     gain_type='linpupgain'
     plot_fns=[nu.state_act_scatter_smooth,nu.pre_post_psth,nu.pred_act_psth_all,nu.non_plot]
     
-    def my_init(self,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
+    def my_init(self,input_name="stim",output_name="stim",state_var="pupil",
+                gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
                 order=None):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
@@ -86,7 +87,7 @@ class pupgain(nems_module):
         SVD mod: shuffle pupil, keep same number of parameters for proper control
         """
         s=Xp.shape
-        n=np.int(np.ceil(s[0]/2))
+        n=np.int(np.ceil(s[0]/4))
         #print(s)
         #print(n)
         #print(Xp.shape)

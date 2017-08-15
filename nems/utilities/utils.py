@@ -498,7 +498,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
             lis.extend([i]*reps[i])
     ids=lis[idi]
     b=np.nanmean(pup[:,:,ids],axis=0)
-    np.nan_to_num(b,copy=False)
+    b=np.nan_to_num(b)
     bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
     bc=bc[:,1]
     resp[:,:,ids]=resp[:,bc,ids]
@@ -546,37 +546,31 @@ def concatenate_helper(stack,start=1,**kwargs):
         #print(len(stack.data[k]))
         for n in range(0,len(stack.data[k])):
             #print('start loop 2')
-            try:
-                if stack.data[k][n]['est'] is False:
-                    #print('concatenating')
-                    if stack.data[k][n]['stim'][0].ndim==3:
-                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
-                    else:
-                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
-                    stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
-                    try:
-                        if stack.data[k][n]['stim2'][0].ndim==3:
-                            stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=1)
-                        else:
-                            stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=0)
-                    except ValueError:
-                        pass    
-                    try:
-                        stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
-                    except ValueError:
-                        stack.data[k][n]['pupil']=None
-                    try:
-                        stack.data[k][n]['replist']=np.concatenate(stack.data[k][n]['replist'],axis=0)
-                    except ValueError:
-                        stack.data[k][n]['replist']=[]
-                    try:
-                        stack.data[k][n]['repcount']=np.concatenate(stack.data[k][n]['repcount'],axis=0)
-                    except ValueError:
-                        pass
-                        #stack.data[k][n]['repcount']=stack.data[k][n]['repcount']
+            if stack.data[k][n]['est'] is False:
+                #print('concatenating')
+                if stack.data[k][n]['stim'][0].ndim==3:
+                    stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
                 else:
+                    stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
+                stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
+                try:
+                    stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
+                except ValueError:
+                    stack.data[k][n]['pupil']=None
+                try:
+                    stack.data[k][n]['replist']=np.concatenate(stack.data[k][n]['replist'],axis=0)
+                except ValueError:
+                    stack.data[k][n]['replist']=[]
+                try:
+                    stack.data[k][n]['repcount']=np.concatenate(stack.data[k][n]['repcount'],axis=0)
+                except ValueError:
                     pass
-            except:
+                if 'stim2' in stack.data[k][n]:
+                    if stack.data[k][n]['stim2'][0].ndim==3:
+                        stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=1)
+                    else:
+                        stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=0)
+            else:
                 pass
             
 def thresh_resamp(data,resamp_factor,thresh=0,ax=0):
