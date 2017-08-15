@@ -7,7 +7,7 @@ the plot should also open on its own in a web browser when the function is run.
 
 """
 
-import nems.web.run_custom.demo_script as demo
+import nems_scripts.demo_script as demo
 # This information would normally be passed by the web interface,
 # but it can also be specified manually.
 argsdict = {
@@ -16,8 +16,10 @@ argsdict = {
                     'fb18ch100_wc01_stp1pc_fir15_dexp_fititer00'
                     ],
         'cells' : ['bbl031f-a1', 'bbl034e-a1', 'bbl034e-a2', 'bbl036e-a1',
-                   'bbl036e-a2', 'bbl038f-a1', 'bbl038f-a2'
+                   'bbl036e-a2', 'bbl038f-a1', 'bbl038f-a2', 'bbl041e-a1',
+                   'bbl041e-a2',
                    ],
+        # currently not working with onlyFair turned on.
         'onlyFair' : False,
         'includeOutliers' : False,
         'snr' : 0.0,
