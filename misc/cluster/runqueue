@@ -30,7 +30,7 @@ if [ "$DOMAIN" == "us-west-2.compute.internal" ] ;
 then
   DBSERVER="kamzik.org"
   DBPORT="19555"
-  QUEUEOUTPATH="/auto/data/web/celldb/queue"
+  QUEUEOUTPATH="/auto/nems/queue"
 else
   DBSERVER="hyrax"
   DBPORT="3306"

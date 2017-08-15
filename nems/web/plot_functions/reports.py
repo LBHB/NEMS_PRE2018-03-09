@@ -13,7 +13,7 @@ from bokeh.models import (
 from bokeh.charts import HeatMap
 
 
-class Status_Report():
+class Performance_Report():
     def __init__(self, data, batch):
         self.data = data
         self.batch = batch
@@ -21,7 +21,7 @@ class Status_Report():
     def generate_plot(self):
         tools = [
                 PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
-                ResetTool(), self.create_hover()
+                ResetTool(), HoverTool()
                 ]
         p = HeatMap(self.data, x='cellid', y='modelname', values='r_test',
                     stat=None, title=str(self.batch), hover_text='r_test',
@@ -32,6 +32,23 @@ class Status_Report():
         
         self.script, self.div = components(p)
     
-    def create_hover(self):
-
-        return HoverTool()
+class Fit_Report():
+    def __init__(self, data):
+        self.data = data
+        
+    def generate_plot(self):
+        tools = [
+                PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
+                ResetTool(), HoverTool(tooltips=[
+                        ('modelname','$x'), ('cellid','$y'), ('status','@yn')
+                        ])
+                ]
+        p = HeatMap(
+                self.data, x='modelname', y='cellid', values='yn',
+                stat=None, tools=tools, responsive=True, hover_text='yn',
+                )
+        p.yaxis.visible = False
+        p.xaxis.visible = False
+        
+        self.script, self.div = components(p)
+        

@@ -619,7 +619,9 @@ def stretch_trials(data):
         pupil=None
         
     # copy stimulus as many times as there are repeats -- same stacking as resp??
-    stim=np.repeat(data['stim'],s[1],axis=1)
+    stim=data['stim']
+    for i in range(1,s[1]):
+        stim=np.concatenate((stim,data['stim']),axis=1)
     
     # construct list of which stimulus idx was played on each trial
     # should be able to do this much more simply!
