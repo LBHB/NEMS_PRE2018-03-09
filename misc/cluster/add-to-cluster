@@ -1,0 +1,8 @@
+#!/bin/bash
+INTERFACE=`/sbin/ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d'`
+IPADDRESS=`/sbin/ifconfig $INTERFACE | grep "inet " | awk -F'[: ]+' '{ print $4 }'`
+echo "adding $PUBLICIP to cluster"
+
+mysql --host=kamzik.org --port=19555 --database=cell -udavid -pnine1997 \
+   --execute="REPLACE INTO tComputer (name,ext,owner,allowqueuemaster) values ('$IPADDRESS','ohsu','aws',0)"
+
