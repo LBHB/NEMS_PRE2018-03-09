@@ -36,15 +36,17 @@ class model(nems_module):
             Xa=f_in['avgresp']
             if f_in['est'] is False:
                 R=f_in['replist'][nest]
-                X=np.zeros(f_in['resp'][nest].shape)
-                for i in range(0,R.shape[0]):
-                    X[i,:]=Xa[R[i],:]
+                X=np.squeeze(Xa[R,:])
+                #X=np.zeros(f_in['resp'][nest].shape)
+                #for i in range(0,R.shape[0]):
+                #    X[i,:]=Xa[R[i],:]
                 f_out['stim'][nest]=X
             else:
                 R=f_in['replist']
-                X=np.zeros(f_in['resp'].shape)
-                for i in range(0,R.shape[0]):
-                    X[i,:]=Xa[R[i],:]
+                X=np.squeeze(Xa[R,:])
+                #X=np.zeros(f_in['resp'].shape)
+                #for i in range(0,R.shape[0]):
+                #    X[i,:]=Xa[R[i],:]
                 f_out['stim']=X
                 
 class pupgain(nems_module): 

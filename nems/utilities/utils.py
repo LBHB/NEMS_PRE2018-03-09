@@ -625,7 +625,7 @@ def stretch_trials(data):
     # should be able to do this much more simply!
     lis=np.mat(np.arange(s[2])).transpose()
     replist=np.repeat(lis,s[1],axis=1)
-    replist=np.reshape(replist.transpose(),(1,-1))
+    replist=np.reshape(replist.transpose(),(-1,1))
     
 #    Y=data['stim'][:,0,:]
 #    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
