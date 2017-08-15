@@ -100,8 +100,8 @@ class load_mat(nems_module):
                                     
                 data['fs']=self.fs
                 noise_thresh=0.05
-                stim_resamp_factor=int(data['stimFs']/self.fs)
-                resp_resamp_factor=int(data['respFs']/self.fs)
+                stim_resamp_factor=int(data['stimFs']/data['fs'])
+                resp_resamp_factor=int(data['respFs']/data['fs'])
                 
                 self.parent_stack.unresampled={'resp':data['resp'],'respFs':data['respFs'],'duration':data['duration'],
                                                'poststim':data['poststim'],'prestim':data['prestim'],'pupil':data['pupil']}
