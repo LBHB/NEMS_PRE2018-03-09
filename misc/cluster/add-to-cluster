@@ -1,8 +1,13 @@
 #!/bin/bash
-INTERFACE=`/sbin/ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d'`
-IPADDRESS=`/sbin/ifconfig $INTERFACE | grep "inet " | awk -F'[: ]+' '{ print $4 }'`
-echo "adding $PUBLICIP to cluster"
+IPADDRESS=`wget -qO- http://instance-data/latest/meta-data/public-ipv4`
 
-mysql --host=kamzik.org --port=19555 --database=cell -udavid -pnine1997 \
-   --execute="REPLACE INTO tComputer (name,ext,owner,allowqueuemaster) values ('$IPADDRESS','ohsu','aws',0)"
-
+COMPUTERID=`mysql --host=kamzik.org --port=19555 --database=cell -udavid -pnine1997 -B -N \
+   --execute="SELECT id FROM tComputer where name='$IPADDRESS'"`
+if [ "$COMPUTERID" == "" ] ; 
+then
+  echo "adding $IPADDRESS to cluster"
+  mysql --host=kamzik.org --port=19555 --database=cell -udavid -pnine1997 \
+     --execute="INSERT INTO tComputer (name,ext,owner,allowqueuemaster) values ('$IPADDRESS','ohsu','aws',0)"
+else
+   echo "IP $IPADDRESS already in cluster"
+fi
