@@ -73,7 +73,10 @@ class mean_square_error(nems_module):
                 N+=f[self.input2].size
 
             if self.norm:
-                mse=E/P
+                if P>0:
+                    mse=E/P
+                else:
+                    mse=1    
             else:
                 mse=E/N
                 
@@ -194,14 +197,11 @@ class correlation(nems_module):
         
             # if running validation test, also measure r_floor
             rf=np.zeros([1000,1]) 
-            rX1=X1.copy()
-            rX2=X2.copy()
-            mm=np.min([1000,len(rX1)])
             for rr in range(0,len(rf)):
-               np.random.shuffle(rX1)
-               np.random.shuffle(rX2)
-               rf[rr],p=spstats.pearsonr(rX1[0:mm],rX2[0:mm])
-            rf=np.sort(rf,0)
+                n1=(np.random.rand(500,1)*len(X1)).astype(int)
+                n2=(np.random.rand(500,1)*len(X2)).astype(int)
+                rf[rr],p=spstats.pearsonr(X1[n1],X2[n2])
+            rf=np.sort(rf[np.isfinite(rf)],0)
             self.parent_stack.meta['r_floor']=rf[np.int(len(rf)*0.95)]
             
             return r_val

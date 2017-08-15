@@ -60,9 +60,9 @@ modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 
 # pupil gain test
 #cellid="BOL006b-11-1"
-#cellid="eno051h-b1"
-#batch=293
-#modelname="parm50_wc01_fir15_pupwgt_fit01_nested2"
+cellid="eno051h-b1"
+batch=293
+modelname="parm50_wc01_fir15_pupgain_fit01_nested5"
 
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)

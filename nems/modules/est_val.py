@@ -149,35 +149,51 @@ class crossval(nems_module):
                 self.parent_stack.cond=True
                 self.parent_stack.pre_flag=True
             except:
+                valfrac=self.valfrac
                 count=self.parent_stack.cv_counter
+                nests=self.parent_stack.nests
+                avg_resp=self.parent_stack.avg_resp
+                
                 re=d['resp'].shape
                 if re[0]<self.parent_stack.nests:
                     raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
-                spl=re[0]*self.valfrac
+                
+                spl=re[0]*valfrac
+                if self.interleave_valtrials:
+                    smax=np.int(np.ceil(spl))
+                    a=np.arange(np.ceil(spl)*nests).astype(int)
+                    a=np.reshape(a,[smax,nests])
+                    a=a.transpose()
+                    a=np.reshape(a,[smax*nests])
+                    a=a[a<re[0]]
+                else:
+                    a=np.arange(re[0]).astype(int)
+                        
                 c1=mt.floor((count)*spl)
                 c2=mt.floor((count+1)*spl)
                 print("Nest {0}, File {1}, c1-c2: {2}-{3}".format(count,i,c1,c2))
-                
+                nidx=a[c1:c2]
+                print(nidx)
                 d_est=d.copy()
                 
-                d_est['resp']=np.delete(d['resp'],np.s_[c1:c2],0)
-                d_est['stim']=np.delete(d['stim'],np.s_[c1:c2],1)
+                d_est['resp']=np.delete(d['resp'],np.s_[nidx],0)
+                d_est['stim']=np.delete(d['stim'],np.s_[nidx],1)
                 
                 if self.parent_stack.avg_resp is True:
                     try:
-                        d_est['pupil']=np.delete(d['pupil'],np.s_[c1:c2],2)
+                        d_est['pupil']=np.delete(d['pupil'],np.s_[nidx],2)
                     except TypeError:
                         print('No pupil data')
                         d_est['pupil']=[]  
-                    d_est['repcount']=np.delete(d['repcount'],np.s_[c1:c2],0)
+                    d_est['repcount']=np.delete(d['repcount'],np.s_[nidx],0)
                 else:
                     try:
-                        d_est['pupil']=np.delete(d['pupil'],np.s_[c1:c2],0)
+                        d_est['pupil']=np.delete(d['pupil'],np.s_[nidx],0)
                     except TypeError:
                         print('No pupil data')
                         d_est['pupil']=[]
                     try:
-                        d_est['replist']=np.delete(d['replist'],np.s_[c1:c2],0)
+                        d_est['replist']=np.delete(d['replist'],np.s_[nidx],0)
                     except KeyError:
                         d_est['replist']=None
                 
@@ -196,9 +212,6 @@ class crossval(nems_module):
                     d_val['replist']=[]
                     d_val['repcount']=[]
 
-                    nests=self.parent_stack.nests
-                    valfrac=self.valfrac
-                    avg_resp=self.parent_stack.avg_resp
                     import copy
                     for count in range(0,nests):
                         #print(count)
@@ -206,24 +219,26 @@ class crossval(nems_module):
                         spl=re[0]*valfrac
                         c1=mt.floor((count)*spl)
                         c2=mt.floor((count+1)*spl)
+                        nidx=a[c1:c2]
                         print("V nest {0}, File {1}, c1-c2: {2}-{3}".format(count,i,c1,c2))
+                        print(nidx)
                         if avg_resp:
                             try:
-                                d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,c1:c2]))
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,nidx]))
                             except TypeError:
                                 print('No pupil data')
                                 d_val['pupil']=[]
-                            d_val['repcount'].append(copy.deepcopy(d['repcount'][c1:c2]))
+                            d_val['repcount'].append(copy.deepcopy(d['repcount'][nidx]))
                         else:
                             try:
-                                d_val['pupil'].append(copy.deepcopy(d['pupil'][c1:c2,:]))
+                                d_val['pupil'].append(copy.deepcopy(d['pupil'][nidx,:]))
                             except TypeError:
                                 print('No pupil data')
                                 d_val['pupil']=[]
-                            d_val['replist'].append(copy.deepcopy(d['replist'][c1:c2]))
+                            d_val['replist'].append(copy.deepcopy(d['replist'][nidx]))
                             d_val['repcount']=copy.deepcopy(d['repcount'])
-                        d_val['resp'].append(copy.deepcopy(d['resp'][c1:c2,:]))
-                        d_val['stim'].append(copy.deepcopy(d['stim'][:,c1:c2,:]))
+                        d_val['resp'].append(copy.deepcopy(d['resp'][nidx,:]))
+                        d_val['stim'].append(copy.deepcopy(d['stim'][:,nidx,:]))
                         
                       
                     #TODO: this code runs if crossval allocated
