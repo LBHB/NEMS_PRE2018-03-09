@@ -1081,12 +1081,32 @@ $(document).ready(function(){
         var mSelected = $("#modelSelector").val();
         var cSelected = $("#cellSelector").val();
         
+        addLoad();
+        $.ajax({
+            url: $SCRIPT_ROOT + '/fit_report',
+            data: { bSelected:bSelected, mSelected:mSelected,
+                    cSelected:cSelected },
+            type: 'GET',
+            success: function(data){
+                $("#statusReportWrapper").html('');
+                $("#displayWrapper").html(data.html);
+                removeLoad();
+            },
+            error: function(error){
+                console.log(error);
+                removeLoad();
+            }
+        });
+
+        // submit as form for new tab
+        /*
         var formInfo = document.getElementById('fitRepForm');
         formInfo.bSelected.value = bSelected;
         formInfo.cSelected.value = cSelected;
         formInfo.mSelected.value = mSelected;
         
-        formInfo.submit();        
+        formInfo.submit();
+        */  
     }
 });
         
