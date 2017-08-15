@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt, mpld3
 import numpy as np
 
 import nems.modules as nm
-import nems.keywords as nk
+import nems.keyword as nk
 import nems.utilities.utils as nu
 import nems.main as nems
 import pkgutil as pk

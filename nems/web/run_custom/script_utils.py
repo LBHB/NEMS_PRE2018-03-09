@@ -121,7 +121,7 @@ def form_data_array(
         columns = data.columns.values.tolist()
         
     multiIndex = pd.MultiIndex.from_product(
-            [models, cells], names=['modelname','cellid'],
+            [cells, models], names=['cellid', 'modelname'],
             )
     newData = pd.DataFrame(
             index=multiIndex, columns=columns,
@@ -135,22 +135,22 @@ def form_data_array(
             'githash', 'lastmod', 'score', 'sparsity', 'modelpath', 'modelfile',
             'username', 'labgroup', 'public',
             ]
-    for m in models:
-        for c in cells:
-            dataRow = data.loc[(data.modelname == m) & (data.cellid == c)]
+    for c in cells:
+        for m in models:
+            dataRow = data.loc[(data.cellid == c) & (data.modelname == m)]
             
             # if col is in the non_comp list, just copy the value if it exists
             # then move on to the next iteration.
             for col in columns:
                 if col in non_comp_columns:
                     try:
-                        newData[col].loc[m,c] = dataRow[col].values.tolist()[0]
+                        newData[col].loc[c,m] = dataRow[col].values.tolist()[0]
                         continue
                     except:
-                        newData[col].loc[m,c] = np.nan
+                        newData[col].loc[c,m] = np.nan
                         continue
                 value = np.nan 
-                newData[col].loc[m,c] = value
+                newData[col].loc[c,m] = value
                 # If loop hits a continue, value will be left as NaN.
                 # Otherwise, will be assigned a value from data 
                 # after passing all checks.
@@ -222,20 +222,20 @@ def form_data_array(
                 # If value existed and passed outlier checks,
                 # re-assign it to the proper DataFrame position
                 # to overwrite the NaN value.
-                newData[col].loc[m,c] = value
+                newData[col].loc[c,m] = value
 
     if only_fair:
         # If fair is checked, drop all rows that contain a NaN value for
-        # any column.
-        for m in models:
-            for c in cells:
-                if newData.loc[m,c].isnull().values.any():
-                    newData.drop(m, level='modelname', inplace=True)
+        # every column.
+        for c in cells:
+            for m in models:
+                if newData.loc[c,m].isnull().values.all():
+                    newData.drop(c, level='cellid', inplace=True)
                     break
         
 
     # Swap the 0th and 1st levels so that modelname is the primary index,
     # since most plots group by model.
-    #newData = newData.swaplevel(i=0, j=1, axis=0)
+    newData = newData.swaplevel(i=0, j=1, axis=0)
 
     return newData
