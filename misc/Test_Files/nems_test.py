@@ -65,9 +65,9 @@ batch=293
 modelname="parm50_wc01_fir15_pupgain_fit01_nested2"
 
 
-#cellid="eno052d-a1"
-#batch=294
-#modelname="perfectpupil50_pupgain_fit01_nested5"
+cellid="eno023c-c1"
+batch=294
+modelname="perfectpupil50_pupgain_fit01_nested5"
 
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)

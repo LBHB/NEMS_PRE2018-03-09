@@ -58,19 +58,28 @@ class mean_square_error(nems_module):
                 mse=mE
                 
         else:
-            E=np.zeros([1,1])
-            P=np.zeros([1,1])
-            N=0
-            for f in self.d_out:
-                #try:
-                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-                P+=np.sum(np.square(f[self.input2]))
-                #except TypeError:
-                    #print('error eval')
-                    #nu.concatenate_helper(self.parent_stack)
-                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-                    #P+=np.sum(np.square(f[self.input2]))
-                N+=f[self.input2].size
+            X1=self.unpack_data(self.input1,est=True)            
+            X2=self.unpack_data(self.input2,est=True)
+            keepidx=np.isfinite(X1) * np.isfinite(X2)
+            X1=X1[keepidx]
+            X2=X2[keepidx]
+            E=np.sum(np.square(X1-X2))
+            P=np.sum(X2*X2)
+            N=X1.size
+            
+#            E=np.zeros([1,1])
+#            P=np.zeros([1,1])
+#            N=0
+#            for f in self.d_out:
+#                #try:
+#                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+#                P+=np.sum(np.square(f[self.input2]))
+#                #except TypeError:
+#                    #print('error eval')
+#                    #nu.concatenate_helper(self.parent_stack)
+#                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+#                    #P+=np.sum(np.square(f[self.input2]))
+#                N+=f[self.input2].size
 
             if self.norm:
                 if P>0:
@@ -80,13 +89,28 @@ class mean_square_error(nems_module):
             else:
                 mse=E/N
                 
-        if self.parent_stack.valmode is True:   
-            self.mse_val=mse
-            self.parent_stack.meta['mse_val']=mse
-        else:
             self.mse_est=mse
-            self.parent_stack.meta['mse_est']=mse
-        
+            self.parent_stack.meta['mse_est']=[mse]
+                
+            if self.parent_stack.valmode is True:   
+                X1=self.unpack_data(self.input1,est=False)            
+                X2=self.unpack_data(self.input2,est=False)
+                keepidx=np.isfinite(X1) * np.isfinite(X2)
+                X1=X1[keepidx]
+                X2=X2[keepidx]
+                E=np.sum(np.square(X1-X2))
+                P=np.sum(X2*X2)
+                N=X1.size
+    
+                if self.norm:
+                    if P>0:
+                        mse=E/P
+                    else:
+                        mse=1    
+                else:
+                    mse=E/N
+                self.mse_val=mse
+                self.parent_stack.meta['mse_val']=mse
         
         return mse
 
@@ -181,19 +205,25 @@ class correlation(nems_module):
 
         X1=self.unpack_data(self.input1,est=True)            
         X2=self.unpack_data(self.input2,est=True)
+        keepidx=np.isfinite(X1) * np.isfinite(X2)
+        X1=X1[keepidx]
+        X2=X2[keepidx]
         r_est,p=spstats.pearsonr(X1,X2)
         self.r_est=r_est
-        self.parent_stack.meta['r_est']=r_est
+        self.parent_stack.meta['r_est']=[r_est]
         
         X1=self.unpack_data(self.input1,est=False)            
         if X1.size:
             X2=self.unpack_data(self.input2,est=False)
+            keepidx=np.isfinite(X1) * np.isfinite(X2)
+            X1=X1[keepidx]
+            X2=X2[keepidx]
             if not X1.sum() or not X2.sum():
                 r_val=np.zeros(1)
             else:
                 r_val,p=spstats.pearsonr(X1,X2)
             self.r_val=r_val
-            self.parent_stack.meta['r_val']=r_val
+            self.parent_stack.meta['r_val']=[r_val]
         
             # if running validation test, also measure r_floor
             rf=np.zeros([1000,1]) 
@@ -202,8 +232,8 @@ class correlation(nems_module):
                 n2=(np.random.rand(500,1)*len(X2)).astype(int)
                 rf[rr],p=spstats.pearsonr(X1[n1],X2[n2])
             rf=np.sort(rf[np.isfinite(rf)],0)
-            self.parent_stack.meta['r_floor']=rf[np.int(len(rf)*0.95)]
+            self.parent_stack.meta['r_floor']=[rf[np.int(len(rf)*0.95)]]
             
-            return r_val
+            return [r_val]
         else:
-            return (r_est)
+            return [r_est]
