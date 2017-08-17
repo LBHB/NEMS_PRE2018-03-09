@@ -106,13 +106,13 @@ def fit_report():
         try:
             complete = qdata.loc[qdata['note'] == notes[i], 'complete'].iloc[0]
             if complete < 0:
-                yn = 2 # in progress
+                yn = 4 # in progress
             elif complete == 0:
-                yn = 1 # not started
+                yn = 5 # not started
             elif complete == 1:
-                yn = 0 # finished
+                yn = 6# finished
             elif complete == 2:
-                yn = 6 # dead entry
+                yn = 0 # dead entry
             else:
                 pass # unknown value, so leave as missing?
         except:
@@ -123,7 +123,7 @@ def fit_report():
                         & (results['modelname'] == t[2]),
                         'cellid'
                         ].iloc[0]
-                yn = 0
+                yn = 6
             except:
                 pass
         status['yn'].loc[t[2],t[0]] = yn

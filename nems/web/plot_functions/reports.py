@@ -5,6 +5,7 @@ been separated here.
 
 """
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt, mpld3
 import seaborn as sns
 
@@ -56,9 +57,10 @@ class Fit_Report():
         #self.script, self.div = components(p)
         
         p = plt.figure()
-        
-        sns.set_palette(sns.color_palette('RdBu_r', 7))
-        ax = sns.heatmap(self.data, vmin=0, vmax=6, center=3, annot=False)
+        ax = sns.heatmap(
+                self.data, vmin=0, vmax=6, center=3, annot=False,
+                cmap=mpl.cm.get_cmap('RdBu'),
+                )
         ax.tick_params(axis='both', which='major', labelsize=8)
         ax.tick_params(axis='both', which='minor', labelsize=8)
         ax.set_ylabel('')
@@ -67,8 +69,8 @@ class Fit_Report():
         cbar = ax.collections[0].colorbar
         cbar.set_ticks([0,1,2,3,4,5,6])
         cbar.set_ticklabels([
-                'Complete','Not Started','In Progress', 'Missing',
-                '', '', 'Dead'
+                'Dead', '', '', 'Missing', 'In Progress', 'Not Started',
+                'Complete',
                 ])
         
         html = mpld3.fig_to_html(p)
