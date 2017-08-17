@@ -61,10 +61,11 @@ class Fit_Report():
                 self.data, vmin=0, vmax=6, center=3, annot=False,
                 cmap=mpl.cm.get_cmap('RdBu'),
                 )
-        ax.tick_params(axis='both', which='major', labelsize=8)
-        ax.tick_params(axis='both', which='minor', labelsize=8)
+        #ax.tick_params(axis='both', which='major', labelsize=8)
+        #ax.tick_params(axis='both', which='minor', labelsize=8)
         ax.set_ylabel('')
         ax.set_xlabel('Model')
+        ax.set_yticklabels(self.data.index.values.tolist(), fontsize=6)
         ax.set_xticklabels(range(len(self.data.columns.tolist())))
         cbar = ax.collections[0].colorbar
         cbar.set_ticks([0,1,2,3,4,5,6])
