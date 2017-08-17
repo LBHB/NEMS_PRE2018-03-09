@@ -141,18 +141,18 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
                         cell, batch, model, force_rerun, user,
                         session, cluster_session,
                         )
-            if not queueid:
-                pass_fail.append(
-                        '\nFailure: {0}, {1}, {2}'
-                        .format(cell, batch, model)
-                        )
-            else:
+            if queueid:
                 pass_fail.append(
                         '\n queueid: {0},'
                         '\n message: {1}'
                         .format(queueid, message)
                         )
-    
+            else:
+                pass_fail.append(
+                        '\nFailure: {0}, {1}, {2}'
+                        .format(cell, batch, model)
+                        )
+                
     # Can return pass_fail instead if prefer to do something with it in views
     print('\n'.join(pass_fail))
     
@@ -213,9 +213,6 @@ def enqueue_single_model(
             .first()
             )
     
-    # if it does, check its 'complete' status and take different action based on
-    # status
-    
     job = None
     message = None
     
@@ -251,14 +248,12 @@ def enqueue_single_model(
         message = "Adding job to queue for: %s\n"%note
         job = add_model_to_queue(commandPrompt, note, user)
         cluster_session.add(job)
-    
+        
+    cluster_session.commit()
     queueid = job.id
     
-    # don't need to commit the regular session since results don't change
-    cluster_session.commit()
-    
     if AWS:
-        # TODO: turn this back on after automated cluster management is
+        # TODO: turn this back on if/when automated cluster management is
         #       implemented.
         pass
         #check_instance_count()

@@ -6,6 +6,7 @@ Contents so far:
 """
 
 import time
+import itertools
 
 import pandas.io.sql as psql
 import pandas as pd
@@ -78,6 +79,71 @@ def fit_report():
     # TODO: the nested queries are causing the majority of the sluggishness,
     #       especially the cluster_session queries since they have to route
     #       through bhangra. need to figure out a way to do this with 1 query.
+    tuples = list(itertools.product(cSelected, [bSelected], mSelected))
+    notes = ['{0}/{1}/{2}'.format(t[0],t[1],t[2]) for t in tuples]
+    
+    qdata = psql.read_sql_query(
+            cluster_session.query(cluster_tQueue)
+            .filter(cluster_tQueue.note.in_(notes))
+            .statement,
+            cluster_session.bind,
+            )
+
+    results = psql.read_sql_query(
+            session.query(
+                    NarfResults.cellid, NarfResults.batch,
+                    NarfResults.modelname,
+                    )
+            .filter(NarfResults.batch == bSelected)
+            .filter(NarfResults.cellid.in_(cSelected))
+            .filter(NarfResults.modelname.in_(mSelected))
+            .statement,
+            session.bind
+            )
+
+    for i, t in enumerate(tuples):
+        yn = 3 # missing
+        try:
+            complete = qdata.loc[qdata['note'] == notes[i], 'complete'].iloc[0]
+            if complete < 0:
+                yn = 2 # in progress
+            elif complete == 0:
+                yn = 1 # not started
+            elif complete == 1:
+                yn = 0 # finished
+            elif complete == 2:
+                yn = 6 # dead entry
+            else:
+                pass # unknown value, so leave as missing?
+        except:
+            try:
+                result = results.loc[
+                        (results['cellid'] == t[0])
+                        & (results['batch'] == int(t[1]))
+                        & (results['modelname'] == t[2]),
+                        'cellid'
+                        ].iloc[0]
+                yn = 0
+            except:
+                pass
+        status['yn'].loc[t[2],t[0]] = yn
+    
+    status.reset_index(inplace=True)
+    status = status.pivot(index='cellid', columns='modelname', values='yn')
+    status = status[status.columns].astype(int)
+    report = Fit_Report(status)
+    report.generate_plot()
+    
+    session.close()
+    cluster_session.close()
+    return jsonify(
+            html=(report.html)
+            )
+                    
+    
+    # leaving this here until new implementation (above) has been tested some
+    # more, but shouldn't need this as long as it continues to work.
+    """
     for model in mSelected:
         for cell in cSelected:
             yn = 3 # missing
@@ -123,19 +189,7 @@ def fit_report():
                     pass
                 
             status['yn'].loc[model,cell] = yn
-    
-    status.reset_index(inplace=True)
-    status = status.pivot(index='cellid', columns='modelname', values='yn')
-    status = status[status.columns].astype(int)
-    report = Fit_Report(status)
-    report.generate_plot()
-    
-    session.close()
-    cluster_session.close()
-    return jsonify(
-            html=(report.html)
-            )
-                    
+    """
                     
     
     
