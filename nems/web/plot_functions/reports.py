@@ -5,6 +5,9 @@ been separated here.
 
 """
 
+import matplotlib.pyplot as plt, mpld3
+import seaborn as sns
+
 from bokeh.embed import components
 from bokeh.models import (
         HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
@@ -37,18 +40,37 @@ class Fit_Report():
         self.data = data
         
     def generate_plot(self):
-        tools = [
-                PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
-                ResetTool(), HoverTool(tooltips=[
-                        ('modelname','$x'), ('cellid','$y'), ('status','@yn')
-                        ])
-                ]
-        p = HeatMap(
-                self.data, x='modelname', y='cellid', values='yn',
-                stat=None, tools=tools, responsive=True, hover_text='yn',
-                )
-        p.yaxis.visible = False
-        p.xaxis.visible = False
+        #tools = [
+        #        PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
+        #        ResetTool(), HoverTool(tooltips=[
+        #                ('modelname','$x'), ('cellid','$y'), ('status','@yn')
+        #                ])
+        #        ]
+        #p = HeatMap(
+        #        self.data, x='modelname', y='cellid', values='yn',
+        #        stat=None, tools=tools, responsive=True, hover_text='yn',
+        #        )
+        #p.yaxis.visible = False
+        #p.xaxis.visible = False
+        #
+        #self.script, self.div = components(p)
         
-        self.script, self.div = components(p)
+        p = plt.figure()
         
+        sns.set_palette(sns.color_palette('RdBu_r', 7))
+        ax = sns.heatmap(self.data, vmin=0, vmax=6, center=3, annot=False)
+        ax.tick_params(axis='both', which='major', labelsize=8)
+        ax.tick_params(axis='both', which='minor', labelsize=8)
+        ax.set_ylabel('')
+        ax.set_xlabel('Model')
+        ax.set_xticklabels(range(len(self.data.columns.tolist())))
+        cbar = ax.collections[0].colorbar
+        cbar.set_ticks([0,1,2,3,4,5,6])
+        cbar.set_ticklabels([
+                'Complete','Not Started','In Progress', 'Missing',
+                '', '', 'Dead'
+                ])
+        
+        html = mpld3.fig_to_html(p)
+        plt.close(p)
+        self.html = html

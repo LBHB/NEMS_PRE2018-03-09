@@ -80,7 +80,7 @@ def fit_report():
     #       through bhangra. need to figure out a way to do this with 1 query.
     for model in mSelected:
         for cell in cSelected:
-            yn = -2
+            yn = 3 # missing
             note = "%s/%s/%s"%(cell, bSelected, model)
             #start = time.time()
             qdata = (
@@ -91,9 +91,23 @@ def fit_report():
             #end = time.time()
             #print('elapsed time for qdata query: %s s'%(end-start))
             if qdata:
-                yn = int(qdata.complete)
+                # The values are changed around here to make the color spread
+                # of the heatmap follow a logical progression.
+                # They should not be confused with the actual values of the
+                # 'complete' column in tQueue.
+                # -Jacob, 8/17/2017
+                if qdata.complete < 0:
+                    yn = 2 # in progress
+                elif qdata.complete == 0:
+                    yn = 1 # not yet started
+                elif qdata.complete == 1:
+                    yn = 0 # finished
+                elif qdata.complete == 2:
+                    yn = 6 # dead entry
+                else:
+                    pass # unknown value, so leave as missing?
+            #start = time.time()
             else:
-                #start = time.time()
                 result = (
                         session.query(NarfResults)
                         .filter(NarfResults.batch == bSelected)
@@ -104,20 +118,22 @@ def fit_report():
                 #end = time.time()
                 #print('elapsed time for results query: %s s'%(end-start))
                 if result:
-                    yn = 3
+                    yn = 0 # finished
                 else:
                     pass
                 
             status['yn'].loc[model,cell] = yn
     
     status.reset_index(inplace=True)
+    status = status.pivot(index='cellid', columns='modelname', values='yn')
+    status = status[status.columns].astype(int)
     report = Fit_Report(status)
     report.generate_plot()
     
     session.close()
     cluster_session.close()
     return jsonify(
-            html=(report.script + report.div)
+            html=(report.html)
             )
                     
                     
