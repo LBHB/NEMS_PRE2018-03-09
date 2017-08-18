@@ -1124,7 +1124,10 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data){
                 $("#statusReportWrapper").html('');
-                $("#displayWrapper").html(data.html);
+                $("#displayWrapper").html(
+                        '<img id="preview_image" src="data:image/png;base64,'
+                        + data.image + '" />'
+                        );
                 removeLoad();
             },
             error: function(error){

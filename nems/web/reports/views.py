@@ -7,6 +7,7 @@ Contents so far:
 
 import time
 import itertools
+from base64 import b64encode
 
 import pandas.io.sql as psql
 import pandas as pd
@@ -102,15 +103,15 @@ def fit_report():
             )
 
     for i, t in enumerate(tuples):
-        yn = 3 # missing
+        yn = 0.3 # missing
         try:
             complete = qdata.loc[qdata['note'] == notes[i], 'complete'].iloc[0]
             if complete < 0:
-                yn = 4 # in progress
+                yn = 0.4 # in progress
             elif complete == 0:
-                yn = 5 # not started
+                yn = 0.5 # not started
             elif complete == 1:
-                yn = 6# finished
+                yn = 0.6# finished
             elif complete == 2:
                 yn = 0 # dead entry
             else:
@@ -123,73 +124,23 @@ def fit_report():
                         & (results['modelname'] == t[2]),
                         'cellid'
                         ].iloc[0]
-                yn = 6
+                yn = 0.6
             except:
                 pass
         status['yn'].loc[t[2],t[0]] = yn
     
     status.reset_index(inplace=True)
     status = status.pivot(index='cellid', columns='modelname', values='yn')
-    status = status[status.columns].astype(int)
+    status = status[status.columns].astype(float)
     report = Fit_Report(status)
     report.generate_plot()
     
     session.close()
     cluster_session.close()
-    return jsonify(
-            html=(report.html)
-            )
-                    
     
-    # leaving this here until new implementation (above) has been tested some
-    # more, but shouldn't need this as long as it continues to work.
-    """
-    for model in mSelected:
-        for cell in cSelected:
-            yn = 3 # missing
-            note = "%s/%s/%s"%(cell, bSelected, model)
-            #start = time.time()
-            qdata = (
-                    cluster_session.query(cluster_tQueue)
-                    .filter(cluster_tQueue.note == note)
-                    .first()
-                    )
-            #end = time.time()
-            #print('elapsed time for qdata query: %s s'%(end-start))
-            if qdata:
-                # The values are changed around here to make the color spread
-                # of the heatmap follow a logical progression.
-                # They should not be confused with the actual values of the
-                # 'complete' column in tQueue.
-                # -Jacob, 8/17/2017
-                if qdata.complete < 0:
-                    yn = 2 # in progress
-                elif qdata.complete == 0:
-                    yn = 1 # not yet started
-                elif qdata.complete == 1:
-                    yn = 0 # finished
-                elif qdata.complete == 2:
-                    yn = 6 # dead entry
-                else:
-                    pass # unknown value, so leave as missing?
-            #start = time.time()
-            else:
-                result = (
-                        session.query(NarfResults)
-                        .filter(NarfResults.batch == bSelected)
-                        .filter(NarfResults.cellid == cell)
-                        .filter(NarfResults.modelname == model)
-                        .first()
-                        )
-                #end = time.time()
-                #print('elapsed time for results query: %s s'%(end-start))
-                if result:
-                    yn = 0 # finished
-                else:
-                    pass
-                
-            status['yn'].loc[model,cell] = yn
-    """
+    image = str(b64encode(report.img_str))[2:-1]
+    return jsonify(image=image)
+    
                     
     
     
