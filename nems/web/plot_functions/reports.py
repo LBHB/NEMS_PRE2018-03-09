@@ -74,7 +74,7 @@ class Fit_Report():
         ax.set_xticklabels(xticks, fontsize=8)
         ax.set_yticks(minor_yticks, minor=True)
         ax.set_xticks(minor_xticks, minor=True)
-        ax.grid(None)
+        ax.grid(b=False)
         ax.grid(which='minor', color='w', linestyle='-', linewidth=0.75)
         cbar = plt.colorbar()
         cbar.set_ticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
