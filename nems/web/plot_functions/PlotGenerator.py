@@ -411,6 +411,12 @@ class Bar_Plot(PlotGenerator):
                 <span class="hover-tooltip">mean: @mean</span>
             </div>
             <div>
+                <span class="hover-tooltip">median: @median</span>
+            </div>
+            <div>
+                <span class="hover-tooltip">n cells: @n_cells</span>
+            </div>
+            <div>
                 <span class="hover-tooltip">stdev: @stdev</span>
             </div>
             """
@@ -447,21 +453,27 @@ class Bar_Plot(PlotGenerator):
         modelnames = self.data.index.levels[0].tolist()
         stdev_col = pd.Series(index=modelnames)
         mean_col = pd.Series(index=modelnames)
+        median_col = pd.Series(index=modelnames)
+        n_cells_col = pd.Series(index=modelnames)
         #for each model, find the stdev and mean over the measure values, then
         #assign those values to new Series objects to use for the plot
         for model in modelnames:
             values = self.data[self.measure[0]].loc[model]
             stdev = values.std(skipna=True)
             mean = values.mean(skipna=True)
-            if (math.isnan(stdev)) or (math.isnan(mean)):
+            median = values.median(skipna=True)
+            if (math.isnan(stdev)) or (math.isnan(mean)) or (math.isnan(median)):
                 # If either statistic comes out as NaN, entire column was NaN,
                 # so model doesn't have the necessary data.
                 continue
             stdev_col.at[model] = stdev
             mean_col.at[model] = mean
+            median_col.at[model] = median
+            n_cells_col.at[model] = values.count()
             
         newData = pd.DataFrame.from_dict({
-                'stdev':stdev_col, 'mean':mean_col,
+                'stdev':stdev_col, 'mean':mean_col, 'median':median_col,
+                'n_cells':n_cells_col,
                 })
         # Drop any models with NaN values, since that means they had no
         # performance data for one or more columns.

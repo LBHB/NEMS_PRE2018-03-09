@@ -102,5 +102,8 @@ class Fit_Report():
         # reference:
         # https://bl.ocks.org/fasiha/eff0763ca25777ec849ffead370dc907
         # (calculates the data coordinates of the corners for array chunks)
-        delta = f[1] - f[0]
+        if len(f) == 1:
+            delta = 1
+        else:
+            delta = f[1] - f[0]
         return [f[0] - delta/2, f[-1] + delta/2]
