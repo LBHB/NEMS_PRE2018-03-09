@@ -39,10 +39,11 @@ except Exception as e:
 #   database = 'database'
 # Order doesn't matter.
 try:
-    import xxxnems_config.Database_Info as db
+    import nems_config.Database_Info as db
     db_uri = 'mysql+pymysql://{0}:{1}@{2}/{3}'.format(
                     db.user,db.passwd,db.host,db.database
                     )
+    echo = False
 except Exception as e:
     print('No database info detected')
     print(e)
@@ -54,7 +55,7 @@ except Exception as e:
     #raise e
 
 try:
-    import xxxnems_config.Cluster_Database_Info as clst_db
+    import nems_config.Cluster_Database_Info as clst_db
     # format:      dialect+driver://username:password@host:port/database
     # to-do default port = 3306
     if not hasattr(clst_db, 'port'):
@@ -67,6 +68,7 @@ try:
                         clst_db.user, clst_db.passwd, clst_db.host,
                         port, clst_db.database,
                         )
+    echo = False
 except Exception as e:
     print('No cluster database info detected')
     print(e)
