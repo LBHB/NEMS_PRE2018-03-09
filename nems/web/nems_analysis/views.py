@@ -39,6 +39,7 @@ from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
 from nems.web.run_custom.script_utils import scan_for_scripts
+from nems.utilities.output import web_print
 from nems_config.defaults import UI_OPTIONS
 n_ui = UI_OPTIONS
 
@@ -216,7 +217,7 @@ def update_batch():
     try:
         batch = batch.batch
     except Exception as e:
-        print(e)
+        web_print(e)
         batch = ''
     
     session.close()
@@ -761,7 +762,7 @@ def get_preview():
 
             return jsonify(image=image)
         except Exception as e:
-            print(e)
+            web_print(e)
             try:
                 key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
                 fileobj = s3_client.get_object(
@@ -771,7 +772,7 @@ def get_preview():
                 image = str(b64encode(fileobj['Body'].read()))[2:-1]
                 return jsonify(image=image)
             except Exception as e:
-                print(e)
+                web_print(e)
                 with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)
@@ -786,7 +787,7 @@ def get_preview():
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)
             except Exception as e:
-                print(e)
+                web_print(e)
                 with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)

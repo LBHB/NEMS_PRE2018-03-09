@@ -20,6 +20,7 @@ import nems.modules as nm
 import nems.keyword as nk
 import nems.utilities.utils as nu
 import nems.main as nems
+from nems.utilities.output import web_print
 import pkgutil as pk
 
 from nems.web.nems_analysis import app
@@ -49,8 +50,8 @@ def modelpane_view():
                 cellid=cSelected, batch=bSelected, modelname=mSelected,
                 )
     except Exception as e:
-        print("error when calling load_single_model")
-        print(e)
+        web_print("error when calling load_single_model")
+        web_print(e)
         return Response(
                 "Model has not been fitted yet, its fit file "
                 "is not in local storage, "
@@ -201,14 +202,14 @@ def update_modelpane_plot():
     try:
         i = [mod.name for mod in mp_stack.modules].index(modAffected)
     except Exception as e:
-        print(e)
+        web_print(e)
         return Response('')
     
     try:
         m = mp_stack.modules[i]
     except Exception as e:
-        print(e)
-        print("index was: " + str(i))
+        web_print(e)
+        web_print("index was: " + str(i))
         return Response('')
     
     p = plt.figure(figsize=FIGSIZE)
@@ -278,7 +279,7 @@ def update_module():
         #TODO: figure out a good way to set type dynamically instead of trying
         #      to think of every possible data type."
         if not hasattr(mp_stack.modules[modIdx], f):
-            print(
+            web_print(
                     "Couldn't find attribute (%s)"
                     "for module at index (%d)."
                     %(f, modIdx)
@@ -306,10 +307,10 @@ def update_module():
                 a = json.loads(v)
                 v = np.array(a)
             except Exception as e:
-                print("Error converting numpy.ndarray pickle-string back to array")
-                print(e)
+                web_print("Error converting numpy.ndarray pickle-string back to array")
+                web_print(e)
         else:
-            print("Unexpected data type (" + t + ") for field: " + f)
+            web_print("Unexpected data type (" + t + ") for field: " + f)
             continue    
             
         setattr(mp_stack.modules[modIdx], f, v)
@@ -334,8 +335,8 @@ def re_render_plots(modIdx=1):
             plot_list.append(html)
             plt.close(p)
         except Exception as e:
-            print("Issue with plot for: " + m.name)
-            print(e)
+            web_print("Issue with plot for: " + m.name)
+            web_print(e)
             plot_list.append(
                     "Couldn't generate plot for this module."
                     "Make sure data and stim idx are within the listed range."
@@ -370,19 +371,19 @@ def append_module():
     for importer, modname, ispkg in pk.iter_modules(nm.__path__):
         try:
             m=getattr(importer.find_module(modname).load_module(modname),module_name)
-            print('Found %s'%module_name)
+            web_print('Found %s'%module_name)
             mod_found=True
             break
         except:
             pass
     if mod_found is False:
-        print('Module not found')
+        web_print('Module not found')
         m = None
     try:    
         mp_stack.append(m)
     except Exception as e:
-        print("Exception inside nems_modules > stack > append()")
-        print(e)
+        web_print("Exception inside nems_modules > stack > append()")
+        web_print(e)
     
     return redirect(url_for('refresh_modelpane'))
 

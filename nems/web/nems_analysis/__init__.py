@@ -10,20 +10,21 @@ app = Flask(__name__)
 try:
     app.config.from_object('nems_config.Flask_Config')
 except:
-    print('No flask config file detected')
-    # Define desired default settings here
+    app.config.from_object('nems_config.defaults.FLASK_DEFAULTS')
+    print('No flask config file detected, using default settings')
     pass
 
 socketio = SocketIO(app, async_mode='threading')
 thread = None
 
-stringio = StringIO()
-orig_stdout = sys.stdout
-sys.stdout = SplitOutput(stringio, orig_stdout)
+if app.config.COPY_PRINTS:
+    stringio = StringIO()
+    orig_stdout = sys.stdout
+    sys.stdout = SplitOutput(stringio, orig_stdout)
 
 # redirect output of stdout to py_console div in web browser
 def py_console():
-    while True:
+    while app.config.COPY_PRINTS:
         # Set sampling rate for console reader in seconds
         socketio.sleep(1)
         try:

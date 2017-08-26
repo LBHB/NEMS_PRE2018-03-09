@@ -29,3 +29,8 @@ class UI_OPTIONS():
 
 class STORAGE_DEFAULTS():
     DIRECTORY_ROOT = '/auto/data/code/'
+    
+class FLASK_DEFAULTS():
+    Debug = False
+    COPY_PRINTS = False
+    
