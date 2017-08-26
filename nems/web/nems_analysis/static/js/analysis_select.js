@@ -3,7 +3,6 @@ $(document).ready(function(){
     // TODO: Split this up into multile .js files? getting a bit crowded in here,
     // could group by functionality at this point.    
 
-    //socketio -- not working?
     namespace = '/py_console'
     var socket = io.connect(
             location.protocol + '//'
@@ -96,6 +95,45 @@ $(document).ready(function(){
             // TODO: add select option to replace custom one
             // (can add ctrl/shift click etc)
         });
+    }
+
+    var saved_selections;
+    function get_saved_selections(){
+        // remove 'return false' when ready for testing
+        return false;
+
+        $.ajax({
+            url: $SCRIPT_ROOT + '/get_saved_selections'
+            data: {},
+            type: 'GET',
+            success: function(data){
+                saved_selections = data.selections;
+            }
+            error: function(error){
+                console.log(error);
+            }
+        });
+    }
+
+    function update_selections(){
+        get_saved_selections();
+        if (saved_selections.hasOwnProperty('tag')){
+            // iterate through tag options and select the one that matches,
+            // set others to unchecked
+        }
+        if (saved_selections.hasOwnProperty('status')){
+            // iterate through status options and select the one that matches,
+            // set others to unchecked
+        }
+        if (saved_selections.hasOwnProperty('analysis')){
+            $("#analysisSelector").val(saved_selections['analysis']);
+        }
+        if (saved_selections.hasOwnProperty('plot_measure')){
+            $("#measureSelector").val(saved_selections['plot_measure']);
+        }
+        if (saved-selections.hasOwnProperty('plot_type')){
+            $("#plotTypeSelector").val(saved_selections['plot_type']);
+        }
     }
     
     var analysisCheck = document.getElementById("analysisSelector").value;
