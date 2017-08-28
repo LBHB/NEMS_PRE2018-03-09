@@ -68,10 +68,12 @@ def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
     """
     
     rootpath=sc.DIRECTORY_ROOT + "nems_in_cache"
+    if stimfmt in ['none','parm','envelope']:
         
-    fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
-    #fn='/auto/data/code/nems_in_cache/batch{0}/{1}_b{0}_{2}_c{3}_fs{4}.mat'.format(batch,cellid,stimfmt,chancount,fs)
-    
+        fn="{0}/batch{1}/{2}_b{1}_{3}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
+    else:
+        fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
+      
     # placeholder. Need to check if file exists in nems_in_cache.
     # If not, call baphy function in Matlab to regenerate it:
     # fn=export_cellfile(batchid,cellid,fs,stimfmt,chancount)
