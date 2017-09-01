@@ -51,7 +51,7 @@ def modelpane_view():
                 )
     except Exception as e:
         web_print("error when calling load_single_model")
-        web_print(e)
+        print(e)
         return Response(
                 "Model has not been fitted yet, its fit file "
                 "is not in local storage, "
@@ -202,13 +202,13 @@ def update_modelpane_plot():
     try:
         i = [mod.name for mod in mp_stack.modules].index(modAffected)
     except Exception as e:
-        web_print(e)
+        print(e)
         return Response('')
     
     try:
         m = mp_stack.modules[i]
     except Exception as e:
-        web_print(e)
+        print(e)
         web_print("index was: " + str(i))
         return Response('')
     
@@ -308,7 +308,7 @@ def update_module():
                 v = np.array(a)
             except Exception as e:
                 web_print("Error converting numpy.ndarray pickle-string back to array")
-                web_print(e)
+                print(e)
         else:
             web_print("Unexpected data type (" + t + ") for field: " + f)
             continue    
@@ -336,7 +336,7 @@ def re_render_plots(modIdx=1):
             plt.close(p)
         except Exception as e:
             web_print("Issue with plot for: " + m.name)
-            web_print(e)
+            print(e)
             plot_list.append(
                     "Couldn't generate plot for this module."
                     "Make sure data and stim idx are within the listed range."
@@ -383,7 +383,7 @@ def append_module():
         mp_stack.append(m)
     except Exception as e:
         web_print("Exception inside nems_modules > stack > append()")
-        web_print(e)
+        print(e)
     
     return redirect(url_for('refresh_modelpane'))
 

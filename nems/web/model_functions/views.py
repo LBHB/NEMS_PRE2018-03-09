@@ -48,8 +48,8 @@ def fit_single_model_view():
         raise e
     
     web_print(
-            "Beginning model fit -- this may take several minutes.",
-            "Please wait for a success/failure response.",
+            "Beginning model fit -- this may take several minutes."
+            "Please wait for a success/failure response."
             )
     try:
         stack = nems.fit_single_model(
@@ -60,7 +60,7 @@ def fit_single_model_view():
                         )
     except Exception as e:
         web_print("Error when calling nems_main.fit_single_model")
-        web_print(e)
+        print(e)
         web_print("Fit failed.")
         raise e
         

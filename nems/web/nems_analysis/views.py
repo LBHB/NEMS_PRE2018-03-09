@@ -219,7 +219,7 @@ def update_batch():
     try:
         batch = batch.batch
     except Exception as e:
-        web_print(e)
+        print(e)
         batch = ''
     
     session.close()
@@ -764,7 +764,7 @@ def get_preview():
 
             return jsonify(image=image)
         except Exception as e:
-            web_print(e)
+            print(e)
             try:
                 key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
                 fileobj = s3_client.get_object(
@@ -774,7 +774,7 @@ def get_preview():
                 image = str(b64encode(fileobj['Body'].read()))[2:-1]
                 return jsonify(image=image)
             except Exception as e:
-                web_print(e)
+                print(e)
                 with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)
@@ -789,7 +789,7 @@ def get_preview():
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)
             except Exception as e:
-                web_print(e)
+                print(e)
                 with open(app.static_folder + '/lbhb_logo.png', 'r+b') as img:
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)
