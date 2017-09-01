@@ -68,7 +68,7 @@ try:
                         clst_db.user, clst_db.passwd, clst_db.host,
                         port, clst_db.database,
                         )
-    echo = False
+    clst_echo = False
 except Exception as e:
     print('No cluster database info detected')
     print(e)

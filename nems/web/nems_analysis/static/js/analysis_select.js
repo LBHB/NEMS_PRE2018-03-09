@@ -208,7 +208,10 @@ $(document).ready(function(){
     function updateBatchModel(){
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
-        saved_selections.analysis = aselected
+
+        //saved_selections.analysis = aselected
+
+
         // pass the value to '/update_batch' in nemsweb.py
         // get back associated batchnum and change batch selector to match
         $.ajax({
@@ -409,7 +412,9 @@ $(document).ready(function(){
         for (var i=0; i < tags.length; i++) {
             if (tags[i].checked) {
                 tagSelected = tags[i].value;
-                saved_selections.tag = tags[i].value;
+
+                //saved_selections.tag = tags[i].value;
+
                 return false;
             }
         }
@@ -420,7 +425,7 @@ $(document).ready(function(){
         for (var i=0; i < status.length; i++) {
             if (status[i].checked) {
                 statSelected = status[i].value;
-                saved_selections.status = tags[i].status;
+                //saved_selections.status = tags[i].status;
                 return false;
             }
         }

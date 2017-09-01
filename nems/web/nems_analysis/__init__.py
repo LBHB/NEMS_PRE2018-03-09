@@ -17,14 +17,15 @@ except:
 socketio = SocketIO(app, async_mode='threading')
 thread = None
 
-if app.config.COPY_PRINTS:
-    stringio = StringIO()
-    orig_stdout = sys.stdout
-    sys.stdout = SplitOutput(stringio, orig_stdout)
+#if app.config.COPY_PRINTS:
+stringio = StringIO()
+orig_stdout = sys.stdout
+sys.stdout = SplitOutput(stringio, orig_stdout)
 
 # redirect output of stdout to py_console div in web browser
 def py_console():
-    while app.config.COPY_PRINTS:
+    #while app.config.COPY_PRINTS:
+    while True:
         # Set sampling rate for console reader in seconds
         socketio.sleep(1)
         try:
