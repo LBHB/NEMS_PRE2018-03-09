@@ -97,11 +97,9 @@ $(document).ready(function(){
         });
     }
 
-    var saved_selections;
+    /*
+    var saved_selections = new Object()
     function get_saved_selections(){
-        // remove 'return false' when ready for testing
-        return false;
-
         $.ajax({
             url: $SCRIPT_ROOT + '/get_saved_selections'
             data: {},
@@ -117,6 +115,7 @@ $(document).ready(function(){
 
     function update_selections(){
         get_saved_selections();
+
         if (saved_selections.hasOwnProperty('tag')){
             // iterate through tag options and select the one that matches,
             // set others to unchecked
@@ -131,10 +130,44 @@ $(document).ready(function(){
         if (saved_selections.hasOwnProperty('plot_measure')){
             $("#measureSelector").val(saved_selections['plot_measure']);
         }
-        if (saved-selections.hasOwnProperty('plot_type')){
+        if (saved_selections.hasOwnProperty('plot_type')){
             $("#plotTypeSelector").val(saved_selections['plot_type']);
         }
+        if (saved_selections.hasOwnProperty('onlyFair')){
+            if ((int)saved_selections['onlyFair'] === 1){
+                document.getElementById('onlyFair').checked = true;
+            } else{
+                document.getElementById('onlyFair').checked = false;
+            }
+        }
+        if (saved_selections.hasOwnProperty('includeOutliers')){
+            if ((int)saved_selections['includeOutliers'] === 1){
+                document.getElementById('includeOutliers').checked = true;
+            } else{
+                document.getElementById('includeOutliers').checked = false;
+            }
+        }
+        if (saved_selections.hasOwnProperty('snr')){
+            snr = saved_selections['snr'];
+        }
+        if (saved_selections.hasOwnProperty('snri')){
+            snri = saved_selections['snri'];
+        }
+        if (saved_selections.hasOwnProperty('iso')){
+            iso = saved_selections['iso'];
+        }
+        if (saved_selectoins.hasOwnProperty('table_cols')){
+            // iterate through dropdown div -- check matching options
+        }
+        if (saved_selections.hasOwnProperty('sort_options')){
+            // check either ascending or descending
+            // iterate through other options, check matches.
+        }
+        if (saved_selections.hasOwnProperty('row_limit')){
+            $("#rowLimit").val(saved_selections['row_limit']);
+        }
     }
+    */
     
     var analysisCheck = document.getElementById("analysisSelector").value;
     if ((analysisCheck !== "") && (analysisCheck !== undefined) && (analysisCheck !== null)){
@@ -175,6 +208,7 @@ $(document).ready(function(){
     function updateBatchModel(){
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
+        saved_selections.analysis = aselected
         // pass the value to '/update_batch' in nemsweb.py
         // get back associated batchnum and change batch selector to match
         $.ajax({
@@ -375,6 +409,7 @@ $(document).ready(function(){
         for (var i=0; i < tags.length; i++) {
             if (tags[i].checked) {
                 tagSelected = tags[i].value;
+                saved_selections.tag = tags[i].value;
                 return false;
             }
         }
@@ -385,6 +420,7 @@ $(document).ready(function(){
         for (var i=0; i < status.length; i++) {
             if (status[i].checked) {
                 statSelected = status[i].value;
+                saved_selections.status = tags[i].status;
                 return false;
             }
         }
@@ -562,12 +598,13 @@ $(document).ready(function(){
                 if(confirm("ATTENTION: This will save the entered information to the\n" +
                             "database, potentially overwriting previous settings.\n" +
                             "Are you sure you want to continue?")){
-                    //$("#analysisEditor").submit();
                     submitAnalysis();
                                   
                 } else{
                     return false;
                 }
+                $("#analysisSelector").val(nameEntered);
+
             },
            error: function(error){
                    
@@ -592,9 +629,6 @@ $(document).ready(function(){
                $("#analysisEditorModal").modal('hide')
                py_console_log(data.success);
                updateAnalysis();
-               //updateTagOptions();
-               //updateStatusOptions();
-               $("#analysisSelector").val(name);
            },
            error: function(error){
                console.log(error)
@@ -928,11 +962,29 @@ $(document).ready(function(){
         }
     })
     
+    /*
     // Default values -- based on 'good' from NarfAnalysis > filter_cells
+    if saved_selections.hasOwnProperty('snr'){
+        var snr = saved_selections['snr'];
+    } else{
+        var snr = $("#default_snr").val();
+    }
+    if saved_selections.hasOwnProperty('iso'){
+        var iso = saved_selections['iso'];
+    } else{
+        var iso = $("#default_iso").val();
+    }
+    if saved_selections.hasOwnProperty('snri'){
+        var snri = saved_selections['snri'];
+    } else{
+        var snri = $("#default_snri").val();
+    }     
+    */
+
     var snr = $("#default_snr").val();
     var iso = $("#default_iso").val();
-    var snri = $("#default_snri").val();     
-    
+    var snri = $("#default_snri").val();
+
     $("#plotOpSelect").val('snri');
     $("#plotOpVal").val(snri); 
     
