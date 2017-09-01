@@ -112,16 +112,20 @@ def modelpane_view():
     #       other than load_mat and standard_est_eval.
     #       Is this a good assumption?
     
-    dummy_mod = stackmods[-1]
-    data_max = (len(dummy_mod.d_in) - 1)
-    shape_len = dummy_mod.d_in[0]['stim'].ndim
-    if shape_len == 3:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1] - 1)
-    elif shape_len == 2:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0] - 1)
-    else:
+    # TODO: Fix this calculation for the range of possible stimulus choices.
+    #       some times causes 'index out of range error'
+    
+    #dummy_mod = stackmods[-1]
+    #data_max = (len(dummy_mod.d_in) - 1)
+    #shape_len = dummy_mod.d_in[0]['stim'].ndim
+    #if shape_len == 3:
+    #    stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1] - 1)
+    #elif shape_len == 2:
+    #    stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0] - 1)
+    #else:
         # TODO: Would shape length ever be anything other than 2 or 3?
-        stim_max = "N/A"
+    stim_max = "N/A"
+    data_max = "N/A"
     
     return render_template(
             "/modelpane/modelpane.html", 
