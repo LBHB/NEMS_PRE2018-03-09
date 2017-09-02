@@ -454,6 +454,15 @@ def raster_plot(m,idx=None,size=(12,6)):
     dur=m.parent_stack.unresampled['duration']
     post=m.parent_stack.unresampled['poststim']
     freq=m.parent_stack.unresampled['respFs']
+    #print("{}/{}/{} fs {}".format(pre,dur,post,freq))
+    total_bins=(pre+dur+post)*freq.astype(int)
+    #print(total_bins)
+    if resp.shape[0]<total_bins:
+        d=total_bins-resp.shape[0]
+        s=list(resp.shape)
+        s[0]=d
+        resp=np.concatenate((resp,np.zeros(s)),axis=0)
+    #print(resp.shape)
     reps=m.parent_stack.unresampled['repcount']
     ids=m.parent_stack.plot_stimidx
     r=reps.shape[0]

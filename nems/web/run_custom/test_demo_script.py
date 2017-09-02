@@ -7,6 +7,8 @@ the plot should also open on its own in a web browser when the function is run.
 
 """
 
+from nems.utilities.output import web_print
+
 import nems_scripts.demo_script as demo
 # This information would normally be passed by the web interface,
 # but it can also be specified manually.
@@ -29,10 +31,10 @@ argsdict = {
         }
 
 output = demo.run_script(argsdict)
-print('html string: ')
-print(output['html'])
-print('final dataframe used for plot: ')
-print(output['data'])
+web_print('html string: ')
+web_print(output['html'])
+web_print('final dataframe used for plot: ')
+web_print(output['data'])
 # the cellid column is just a duplicate of the index, but necessary
 # because bokeh's hovertool will only display the index as an integer
 

@@ -33,12 +33,15 @@ from sqlalchemy.orm import Query
 from sqlalchemy import desc, asc, or_
 
 from nems.web.nems_analysis import app
-from nems.db import Session, NarfAnalysis, NarfBatches, NarfResults, sBatch
+from nems.db import (
+        Session, NarfAnalysis, NarfBatches, NarfResults, sBatch, NarfUsers,
+        )
 from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
 from nems.web.run_custom.script_utils import scan_for_scripts
+from nems.utilities.output import web_print
 from nems_config.defaults import UI_OPTIONS
 n_ui = UI_OPTIONS
 
@@ -792,3 +795,37 @@ def get_preview():
                 return jsonify(image=image)
 
     
+    
+###############################################################################
+#################   SAVED SELECTIONS    #######################################
+###############################################################################
+
+
+
+@app.route('/get_saved_selections')
+def get_saved_selections():
+    session = Session()
+    user = get_current_user()
+    user_entry = (
+            session.query(NarfUsers)
+            .filter(NarfUsers.username == user.username)
+            .first()
+            )
+    selections = user_entry.selections
+    session.close()
+    return jsonify(selections=selections)
+
+@app.route('/set_saved_selections')
+def set_saved_selections():
+    user = get_current_user()
+    if not user.username:
+        return jsonify(response="user not logged in, don't save")
+    session = Session()
+    new_selections = request.args.get('newSelections')
+    user_entry = (
+            session.query(NarfUsers)
+            .filter(NarfUsers.username == user.username)
+            .first()
+            )
+    user_entry.selections = new_selections
+    return jsonify(response='selections saved')

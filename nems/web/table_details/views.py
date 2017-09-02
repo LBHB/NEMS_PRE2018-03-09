@@ -38,7 +38,7 @@ def model_details(modelname):
     keyword_list = modelname.split('_')
     kw_funcs=[]
     for kw in keyword_list:
-        for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+        for importer, modname, ispkg in pkgutil.iter_modules(nk.__path__):
             try:
                 kw_funcs.append(getattr(importer.find_module(modname).load_module(modname),kw))
                 break

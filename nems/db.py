@@ -9,12 +9,16 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
+import os
+import sys
 import datetime
 
 import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
+
+import nems_config.defaults
 
 try:
     import nems_config.Storage_Config as sc
@@ -23,8 +27,7 @@ try:
         #from nems.EC2_Mgmt import check_instance_count
 except Exception as e:
     print(e)
-    from nems_config.defaults import STORAGE_DEFAULTS
-    sc = STORAGE_DEFAULTS
+    sc = nems_config.defaults.STORAGE_DEFAULTS
     AWS = False
 
 # Database settings
@@ -40,11 +43,16 @@ try:
     db_uri = 'mysql+pymysql://{0}:{1}@{2}/{3}'.format(
                     db.user,db.passwd,db.host,db.database
                     )
+    echo = False
 except Exception as e:
     print('No database info detected')
     print(e)
-    #db_uri = 'sqlite:////path/to/default/database/file'
-    raise e
+    path = os.path.dirname(nems_config.defaults.__file__)
+    i = path.find('nems_config')
+    db_path = (path[:i+11] + '/default_db.db')
+    db_uri = 'sqlite:///' + db_path
+    echo = True
+    #raise e
 
 try:
     import nems_config.Cluster_Database_Info as clst_db
@@ -60,18 +68,23 @@ try:
                         clst_db.user, clst_db.passwd, clst_db.host,
                         port, clst_db.database,
                         )
+    clst_echo = False
 except Exception as e:
     print('No cluster database info detected')
     print(e)
-    #clst_db_uri = 'sqlite:////path/to/default/database/file'
-    raise e
+    path = os.path.dirname(nems_config.defaults.__file__)
+    i = path.find('nems_config')
+    db_path = (path[:i+11] + '/default_db.db')
+    clst_db_uri = 'sqlite:///' + db_path
+    clst_echo = True
+    #raise e
     
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that
 POOL_RECYCLE = 7200;
 
 # create a database connection engine
-engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE)
+engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE, echo=echo)
 
 #create base class to mirror existing database schema
 Base = automap_base()
@@ -93,7 +106,9 @@ Session = sessionmaker(bind=engine)
 
 
 # Same as above, but duplicated for use w/ cluster
-cluster_engine = create_engine(clst_db_uri, pool_recycle=POOL_RECYCLE)
+cluster_engine = create_engine(
+        clst_db_uri, pool_recycle=POOL_RECYCLE, echo=clst_echo
+        )
 
 cluster_Base = automap_base()
 cluster_Base.prepare(cluster_engine, reflect=True)

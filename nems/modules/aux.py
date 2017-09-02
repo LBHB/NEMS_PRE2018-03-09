@@ -147,3 +147,28 @@ class sum_dim(nems_module):
     def my_eval(self,X):
         Y=X.sum(axis=self.dim)
         return Y
+    
+class onset_edges(nems_module):
+    """
+    onset_edges - calculate diff, replace positive diffs with 1, everything else with zero
+    """
+    name='aux.onset_edges'
+    user_editable_fields=['input_name','output_name','dim']
+    dim=0
+    
+    def my_init(self, dim=2):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
+        self.dim=dim
+        
+    def my_eval(self,X):
+        dim=self.dim
+        s=list(X.shape)
+        s[dim]=1
+        Z=np.zeros(s)
+        Y=np.concatenate((Z,np.diff(X.astype(float))),axis=dim)
+        Y[Y<0]=0
+        
+        return Y
+    
+   

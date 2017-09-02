@@ -107,6 +107,20 @@ def fir15(stack):
     stack.append(nm.filters.fir,num_coefs=15)
     mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
 
+def fir20(stack):
+    """
+    Appends a 20 temporal bin finite impluse response (FIR) filter to the datastream. 
+    This filter can serve as either the entire STRF for the cell and be fitted as such, 
+    or as the temporal filter in the factorized STRF if used in conjuction with the 
+    weight channel spectral filter. 
+    
+    This keyword initializes the FIR coefficients to 0, and performs a fit on the 
+    FIR coefficients (and weight channel coefficients, if a weight channel matrix
+    is included in the model).
+    """
+    stack.append(nm.filters.fir,num_coefs=20)
+    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
+
 def stp1pc(stack):
     #stack.append(nm.aux.normalize)
     #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])

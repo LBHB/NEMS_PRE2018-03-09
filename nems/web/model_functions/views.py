@@ -20,10 +20,11 @@ from flask import jsonify, request
 from flask_login import login_required
 
 from nems.web.nems_analysis import app
-from nems.db import Session, NarfResults, enqueue_models, update_results_table
+from nems.db import NarfResults, enqueue_models, update_results_table
 import nems.main as nems
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
+from nems.utilities.output import web_print
 
 @app.route('/fit_single_model')
 def fit_single_model_view():
@@ -42,13 +43,13 @@ def fit_single_model_view():
     try:
         keyword_test_routine(mSelected[0])
     except Exception as e:
-        print(e)
-        print('Fit failed.')
+        web_print(e)
+        web_print('Fit failed.')
         raise e
     
-    print(
-            "Beginning model fit -- this may take several minutes.",
-            "Please wait for a success/failure response.",
+    web_print(
+            "Beginning model fit -- this may take several minutes."
+            "Please wait for a success/failure response."
             )
     try:
         stack = nems.fit_single_model(
@@ -58,14 +59,14 @@ def fit_single_model_view():
                         autoplot=False,
                         )
     except Exception as e:
-        print("Error when calling nems_main.fit_single_model")
+        web_print("Error when calling nems_main.fit_single_model")
         print(e)
-        print("Fit failed.")
+        web_print("Fit failed.")
         raise e
         
     preview = stack.quick_plot_save(mode="png")
     r_id = update_results_table(stack, preview, user.username, user.labgroup)
-    print("Results saved with id: {0}".format(r_id))
+    web_print("Results saved with id: {0}".format(r_id))
     
     r_est = stack.meta['r_est'][0]
     r_val = stack.meta['r_val'][0]
