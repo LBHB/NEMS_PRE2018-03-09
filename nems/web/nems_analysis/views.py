@@ -113,12 +113,12 @@ def main_view():
             i[0] for i in
             session.query(NarfBatches.batch)
             .distinct()
-            .filter(or_(
-                    int(user.sec_lvl) == 9,
-                    NarfBatches.public == '1',
-                    NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
-                    NarfBatches.username == user.username,
-                    ))
+            #.filter(or_(
+            #        int(user.sec_lvl) == 9,
+            #        NarfBatches.public == '1',
+            #        NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
+            #        NarfBatches.username == user.username,
+            #        ))
             .all()
             ]
     batchnames = []
@@ -208,12 +208,12 @@ def update_batch():
     batch = (
             session.query(NarfAnalysis.batch)
             .filter(NarfAnalysis.name == aSelected)
-            .filter(or_(
-                    int(user.sec_lvl) == 9,
-                    NarfBatches.public == '1',
-                    NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
-                    NarfBatches.username == user.username,
-                    ))
+            #.filter(or_(
+                    #int(user.sec_lvl) == 9,
+                    #NarfBatches.public == '1',
+                    #NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    #NarfBatches.username == user.username,
+                    #))
             .first()
             )
     try:
