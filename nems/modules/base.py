@@ -29,8 +29,8 @@ class nems_module:
     #
     # common attributes for all modules
     #
-    name='pass-through'
-    user_editable_fields=['input_name','output_name']
+    name='base.nems_module'
+    user_editable_fields=['input_name','output_name','fit_fields']
     plot_fns=[nu.plot_spectrogram]
     
     input_name='stim'  # name of input matrix in d_in
@@ -42,7 +42,7 @@ class nems_module:
     d_out=None # pointer to output, parent_stack.d[i+!]
     fit_fields=[]  # what fields should be fed to phi for fitting
     auto_plot=True  # whether to include in quick_plot
-    
+    save_dict={}
     #
     # Begin standard functions
     #
@@ -54,7 +54,6 @@ class nems_module:
         optionally be defined to perform module-specific initialization.
         """
         print("creating module "+self.name)
-        
         if parent_stack is None:
             self.d_in=[]
         else:
@@ -69,6 +68,8 @@ class nems_module:
         self.do_plot=self.plot_fns[0]  # default is first in list
         self.do_trial_plot=self.plot_fns[0]
         self.my_init(**xargs)
+        # not sure that this is a complete list
+        #self.user_editable_fields=['input_name','output_name']+list(self.field_dict.keys())
         
     def parms2phi(self):
         """
@@ -92,7 +93,17 @@ class nems_module:
             #phi=np.array(phi)
             setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
             os+=np.prod(s)
-    
+            
+    def get_user_fields(self):
+        f={}
+        print(self.user_editable_fields)
+        for k in self.user_editable_fields:
+            t=getattr(self,k)
+            if type(t) is np.ndarray:
+                t=t.tolist()
+            f[k]=t
+        return f
+        
     def unpack_data(self,name='stim',est=True,use_dout=False):
         """
         unpack_data - extract a data variable from all files into a single
@@ -140,13 +151,22 @@ class nems_module:
         """
         if nest==0:
             del self.d_out[:]
+            # create a copy of each input variable
             for i,d in enumerate(self.d_in):
                 self.d_out.append(copy.deepcopy(d))
+                # TODO- make it so don't deepcopy eveything. deal with nesting!
+                #self.d_out.append(copy.copy(d))
+                
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
+                # duplicate placeholder list in case output_name is a new variable
+                if nest==0:
+                    print("nest={0} deep copying in[{1}] to out[{2}]".format(nest,self.input_name,self.output_name))
+                    f_out[self.output_name]=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name][nest]=self.my_eval(X)
-            else:
+            elif nest==0:
+                # don't need to eval the est data for each nest, just the first one
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
 
@@ -158,7 +178,7 @@ class nems_module:
         Placeholder for module specific initialization. my_init is defined for each 
         module (with some specific exceptions). 
         """
-        pass 
+        pass
         
     def my_eval(self,X):
         """

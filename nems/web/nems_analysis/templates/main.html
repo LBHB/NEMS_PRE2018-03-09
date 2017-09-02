@@ -546,7 +546,31 @@
                             </div>
                         </div><!-- plotOpWrapper -->
                     </div><!-- plot col -->
-                </div><!-- plot row -->     
+                    <div class="col-xs-12"
+                         id="customCol">
+                         <div class="form-group form-inline"
+                              id="customGroup">
+                              <button type="button"
+                                      id="reloadScripts">
+                                  <span class="glyphicon glyphicon-refresh">
+                                  </span>
+                              </button>
+                              <select class="form-control"
+                                      id="customSelector">
+                              {% for script in scripts %}
+                                  <option value="{{ script }}">
+                                      {{ script }}
+                                  </option>
+                              {% endfor %}
+                              </select>
+                              <button type="button"
+                                      class="btn btn-default btn-xs"
+                                      id="submitCustom">
+                                          Run Script
+                              </button>
+                        </div> <!-- customGroup -->
+                    </div> <!-- custom col -->
+                </div><!-- plot row -->
             </div><!-- select area col -->
             
 
@@ -901,6 +925,12 @@
           <input type="hidden" id="fitRepCells" name="cSelected" value="">
           <input type="hidden" id="fitRepModels" name="mSelected" value="">
     </form>
+    </div>
+    
+    <div style="display:none;" id="plotValDefaults">
+        <input type="hidden" id="default_iso" value="{{ iso }}">
+        <input type="hidden" id="default_snr" value="{{ snr }}">
+        <input type="hidden" id="default_snri" value="{{ snri }}">
     </div>
     
     <!-- load jquery -->

@@ -7,20 +7,21 @@ Created on Wed Jun 14 09:33:47 2017
 """
 
 import scipy.io as si
-import numpy as np
+#import numpy as np
 
 try:
     import nems_config.Storage_Config as sc
 except Exception as e:
     print(e)
-    #import nems_config.STORAGE_DEFAULTS as sc
+    from nems_config.defaults import STORAGE_DEFAULTS
+    sc = STORAGE_DEFAULTS
 
-def load_baphy_file(filepath):
+def load_baphy_file(filepath,level=0):
     """
     This function loads data from a BAPHY .mat file located at 'filepath'. 
     It returns two dictionaries contining the file data and metadata,
     'data' and 'meta', respectively. 'data' contains:
-        {'stim':stimulus,'resp':response raster,'pup':pupil diameters}
+        {'stim':stimulus,'resp':response raster,'pupil':pupil diameters}
     Note that if there is no pupil data in the BAPHY file, 'pup' will return 
     None. 'meta' contains:
         {'stimf':stimulus frequency,'respf':response frequency,'iso':isolation,
@@ -28,29 +29,34 @@ def load_baphy_file(filepath):
              'prestim':prestim silence,'duration':stimulus duration,'poststim':
              poststim silence}
     """
-    data=dict.fromkeys(['stim','resp','pup'])
-    meta=dict.fromkeys(['stimf','respf','iso','prestim','duration','poststim',
-                        'tags','tagidx','ff'])
+    data=dict.fromkeys(['stim','resp','pupil'])
     matdata=si.loadmat(filepath,chars_as_strings=True)
-    m=matdata['data'][0][0]
-    data['resp']=m['resp_raster']
-    data['stim']=m['stim']
-    data['stimf']=m['stimfs'][0][0]
-    data['respf']=m['respfs'][0][0]
-    data['iso']=m['isolation'][0][0]
-    data['tags']=np.concatenate(m['tags'][0]['tags'][0][0],axis=0)
+    s=matdata['data'][0][level]
     try:
-        data['tagidx']=m['tags'][0]['tagidx'][0][0]
-        data['ff']=m['tags'][0]['ff'][0][0]
+        data={}
+        data['resp']=s['resp_raster']
+        data['stim']=s['stim']
+        data['respFs']=s['respfs'][0][0]
+        data['stimFs']=s['stimfs'][0][0]
+        data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
+        data['isolation']=s['isolation']
+        data['prestim']=s['tags'][0]['PreStimSilence'][0][0][0]
+        data['poststim']=s['tags'][0]['PostStimSilence'][0][0][0]
+        data['duration']=s['tags'][0]['Duration'][0][0][0] 
     except:
-        pass    
-    data['prestim']=m['tags'][0]['PreStimSilence'][0][0][0]
-    data['poststim']=m['tags'][0]['PostStimSilence'][0][0][0]
-    data['duration']=m['tags'][0]['Duration'][0][0][0] 
+        data['raw_stim']=s['stim'].copy()
+        data['raw_resp']=s['resp'].copy()
     try:
-        data['pup']=m['pupil']
+        data['pupil']=s['pupil']
     except:
-        data['pup']=None
+        data['pupil']=None
+    try:
+        if s['estfile']:
+            data['est']=True
+        else:
+            data['est']=False
+    except ValueError:
+        print("Est/val conditions not flagged in datafile")
     return(data)
     
 def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
@@ -62,9 +68,12 @@ def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
     """
     
     rootpath=sc.DIRECTORY_ROOT + "nems_in_cache"
+    if stimfmt in ['none','parm','envelope']:
         
-    fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
-    
+        fn="{0}/batch{1}/{2}_b{1}_{3}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
+    else:
+        fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
+      
     # placeholder. Need to check if file exists in nems_in_cache.
     # If not, call baphy function in Matlab to regenerate it:
     # fn=export_cellfile(batchid,cellid,fs,stimfmt,chancount)

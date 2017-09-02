@@ -32,12 +32,15 @@ class normalize(nems_module):
     #---this definitely has something to do with where this module is appended
     #in the stack.
     
-    name='normalize'
-    user_editable_fields=['output_name','valfrac','valmode']
+    name='aux.normalize'
+    user_editable_fields=['input_name','output_name','d','g']
     force_positive=True
-
+    d=0
+    g=1
     
     def my_init(self, force_positive=True,data='stim'):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.force_positive=force_positive
         self.input_name=data
         self.auto_plot=False
@@ -91,11 +94,13 @@ class add_scalar(nems_module):
     add_scalar -- pretty much a dummy test module but may be useful for
     some reason
     """
-    name='add_scalar'
-    user_editable_fields=['output_name','n']
+    name='aux.add_scalar'
+    user_editable_fields=['input_name','output_name','n']
     n=np.zeros([1,1])
     
     def my_init(self, n=0, fit_fields=['n']):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
         self.n[0,0]=n
                    
@@ -108,12 +113,14 @@ class dc_gain(nems_module):
     dc_gain -- apply a scale and offset term
     """
  
-    name='dc_gain'
-    user_editable_fields=['output_name','d','g']
+    name='aux.dc_gain'
+    user_editable_fields=['input_name','output_name','d','g']
     d=np.zeros([1,1])
     g=np.ones([1,1])
     
     def my_init(self, d=0, g=1, fit_fields=['d','g']):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
         self.d[0,0]=d
         self.g[0,0]=g
@@ -127,12 +134,15 @@ class sum_dim(nems_module):
     """
     sum_dim - sum a matrix across one dimension. maybe useful? mostly testing
     """
-    name='sum_dim'
-    user_editable_fields=['output_name','dim']
+    name='aux.sum_dim'
+    user_editable_fields=['input_name','output_name','dim']
     dim=0
     
     def my_init(self, dim=0):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.dim=dim
+        #self.save_dict={'dim':dim}
         
     def my_eval(self,X):
         Y=X.sum(axis=self.dim)

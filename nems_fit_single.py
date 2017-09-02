@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script runs nems_main.fit_single_model from the command line
 
@@ -53,9 +53,6 @@ if __name__ == '__main__':
     preview_file = stack.quick_plot_save(mode="png")
     print("Preview saved to: {0}".format(preview_file))
     
-    if queueid:
-        nd.update_job_complete(queueid)
-        
     if db_exists:
         if queueid:
             pass
@@ -63,4 +60,10 @@ if __name__ == '__main__':
             queueid = None
         r_id = nd.save_results(stack, preview_file, queueid=queueid)
         print("Fit results saved to NarfResults, id={0}".format(r_id))
+
+    # Mark completed in the queue. Note that this should happen last thing! 
+    # Otherwise the job might still crash after being marked as complete.
+    if queueid:
+        nd.update_job_complete(queueid)
+        
        

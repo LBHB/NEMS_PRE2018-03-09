@@ -13,7 +13,7 @@ GENERAL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'flask',
                     'sqlalchemy', 'mpld3', 'boto3', 'tensorflow']
 WEB_REQUIRES = [
         'flask', 'mpld3', 'bokeh', 'flask-socketio', 'eventlet', 'flask-login',
-        'flask-WTF', 'bcrypt', 'flask-bcrypt',
+        'flask-WTF', 'bcrypt', 'flask-bcrypt', 'seaborn',
         ]
 DB_REQUIRES = ['sqlalchemy', 'pymysql']
 

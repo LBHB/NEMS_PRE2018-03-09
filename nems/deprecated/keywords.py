@@ -13,13 +13,6 @@ import nems.utilities as ut
 import numpy as np
 import nems.modules.user_def as ud
 
-#thismod=sys.modules(__name__)
-
-# TODO: Add docstring for each function that explains which modules get added,
-#       which parameters are passed to loaders, etc.
-#       These will now show up on website when a modelname is clicked in table.
-#       Did an example one for wc01.
-#       --Jacob 8/4/17
 
 # loader keywords
 def parm100(stack):
@@ -227,9 +220,9 @@ def fir_mini_fit(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error=stack.modules[-1].error
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.0001
+    stack.fitter.tolerance=0.0001
     try:
-        fitidx=ut.utils.find_modules(stack,'weight_channels') + ut.utils.find_modules(stack,'fir')
+        fitidx=ut.utils.find_modules(stack,'filters.weight_channels') + ut.utils.find_modules(stack,'filters.fir')
     except:
         fitidx=ut.utils.find_modules(stack,'fir')
     stack.fitter.fit_modules=fitidx
@@ -249,7 +242,7 @@ def fir10(stack):
     is included in the model).
     """
     stack.append(nm.filters.fir,num_coefs=10)
-    fir_mini_fit(stack)
+    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
     
 def fir10r(stack):
     """
@@ -263,7 +256,7 @@ def fir10r(stack):
     (and weight channel coefficients, if a weight channel matrix is included in the model).
     """
     stack.append(nm.filters.fir,num_coefs=10,random=True)
-    fir_mini_fit(stack)
+    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
     
 def fir15(stack):
     """
@@ -277,7 +270,7 @@ def fir15(stack):
     is included in the model).
     """
     stack.append(nm.filters.fir,num_coefs=15)
-    fir_mini_fit(stack)
+    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
 
 def stp1pc(stack):
     #stack.append(nm.aux.normalize)
@@ -294,26 +287,7 @@ def stp2pc(stack):
 
 # static NL keywords
 ###############################################################################
-def nonlin_mini_fit(stack):
-    """
-    Helper function that fits nonlinearity coefficients prior to fitting 
-    all the model coefficients. This is often helpful, as just fitting the
-    nonlinearities tends to reduce the tendency of the nonlinearities to send 
-    the predicted response to a constant DC offset.
-    
-    This function is not appended directly to the stack, but instead is included
-    in certain nonlinearity keywords (see help for dexp, tanhsig)
-    """
-    stack.append(nm.metrics.mean_square_error)
-    stack.error=stack.modules[-1].error
-    stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.00001
-    fitidx=ut.utils.find_modules(stack,'nonlinearity')
-    stack.fitter.fit_modules=fitidx
-    
-    stack.fitter.do_fit()
-    stack.popmodule()
-    
+
 def dlog(stack):
     """
     Applies a natural logarithm entry-by-entry to the datastream: 
@@ -334,8 +308,8 @@ def exp(stack):
     Performs a fit on the nonlinearity parameters, as well.
     """
     stack.append(nm.nonlin.gain,nltype='exp',fit_fields=['phi'],phi=[1,1])
-    nonlin_mini_fit(stack)
-
+    mini_fit(stack,mods=['nonlin.gain'])
+    
 def dexp(stack):
     """
     Applies a double-exponential function entry-by-entry to the datastream:
@@ -347,13 +321,12 @@ def dexp(stack):
     """
     stack.append(nm.nonlin.gain,nltype='dexp',fit_fields=['phi'],phi=[1,.01,.001,0]) 
     #choose phi s.t. dexp starts as almost a straight line 
-    nonlin_mini_fit(stack)
+    mini_fit(stack,mods=['nonlin.gain'])
     
 def logsig(stack):
     phi=[0,1,0,1]
     stack.append(nm.nonlin.gain,nltype='logsig',fit_fields=['phi'],phi=phi) 
-    #choose phi s.t. dexp starts as almost a straight line 
-    nonlin_mini_fit(stack)
+    mini_fit(stack,mods=['nonlin.gain'])
     
 def poly01(stack):
     """
@@ -393,30 +366,9 @@ def tanhsig(stack):
     Performs a fit on the nonlinearity parameters, as well.
     """
     stack.append(nm.nonlin.gain,nltype='tanh',fit_fields=['phi'],phi=[1,1,0])
-    nonlin_mini_fit(stack)
-
-
+    mini_fit(stack,mods=['nonlin.gain'])
 # state variable keyowrds
 ###############################################################################
-def pupil_mini_fit(stack):
-    """
-    Helper function that fits nonlinearity coefficients prior to fitting 
-    all the model coefficients. This is often helpful, as just fitting the
-    nonlinearities tends to reduce the tendency of the nonlinearities to send 
-    the predicted response to a constant DC offset.
-    
-    This function is not appended directly to the stack, but instead is included
-    in certain nonlinearity keywords (see help for dexp, tanhsig)
-    """
-    stack.append(nm.metrics.mean_square_error)
-    stack.error=stack.modules[-1].error
-    stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.00001
-    fitidx=ut.utils.find_modules(stack,'pupgain')
-    stack.fitter.fit_modules=fitidx
-    
-    stack.fitter.do_fit()
-    stack.popmodule()
     
 def nopupgain(stack):
     """
@@ -426,7 +378,17 @@ def nopupgain(stack):
     each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='nopupgain',fit_fields=['theta'],theta=[0,1])
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
+    
+def pupgainctl(stack):
+    """
+    Applies a DC gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + <randomly shuffled pupil dc-gain>
+    where x is the input matrix and v1,v2 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    """
+    stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=[0,1,0,0])
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def pupgain(stack):
     """
@@ -436,8 +398,8 @@ def pupgain(stack):
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
-    pupil_mini_fit(stack)
-
+    mini_fit(stack,mods=['pupil.pupgain'])
+    
 def polypupgain04(stack):#4th degree polynomial gain fn
     """
     Applies a poynomial pupil gain function entry-by-entry to the datastream:
@@ -446,7 +408,7 @@ def polypupgain04(stack):#4th degree polynomial gain fn
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,0,1])
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def polypupgain03(stack): #3rd degree polynomial gain fn
     """
@@ -456,7 +418,7 @@ def polypupgain03(stack): #3rd degree polynomial gain fn
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,0,1])
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def polypupgain02(stack): #2nd degree polynomial gain fn
     """
@@ -466,7 +428,7 @@ def polypupgain02(stack): #2nd degree polynomial gain fn
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='polypupgain',fit_fields=['theta'],theta=[0,0,0,1])
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def exppupgain(stack):
     """
@@ -476,7 +438,7 @@ def exppupgain(stack):
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='exppupgain',fit_fields=['theta'],theta=[0,1,0,0])
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
 
 def logpupgain(stack):
     """
@@ -486,7 +448,7 @@ def logpupgain(stack):
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='logpupgain',fit_fields=['theta'],theta=[0,1,0,1])
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def powergain02(stack): #This is equivalent ot what Zach is using
     """
@@ -496,7 +458,7 @@ def powergain02(stack): #This is equivalent ot what Zach is using
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
     stack.append(nm.pupil.pupgain,gain_type='powerpupgain',fit_fields=['theta'],theta=[0,1,0,0],order=2)
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def butterworth01(stack):
     """
@@ -505,7 +467,7 @@ def butterworth01(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=1)
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def butterworth02(stack):
     """
@@ -514,7 +476,7 @@ def butterworth02(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=2)
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def butterworth03(stack):
     """
@@ -523,7 +485,7 @@ def butterworth03(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=3)
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
     
 def butterworth04(stack):
     """
@@ -532,7 +494,7 @@ def butterworth04(stack):
     with a scalar gain term and a DC offset. 
     """
     stack.append(nm.pupil.pupgain,gain_type='butterworthHP',fit_fields=['theta'],theta=[1,25,0],order=4)
-    pupil_mini_fit(stack)
+    mini_fit(stack,mods=['pupil.pupgain'])
 
 # fitter keywords
 ###############################################################################
@@ -550,7 +512,7 @@ def fit00(stack):
     stack.evaluate(2)
 
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.001
+    stack.fitter.tolerance=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
@@ -566,7 +528,7 @@ def fit01(stack):
     stack.evaluate(2)
 
     stack.fitter=nf.fitters.basic_min(stack)
-    stack.fitter.tol=0.00000001
+    stack.fitter.tolerance=0.00000001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
@@ -582,7 +544,23 @@ def fit02(stack):
     stack.evaluate(2)
 
     stack.fitter=nf.fitters.basic_min(stack,routine='SLSQP')
-    stack.fitter.tol=0.000001
+    stack.fitter.tolerance=0.000001
+    stack.fitter.do_fit()
+    create_parmlist(stack)
+    
+def fit03(stack):
+    """
+    Fits the model parameters using a mean squared error loss function with 
+    the L-BFGS-B algorithm, to a cost function tolerance of 10^-8.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
+    stack.append(nm.metrics.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter.tolerance=0.0000001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
@@ -664,8 +642,27 @@ def fititer00(stack):
     
     stack.fitter=nf.fitters.fit_iteratively(stack,max_iter=5)
     #stack.fitter.sub_fitter=nf.fitters.basic_min(stack)
-    stack.fitter.sub_fitter=nf.fitters.coordinate_descent(stack,tol=0.001,maxit=10,verbose=False)
+    stack.fitter.sub_fitter=nf.fitters.coordinate_descent(stack,tolerance=0.001,maxit=10,verbose=False)
     stack.fitter.sub_fitter.step_init=0.05
+    
+    stack.fitter.do_fit()
+    create_parmlist(stack)
+
+def fititer01(stack):
+    """
+    Fits the model parameters using a mean-squared-error loss function with 
+    a coordinate descent algorithm. However, rather than fitting all model 
+    parameters at once, it only fits the parameters for one model at a time.
+    The routine fits each module to a tolerance of 0.001, than halves the tolerance
+    and repeats up to 9 more times.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
+    stack.append(nm.metrics.mean_square_error,shrink=0.5)
+    stack.error=stack.modules[-1].error
+    
+    stack.fitter=nf.fitters.fit_iteratively(stack,max_iter=5)
+    stack.fitter.sub_fitter=nf.fitters.basic_min(stack)
     
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -695,9 +692,7 @@ def perfectpupil100(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
-    #stack.nests=20
     stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
-    #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil.model)
     
     
@@ -712,8 +707,6 @@ def perfectpupil50(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
-    #stack.nests=20
-    #stack.append(nm.standard_est_val, valfrac=0.05)
     stack.append(nm.pupil.model)
     
  
@@ -740,6 +733,45 @@ def nested10(stack):
     stack.nests=10
     stack.valfrac=0.1
     nest_helper(stack)
+    
+def nested5(stack):
+    """
+    Keyword for 10-fold nested crossvalidation. Uses 10% validation chunks.
+    
+    MUST be last keyowrd in modelname string. DO NOT include twice.
+    """
+    stack.nests=5
+    stack.valfrac=0.2
+    nest_helper(stack)
+    
+# DEMO KEYWORDS
+###############################################################################
+
+def simpledemo00(stack):
+    """
+    Keyword for the simple_demo DC gain module. Appends the simple_demo module
+    with its default arguments.
+    
+    Applies a simple DC gain and offset to the input data:
+        y = v1*x + v2
+    where x is the input variable, and v1,v2 are fitted parameters. 
+    
+    """
+    stack.append(ud.demo.simple_demo)
+    
+def simpledemo01(stack):
+    """
+    Keyword for the simple_demo DC gain module. Uses arguments different than the
+    default.
+    
+    Applies a simple DC gain and offset to the input data with a 0 output threshold:
+        y = v1*x + v2
+    where x is the input variable, and v1,v2 are fitted parameters. 
+    """
+    stack.append(ud.demo.simple_demo,thresh=True)
+    
+def advdemo00(stack):
+    stack.append(ud.demo.adv_demo)
     
     
 # Helper/Support Functions
@@ -776,6 +808,29 @@ def nest_helper(stack):
         
         stack.cv_counter+=1
 
-
+def mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp']):
+    """
+    Helper function that module coefficients in mod list prior to fitting 
+    all the model coefficients. This is often helpful, as it gets the model in the
+    right ballpark before fitting other model parameters, especially when nonlinearities
+    are included in the model.
+    
+    This function is not appended directly to the stack, but instead is included
+    in keywords
+    """
+    stack.append(nm.metrics.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter.tolerance=0.0001
+    fitidx=[]
+    for i in mods:
+        try:
+            fitidx=fitidx+ut.utils.find_modules(stack,i)
+        except:
+            fitidx=fitidx+[]
+    stack.fitter.fit_modules=fitidx
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
 
 

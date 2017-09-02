@@ -8,17 +8,20 @@ Created on Sun Jun 18 20:16:37 2017
 import nems.modules as nm
 import nems.stack as ns
 import nems.utilities as ut
-import nems.keywords as nk
-
+import nems.keyword as nk
+import operator as op
+import numpy as np
+import pkgutil as pk
+#import nems.nested as nn
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
 
-example fit on nice IC cell:
+example usage for one nice IC cell:
     import lib.main as nems
     cellid='bbl061h-a1'
     batch=291
-    modelname='fb18ch100_ev_fir10_dexp_fit00'
+    modelname='fb18ch100_wcg02_fir15_dexp_fit01'
     nems.fit_single_model(cellid,batch,modelname)
 
 """
@@ -30,7 +33,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     fit_single_model functions by iterating through each of the keywords in the
     modelname, and perfroming the actions specified by each keyword, usually 
     appending a nems module. Nested crossval is implemented as a special keyword,
-    which is placed last in a modelname/
+    which is placed last in a modelname.
     
     fit_single_model returns the evaluated stack, which contains both the estimation
     and validation datasets. In the caste of nested crossvalidation, the validation
@@ -42,20 +45,35 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     stack.meta['batch']=batch
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
+    stack.valmode=False
     
-    # extract keywords from modelname    
+    # extract keywords from modelname, look up relevant functions in nk and save
+    # so they don't have to be found again.
     stack.keywords=modelname.split("_")
+    stack.keyfun={}
+    for k in stack.keywords:
+        for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+            try:
+                f=getattr(importer.find_module(modname).load_module(modname),k)
+                break
+            except:
+                pass
+        stack.keyfun[k]=f
+
+    # evaluate the stack of keywords    
     if 'nested' in stack.keywords[-1]:
+        # special case for nested keywords. fix this somehow
         print('Using nested cross-validation, fitting will take longer!')
-        f=getattr(nk,stack.keywords[-1])
-        f(stack)
+        k=stack.keywords[-1]
+        stack.keyfun[k](stack)
     else:
         print('Using standard est/val conditions')
-        stack.valmode=False
         for k in stack.keywords:
-            f = getattr(nk, k)
-            f(stack)
-            
+            stack.keyfun[k](stack)
+#        for k in stack.keywords:
+#            f = getattr(nk, k)
+#            f(stack)
+
     # measure performance on both estimation and validation data
     stack.valmode=True
     stack.evaluate(1)
@@ -69,8 +87,9 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         stack.plot_dataidx=valdata[0]
     else:
         stack.plot_dataidx=0
-
-        
+    phi=stack.fitter.fit_to_phi()
+    stack.meta['n_parms']=len(phi)
+    
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17
     if autoplot:
@@ -109,4 +128,30 @@ def load_single_model(cellid, batch, modelname):
         #       did something just go wrong?
     #stack.quick_plot()
     return stack
+
+def load_from_dict(batch,cellid,modelname):
+    filepath = ut.utils.get_file_name(cellid, batch, modelname)
+    sdict=ut.utils.load_model_dict(filepath)
+    #Maybe move some of this to the load_model_dict function?
+    stack=ns.nems_stack()
+    #stack.valmode=True
+    stack.meta=meta
+    stack.nests=sdict['nests']
+    parm_list=[]
+    for i in sdict['parm_fits']:
+        parm_list.append(np.array(i))
+    stack.parm_fits=parm_list
+    stack.cv_counter=sdict['cv_counter']
+    stack.fitted_modules=sdict['fitted_modules']
+    
+    for i in range(0,len(sdict['modlist'])):
+        stack.append(op.attrgetter(sdict['modlist'][i])(nm),**sdict['mod_dicts'][i])
+        #stack.evaluate()
+        
+    stack.valmode=True
+    stack.evaluate()
+    stack.quick_plot()
+    return stack
+
+
     

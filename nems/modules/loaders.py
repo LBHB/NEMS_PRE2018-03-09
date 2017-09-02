@@ -45,19 +45,21 @@ class load_mat(nems_module):
                 3 times and stimulus 2 that was played 2 times, replist would
                 be [1,1,1,2,2].
     """
-    name='load_mat'
-    user_editable_fields=['output_name','est_files','fs']
+    name='loaders.load_mat'
+    user_editable_fields=['output_name','est_files','fs','avg_resp']
     plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
     est_files=[]
     fs=100
+    avg_resp=True
     
     def my_init(self,est_files=[],fs=100,avg_resp=True):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.est_files=est_files.copy()
-        self.do_trial_plot=self.plot_fns[0]
-        self.auto_plot=False
         self.fs=fs
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
+        self.auto_plot=False
 
     def evaluate(self,**kwargs):
         del self.d_out[:]
@@ -98,8 +100,8 @@ class load_mat(nems_module):
                                     
                 data['fs']=self.fs
                 noise_thresh=0.05
-                stim_resamp_factor=int(data['stimFs']/self.fs)
-                resp_resamp_factor=int(data['respFs']/self.fs)
+                stim_resamp_factor=int(data['stimFs']/data['fs'])
+                resp_resamp_factor=int(data['respFs']/data['fs'])
                 
                 self.parent_stack.unresampled={'resp':data['resp'],'respFs':data['respFs'],'duration':data['duration'],
                                                'poststim':data['poststim'],'prestim':data['prestim'],'pupil':data['pupil']}
@@ -141,13 +143,17 @@ class dummy_data(nems_module):
     dummy_data - generate some very dumb test data without loading any files. 
     Maybe deprecated? 
     """
-    name='dummy_data'
-    user_editable_fields=['output_name','data_len']
+    name='loaders.dummy_data'
+    user_editable_fields=['output_name','data_len','fs']
     plot_fns=[nu.plot_spectrogram]
     data_len=100
+    fs=100
     
-    def my_init(self,data_len=100):
+    def my_init(self,data_len=100,fs=100):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.data_len=data_len
+        self.fs=fs
 
     def evaluate(self):
         del self.d_out[:]

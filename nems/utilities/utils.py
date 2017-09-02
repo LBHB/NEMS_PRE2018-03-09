@@ -15,6 +15,7 @@ import pickle
 import os
 import copy
 import io
+import json
 
 try:
     import boto3
@@ -22,7 +23,8 @@ try:
     AWS = sc.USE_AWS
 except Exception as e:
     print(e)
-    #import nems_config.STORAGE_DEFAULTS as sc
+    from nems_config.defaults import STORAGE_DEFAULTS
+    sc = STORAGE_DEFAULTS
     AWS = False
     
     
@@ -44,6 +46,7 @@ def save_model(stack, file_path):
     stack2=copy.deepcopy(stack)
     for i in range(1,len(stack2.data)):
         del stack2.data[i][:]
+    del stack2.keyfun
     
     if AWS:
         # TODO: Need to set up AWS credentials in order to test this
@@ -80,6 +83,61 @@ def save_model(stack, file_path):
         
         os.chmod(file_path, 0o666)
         print("Saved model to {0}".format(file_path))
+        
+def save_model_dict(stack, filepath=None):
+    sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','meta','nests'])
+    sdict['modlist']=[]
+    sdict['mod_dicts']=[]
+    parm_list=[]
+    for i in stack.parm_fits:
+        parm_list.append(i.tolist())
+    sdict['parm_fits']=parm_list
+    sdict['nests']=stack.nests
+    
+    # svd 2017-08-10 -- pull out all of meta
+    sdict['meta']=stack.meta
+    sdict['meta']['mse_est']=[]
+    sdict['cv_counter']=stack.cv_counter
+    sdict['fitted_modules']=stack.fitted_modules
+    
+    for m in stack.modules:
+        sdict['modlist'].append(m.name)
+        sdict['mod_dicts'].append(m.get_user_fields())
+    try:
+        d=stack.d
+        g=stack.g
+        sdict['d']=d
+        sdict['g']=g
+    except:
+        pass
+    
+    # to do: this info should go to a table in celldb if compact enough
+    if filepath:
+        if AWS:
+            s3 = boto3.resource('s3')
+            key = filepath[len(sc.DIRECTORY_ROOT):]
+            fileobj = json.dumps(sdict)
+            s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+        else:
+            with open(filepath,'w') as fp:
+                json.dump(sdict,fp)
+    
+    return sdict
+        
+
+def load_model_dict(filepath):
+    #TODO: need to add AWS stuff
+    if AWS:
+        s3_client = boto3.client('s3')
+        key = filepath[len(sc.DIRECTORY_ROOT):]
+        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+        sdict = json.loads(fileobj['Body'].read())
+    else:
+        with open(filepath,'r') as fp:
+            sdict=json.load(fp)
+    
+    return sdict
+    
 
 def load_model(file_path):
     if AWS:
@@ -187,6 +245,10 @@ def pred_act_scatter(m,idx=None,size=FIGSIZE):
     axes = plt.gca()
     ymin, ymax = axes.get_ylim()
     xmin, xmax = axes.get_xlim()
+    if ymin==ymax:
+        ymax=ymin+1
+    if xmin==xmax:
+        xmax=xmin+1
     plt.text(xmin+(xmax-xmin)/50,ymax-(ymax-ymin)/20,"r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0],m.parent_stack.meta['r_val'][0]),
              verticalalignment='top')
     
@@ -202,6 +264,7 @@ def io_scatter_smooth(m,idx=None,size=FIGSIZE):
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
     T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=s2[:,0:(T*bincount)]
     s2=np.reshape(s2,[3,bincount,T])
     s2=np.mean(s2,2)
     s2=np.squeeze(s2)
@@ -212,24 +275,36 @@ def io_scatter_smooth(m,idx=None,size=FIGSIZE):
     plt.ylabel("Output ({0})".format(m.output_name))
     #plt.title("{0}".format(m.name))
 
-def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+def scatter_smooth(m,idx=None,x_name=None,y_name=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
-    s=m.unpack_data(m.output_name,use_dout=True)
-    r=m.unpack_data("resp",use_dout=True)
+    if not x_name:
+        x_name=m.output_name
+    if not y_name:
+        y_name="resp"
+        
+    s=m.unpack_data(x_name,use_dout=True)
+    r=m.unpack_data(y_name,use_dout=True)
     s2=np.append(s.transpose(),r.transpose(),0)
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
     T=np.int(np.floor(s2.shape[1]/bincount))
+    s2=s2[:,0:(T*bincount)]
     s2=np.reshape(s2,[2,bincount,T])
     s2=np.mean(s2,2)
     s2=np.squeeze(s2)
     plt.plot(s2[0,:],s2[1,:],'k.')
-    plt.xlabel('Predicted')
-    plt.ylabel('Actual')
-    m.parent_stack.meta['r_val']
+    plt.xlabel(x_name)
+    plt.ylabel(y_name)
+    #m.parent_stack.meta['r_val']
     #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
 
+def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+    scatter_smooth(m,idx=idx,size=size,x_name=m.output_name,y_name="resp")
+
+def state_act_scatter_smooth(m,idx=None,size=FIGSIZE):
+    scatter_smooth(m,idx=idx,size=size,x_name=m.state_var,y_name="resp")
+    
 def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
@@ -334,47 +409,6 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     # Is this correct? I think so...
     plt.ylabel('Latency')
     
-"""
-Potentially useful trial plotting stuff...not currently in use, however --njs July 5 2017   
-def plot_trials(m,idx=None,size=(12,4)):
-    out1=m.d_out[m.parent_stack.plot_dataidx]
-    u=0
-    c=out1['repcount'][m.parent_stack.plot_stimidx]
-    h=out1['stim'][m.parent_stack.plot_stimidx].shape
-    scl=int(h[0]/c)
-    tr=m.parent_stack.plot_trialidx
-    
-    #Could also rewrite this so all plots are in a single figure (i.e. each 
-    #trial is a subplot, rather than its own figure)
-    for i in range(tr[0],tr[1]):
-        plt.figure(num=str(idx)+str(i),figsize=size)
-        s=out1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        r=out1['resp'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        pred, =plt.plot(s,label='Predicted')
-        resp, =plt.plot(r,'r',label='Response')
-        plt.legend(handles=[pred,resp])
-        plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
-        u=u+scl
-        
-def trial_prepost_psth(m,idx=None,size=(12,4)):
-    in1=m.d_in[m.parent_stack.plot_dataidx]
-    out1=m.d_out[m.parent_stack.plot_dataidx]
-    u=0
-    c=out1['repcount'][m.parent_stack.plot_stimidx]
-    h=out1['stim'][m.parent_stack.plot_stimidx].shape
-    scl=int(h[0]/c)
-    tr=m.parent_stack.plot_trialidx
-    
-    for i in range(tr[0],tr[1]):
-        plt.figure(num=str(idx)+str(i),figsize=size)
-        s1=in1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        s2=out1['stim'][m.parent_stack.plot_stimidx,u:(u+scl)]
-        pred, =plt.plot(s1,label='Pre-'+m.name)
-        resp, =plt.plot(s2,'r',label='Post-'+m.name)
-        plt.legend(handles=[pred,resp])
-        plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx)+', trial #'+str(i))
-        u=u+scl
-"""
 def non_plot(m):
     pass
 
@@ -464,7 +498,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
             lis.extend([i]*reps[i])
     ids=lis[idi]
     b=np.nanmean(pup[:,:,ids],axis=0)
-    np.nan_to_num(b,copy=False)
+    b=np.nan_to_num(b)
     bc=np.asarray(sorted(zip(b,range(0,len(b)))),dtype=int)
     bc=bc[:,1]
     resp[:,:,ids]=resp[:,bc,ids]
@@ -512,30 +546,31 @@ def concatenate_helper(stack,start=1,**kwargs):
         #print(len(stack.data[k]))
         for n in range(0,len(stack.data[k])):
             #print('start loop 2')
-            try:
-                if stack.data[k][n]['est'] is False:
-                    #print('concatenating')
-                    if stack.data[k][n]['stim'][0].ndim==3:
-                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
-                    else:
-                        stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
-                    stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
-                    try:
-                        stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
-                    except ValueError:
-                        stack.data[k][n]['pupil']=None
-                    try:
-                        stack.data[k][n]['replist']=np.concatenate(stack.data[k][n]['replist'],axis=0)
-                    except ValueError:
-                        stack.data[k][n]['replist']=[]
-                    try:
-                        stack.data[k][n]['repcount']=np.concatenate(stack.data[k][n]['repcount'],axis=0)
-                    except ValueError:
-                        pass
-                        #stack.data[k][n]['repcount']=stack.data[k][n]['repcount']
+            if stack.data[k][n]['est'] is False:
+                #print('concatenating')
+                if stack.data[k][n]['stim'][0].ndim==3:
+                    stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=1)
                 else:
+                    stack.data[k][n]['stim']=np.concatenate(stack.data[k][n]['stim'],axis=0)
+                stack.data[k][n]['resp']=np.concatenate(stack.data[k][n]['resp'],axis=0)
+                try:
+                    stack.data[k][n]['pupil']=np.concatenate(stack.data[k][n]['pupil'],axis=0)
+                except ValueError:
+                    stack.data[k][n]['pupil']=None
+                try:
+                    stack.data[k][n]['replist']=np.concatenate(stack.data[k][n]['replist'],axis=0)
+                except ValueError:
+                    stack.data[k][n]['replist']=[]
+                try:
+                    stack.data[k][n]['repcount']=np.concatenate(stack.data[k][n]['repcount'],axis=0)
+                except ValueError:
                     pass
-            except:
+                if 'stim2' in stack.data[k][n]:
+                    if stack.data[k][n]['stim2'][0].ndim==3:
+                        stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=1)
+                    else:
+                        stack.data[k][n]['stim2']=np.concatenate(stack.data[k][n]['stim2'],axis=0)
+            else:
                 pass
             
 def thresh_resamp(data,resamp_factor,thresh=0,ax=0):
@@ -562,30 +597,48 @@ def stretch_trials(data):
     (time,trials,stimuli). These are the configurations used in the default 
     loading module nems.modules.load_mat
     """
-    r=data['repcount']
-    s=copy.deepcopy(data['resp'].shape)
-    resp=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='F'),(1,0))
+    #r=data['repcount']
+    s=data['resp'].shape # time X rep X stim
+    
+    # stack each rep on top of each other
+    resp=np.transpose(data['resp'],(0,2,1)) # time X stim X rep
+    resp=np.transpose(np.reshape(resp,(s[0],s[1]*s[2]),order='F'),(1,0))
+    
     #data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
-    mask=np.logical_not(npma.getmask(npma.masked_invalid(resp)))
-    R=resp[mask]
-    resp=np.reshape(R,(-1,s[0]),order='C')
+    #mask=np.logical_not(npma.getmask(npma.masked_invalid(resp)))
+    #R=resp[mask]
+    #resp=np.reshape(R,(-1,s[0]),order='C')
     try:
-        pupil=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='F'),(1,0))
-        P=pupil[mask]
-        pupil=np.reshape(P,(-1,s[0]),order='C')
+        # stack each rep on top of each other -- identical to resp
+        pupil=np.transpose(data['pupil'],(0,2,1))
+        pupil=np.transpose(np.reshape(pupil,(s[0],s[1]*s[2]),order='F'),(1,0))
+        #P=pupil[mask]
+        #pupil=np.reshape(P,(-1,s[0]),order='C')
         #data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
     except ValueError:
         pupil=None
-    Y=data['stim'][:,0,:]
-    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
-    for i in range(1,s[2]):
-        Y=data['stim'][:,i,:]
-        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
-        stim=np.append(stim,Y,axis=1)
-    lis=[]
-    for i in range(0,r.shape[0]):
-        lis.extend([i]*data['repcount'][i])
-    replist=np.array(lis)
+        
+    # copy stimulus as many times as there are repeats -- same stacking as resp??
+    stim=data['stim']
+    for i in range(1,s[1]):
+        stim=np.concatenate((stim,data['stim']),axis=1)
+    
+    # construct list of which stimulus idx was played on each trial
+    # should be able to do this much more simply!
+    lis=np.mat(np.arange(s[2])).transpose()
+    replist=np.repeat(lis,s[1],axis=1)
+    replist=np.reshape(replist.transpose(),(-1,1))
+    
+#    Y=data['stim'][:,0,:]
+#    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
+#    for i in range(1,s[2]):
+#        Y=data['stim'][:,i,:]
+#        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
+#        stim=np.append(stim,Y,axis=1)
+#    lis=[]
+#    for i in range(0,r.shape[0]):
+#        lis.extend([i]*data['repcount'][i])
+#    replist=np.array(lis)
     return stim, resp, pupil, replist
 
 

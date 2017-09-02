@@ -15,8 +15,8 @@ import scipy.stats as spstats
 
 class mean_square_error(nems_module):
  
-    name='mean_square_error'
-    user_editable_fields=['input1','input2','norm']
+    name='metrics.mean_square_error'
+    user_editable_fields=['input1','input2','norm','shrink']
     plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
@@ -26,6 +26,8 @@ class mean_square_error(nems_module):
     mse_val=np.ones([1,1])
         
     def my_init(self, input1='stim',input2='resp',norm=True,shrink=False):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.input1=input1
         self.input2=input2
         self.norm=norm
@@ -56,32 +58,59 @@ class mean_square_error(nems_module):
                 mse=mE
                 
         else:
-            E=np.zeros([1,1])
-            P=np.zeros([1,1])
-            N=0
-            for f in self.d_out:
-                #try:
-                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-                P+=np.sum(np.square(f[self.input2]))
-                #except TypeError:
-                    #print('error eval')
-                    #nu.concatenate_helper(self.parent_stack)
-                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-                    #P+=np.sum(np.square(f[self.input2]))
-                N+=f[self.input2].size
+            X1=self.unpack_data(self.input1,est=True)            
+            X2=self.unpack_data(self.input2,est=True)
+            keepidx=np.isfinite(X1) * np.isfinite(X2)
+            X1=X1[keepidx]
+            X2=X2[keepidx]
+            E=np.sum(np.square(X1-X2))
+            P=np.sum(X2*X2)
+            N=X1.size
+            
+#            E=np.zeros([1,1])
+#            P=np.zeros([1,1])
+#            N=0
+#            for f in self.d_out:
+#                #try:
+#                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+#                P+=np.sum(np.square(f[self.input2]))
+#                #except TypeError:
+#                    #print('error eval')
+#                    #nu.concatenate_helper(self.parent_stack)
+#                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+#                    #P+=np.sum(np.square(f[self.input2]))
+#                N+=f[self.input2].size
 
             if self.norm:
-                mse=E/P
+                if P>0:
+                    mse=E/P
+                else:
+                    mse=1    
             else:
                 mse=E/N
                 
-        if self.parent_stack.valmode is True:   
-            self.mse_val=mse
-            self.parent_stack.meta['mse_val']=mse
-        else:
             self.mse_est=mse
-            self.parent_stack.meta['mse_est']=mse
-        
+            self.parent_stack.meta['mse_est']=[mse]
+                
+            if self.parent_stack.valmode is True:   
+                X1=self.unpack_data(self.input1,est=False)            
+                X2=self.unpack_data(self.input2,est=False)
+                keepidx=np.isfinite(X1) * np.isfinite(X2)
+                X1=X1[keepidx]
+                X2=X2[keepidx]
+                E=np.sum(np.square(X1-X2))
+                P=np.sum(X2*X2)
+                N=X1.size
+    
+                if self.norm:
+                    if P>0:
+                        mse=E/P
+                    else:
+                        mse=1    
+                else:
+                    mse=E/N
+                self.mse_val=mse
+                self.parent_stack.meta['mse_val']=mse
         
         return mse
 
@@ -116,7 +145,8 @@ class pseudo_huber_error(nems_module):
     #potentially useful, depending on what is being fit? --njs, June 30 2017
     
     
-    name='pseudo_huber_error'
+    name='metrics.pseudo_huber_error'
+    user_editable_fields=['input1','input2','b']
     plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
@@ -125,6 +155,8 @@ class pseudo_huber_error(nems_module):
     huber_val=np.ones([1,1])
     
     def my_init(self, input1='stim',input2='resp',b=0.9):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.input1=input1
         self.input2=input2
         self.b=b
@@ -151,8 +183,8 @@ class pseudo_huber_error(nems_module):
         
 class correlation(nems_module):
  
-    name='correlation'
-    user_editable_fields=['input1','input2']
+    name='metrics.correlation'
+    user_editable_fields=['input1','input2','norm']
     plot_fns=[nu.pred_act_psth, nu.pred_act_scatter, nu.pred_act_scatter_smooth]
     input1='stim'
     input2='resp'
@@ -160,6 +192,8 @@ class correlation(nems_module):
     r_val=np.ones([1,1])
         
     def my_init(self, input1='stim',input2='resp',norm=True):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.input1=input1
         self.input2=input2
         self.do_plot=self.plot_fns[1]
@@ -171,17 +205,35 @@ class correlation(nems_module):
 
         X1=self.unpack_data(self.input1,est=True)            
         X2=self.unpack_data(self.input2,est=True)
+        keepidx=np.isfinite(X1) * np.isfinite(X2)
+        X1=X1[keepidx]
+        X2=X2[keepidx]
         r_est,p=spstats.pearsonr(X1,X2)
         self.r_est=r_est
-        self.parent_stack.meta['r_est']=r_est
-                              
+        self.parent_stack.meta['r_est']=[r_est]
+        
         X1=self.unpack_data(self.input1,est=False)            
         if X1.size:
             X2=self.unpack_data(self.input2,est=False)
-            r_val,p=spstats.pearsonr(X1,X2)
+            keepidx=np.isfinite(X1) * np.isfinite(X2)
+            X1=X1[keepidx]
+            X2=X2[keepidx]
+            if not X1.sum() or not X2.sum():
+                r_val=np.zeros(1)
+            else:
+                r_val,p=spstats.pearsonr(X1,X2)
             self.r_val=r_val
-            self.parent_stack.meta['r_val']=r_val
+            self.parent_stack.meta['r_val']=[r_val]
         
-            return r_val
+            # if running validation test, also measure r_floor
+            rf=np.zeros([1000,1]) 
+            for rr in range(0,len(rf)):
+                n1=(np.random.rand(500,1)*len(X1)).astype(int)
+                n2=(np.random.rand(500,1)*len(X2)).astype(int)
+                rf[rr],p=spstats.pearsonr(X1[n1],X2[n2])
+            rf=np.sort(rf[np.isfinite(rf)],0)
+            self.parent_stack.meta['r_floor']=[rf[np.int(len(rf)*0.95)]]
+            
+            return [r_val]
         else:
-            return (r_est)
+            return [r_est]

@@ -7,6 +7,7 @@ Only used for testing the template right now.
 import copy
 import inspect
 import json
+import pkgutil
 
 from flask import (
         request, render_template, Response, jsonify, redirect, 
@@ -16,9 +17,10 @@ import matplotlib.pyplot as plt, mpld3
 import numpy as np
 
 import nems.modules as nm
-import nems.keywords as nk
+import nems.keyword as nk
 import nems.utilities.utils as nu
 import nems.main as nems
+from nems.utilities.output import web_print
 import pkgutil as pk
 
 from nems.web.nems_analysis import app
@@ -48,17 +50,21 @@ def modelpane_view():
                 cellid=cSelected, batch=bSelected, modelname=mSelected,
                 )
     except Exception as e:
-        print("error when calling load_single_model")
+        web_print("error when calling load_single_model")
         print(e)
         return Response(
                 "Model has not been fitted yet, its fit file "
                 "is not in local storage, "
                 "or there was an error when loading the model."
                 )
-        
-    all_mods = [cls.name for cls in nm.base.nems_module.__subclasses__()]
+    # TODO: need to fix this for new split package structure
+    #package = nm
+    #all_mods = [
+    #       modname for importer, modname, ispkg
+    #        in pkgutil.iter_modules(package.__path__)
+    #        ]
     # remove any modules that shouldn't show up as an option in modelpane
-    all_mods.remove('load_mat')
+    #all_mods.remove('load_mat')
     
     stackmods = mp_stack.modules[1:]
     plots = re_render_plots()
@@ -106,16 +112,20 @@ def modelpane_view():
     #       other than load_mat and standard_est_eval.
     #       Is this a good assumption?
     
-    dummy_mod = stackmods[-1]
-    data_max = (len(dummy_mod.d_in) - 1)
-    shape_len = dummy_mod.d_in[0]['stim'].ndim
-    if shape_len == 3:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1] - 1)
-    elif shape_len == 2:
-        stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0] - 1)
-    else:
+    # TODO: Fix this calculation for the range of possible stimulus choices.
+    #       some times causes 'index out of range error'
+    
+    #dummy_mod = stackmods[-1]
+    #data_max = (len(dummy_mod.d_in) - 1)
+    #shape_len = dummy_mod.d_in[0]['stim'].ndim
+    #if shape_len == 3:
+    #    stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[1] - 1)
+    #elif shape_len == 2:
+    #    stim_max = (dummy_mod.d_in[mp_stack.plot_dataidx]['stim'].shape[0] - 1)
+    #else:
         # TODO: Would shape length ever be anything other than 2 or 3?
-        stim_max = "N/A"
+    stim_max = "N/A"
+    data_max = "N/A"
     
     return render_template(
             "/modelpane/modelpane.html", 
@@ -124,7 +134,7 @@ def modelpane_view():
             title="Cellid: %s --- Model: %s"%(cSelected,mSelected),
             fields_values_types=fields_values_types,
             plottypes=plot_fns,
-            all_mods=all_mods,
+            #all_mods=all_mods,
             plot_stimidx=mp_stack.plot_stimidx,
             plot_dataidx=mp_stack.plot_dataidx,
             plot_stimidx_max=stim_max,
@@ -203,7 +213,7 @@ def update_modelpane_plot():
         m = mp_stack.modules[i]
     except Exception as e:
         print(e)
-        print("index was: " + str(i))
+        web_print("index was: " + str(i))
         return Response('')
     
     p = plt.figure(figsize=FIGSIZE)
@@ -273,7 +283,7 @@ def update_module():
         #TODO: figure out a good way to set type dynamically instead of trying
         #      to think of every possible data type."
         if not hasattr(mp_stack.modules[modIdx], f):
-            print(
+            web_print(
                     "Couldn't find attribute (%s)"
                     "for module at index (%d)."
                     %(f, modIdx)
@@ -301,10 +311,10 @@ def update_module():
                 a = json.loads(v)
                 v = np.array(a)
             except Exception as e:
-                print("Error converting numpy.ndarray pickle-string back to array")
+                web_print("Error converting numpy.ndarray pickle-string back to array")
                 print(e)
         else:
-            print("Unexpected data type (" + t + ") for field: " + f)
+            web_print("Unexpected data type (" + t + ") for field: " + f)
             continue    
             
         setattr(mp_stack.modules[modIdx], f, v)
@@ -329,7 +339,7 @@ def re_render_plots(modIdx=1):
             plot_list.append(html)
             plt.close(p)
         except Exception as e:
-            print("Issue with plot for: " + m.name)
+            web_print("Issue with plot for: " + m.name)
             print(e)
             plot_list.append(
                     "Couldn't generate plot for this module."
@@ -365,18 +375,18 @@ def append_module():
     for importer, modname, ispkg in pk.iter_modules(nm.__path__):
         try:
             m=getattr(importer.find_module(modname).load_module(modname),module_name)
-            print('Found %s'%module_name)
+            web_print('Found %s'%module_name)
             mod_found=True
             break
         except:
             pass
     if mod_found is False:
-        print('Module not found')
+        web_print('Module not found')
         m = None
     try:    
         mp_stack.append(m)
     except Exception as e:
-        print("Exception inside nems_modules > stack > append()")
+        web_print("Exception inside nems_modules > stack > append()")
         print(e)
     
     return redirect(url_for('refresh_modelpane'))

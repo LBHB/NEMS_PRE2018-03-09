@@ -48,6 +48,7 @@ def generate_plot_html():
             'iso' : float(request.args.get('iso')),
             'snri' : float(request.args.get('snri')),
             }
+    
     # TODO: Looks like this is what NARF does, but not 100% sure.
     # Always exclude negative values
     for key in filterCriteria:
@@ -67,7 +68,8 @@ def generate_plot_html():
                 print(
                     "Multiple results found for cellid: %s in batch: %s"
                     %(cellid, bSelected)
-                    )
+                    )#!/usr/bin/env python3
+
             min_snr = min(dbCriteria[0].est_snr, dbCriteria[0].val_snr)
             min_isolation = dbCriteria[0].min_isolation
             min_snr_index = dbCriteria[0].min_snr_index

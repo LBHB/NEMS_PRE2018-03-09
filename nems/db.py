@@ -9,12 +9,16 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
+import os
+import sys
 import datetime
 
 import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
+
+import nems_config.defaults
 
 try:
     import nems_config.Storage_Config as sc
@@ -23,7 +27,7 @@ try:
         #from nems.EC2_Mgmt import check_instance_count
 except Exception as e:
     print(e)
-    #import nems_config.STORAGE_DEFAULTS as sc
+    sc = nems_config.defaults.STORAGE_DEFAULTS
     AWS = False
 
 # Database settings
@@ -39,11 +43,16 @@ try:
     db_uri = 'mysql+pymysql://{0}:{1}@{2}/{3}'.format(
                     db.user,db.passwd,db.host,db.database
                     )
+    echo = False
 except Exception as e:
     print('No database info detected')
     print(e)
-    #db_uri = 'sqlite:////path/to/default/database/file'
-    raise e
+    path = os.path.dirname(nems_config.defaults.__file__)
+    i = path.find('nems_config')
+    db_path = (path[:i+11] + '/default_db.db')
+    db_uri = 'sqlite:///' + db_path
+    echo = True
+    #raise e
 
 try:
     import nems_config.Cluster_Database_Info as clst_db
@@ -59,18 +68,23 @@ try:
                         clst_db.user, clst_db.passwd, clst_db.host,
                         port, clst_db.database,
                         )
+    clst_echo = False
 except Exception as e:
     print('No cluster database info detected')
     print(e)
-    #clst_db_uri = 'sqlite:////path/to/default/database/file'
-    raise e
+    path = os.path.dirname(nems_config.defaults.__file__)
+    i = path.find('nems_config')
+    db_path = (path[:i+11] + '/default_db.db')
+    clst_db_uri = 'sqlite:///' + db_path
+    clst_echo = True
+    #raise e
     
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that
 POOL_RECYCLE = 7200;
 
 # create a database connection engine
-engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE)
+engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE, echo=echo)
 
 #create base class to mirror existing database schema
 Base = automap_base()
@@ -92,7 +106,9 @@ Session = sessionmaker(bind=engine)
 
 
 # Same as above, but duplicated for use w/ cluster
-cluster_engine = create_engine(clst_db_uri, pool_recycle=POOL_RECYCLE)
+cluster_engine = create_engine(
+        clst_db_uri, pool_recycle=POOL_RECYCLE, echo=clst_echo
+        )
 
 cluster_Base = automap_base()
 cluster_Base.prepare(cluster_engine, reflect=True)
@@ -140,18 +156,18 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
                         cell, batch, model, force_rerun, user,
                         session, cluster_session,
                         )
-            if not queueid:
-                pass_fail.append(
-                        '\nFailure: {0}, {1}, {2}'
-                        .format(cell, batch, model)
-                        )
-            else:
+            if queueid:
                 pass_fail.append(
                         '\n queueid: {0},'
                         '\n message: {1}'
                         .format(queueid, message)
                         )
-    
+            else:
+                pass_fail.append(
+                        '\nFailure: {0}, {1}, {2}'
+                        .format(cell, batch, model)
+                        )
+                
     # Can return pass_fail instead if prefer to do something with it in views
     print('\n'.join(pass_fail))
     
@@ -185,8 +201,8 @@ def enqueue_single_model(
     # TODO: anything else needed here? this is syntax for nems_fit_single
     #       command prompt wrapper in main nems folder.
     commandPrompt = (
-            "/auto/users/nems/anaconda3/bin/python "
-            "/auto/users/nems/nems/nems_fit_single.py {0} {1} {2}"
+            "/home/nems/anaconda3/bin/python "
+            "/home/nems/nems/nems_fit_single.py {0} {1} {2}"
             .format(cellid, batch, modelname)
             )
 
@@ -211,9 +227,6 @@ def enqueue_single_model(
             .filter(cluster_tQueue.note == note)
             .first()
             )
-    
-    # if it does, check its 'complete' status and take different action based on
-    # status
     
     job = None
     message = None
@@ -250,14 +263,12 @@ def enqueue_single_model(
         message = "Adding job to queue for: %s\n"%note
         job = add_model_to_queue(commandPrompt, note, user)
         cluster_session.add(job)
-    
+        
+    cluster_session.commit()
     queueid = job.id
     
-    # don't need to commit the regular session since results don't change
-    cluster_session.commit()
-    
     if AWS:
-        # TODO: turn this back on after automated cluster management is
+        # TODO: turn this back on if/when automated cluster management is
         #       implemented.
         pass
         #check_instance_count()
@@ -320,7 +331,16 @@ def update_job_complete(queueid):
     #sql="UPDATE tQueue SET complete=1 WHERE id={}".format(queueid)
     #result = conn.execute(sql)
     #conn.close()
-   
+    conn = cluster_engine.connect()
+    # tick off progress, job is live
+    sql = (
+            "UPDATE tQueue SET complete=1 WHERE id={}"
+            .format(queueid)
+            )
+    r = conn.execute(sql)
+    conn.close()
+    return r
+    """
     cluster_session = cluster_Session()
     # also filter based on note? - should only be one result to match either
     # filter, but double checks to make sure there's no conflict
@@ -341,15 +361,29 @@ def update_job_complete(queueid):
         cluster_session.commit()
        
     cluster_session.close()
+    """
     
 def update_job_start(queueid):
     conn = cluster_engine.connect()
-    # tick off progress, job is live
+    # mark job as active and progress set to 1
     sql = (
-            "UPDATE tQueue SET complete=-1,progress=progress+1 WHERE id={}"
+            "UPDATE tQueue SET complete=-1,progress=1 WHERE id={}"
             .format(queueid)
             )
-    return conn.execute(sql)
+    r = conn.execute(sql)
+    conn.close()
+    return r
+
+def update_job_tick(queueid):
+    conn = cluster_engine.connect()
+    # tick off progress, job is live
+    sql = (
+            "UPDATE tQueue SET progress=progress+1 WHERE id={}"
+            .format(queueid)
+            )
+    r = conn.execute(sql)
+    conn.close()
+    return r
 
 def save_results(stack, preview_file, queueid=None):
     session = Session()

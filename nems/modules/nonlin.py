@@ -24,10 +24,11 @@ class gain(nems_module):
     @author: shofer
     """
     #Added helper functions and removed look up table --njs June 29 2017
-    name='nonlinearity'
+    name='nonlin.gain'
     plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
-    user_editable_fields = ['nltype', 'fit_fields','phi']
+    user_editable_fields = ['input_name','output_name','fit_fields','nltype','phi']
     phi=np.array([1])
+    nltype='dlog'
     
     def my_init(self,nltype='dlog',fit_fields=['phi'],phi=[1]):
         """
@@ -35,10 +36,11 @@ class gain(nems_module):
         fit_fields: name of fitted parameters
         phi: initial values for fitted parameters
         """
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
         self.nltype=nltype
         self.phi=np.array([phi])
-        #removed extraneous code ---njs August 7 2017
         if nltype=='dlog':
             self.do_plot=self.plot_fns[2]
         else:

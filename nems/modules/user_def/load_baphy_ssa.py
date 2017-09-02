@@ -21,6 +21,8 @@ class load_baphy_ssa(nems_module):
     @author: mateo
     """
     def my_init(self,file=[],fs=1000):
+        self.field_dict=locals()
+        self.field_dict.pop('self',None)
         self.filepath=file
         self.parent_stack.avg_resp=False
         self.fs=fs

@@ -25,4 +25,7 @@ function names you import will not be recognized by the importing file. Thus,
 it is not recommended. But you do you.
 """
 import nems.modules.user_def.load_baphy_ssa
-__all__=['load_baphy_ssa']
+import nems.modules.user_def.demo
+
+
+__all__=['load_baphy_ssa','simple_demo']
