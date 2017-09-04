@@ -7,11 +7,12 @@ Created on Fri Aug  4 14:00:03 2017
 
 @author: shofer
 """
-from nems.modules.base import nems_module
 
 import numpy as np
 import copy
 
+from nems.modules.base import nems_module
+import nems.utilities.utils as nu
 
 
 class normalize(nems_module):
@@ -156,6 +157,7 @@ class onset_edges(nems_module):
     user_editable_fields=['input_name','output_name','dim','state_mask']
     dim=0
     state_mask=[0,1]
+    plot_fns=[nu.plot_stim, nu.plot_spectrogram]
     
     def my_init(self, dim=2, state_mask=[0,1]):
         self.field_dict=locals()

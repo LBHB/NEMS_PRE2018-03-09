@@ -231,6 +231,18 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
             
     #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
+def plot_stim(m,idx=None,size=FIGSIZE):
+    if idx:
+        plt.figure(num=str(idx),figsize=size)
+    out1=m.d_out[m.parent_stack.plot_dataidx]
+    #c=out1['repcount'][m.parent_stack.plot_stimidx]
+    #h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    #scl=int(h[0]/c)
+    s2=np.squeeze(out1['stim'][:,m.parent_stack.plot_stimidx,:]).transpose()
+    print(s2.shape)
+    plt.plot(s2)
+    #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
+
 def pred_act_scatter(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
@@ -312,6 +324,25 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     out1=m.d_out[m.parent_stack.plot_dataidx]
     s=out1['stim'][m.parent_stack.plot_stimidx,:]
     r=out1['resp'][m.parent_stack.plot_stimidx,:]
+    pred, =plt.plot(s,label='Predicted')
+    act, =plt.plot(r,'r',label='Actual')
+    plt.legend(handles=[pred,act])
+    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    plt.xlabel('Time Step')
+    plt.ylabel('Firing rate (unitless)')
+
+def pred_act_psth_smooth(m,size=FIGSIZE,idx=None):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    out1=m.d_out[m.parent_stack.plot_dataidx]
+    s=out1['stim'][m.parent_stack.plot_stimidx,:]
+    r=out1['resp'][m.parent_stack.plot_stimidx,:]
+        
+    box_pts=20
+    box = np.ones(box_pts)/box_pts
+    s = np.convolve(s, box, mode='same')
+    r = np.convolve(r, box, mode='same')
+    
     pred, =plt.plot(s,label='Predicted')
     act, =plt.plot(r,'r',label='Actual')
     plt.legend(handles=[pred,act])

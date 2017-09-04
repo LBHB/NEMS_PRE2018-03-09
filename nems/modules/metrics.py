@@ -17,7 +17,7 @@ class mean_square_error(nems_module):
  
     name='metrics.mean_square_error'
     user_editable_fields=['input1','input2','norm','shrink']
-    plot_fns=[nu.pred_act_psth,nu.pred_act_scatter]
+    plot_fns=[nu.pred_act_psth,nu.pred_act_psth_smooth,nu.pred_act_scatter]
     input1='stim'
     input2='resp'
     norm=True

@@ -69,7 +69,8 @@ modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01_nested5"
 
-cellid="gus023e-c2"
+cellid='gus018d-d1'
+#cellid="gus023e-c2"
 batch=296
 #modelname="env100e_stp1pc_fir20_fit01"
 modelname="env100e_fir20_dexp_fit01"
