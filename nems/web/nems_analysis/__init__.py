@@ -4,11 +4,12 @@ from io import StringIO
 from flask import Flask
 from flask_socketio import SocketIO
 
-from nems.web.nems_analysis.SplitOutput import SplitOutput
+from nems.utilities.output import SplitOutput
 
 app = Flask(__name__)
 try:
     app.config.from_object('nems_config.Flask_Config')
+    
 except:
     app.config.from_object('nems_config.defaults.FLASK_DEFAULTS')
     print('No flask config file detected, using default settings')
@@ -17,15 +18,15 @@ except:
 socketio = SocketIO(app, async_mode='threading')
 thread = None
 
-#if app.config.COPY_PRINTS:
-stringio = StringIO()
-orig_stdout = sys.stdout
-sys.stdout = SplitOutput(stringio, orig_stdout)
+if app.config['COPY_PRINTS']:
+    stringio = StringIO()
+    orig_stdout = sys.stdout
+    sys.stdout = SplitOutput(stringio, orig_stdout)
 
 # redirect output of stdout to py_console div in web browser
 def py_console():
-    #while app.config.COPY_PRINTS:
-    while True:
+    while app.config['COPY_PRINTS']:
+    #while True:
         # Set sampling rate for console reader in seconds
         socketio.sleep(1)
         try:

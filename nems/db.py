@@ -19,6 +19,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 
 import nems_config.defaults
+from nems.utilities.print import web_print
 
 try:
     import nems_config.Storage_Config as sc
@@ -50,7 +51,7 @@ except Exception as e:
     path = os.path.dirname(nems_config.defaults.__file__)
     i = path.find('nems_config')
     db_path = (path[:i+11] + '/default_db.db')
-    db_uri = 'sqlite:///' + db_path
+    db_uri = 'sqlite:///' + db_path + '?check_same_thread=False'
     echo = True
     #raise e
 
@@ -75,7 +76,7 @@ except Exception as e:
     path = os.path.dirname(nems_config.defaults.__file__)
     i = path.find('nems_config')
     db_path = (path[:i+11] + '/default_db.db')
-    clst_db_uri = 'sqlite:///' + db_path
+    clst_db_uri = 'sqlite:///' + db_path + '?check_same_thread=False'
     clst_echo = True
     #raise e
     
@@ -216,7 +217,7 @@ def enqueue_single_model(
             .first()
             )
     if result and not force_rerun:
-        print("Entry in NarfResults already exists for: %s, skipping.\n"%note)
+        web_print("Entry in NarfResults already exists for: %s, skipping.\n"%note)
         session.close()
         cluster_session.close()
         return -1, 'skip'

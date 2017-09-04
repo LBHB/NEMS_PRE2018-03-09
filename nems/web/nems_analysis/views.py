@@ -41,7 +41,7 @@ from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
 from nems.keyword_rules import keyword_test_routine
 from nems.web.run_custom.script_utils import scan_for_scripts
-from nems.utilities.output import web_print
+from nems.utilities.print import web_print
 from nems_config.defaults import UI_OPTIONS
 n_ui = UI_OPTIONS
 
@@ -241,13 +241,16 @@ def update_models():
     modeltree = (
             session.query(NarfAnalysis.modeltree)
             .filter(NarfAnalysis.name == aSelected)
-            .first()[0]
+            .first()
             )
     # Pass modeltree string from NarfAnalysis to a ModelFinder constructor,
     # which will use a series of internal methods to convert the tree string 
     # to a list of model names.
-    mf = ModelFinder(modeltree)
-    
+    if modeltree:
+        mf = ModelFinder(modeltree[0])
+    else:
+        return jsonify(modellist="Model tree not found.")
+        
     session.close()
     
     return jsonify(modellist=mf.modellist)
@@ -288,7 +291,8 @@ def update_cells():
             .filter(NarfAnalysis.name == aSelected)
             .first()
             )
-    analysis.batch = batch
+    if analysis:
+        analysis.batch = batch
 
     session.commit()
     session.close()
@@ -433,18 +437,20 @@ def update_analysis_details():
             )
     
     detailsHTML = """"""
-    for col in detailcols:
-        # Use a single line for id and status columns
-        if (col == 'id') or (col == 'status'):
-            detailsHTML += """
-                <p><strong>%s</strong>: %s</p>
-                """%(col,results.get_value(0, col))
-        # Use a header + paragraph for everything else
-        else:
-            detailsHTML += """
-                <h5><strong>%s</strong>:</h5>
-                <p>%s</p>
-                """%(col,results.get_value(0, col))
+    
+    if results.size > 0:
+        for col in detailcols:
+            # Use a single line for id and status columns
+            if (col == 'id') or (col == 'status'):
+                detailsHTML += """
+                    <p><strong>%s</strong>: %s</p>
+                    """%(col,results.get_value(0, col))
+                    # Use a header + paragraph for everything else
+            else:
+                detailsHTML += """
+                    <h5><strong>%s</strong>:</h5>
+                    <p>%s</p>
+                    """%(col,results.get_value(0, col))
                     
     session.close()
     
@@ -516,7 +522,7 @@ def update_tag_options():
 
 
 @app.route('/edit_analysis', methods=['GET','POST'])
-@login_required
+#@login_required
 def edit_analysis():
     """Take input from Analysis Editor modal and save it to the database.
     
@@ -526,7 +532,7 @@ def edit_analysis():
     
     user = get_current_user()
     session = Session()
-    modTime = str(datetime.datetime.now().replace(microsecond=0))
+    modTime = datetime.datetime.now().replace(microsecond=0)
     
     eName = request.args.get('name')
     eStatus = request.args.get('status')
@@ -570,7 +576,10 @@ def edit_analysis():
             a.question = eQuestion
             a.answer = eAnswer
             a.tags = eTags
-            a.lastmod = modTime
+            try:
+                a.lastmod = modTime
+            except:
+                a.lastmod = str(modTime)
             a.modeltree = eTree
         else:
             return jsonify(
@@ -584,12 +593,21 @@ def edit_analysis():
     else:
         # TODO: Currently copies user's labgroup by default.
         #       Is that the behavior we want?
-        a = NarfAnalysis(
-                name=eName, status=eStatus, question=eQuestion,
-                answer=eAnswer, tags=eTags, batch='',
-                lastmod=modTime, modeltree=eTree, username=user.username,
-                labgroup=user.labgroup, public='0'
-                )
+        try:
+            a = NarfAnalysis(
+                    name=eName, status=eStatus, question=eQuestion,
+                    answer=eAnswer, tags=eTags, batch='',
+                    lastmod=modTime, modeltree=eTree, username=user.username,
+                    labgroup=user.labgroup, public='0'
+                    )
+        except:
+            a = NarfAnalysis(
+                    name=eName, status=eStatus, question=eQuestion,
+                    answer=eAnswer, tags=eTags, batch='',
+                    lastmod=str(modTime), modeltree=eTree, username=user.username,
+                    labgroup=user.labgroup, public='0'
+                    )
+            
         session.add(a)
     
     # For verifying correct logging - comment these out 
@@ -780,6 +798,7 @@ def get_preview():
                 return jsonify(image=image)
     else:
         try:
+            #local = sc.DIRECTORY_ROOT + path.figurefile.strip('/auto/data/code')
             with open('/' + path.figurefile, 'r+b') as img:
                 image = str(b64encode(img.read()))[2:-1]
             return jsonify(image=image)
