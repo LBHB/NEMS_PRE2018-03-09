@@ -16,11 +16,19 @@ def cell_details(cellid):
     url_root = 'http://hyrax.ohsu.edu/celldb/peninfo.php?penid='
     i = cellid.find('-')
     cellid = cellid[:i]
-    result = (
-            session.query(gCellMaster)
-            .filter(gCellMaster.cellid == cellid)
-            .first()
-            )
+    try:
+        result = (
+                session.query(gCellMaster)
+                .filter(gCellMaster.cellid == cellid)
+                .first()
+                )
+    except Exception as e:
+        print(e)
+        return Response(
+                "Couldn't open cell file -- "
+                "this option is disabled for non-LBHB setup."
+                )
+        
     if not result:
         # return an error response instead?
         # or make it a dud link? seems wasteful to refresh page

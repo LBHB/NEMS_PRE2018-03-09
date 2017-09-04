@@ -20,7 +20,7 @@ import nems.modules as nm
 import nems.keyword as nk
 import nems.utilities.utils as nu
 import nems.main as nems
-from nems.utilities.output import web_print
+from nems.utilities.print import web_print
 import pkgutil as pk
 
 from nems.web.nems_analysis import app

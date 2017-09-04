@@ -7,6 +7,10 @@ on the results table or what minimum SNR to require for plots by default.
 
 """
 
+import os
+import nems_sample as ns
+sample_path = os.path.abspath(ns.__file__)[:-11]
+
 class UI_OPTIONS():
     cols = ['r_test', 'r_fit', 'n_parms']
     rowlimit = 500
@@ -28,7 +32,8 @@ class UI_OPTIONS():
     snri = 0
 
 class STORAGE_DEFAULTS():
-    DIRECTORY_ROOT = '/auto/data/code/'
+    DIRECTORY_ROOT = sample_path
+    USE_AWS = False
     
 class FLASK_DEFAULTS():
     Debug = False
