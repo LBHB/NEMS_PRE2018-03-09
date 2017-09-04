@@ -153,13 +153,15 @@ class onset_edges(nems_module):
     onset_edges - calculate diff, replace positive diffs with 1, everything else with zero
     """
     name='aux.onset_edges'
-    user_editable_fields=['input_name','output_name','dim']
+    user_editable_fields=['input_name','output_name','dim','state_mask']
     dim=0
+    state_mask=[0,1]
     
-    def my_init(self, dim=2):
+    def my_init(self, dim=2, state_mask=[0,1]):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.dim=dim
+        self.state_mask=state_mask
         
     def my_eval(self,X):
         dim=self.dim

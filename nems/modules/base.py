@@ -156,7 +156,7 @@ class nems_module:
                 self.d_out.append(copy.deepcopy(d))
                 # TODO- make it so don't deepcopy eveything. deal with nesting!
                 #self.d_out.append(copy.copy(d))
-                
+        
         for f_in,f_out in zip(self.d_in,self.d_out):
             if f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
@@ -169,7 +169,15 @@ class nems_module:
                 # don't need to eval the est data for each nest, just the first one
                 X=copy.deepcopy(f_in[self.input_name])
                 f_out[self.output_name]=self.my_eval(X)
-
+            
+        if hasattr(self,'state_mask'):
+            del_idx=[]
+            for i in range(0,len(self.d_out)):
+                if not self.d_out[i]['filestate'] in self.state_mask:
+                    del_idx.append(i)
+            for i in sorted(del_idx, reverse=True):
+               del self.d_out[i]
+                    
     #
     # customizable functions
     #

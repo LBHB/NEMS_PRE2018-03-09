@@ -80,7 +80,7 @@ class load_mat(nems_module):
                     data['isolation']=s['isolation']
                     data['prestim']=s['tags'][0]['PreStimSilence'][0][0][0]
                     data['poststim']=s['tags'][0]['PostStimSilence'][0][0][0]
-                    data['duration']=s['tags'][0]['Duration'][0][0][0] 
+                    data['duration']=s['tags'][0]['Duration'][0][0][0]
                 except:
                     data = scipy.io.loadmat(f,chars_as_strings=True)
                     data['raw_stim']=data['stim'].copy()
@@ -96,6 +96,10 @@ class load_mat(nems_module):
                         data['est']=False
                 except ValueError:
                     print("Est/val conditions not flagged in datafile")
+                try:
+                    data['filestate']=s['filestate'][0][0]
+                except:
+                    data['filestate']=None
                     
                                     
                 data['fs']=self.fs
@@ -125,10 +129,13 @@ class load_mat(nems_module):
                 data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
                 self.parent_stack.unresampled['repcount']=data['repcount']
                 
+                # TODO - why does this execute(and produce a warning?)
+                print(data['resp'].shape)
                 data['avgresp']=np.nanmean(data['resp'],axis=1)
+                    
                 data['avgresp']=np.transpose(data['avgresp'],(1,0))
 
-                if self.avg_resp is True: 
+                if self.avg_resp is True:
                     data['resp']=data['avgresp']
                 else:
                     data['stim'],data['resp'],data['pupil'],data['replist']=nu.stretch_trials(data)

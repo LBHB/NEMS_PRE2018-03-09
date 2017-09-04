@@ -69,9 +69,10 @@ modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01_nested5"
 
-cellid="gus021f-a2"
+cellid="gus023e-c2"
 batch=296
-modelname="env100e_stp1pc_fir20_fit01"
+#modelname="env100e_stp1pc_fir20_fit01"
+modelname="env100e_fir20_dexp_fit01"
 
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
@@ -89,6 +90,7 @@ else:
     # extract keywords from modelname, look up relevant functions in nk and save
     # so they don't have to be found again.
     stack.keywords=modelname.split("_")
+    """
     stack.keyfun={}
     for k in stack.keywords:
         f=None
@@ -101,20 +103,18 @@ else:
         if f is None:
             raise ValueError("Keyword {0} not found.".format(k))
         stack.keyfun[k]=f
-
+    """
+    
     # evaluate the stack of keywords    
     if 'nested' in stack.keywords[-1]:
-        # special case for nested keywords. fix this somehow
-        print('Using nested cross-validation, fitting will take longer!')
+        # special case if last keyword contains "nested". TODO: better imp!
+        print('Evaluating stack using nested cross validation. May be slow!')
         k=stack.keywords[-1]
-        stack.keyfun[k](stack)
+        nk.keyfuns[k](stack)
     else:
-        print('Using standard est/val conditions')
+        print('Evaluating stack')
         for k in stack.keywords:
-            stack.keyfun[k](stack)
-#        for k in stack.keywords:
-#            f = getattr(nk, k)
-#            f(stack)
+            nk.keyfuns[k](stack)
 
 if 1:
     # validation stuff

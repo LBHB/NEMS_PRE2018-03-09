@@ -116,16 +116,16 @@ def fir20(stack):
     
     This keyword initializes the FIR coefficients to 0, and performs a fit on the 
     FIR coefficients (and weight channel coefficients, if a weight channel matrix
-    is included in the model).
+    is included in the model). -- for fir20, temporarily disabling stp in mini_fit
     """
     stack.append(nm.filters.fir,num_coefs=20)
-    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
+    mini_fit(stack,mods=['filters.weight_channels','filters.fir'])
 
 def stp1pc(stack):
     #stack.append(nm.aux.normalize)
     #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])
     stack.append(nm.filters.stp,num_channels=1)
-    stack.modules[-1].u[:]=0.05
+    stack.modules[-1].u[:]=0.01
     
 def stp2pc(stack):
     stack.append(nm.filters.stp,num_channels=2)

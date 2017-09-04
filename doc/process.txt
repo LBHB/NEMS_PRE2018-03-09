@@ -1,0 +1,13 @@
+Various logistical complications
+
+propagating updates to important places -- in lbhb and on ec2 nodes
+ (hyrax.ohsu.edu: /auto/users/nems/nems/ and neuralprediction.org: /home/nems/nems/)
+
+generating new batches from baphy data
+adding new cells to batches
+ - define and test criteria for inclusion
+exporting batch data to nems-readable format
+ - how to deal with different sampling rates
+ - state?
+
+switch between stand-alone and db-connected configs? run quick fits without needing to connect to db?

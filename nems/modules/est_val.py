@@ -158,6 +158,8 @@ class crossval(nems_module):
                 if re[0]<self.parent_stack.nests:
                     raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
                 
+                #a=np.find(np.isfinite(d['resp'][:,0]))
+                
                 spl=re[0]*valfrac
                 if self.interleave_valtrials:
                     smax=np.int(np.ceil(spl))
@@ -168,7 +170,7 @@ class crossval(nems_module):
                     a=a[a<re[0]]
                 else:
                     a=np.arange(re[0]).astype(int)
-                        
+                
                 c1=mt.floor((count)*spl)
                 c2=mt.floor((count+1)*spl)
                 print("Nest {0}, File {1}, c1-c2: {2}-{3}".format(count,i,c1,c2))

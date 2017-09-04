@@ -219,7 +219,7 @@ class correlation(nems_module):
             X1=X1[keepidx]
             X2=X2[keepidx]
             if not X1.sum() or not X2.sum():
-                r_val=np.zeros(1)
+                r_val=0
             else:
                 r_val,p=spstats.pearsonr(X1,X2)
             self.r_val=r_val
@@ -232,8 +232,11 @@ class correlation(nems_module):
                 n2=(np.random.rand(500,1)*len(X2)).astype(int)
                 rf[rr],p=spstats.pearsonr(X1[n1],X2[n2])
             rf=np.sort(rf[np.isfinite(rf)],0)
-            self.parent_stack.meta['r_floor']=[rf[np.int(len(rf)*0.95)]]
-            
+            if len(rf):
+                self.parent_stack.meta['r_floor']=[rf[np.int(len(rf)*0.95)]]
+            else:
+                self.parent_stack.meta['r_floor']=0
+                
             return [r_val]
         else:
             return [r_est]
