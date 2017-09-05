@@ -47,13 +47,14 @@ modelname="parm50_wc01_fir15_fititer00"
 #cellid='bbl034e-a1'
 cellid='bbl031f-a1'
 batch=291
-cellid='zee015e-04-1'
+
+cellid='gus008f-a1'
 batch=271
+modelname="fb18ch100_wc01_fir15_dexp_fit01"
 #modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_stp2pc_fir15_dexp"
-modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 #cellid="eno052d-a1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
@@ -69,11 +70,11 @@ modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01_nested5"
 
-cellid='gus018d-d1'
+#cellid='gus018d-d1'
 #cellid="gus023e-c2"
-batch=296
+#batch=296
 #modelname="env100e_stp1pc_fir20_fit01"
-modelname="env100e_fir20_dexp_fit01"
+#modelname="env100e_fir20_dexp_fit01"
 
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
