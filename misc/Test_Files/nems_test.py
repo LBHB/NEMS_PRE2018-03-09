@@ -92,20 +92,6 @@ else:
     # extract keywords from modelname, look up relevant functions in nk and save
     # so they don't have to be found again.
     stack.keywords=modelname.split("_")
-    """
-    stack.keyfun={}
-    for k in stack.keywords:
-        f=None
-        for importer, modname, ispkg in pk.iter_modules(nk.__path__):
-            try:
-                f=getattr(importer.find_module(modname).load_module(modname),k)
-                break
-            except:
-                pass
-        if f is None:
-            raise ValueError("Keyword {0} not found.".format(k))
-        stack.keyfun[k]=f
-    """
     
     # evaluate the stack of keywords    
     if 'nested' in stack.keywords[-1]:

@@ -422,11 +422,12 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     
     # if weight channels exist and dimensionality matches, generate a full STRF
     try:
-        wcidx=find_modules(m.parent_stack,"weight_channels")
+        wcidx=find_modules(m.parent_stack,"filters.weight_channels")
         #print(wcidx)
     except:
         wcidx=[]
-    if m.name=="fir" and len(wcidx):
+    if m.name=="filters.fir" and len(wcidx):
+        #print(m.name)
         w=m.parent_stack.modules[wcidx[0]].coefs
         if w.shape[0]==h.shape[0]:
             h=np.matmul(w.transpose(), h)
