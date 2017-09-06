@@ -46,6 +46,7 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
     stack.valmode=False
+    stack.keyfuns=nk.keyfuns
     
     # extract keywords from modelname, look up relevant functions in nk and save
     # so they don't have to be found again.

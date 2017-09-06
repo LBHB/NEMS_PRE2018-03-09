@@ -63,9 +63,9 @@ modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="parm50_wc01_fir15_fititer00"
 
 # pupil gain test -- 2 x VOC data
-#cellid="eno023c-c1"
-#batch=294
-#modelname="perfectpupil50_pupgain_fit01_nested5"
+cellid="eno023c-c1"
+batch=294
+modelname="perfectpupil50_pupgain_fit01_nested5"
 #modelname="perfectpupil50x_pupgain_fit01"
 
 # SSA test
@@ -78,7 +78,7 @@ modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 
-if 0:
+if 1:
     stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 else:
     stack=ns.nems_stack()
@@ -104,24 +104,24 @@ else:
         for k in stack.keywords:
             stack.keyfuns[k](stack)
 
-if 1:
-    # validation stuff
-    stack.valmode=True
-    stack.evaluate(1)
-    
-    stack.append(nm.metrics.correlation)
-                    
-    print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
-                 stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
-    valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-    if valdata:
-        stack.plot_dataidx=valdata[0]
-    else:
-        stack.plot_dataidx=0
+    if 1:
+        # validation stuff
+        stack.valmode=True
+        stack.evaluate(1)
+        
+        stack.append(nm.metrics.correlation)
+                        
+        print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+                     stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+        valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+        if valdata:
+            stack.plot_dataidx=valdata[0]
+        else:
+            stack.plot_dataidx=0
 
-#nlidx=nu.find_modules(stack,'nonlin.gain')
-#stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
-stack.quick_plot()
+    #nlidx=nu.find_modules(stack,'nonlin.gain')
+    #stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
+    stack.quick_plot()
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2
