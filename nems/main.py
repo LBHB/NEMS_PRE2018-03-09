@@ -7,7 +7,7 @@ Created on Sun Jun 18 20:16:37 2017
 """
 import nems.modules as nm
 import nems.stack as ns
-import nems.utilities as ut
+import nems.utilities
 import nems.keyword as nk
 import operator as op
 import numpy as np
@@ -51,26 +51,26 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     # extract keywords from modelname, look up relevant functions in nk and save
     # so they don't have to be found again.
     stack.keywords=modelname.split("_")
-    stack.keyfun={}
-    for k in stack.keywords:
-        for importer, modname, ispkg in pk.iter_modules(nk.__path__):
-            try:
-                f=getattr(importer.find_module(modname).load_module(modname),k)
-                break
-            except:
-                pass
-        stack.keyfun[k]=f
+    #stack.keyfun={}
+    #for k in stack.keywords:
+    #    for importer, modname, ispkg in pk.iter_modules(nk.__path__):
+    #        try:
+    #            f=getattr(importer.find_module(modname).load_module(modname),k)
+    #            break
+    #        except:
+    #            pass
+        #stack.keyfun[k]=f
 
     # evaluate the stack of keywords    
     if 'nested' in stack.keywords[-1]:
         # special case for nested keywords. fix this somehow
         print('Using nested cross-validation, fitting will take longer!')
         k=stack.keywords[-1]
-        stack.keyfun[k](stack)
+        stack.keyfuns[k](stack)
     else:
         print('Using standard est/val conditions')
         for k in stack.keywords:
-            stack.keyfun[k](stack)
+            stack.keyfuns[k](stack)
 #        for k in stack.keywords:
 #            f = getattr(nk, k)
 #            f(stack)
@@ -97,8 +97,8 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         stack.quick_plot()
     
     # save
-    filename = ut.utils.get_file_name(cellid, batch, modelname)
-    ut.utils.save_model(stack, filename)
+    filename = nems.utilities.utils.get_file_name(cellid, batch, modelname)
+    nems.utilities.utils.save_model(stack, filename)
 
     return(stack)
 
@@ -116,8 +116,8 @@ example:
 """
 def load_single_model(cellid, batch, modelname):
     
-    filename = ut.utils.get_file_name(cellid, batch, modelname)
-    stack = ut.utils.load_model(filename)
+    filename = nems.utilities.utils.get_file_name(cellid, batch, modelname)
+    stack = nems.utilities.utils.load_model(filename)
     
     try:
         stack.valmode = True
@@ -131,8 +131,8 @@ def load_single_model(cellid, batch, modelname):
     return stack
 
 def load_from_dict(batch,cellid,modelname):
-    filepath = ut.utils.get_file_name(cellid, batch, modelname)
-    sdict=ut.utils.load_model_dict(filepath)
+    filepath = nems.utilities.utils.get_file_name(cellid, batch, modelname)
+    sdict=nems.utilities.utils.load_model_dict(filepath)
     
     #Maybe move some of this to the load_model_dict function?
     stack=ns.nems_stack()

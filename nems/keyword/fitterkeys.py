@@ -9,7 +9,7 @@ Created on Fri Aug 11 11:14:52 2017
 """
 
 import nems.modules as nm
-import nems.fitters as nf
+import nems.fitters
 #import nems.tensorflow_fitters as ntf
 from nems.keyword.keyhelpers import create_parmlist
 
@@ -26,7 +26,7 @@ def fit00(stack):
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
-    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter=nems.fitters.fitters.basic_min(stack)
     stack.fitter.tolerance=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -42,7 +42,7 @@ def fit01(stack):
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
-    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter=nems.fitters.fitters.basic_min(stack)
     stack.fitter.tolerance=0.00000001
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -58,7 +58,7 @@ def fit02(stack):
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
-    stack.fitter=nf.fitters.basic_min(stack,routine='SLSQP')
+    stack.fitter=nems.fitters.fitters.basic_min(stack,routine='SLSQP')
     stack.fitter.tolerance=0.000001
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -74,7 +74,7 @@ def fit03(stack):
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
-    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter=nems.fitters.fitters.basic_min(stack)
     stack.fitter.tolerance=0.0000001
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -90,7 +90,7 @@ def fit00h1(stack):
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
-    stack.fitter=nf.fitters.basic_min(stack)
+    stack.fitter=nems.fitters.fitters.basic_min(stack)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -114,7 +114,7 @@ def fitannl00(stack):
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
-    stack.fitter=nf.fitters.anneal_min(stack,anneal_iter=50,stop=5,up_int=10,bounds=None)
+    stack.fitter=nems.fitters.fitters.anneal_min(stack,anneal_iter=50,stop=5,up_int=10,bounds=None)
     stack.fitter.tol=0.001
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -137,7 +137,7 @@ def fitannl01(stack):
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
     
-    stack.fitter=nf.fitters.anneal_min(stack,anneal_iter=100,stop=10,up_int=5,bounds=None)
+    stack.fitter=nems.fitters.fitters.anneal_min(stack,anneal_iter=100,stop=10,up_int=5,bounds=None)
     stack.fitter.tol=0.000001
     stack.fitter.do_fit()
     create_parmlist(stack)
@@ -155,9 +155,9 @@ def fititer00(stack):
     stack.append(nm.metrics.mean_square_error,shrink=0.5)
     stack.error=stack.modules[-1].error
     
-    stack.fitter=nf.fitters.fit_iteratively(stack,max_iter=5)
-    #stack.fitter.sub_fitter=nf.fitters.basic_min(stack)
-    stack.fitter.sub_fitter=nf.fitters.coordinate_descent(stack,tolerance=0.001,maxit=10,verbose=False)
+    stack.fitter=nems.fitters.fitters.fit_iteratively(stack,max_iter=5)
+    #stack.fitter.sub_fitter=nems.fitters.fitters.basic_min(stack)
+    stack.fitter.sub_fitter=nems.fitters.fitters.coordinate_descent(stack,tolerance=0.001,maxit=10,verbose=False)
     stack.fitter.sub_fitter.step_init=0.05
     
     stack.fitter.do_fit()
@@ -176,8 +176,8 @@ def fititer01(stack):
     stack.append(nm.metrics.mean_square_error,shrink=0.5)
     stack.error=stack.modules[-1].error
     
-    stack.fitter=nf.fitters.fit_iteratively(stack,max_iter=5)
-    stack.fitter.sub_fitter=nf.fitters.basic_min(stack)
+    stack.fitter=nems.fitters.fitters.fit_iteratively(stack,max_iter=5)
+    stack.fitter.sub_fitter=nems.fitters.fitters.basic_min(stack)
     
     stack.fitter.do_fit()
     create_parmlist(stack)

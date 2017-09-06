@@ -10,7 +10,7 @@ Created on Fri Aug  4 13:14:24 2017
 """
 from nems.modules.base import nems_module
 import numpy as np
-import nems.utilities.utils as nu
+import nems.utilities.utils
 import scipy.io
 
 class load_mat(nems_module):
@@ -47,7 +47,7 @@ class load_mat(nems_module):
     """
     name='loaders.load_mat'
     user_editable_fields=['output_name','est_files','fs','avg_resp']
-    plot_fns=[nu.plot_spectrogram, nu.plot_spectrogram]
+    plot_fns=[nems.utilities.utils.plot_spectrogram, nems.utilities.utils.plot_spectrogram]
     est_files=[]
     fs=100
     avg_resp=True
@@ -70,7 +70,7 @@ class load_mat(nems_module):
         
         # load contents of Matlab data file and save in d_out list
         for f in self.est_files:
-            matdata = nu.get_mat_file(f)
+            matdata = nems.utilities.utils.get_mat_file(f)
             
             # go through each entry in structure array 'data'
             for s in matdata['data'][0]:
@@ -118,16 +118,16 @@ class load_mat(nems_module):
                 # reshape stimulus to be channel X time
                 data['stim']=np.transpose(data['stim'],(0,2,1))
                 if stim_resamp_factor != 1:
-                    data['stim']=nu.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
+                    data['stim']=nems.utilities.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
                 if resp_resamp_factor != 1:
-                    data['resp']=nu.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
+                    data['resp']=nems.utilities.utils.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
                     if data['pupil'] is not None:
-                        data['pupil']=nu.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
+                        data['pupil']=nems.utilities.utils.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
                     
                 # fund number of reps of each stimulus
                 data['repcount']=np.sum(np.isfinite(data['resp'][0,:,:]),axis=0)
@@ -143,7 +143,7 @@ class load_mat(nems_module):
                 if self.avg_resp is True:
                     data['resp']=data['avgresp']
                 else:
-                    data['stim'],data['resp'],data['pupil'],data['replist']=nu.stretch_trials(data)
+                    data['stim'],data['resp'],data['pupil'],data['replist']=nems.utilities.utils.stretch_trials(data)
 
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
@@ -157,7 +157,7 @@ class dummy_data(nems_module):
     """
     name='loaders.dummy_data'
     user_editable_fields=['output_name','data_len','fs']
-    plot_fns=[nu.plot_spectrogram]
+    plot_fns=[nems.utilities.utils.plot_spectrogram]
     data_len=100
     fs=100
     

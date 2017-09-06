@@ -16,6 +16,7 @@ import os
 import copy
 import io
 import json
+import pprint
 
 try:
     import boto3
@@ -75,7 +76,7 @@ def save_model(stack, file_path):
             with open(file_path, 'wb') as handle:
                 pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
         except FileExistsError:
-            # should never run? or if it does, shouldn't do anything useful
+            # delete pkl file first and try again
             print("Removing existing model at: {0}".format(file_path))
             os.remove(file_path)
             with open(file_path, 'wb') as handle:

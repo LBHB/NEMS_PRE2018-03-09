@@ -10,7 +10,7 @@ import numpy as np
 import copy
 import math as mt
 
-import nems.utilities.utils as nu
+import nems.utilities.utils
 
 
 class standard(nems_module):
@@ -120,7 +120,7 @@ class crossval2(nems_module):
     user_editable_fields=['input_name','output_name',
                           'valfrac','interleave_valtrials','val_mult_repeats',
                           'cv_counter']
-    plot_fns=[nu.raster_plot,nu.plot_spectrogram]
+    plot_fns=[nems.utilities.utils.raster_plot,nems.utilities.utils.plot_spectrogram]
     valfrac=0.05
     interleave_valtrials=True
     val_mult_repeats=True
@@ -246,7 +246,7 @@ class crossval(nems_module):
     user_editable_fields=['input_name','output_name',
                           'valfrac','interleave_valtrials','val_mult_repeats',
                           'cv_counter']
-    plot_fns=[nu.raster_plot,nu.plot_spectrogram]
+    plot_fns=[nems.utilities.utils.raster_plot,nems.utilities.utils.plot_spectrogram]
     valfrac=0.05
     interleave_valtrials=True
     val_mult_repeats=True

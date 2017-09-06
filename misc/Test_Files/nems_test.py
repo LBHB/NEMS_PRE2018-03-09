@@ -14,7 +14,7 @@ import nems.modules as nm
 import nems.main as main
 import nems.fitters as nf
 import nems.keyword as nk
-import nems.utilities.utils as nu
+import nems.utilities.utils
 import nems.stack as ns
 
 import numpy as np
@@ -25,7 +25,7 @@ imp.reload(nm)
 imp.reload(main)
 imp.reload(nf)
 imp.reload(nk)
-imp.reload(nu)
+#imp.reload(nu)
 imp.reload(ns)
 
 
@@ -119,9 +119,12 @@ else:
         else:
             stack.plot_dataidx=0
 
-    #nlidx=nu.find_modules(stack,'nonlin.gain')
-    #stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
-    stack.quick_plot()
+    #nlidx=nems.utilities.utils.find_modules(stack,'nonlin.gain')
+    #stack.modules[nlidx[0]].do_plot=nems.utilities.utils.io_scatter_smooth
+    #stack.quick_plot()
+    
+    filename = nems.utilities.utils.get_file_name(cellid, batch, modelname)
+    nems.utilities.utils.save_model(stack, filename)
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2
@@ -175,7 +178,7 @@ stack.fitter.do_fit()
 
 stack.valmode=True
 stack.evaluate(1)
-corridx=nu.find_modules(stack,'correlation')
+corridx=nems.utilities.utils.find_modules(stack,'correlation')
 if not corridx:
     # add MSE calculator module to stack if not there yet
     stack.append(nm.correlation)    
@@ -187,7 +190,7 @@ stack.quick_plot()
 
 # save
 #filename="/auto/data/code/nems_saved_models/batch{0}/{1}.pkl".format(stack.meta['batch'],stack.meta['cellid'])
-#nu.save_model(stack,filename)
+#nems.utilities.utils.save_model(stack,filename)
 
 
 ## single figure display

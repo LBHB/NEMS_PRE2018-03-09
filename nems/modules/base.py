@@ -12,7 +12,7 @@ Created on Fri Aug  4 12:49:40 2017
 
 import numpy as np
 import copy
-import nems.utilities.utils as nu
+import nems.utilities.utils
 
 
 #TODO: this should really be set up as a proper abstract base class at some point
@@ -31,7 +31,7 @@ class nems_module:
     #
     name='base.nems_module'
     user_editable_fields=['input_name','output_name','fit_fields']
-    plot_fns=[nu.plot_spectrogram]
+    plot_fns=[nems.utilities.utils.plot_spectrogram]
     
     input_name='stim'  # name of input matrix in d_in
     output_name='stim' # name of output matrix in d_out
