@@ -46,7 +46,7 @@ def save_model(stack, file_path):
     stack2=copy.deepcopy(stack)
     for i in range(1,len(stack2.data)):
         del stack2.data[i][:]
-    del stack2.keyfun
+    del stack2.keyfuns
     
     if AWS:
         # TODO: Need to set up AWS credentials in order to test this
