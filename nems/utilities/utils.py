@@ -85,7 +85,7 @@ def save_model(stack, file_path):
         print("Saved model to {0}".format(file_path))
         
 def save_model_dict(stack, filepath=None):
-    sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','meta','nests'])
+    sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','meta','nests','fitted_modules'])
     sdict['modlist']=[]
     sdict['mod_dicts']=[]
     parm_list=[]
@@ -93,16 +93,17 @@ def save_model_dict(stack, filepath=None):
         parm_list.append(i.tolist())
     sdict['parm_fits']=parm_list
     sdict['nests']=stack.nests
+    sdict['fitted_modules']=stack.fitted_modules
     
     # svd 2017-08-10 -- pull out all of meta
     sdict['meta']=stack.meta
     sdict['meta']['mse_est']=[]
-    sdict['cv_counter']=stack.cv_counter
-    sdict['fitted_modules']=stack.fitted_modules
     
     for m in stack.modules:
         sdict['modlist'].append(m.name)
         sdict['mod_dicts'].append(m.get_user_fields())
+    
+    # TODO: normalization parms have to be saved as part of the normalization module(s)
     try:
         d=stack.d
         g=stack.g
@@ -682,5 +683,4 @@ def stretch_trials(data):
 #        lis.extend([i]*data['repcount'][i])
 #    replist=np.array(lis)
     return stim, resp, pupil, replist
-
 

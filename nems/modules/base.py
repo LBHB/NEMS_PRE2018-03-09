@@ -158,7 +158,7 @@ class nems_module:
                 #self.d_out.append(copy.copy(d))
         
         for f_in,f_out in zip(self.d_in,self.d_out):
-            if f_in['est'] is False:
+            if self.parent_stack.nests>0 and f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 # duplicate placeholder list in case output_name is a new variable
                 if nest==0:

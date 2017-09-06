@@ -64,7 +64,7 @@ class weight_channels(nems_module):
             s=phi[i,1]
             x=np.arange(0,self.num_dims)
             coefs[i,:]=np.exp(-np.square((x-m)/s))
-            
+            coefs[i,:]=coefs[i,:]/np.sum(coefs[i,:])
         return coefs
         
     def my_eval(self,X):

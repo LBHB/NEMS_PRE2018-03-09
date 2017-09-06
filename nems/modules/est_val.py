@@ -87,8 +87,8 @@ class standard(nems_module):
                     
                     d_val=d.copy()
                     d_val['repcount']=copy.deepcopy(d['repcount'][validx])
-                    d_val['resp']=[copy.deepcopy(d['resp'][validx,:])]
-                    d_val['stim']=[copy.deepcopy(d['stim'][:,validx,:])]
+                    d_val['resp']=copy.deepcopy(d['resp'][validx,:])
+                    d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
                     try:
                         if d['pupil'].size:
                             d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
@@ -100,6 +100,132 @@ class standard(nems_module):
                     self.d_out.append(d_val)
 
             
+class crossval2(nems_module):
+    """
+    Splits data into estimation and validation datasets. If estimation and 
+    validation sets are already flagged (if d['est'] exists), it just passes 
+    these. If not, it splits a given percentage of the dataset off as validation
+    data, and leaves the rest as estimation data. 
+    
+    Inputs:
+        valfrac: fraction of the dataset to allocate as validation data
+    
+    This module is set up to work with nested crossvalidation. If this is the 
+    case, it will run through the dataset, taking a different validation set 
+    each time. 
+    
+    @author: shofer
+    """
+    name='est_val.crossval2'
+    user_editable_fields=['input_name','output_name',
+                          'valfrac','interleave_valtrials','val_mult_repeats',
+                          'cv_counter']
+    plot_fns=[nu.raster_plot,nu.plot_spectrogram]
+    valfrac=0.05
+    interleave_valtrials=True
+    val_mult_repeats=True
+    cv_counter=0
+    nests=0
+    validx_sets=[]
+    
+    def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True):
+        #self.field_dict=locals()
+        #self.field_dict.pop('self',None)
+        nests=self.parent_stack.nests
+        #if nests==0:
+        #    nests=1;
+        #    self.parent_stack.nests=1
+        if nests>1:
+            valfrac=1/nests
+        elif valfrac==0:
+            valfrac=0.05
+            
+        self.valfrac=valfrac
+        self.validx_sets=[]
+        self.nests=nests
+        self.interleave_valtrials=interleave_valtrials
+        self.val_mult_repeats=val_mult_repeats
+        self.cv_counter=0
+        
+    def evaluate(self,nest=0):
+
+        del self.d_out[:]
+
+        for i, d in enumerate(self.d_in):
+            valfrac=self.valfrac
+            count=self.cv_counter
+            nests=int(1/valfrac)
+            
+            re=d['resp'].shape
+            spl=re[0]*valfrac
+            if re[0]<self.parent_stack.nests:
+                raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
+
+            # figure out grouping for each CV set 
+            if self.interleave_valtrials:
+                smax=np.int(np.ceil(spl))
+                a=np.arange(np.ceil(spl)*nests).astype(int)
+                a=np.reshape(a,[smax,nests])
+                a=a.transpose()
+                a=np.reshape(a,[smax*nests])
+                a=a[a<re[0]]
+            else:
+                a=np.arange(re[0]).astype(int)
+            
+            self.validx_sets=[]
+            for cc in range(0,nests):
+                c1=mt.floor((cc)*spl)
+                c2=mt.floor((cc+1)*spl)
+                self.validx_sets.append(a[c1:c2])
+                
+            c1=mt.floor((count)*spl)
+            c2=mt.floor((count+1)*spl)
+            print("Nest {0}/{1}, File {2}, c1-c2: {3}-{4}".format(count,nests,i,c1,c2))
+            nidx=self.validx_sets[count]
+            #print(nidx)
+            
+            d_est=d.copy()
+            d_val=d.copy()               
+
+            d_est['est']=True
+            d_val['est']=False
+            
+            d_est['resp']=np.delete(d['resp'],np.s_[nidx],0)
+            d_val['resp']=copy.deepcopy(d['resp'][nidx,:])
+            
+            d_est['stim']=np.delete(d['stim'],np.s_[nidx],1)
+            d_val['stim']=copy.deepcopy(d['stim'][:,nidx,:])
+
+            try:
+                d_est['pupil']=np.delete(d['pupil'],np.s_[nidx],0)
+                d_val['pupil']=copy.deepcopy(d['pupil'][nidx,:])
+            except:
+                #print('No pupil data')
+                d_est['pupil']=[]
+                d_val['pupil']=[]
+            
+            try:
+                d_est['repcount']=np.delete(d['repcount'],np.s_[nidx],0)
+                d_val['repcount']=copy.deepcopy(d['repcount'][nidx])
+            except:
+                d_est['repcount']=None
+                d_val['repcount']=None
+                
+            try:
+                d_est['replist']=np.delete(d['replist'],np.s_[nidx],0)
+                d_val['replist']=copy.deepcopy(d['replist'][nidx])
+            except:
+                d_est['replist']=None
+                d_val['replist']=None
+                
+            self.d_out.append(d_est)
+            if self.parent_stack.valmode is True:
+                self.d_out.append(d_val)
+                        
+            if self.cv_counter==self.nests-1:
+                self.parent_stack.cond=True
+                    
+
 class crossval(nems_module):
     """
     Splits data into estimation and validation datasets. If estimation and 
@@ -118,22 +244,32 @@ class crossval(nems_module):
     """
     name='est_val.crossval'
     user_editable_fields=['input_name','output_name',
-                          'valfrac','interleave_valtrials','val_mult_repeats']
+                          'valfrac','interleave_valtrials','val_mult_repeats',
+                          'cv_counter']
     plot_fns=[nu.raster_plot,nu.plot_spectrogram]
     valfrac=0.05
     interleave_valtrials=True
     val_mult_repeats=True
+    cv_counter=0
+    nests=0
     
-    def my_init(self,valfrac=0.05,interleave_valtrials=True,val_mult_repeats=True):
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
+    def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True):
+        #self.field_dict=locals()
+        #self.field_dict.pop('self',None)
+        nests=self.parent_stack.nests
+        if nests==0:
+            nests=1;
+            self.parent_stack.nests=1
+        if nests>1:
+            valfrac=1/nests
+        elif valfrac==0:
+            valfrac=0.05
+            
         self.valfrac=valfrac
+        self.nests=nests
         self.interleave_valtrials=interleave_valtrials
         self.val_mult_repeats=val_mult_repeats
-        try:
-            self.iter=int(1/valfrac)-1
-        except:
-            self.iter=0
+        self.cv_counter=0
         
     def evaluate(self,nest=0):
 
@@ -150,8 +286,8 @@ class crossval(nems_module):
                 self.parent_stack.pre_flag=True
             except:
                 valfrac=self.valfrac
-                count=self.parent_stack.cv_counter
-                nests=self.parent_stack.nests
+                count=self.cv_counter
+                nests=int(1/valfrac)
                 avg_resp=self.parent_stack.avg_resp
                 
                 re=d['resp'].shape
@@ -215,7 +351,7 @@ class crossval(nems_module):
                     d_val['repcount']=[]
 
                     import copy
-                    for count in range(0,nests):
+                    for count in range(0,self.parent_stack.nests):
                         #print(count)
                         re=d['resp'].shape
                         spl=re[0]*valfrac
@@ -270,5 +406,5 @@ class crossval(nems_module):
                     """
                     self.d_out.append(d_val)
                 
-                if self.parent_stack.cv_counter==self.iter:
+                if self.cv_counter==self.nests-1:
                     self.parent_stack.cond=True

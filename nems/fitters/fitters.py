@@ -179,7 +179,7 @@ class basic_min(nems_fitter):
         #Below here are the general need for a nems_fitter object. 
         self.phi0=self.fit_to_phi() 
         self.counter=0
-        print("basic_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
+        print("basic_min: phi0 initialized (fitting {0} parameters)".format(len(self.phi0)))
         #print("maxiter: {0}".format(opt['maxiter']))
         sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
                              constraints=cons,options=opt,tol=self.tolerance)

@@ -28,7 +28,6 @@ imp.reload(nk)
 imp.reload(nu)
 imp.reload(ns)
 
-#imp.reload(nf)
 
 #datapath='/Users/svd/python/nems/ref/week5_TORCs/'
 #est_files=[datapath + 'tor_data_por073b-b1.mat']
@@ -38,19 +37,14 @@ imp.reload(ns)
 #datapath='/Users/svd/python/nems/misc/ref/'
 #est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
-# create an empty stack
-cellid='eno052b-c1'
-cellid='BOL006b-11-1'
-batch=293
-modelname="parm50_wc01_fir15_fititer00"
 
 #cellid='bbl034e-a1'
 cellid='bbl031f-a1'
-batch=291
+batch=291  # IC
 
-cellid='gus008f-a1'
-batch=271
-modelname="fb18ch100_wc01_fir15_dexp_fit01"
+cellid='chn010c-c3'
+batch=271 #A1
+modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
 #modelname="fb18ch100_wc01_fir15_dexp_fititer00"
@@ -59,17 +53,22 @@ modelname="fb18ch100_wc01_fir15_dexp_fit01"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
-# pupil gain test
+
+# pupil gain test -- PPS data
+#cellid='eno052b-c1'
 #cellid="BOL006b-11-1"
-#cellid="eno053d-c3"
+#cellid="eno053d-c1"
 #batch=293
-#modelname="parm50_wc01_fir15_pupwgtctl_dexp_fit01_nested10"
+#modelname="parm50_wcg01_fir15_pupwgt_dexp_fit01_nested5"
+#modelname="parm50_wc01_fir15_fititer00"
 
-
+# pupil gain test -- 2 x VOC data
 #cellid="eno023c-c1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01_nested5"
+#modelname="perfectpupil50x_pupgain_fit01"
 
+# SSA test
 #cellid='gus018d-d1'
 #cellid="gus023e-c2"
 #batch=296
@@ -88,6 +87,7 @@ else:
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
     stack.valmode=False
+    stack.keyfuns=nk.keyfuns
     
     # extract keywords from modelname, look up relevant functions in nk and save
     # so they don't have to be found again.
@@ -98,11 +98,11 @@ else:
         # special case if last keyword contains "nested". TODO: better imp!
         print('Evaluating stack using nested cross validation. May be slow!')
         k=stack.keywords[-1]
-        nk.keyfuns[k](stack)
+        stack.keyfuns[k](stack)
     else:
         print('Evaluating stack')
         for k in stack.keywords:
-            nk.keyfuns[k](stack)
+            stack.keyfuns[k](stack)
 
 if 1:
     # validation stuff
@@ -123,7 +123,9 @@ if 1:
 #stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
 stack.quick_plot()
 
-
+#stack.modules[1].nests=5
+#stack.modules[1].valfrac=0.2
+#stack.evaluate_nested()
 
 '''
 

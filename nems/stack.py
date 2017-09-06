@@ -51,15 +51,16 @@ class nems_stack:
     meta={}
     fitter=None
     valmode=False
-    nests=1
+    nests=0
     avg_resp=True
     plot_dataidx=0
     plot_stimidx=0
     parm_fits=[]
     fitted_modules=[]
-    cv_counter=0
+    #cv_counter=0
     keywords=[]
-    valfrac=0.05
+    keyfuns=[]  # to be populated from nems.keywords.keyfuns - dumb hack
+    #valfrac=0.05
     
     def __init__(self):
         print("Creating new stack")
@@ -76,13 +77,13 @@ class nems_stack:
         self.error=self.default_error
         self.valmode=False
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
-        self.nests=1 #Default is to have only one nest, i.e. standard crossval
+        self.nests=0 #Default is to have only one nest, i.e. standard crossval
         self.parm_fits=[] #List of fitted parameters for each nest
         self.fitted_modules=[] #List of modules with fitted parameters
-        self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
+        #self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
         self.keywords=[] #The split modelname string
         self.mod_ids=[]
-        self.valfrac=0.05 #Fraction of the data used to create each validation nest
+        #self.valfrac=0.05 #Fraction of the data used to create each validation nest
         
     def evaluate(self,start=0):
         """
@@ -97,37 +98,56 @@ class nems_stack:
         Note that during valmode, the estimation dataset that is returned is the
         last dataset fit.
         """
-        if self.valmode is True: 
-            print('Evaluating validation data')
+        if self.valmode is True and self.nests>0: 
+            print('Evaluating nested validation data')
             mse_idx=ut.utils.find_modules(self,'metrics.mean_square_error')
             mse_idx=int(mse_idx[0])
             try:
-                xval_idx=ut.utils.find_modules(self,'est_val.crossval')
+                xval_idx=ut.utils.find_modules(self,'est_val.crossval')[0]
             except:
-                xval_idx=ut.utils.find_modules(self,'est_val.standard')
-            xval_idx=xval_idx[0]
+                xval_idx=1
+            
             if start !=0 and start<=xval_idx:
                 self.modules[xval_idx].evaluate()
                 start=xval_idx+1
             for ii in range(start,mse_idx):
-                for i in range(0,self.nests):
-                    print("Eval {0} in valmode, nest={1}".format(ii,i))
+                for cv_counter in range(0,self.nests):
+                    print("Eval {0} in valmode, nest={1}".format(ii,cv_counter))
                     st=0
                     for m in self.fitted_modules:
                         phi_old=self.modules[m].parms2phi()
                         s=phi_old.shape
-                        self.modules[m].phi2parms(self.parm_fits[i][st:(st+np.prod(s))])
+                        self.modules[m].phi2parms(self.parm_fits[cv_counter][st:(st+np.prod(s))])
                         st+=np.prod(s)
-                    self.modules[ii].evaluate(nest=i)
+                    self.modules[ii].evaluate(nest=cv_counter)
             ut.utils.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
             for ij in range(mse_idx,len(self.modules)):
                 self.modules[ij].evaluate() 
         else:
-            #This condition evaluates for fitting
+            # standard evaluation when not using nested cross-validation
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
-            
     
+    def evaluate_nested(self):
+        try:
+            xval_idx=ut.utils.find_modules(self,'est_val.crossval2')[0]
+            nests=self.modules[xval_idx].nests
+        except:
+            xval_idx=[]
+            nests=0
+        
+        if not nests:
+            # not a nested system, don't eval all
+            self.evaluate()
+            
+        else:
+            for cv_counter in range(0,nests):
+                #print("cv_counter {0}/{1}".format(cv_counter,nests))
+                self.modules[xval_idx].cv_counter=cv_counter
+                self.evaluate(xval_idx)
+                print("cc est,val={},{}".format(self.meta["r_est"],self.meta["r_val"]))
+                # now store results somewhere
+                
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
         """
@@ -163,6 +183,8 @@ class nems_stack:
         """
         Creates an instance of a module and appends it to the stack. Evaluates 
         module in doing so. 
+        
+        APPEARS TO BE A BUG. Is input a module instance? Or a pointer to the function?
         """
         if mod is None:
             raise ValueError('stack.append: module not specified')

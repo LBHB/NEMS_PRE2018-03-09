@@ -34,7 +34,7 @@ class model(nems_module):
                 self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             Xa=f_in['avgresp']
-            if f_in['est'] is False:
+            if f_in['est'] is False and self.parent_stack.nests>0:
                 R=f_in['replist'][nest]
                 X=np.squeeze(Xa[R,:])
                 #X=np.zeros(f_in['resp'][nest].shape)

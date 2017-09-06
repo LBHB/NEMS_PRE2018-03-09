@@ -45,12 +45,12 @@ def create_parmlist(stack):
     Helper function that assigns all fitted parameters for a model to a single (n,)
     phi vector and accociates it to the stack.parm_fits object
     """
+    stack.fitted_modules=[]
     phi=[] 
     for idx,m in enumerate(stack.modules):
         this_phi=m.parms2phi()
         if this_phi.size:
-            if stack.cv_counter==0:
-                stack.fitted_modules.append(idx)
+            stack.fitted_modules.append(idx)
             phi.append(this_phi)
     phi=np.concatenate(phi)
     stack.parm_fits.append(phi)
@@ -65,7 +65,7 @@ def nested20(stack):
     MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=20
-    stack.valfrac=0.05
+    #stack.valfrac=0.05
     nest_helper(stack)
         
 def nested10(stack):
@@ -75,7 +75,7 @@ def nested10(stack):
     MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=10
-    stack.valfrac=0.1
+    #stack.valfrac=0.1
     nest_helper(stack)
     
 def nested5(stack):
@@ -85,7 +85,7 @@ def nested5(stack):
     MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=5
-    stack.valfrac=0.2
+    #stack.valfrac=0.2
     nest_helper(stack)
 
 def nested2(stack):
@@ -95,7 +95,7 @@ def nested2(stack):
     MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     stack.nests=2
-    stack.valfrac=0.5
+    #stack.valfrac=0.5
     nest_helper(stack)
 
 # Helper/Support Functions
@@ -107,17 +107,17 @@ def nest_helper(stack):
     a loop with the estimation part of fit_single_model inside. 
     """
     stack.cond=False
-    stack.cv_counter=0  # reset to avoid problem with val stage
-    while stack.cond is False:
-        print('Nest #'+str(stack.cv_counter))
+    cv_counter=0  # reset to avoid problem with val stage
+    while cv_counter<stack.nests:
+        print('Nest #'+str(cv_counter))
         stack.clear()
         stack.valmode=False
         for i in range(0,len(stack.keywords)-1):
-            stack.keyfun[stack.keywords[i]](stack)
-#        for k in range(0,len(stack.keywords)-1):
-#            f = globals()[stack.keywords[k]]
-#            f(stack)
-        stack.cv_counter+=1
+            stack.keyfuns[stack.keywords[i]](stack)
+            if stack.modules[-1].name=="est_val.crossval":
+                stack.modules[-1].cv_counter=cv_counter
+                stack.modules[-1].evaluate()
+        cv_counter+=1
 
-    stack.cv_counter=0  # reset to avoid problem with val stage
+    #stack.cv_counter=0  # reset to avoid problem with val stage
         

@@ -24,7 +24,7 @@ def parm100(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
-    stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
+    stack.append(nm.est_val.crossval)
     
 def env100e(stack):
     """
@@ -36,7 +36,7 @@ def env100e(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
+    stack.append(nm.est_val.crossval,valfrac=0.05)
     stack.append(nm.aux.onset_edges)
     
 def parm50(stack):
@@ -50,10 +50,10 @@ def parm50(stack):
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
-                                     fs=100,stimfmt='parm',chancount=16)
+                                     fs=200,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
-    stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
+    stack.append(nm.est_val.crossval)
     
 def parm50a(stack):
     """
@@ -69,7 +69,7 @@ def parm50a(stack):
                                      fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=True)
-    stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
+    stack.append(nm.est_val.crossval,valfrac=0.05)
 
 def fb24ch200(stack):
     """
@@ -106,6 +106,18 @@ def fb18ch100(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.standard)
+    
+def fb18ch100x(stack):
+    """
+    Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
+    Averages the response to each stimulus over its respective raster, and
+    applies a 5% estimation/validation split if the est/val datasets are not 
+    specified in the file. 
+    """
+    file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stack.append(nm.est_val.crossval)
     
 def fb18ch100u(stack):
     """

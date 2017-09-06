@@ -62,13 +62,17 @@ class load_mat(nems_module):
         self.auto_plot=False
 
     def evaluate(self,**kwargs):
+        
+        # intialize by deleting any existing entries in self.d_out
         del self.d_out[:]
 #        for i, d in enumerate(self.d_in):
 #            self.d_out.append(d.copy())
-                    
-        # load contents of Matlab data file
+        
+        # load contents of Matlab data file and save in d_out list
         for f in self.est_files:
             matdata = nu.get_mat_file(f)
+            
+            # go through each entry in structure array 'data'
             for s in matdata['data'][0]:
                 try:
                     data={}
@@ -82,6 +86,7 @@ class load_mat(nems_module):
                     data['poststim']=s['tags'][0]['PostStimSilence'][0][0][0]
                     data['duration']=s['tags'][0]['Duration'][0][0][0]
                 except:
+                    print("load_mat: alternative load. does this ever execute?")
                     data = scipy.io.loadmat(f,chars_as_strings=True)
                     data['raw_stim']=data['stim'].copy()
                     data['raw_resp']=data['resp'].copy()
@@ -99,9 +104,9 @@ class load_mat(nems_module):
                 try:
                     data['filestate']=s['filestate'][0][0]
                 except:
-                    data['filestate']=None
-                    
-                                    
+                    data['filestate']=0
+                
+                # resample if necessary
                 data['fs']=self.fs
                 noise_thresh=0.05
                 stim_resamp_factor=int(data['stimFs']/data['fs'])
@@ -116,19 +121,19 @@ class load_mat(nems_module):
                     data['stim']=nu.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
-                if resp_resamp_factor != 1:
-                    data['resp']=nu.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
-                    
-                if data['pupil'] is not None and resp_resamp_factor != 1:
-                    data['pupil']=nu.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
-                    
+                
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
+                if resp_resamp_factor != 1:
+                    data['resp']=nu.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
+                    if data['pupil'] is not None:
+                        data['pupil']=nu.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
                     
-                # average across trials
-                data['repcount']=np.sum(np.isnan(data['resp'][0,:,:])==False,axis=0)
+                # fund number of reps of each stimulus
+                data['repcount']=np.sum(np.isfinite(data['resp'][0,:,:]),axis=0)
                 self.parent_stack.unresampled['repcount']=data['repcount']
                 
+                # average across trials
                 # TODO - why does this execute(and produce a warning?)
                 print(data['resp'].shape)
                 data['avgresp']=np.nanmean(data['resp'],axis=1)
