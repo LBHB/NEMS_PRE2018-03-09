@@ -200,6 +200,8 @@ def pupwgt(stack,weight_type='linear'):
     firidx=firidx[0]
     num_chans=stack.modules[wtidx].num_chans
     wcoefs=stack.modules[wtidx].coefs
+    parm_type=stack.modules[wtidx].parm_type
+    phi=stack.modules[wtidx].phi
     num_coefs=stack.modules[firidx].num_coefs
     coefs=stack.modules[firidx].coefs
     baseline=stack.modules[firidx].baseline
@@ -207,8 +209,7 @@ def pupwgt(stack,weight_type='linear'):
     stack.modules[firidx].input_name='stim2'
     stack.modules[firidx].output_name='stim2'
     stack.evaluate(wtidx)
-    stack.append(nm.filters.weight_channels,num_chans=num_chans)
-    stack.modules[-1].coefs=wcoefs
+    stack.append(nm.filters.weight_channels,num_chans=num_chans,phi=phi,parm_type=parm_type)
     stack.append(nm.filters.fir,num_coefs=num_coefs)
     stack.modules[-1].coefs=coefs*0.95
     stack.modules[-1].baseline=baseline*0.95

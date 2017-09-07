@@ -55,6 +55,7 @@ class weight_channels(nems_module):
             self.coefs=np.random.normal(1,0.1,[num_chans,num_dims])/num_dims
             if not fit_fields:
                 self.fit_fields=['coefs']
+        self.parm_type=parm_type
         self.phi=np.array(phi)
     
     def gauss_fn(self,phi):
@@ -96,7 +97,7 @@ class fir(nems_module):
     random_init=False
     num_coefs=20
     
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False):
+    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False, coefs=None):
         """
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
@@ -112,7 +113,9 @@ class fir(nems_module):
         self.num_coefs=num_coefs
         self.baseline[0]=baseline
         self.random_init=random_init
-        if random_init is True:
+        if coefs:
+            self.coefs=coefs
+        elif random_init is True:
             self.coefs=np.random.normal(loc=0.0,scale=0.0025,size=[num_dims,num_coefs])
         else:
             self.coefs=np.zeros([num_dims,num_coefs])

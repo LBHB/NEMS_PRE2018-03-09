@@ -58,14 +58,15 @@ modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #cellid='eno052b-c1'
 #cellid="BOL006b-11-1"
 #cellid="eno053d-c1"
-#batch=293
-#modelname="parm50_wcg01_fir15_pupwgt_dexp_fit01_nested5"
+cellid="eno054c-b2"
+batch=293
+modelname="parm50_wcg02_fir15_pupwgt_dexp_fit01"
 #modelname="parm50_wc01_fir15_fititer00"
 
 # pupil gain test -- 2 x VOC data
-cellid="eno023c-c1"
-batch=294
-modelname="perfectpupil50_pupgain_fit01_nested5"
+#cellid="eno023c-c1"
+#batch=294
+#modelname="perfectpupil50_pupgain_fit01_nested5"
 #modelname="perfectpupil50x_pupgain_fit01"
 
 # SSA test
@@ -78,7 +79,7 @@ modelname="perfectpupil50_pupgain_fit01_nested5"
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 
-if 1:
+if 0:
     stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 else:
     stack=ns.nems_stack()
@@ -122,9 +123,9 @@ else:
     #nlidx=nems.utilities.utils.find_modules(stack,'nonlin.gain')
     #stack.modules[nlidx[0]].do_plot=nems.utilities.utils.io_scatter_smooth
     #stack.quick_plot()
-    
-    filename = nems.utilities.utils.get_file_name(cellid, batch, modelname)
-    nems.utilities.utils.save_model(stack, filename)
+    if 0:
+        filename = nems.utilities.utils.get_file_name(cellid, batch, modelname)
+        nems.utilities.utils.save_model(stack, filename)
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2
