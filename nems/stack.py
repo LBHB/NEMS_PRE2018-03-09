@@ -177,7 +177,8 @@ class nems_stack:
                 for midx in stack.fitted_modules:
                     phi_old=stack.modules[midx].parms2phi()
                     s=phi_old.shape
-                    stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
+                    #stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
+                    stack.modules[midx].phi2parms(stack.parm_fits[0][st:(st+np.prod(s))])
                     st+=np.prod(s)
                 
                 # evaluate stack for this nest up to before error metric modules
@@ -216,27 +217,7 @@ class nems_stack:
             # standard evaluation when not using nested cross-validation
             for ii in range(start,len(self.modules)):
                 self.modules[ii].evaluate() 
-    
-    def evaluate_nested(self):
-        try:
-            xval_idx=ut.utils.find_modules(self,'est_val.crossval2')[0]
-            nests=self.modules[xval_idx].nests
-        except:
-            xval_idx=[]
-            nests=0
-        
-        if not nests:
-            # not a nested system, don't eval all
-            self.evaluate()
-            
-        else:
-            for cv_counter in range(0,nests):
-                #print("cv_counter {0}/{1}".format(cv_counter,nests))
-                self.modules[xval_idx].cv_counter=cv_counter
-                self.evaluate(xval_idx)
-                print("cc est,val={},{}".format(self.meta["r_est"],self.meta["r_val"]))
-                # now store results somewhere
-                
+                    
     # create instance of mod and append to stack    
     def append(self, mod=None, **xargs):
         """
@@ -427,8 +408,9 @@ class nems_stack:
         for idx in plot_set:
             print("quick_plot: {}".format(self.modules[idx].name))
             plt.subplot(len(plot_set),1,spidx)
-            #plt.subplot(len(self.modules),1,idx+1)
             self.modules[idx].do_plot(self.modules[idx])
+            if idx==plot_set[0]:
+                plt.title("{0} - {1} - {2}".format(self.meta['cellid'],self.meta['batch'],self.meta['modelname']))
             spidx+=1
         
         #plt.tight_layout()

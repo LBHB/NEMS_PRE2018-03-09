@@ -14,6 +14,8 @@ import numpy as np
 import numpy.ma as npma
 import matplotlib.pyplot as plt
 
+import nems.utilities.utils
+
 # set default figsize for pyplots (so we don't have to change each function)
 FIGSIZE=(12,4)
 
@@ -250,7 +252,7 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     
     # if weight channels exist and dimensionality matches, generate a full STRF
     try:
-        wcidx=find_modules(m.parent_stack,"filters.weight_channels")
+        wcidx=nems.utilities.utils.find_modules(m.parent_stack,"filters.weight_channels")
         if len(wcidx)>0 and m.parent_stack.modules[wcidx[0]].output_name==m.output_name:
             wcidx=wcidx[0]
         elif len(wcidx)>1 and m.parent_stack.modules[wcidx[1]].output_name==m.output_name:

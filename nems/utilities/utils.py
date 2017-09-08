@@ -192,19 +192,26 @@ def nest_helper(stack, nests=20):
     Helper function for implementing nested cross-validation. Essentially sets up
     a loop with the estimation part of fit_single_model inside. 
     """
-    #stack.cond=False
-    stack.meta['nests']=nests
-    #stack.nests=nests
     stack.meta['cv_counter']=0
+    stack.meta['nests']=nests
+    #stack.cond=False
+    #stack.nests=nests
+    
     while stack.meta['cv_counter']<nests:
         print('Nest #'+str(stack.meta['cv_counter']))
         stack.clear()
+        
         stack.valmode=False
+        
         for i in range(0,len(stack.keywords)-1):
             stack.keyfuns[stack.keywords[i]](stack)
-            if stack.modules[-1].name=="est_val.crossval":
-                stack.modules[-1].cv_counter=stack.meta['cv_counter']
-                stack.modules[-1].evaluate()
+            #if stack.modules[-1].name=="est_val.crossval2":
+            #    stack.modules[-1].cv_counter=stack.meta['cv_counter']
+            #    stack.modules[-1].evaluate()
+            #if stack.modules[-1].name=="est_val.crossval":
+            #    stack.modules[-1].cv_counter=stack.meta['cv_counter']
+            #    stack.nests=stack.meta['nests']
+            #    stack.modules[-1].evaluate()
         stack.meta['cv_counter']+=1
         
     stack.meta['cv_counter']=0

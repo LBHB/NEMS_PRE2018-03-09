@@ -258,7 +258,7 @@ class crossval(nems_module):
     cv_counter=0
     nests=0
     
-    def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True):
+    def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True,cv_counter=0):
         #self.field_dict=locals()
         #self.field_dict.pop('self',None)
         nests=self.parent_stack.nests
@@ -274,7 +274,7 @@ class crossval(nems_module):
         self.nests=nests
         self.interleave_valtrials=interleave_valtrials
         self.val_mult_repeats=val_mult_repeats
-        self.cv_counter=0
+        self.cv_counter=cv_counter
         
     def evaluate(self,nest=0):
 
