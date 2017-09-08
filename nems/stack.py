@@ -11,6 +11,7 @@ import nems.utilities as ut
 import numpy as np
 import os
 import io
+import copy
 
 try:
     import boto3
@@ -137,7 +138,8 @@ class nems_stack:
                 self.modules[ii].evaluate()
                 
         elif self.valmode and self.meta['nests']>0:
-            
+            # new nested eval, doesn't require special evaluation procedure 
+            # by modules
             try:
                 xval_idx=ut.utils.find_modules(self,'est_val.crossval')[0]
             except:
@@ -151,17 +153,22 @@ class nems_stack:
                 
             print("Evaluating nested validation data: xvidx={0} mseidx={1}".format(xval_idx,mse_idx))
             
+            # evaluate up to xval module (if necessary)
             if start>xval_idx:
                 start=xval_idx
             for ii in range(start,xval_idx):
                 print("eval {0} in valmode".format(ii))
                 self.modules[ii].evaluate() 
     
-            
+            # go through each nest and evaluate stack, saving data stack to 
+            # a placeholder (d_save). copy all keys from data stack except 
+            # known metadata listed in exclude_keys. this allows for arbitrary
+            # new data elements to be created (stim2, etc)
             stack=self
             exclude_keys=['avgresp','poststim','fs','isolation','stimparam','filestate',
                        'prestim','duration','est','stimFs','respFs']
             include_keys={}
+            d_save={}
             for cv_counter in range(0,stack.meta['nests']):
                 stack.meta['cv_counter']=cv_counter
                 
@@ -173,33 +180,33 @@ class nems_stack:
                     stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
                     st+=np.prod(s)
                 
-                # evaluate stack for this nest up to error metrics
+                # evaluate stack for this nest up to before error metric modules
                 for ii in range(xval_idx,mse_idx):
                     print("nest={0}, eval {1} in valmode".format(cv_counter,ii))
                     stack.modules[ii].evaluate()
                     
-                    # append data from this (nest,module) onto holders:
+                    # append data from this (nest,module) onto d_save placeholders:
                     if cv_counter==0:
                         include_keys[ii]=stack.modules[ii].d_out[0].keys()-exclude_keys
-                    for d in stack.modules[ii].d_out:
-                        if not d['est']:
+                        d_save[ii]=copy.deepcopy(stack.modules[ii].d_out)
+                    for d,d2 in zip(stack.modules[ii].d_out,d_save[ii]):
+                        if not d['est'] and cv_counter>0:
                             for k in include_keys[ii]:
-                                k2='T'+k
-                                if cv_counter==0:
-                                    if d[k] is None:
-                                        d[k2]=d[k]
-                                    else:
-                                        d[k2]=d[k].copy()
-                                        print("{0} to {1} ndim {2}".format(k,k2,d[k].ndim))
+                                if d[k] is None:
+                                    pass
+                                elif d[k].ndim==3:
+                                    d2[k]=np.append(d2[k],d[k],axis=1)
                                 else:
-                                    if d[k] is None:
-                                        pass
-                                    elif d[k].ndim==3:
-                                        d[k2]=np.append(d[k2],d[k],axis=1)
-                                    else:
-                                        d[k2]=np.append(d[k2],d[k],axis=0)
-            #ut.utils.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
+                                    d2[k]=np.append(d2[k],d[k],axis=0)
+                                    
+            # save accumulated data stack back to main data stack
+            for ii in range(xval_idx,mse_idx):
+                for d,d2 in zip(stack.modules[ii].d_out,d_save[ii]):
+                    if not d['est']:
+                        for k in include_keys[ii]:
+                            d[k]=d2[k]
             
+            # continue standard evaluation of later stack elements
             for ii in range(mse_idx,len(self.modules)):
                 print("eval {0} in valmode".format(ii))
                 self.modules[ii].evaluate()

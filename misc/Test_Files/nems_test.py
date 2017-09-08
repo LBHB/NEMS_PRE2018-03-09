@@ -56,16 +56,17 @@ batch=271 #A1
 #cellid='eno052b-c1'
 #cellid="BOL006b-11-1"
 #cellid="eno053d-c1"
-#cellid="eno054c-b2"
-#batch=293
+cellid="eno054c-b2"
+batch=293
 #modelname="parm50_wcg02_fir10_pupwgt_dexp_fit01"
+modelname="parm50x_wcg02_fir10_pupwgt_dexp_fit01_nested5"
 #modelname="parm50_wcg02_fir10_dexp_pupgain_fit01"
 
 # pupil gain test -- 2 x VOC data
-cellid="eno023c-c1"
-batch=294
+#cellid="eno023c-c1"
+#batch=294
 #modelname="perfectpupil50_pupgain_fit01_nested5"
-modelname="perfectpupil50x_pupgain_fit01_nested5"
+#modelname="perfectpupil50x_pupgain_fit01_nested5"
 
 # SSA test
 #cellid='gus018d-d1'
@@ -98,7 +99,7 @@ else:
         for k in stack.keywords:
             stack.keyfuns[k](stack)
 
-    if 0:
+    if 1:
         # validation stuff
         stack.valmode=True
         stack.evaluate(1)
