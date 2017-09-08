@@ -117,7 +117,7 @@ def fb18ch100x(stack):
     file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.est_val.crossval)
+    stack.append(nm.est_val.crossval2)
     
 def fb18ch100u(stack):
     """

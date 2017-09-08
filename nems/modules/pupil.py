@@ -10,6 +10,7 @@ Created on Fri Aug  4 13:29:30 2017
 """
 from nems.modules.base import nems_module
 import nems.utilities.utils
+import nems.utilities.plot
 
 import numpy as np
 import copy 
@@ -17,7 +18,7 @@ import scipy.special as sx
 
 class model(nems_module):
     name='pupil.model'
-    plot_fns=[nems.utilities.utils.sorted_raster,nems.utilities.utils.raster_plot]
+    plot_fns=[nems.utilities.plot.sorted_raster,nems.utilities.plot.raster_plot]
     """
     Replaces stim with average resp for each stim. This is the 'perfect' model
     used for comparing different models of pupil state gain.
@@ -61,7 +62,7 @@ class pupgain(nems_module):
     name='pupil.pupgain'
     user_editable_fields = ['input_name','output_name','fit_fields','state_var','gain_type','theta']
     gain_type='linpupgain'
-    plot_fns=[nems.utilities.utils.state_act_scatter_smooth,nems.utilities.utils.pre_post_psth,nems.utilities.utils.pred_act_psth_all,nems.utilities.utils.non_plot]
+    plot_fns=[nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pre_post_psth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
     
     def my_init(self,input_name="stim",output_name="stim",state_var="pupil",
                 gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
@@ -167,7 +168,7 @@ class state_weight(nems_module):
     name='pupil.state_weight'
     user_editable_fields = ['input_name','output_name','fit_fields','state_var','input_name2','weight_type','theta']
     weight_type='linear'
-    plot_fns=[nems.utilities.utils.state_act_scatter_smooth,nems.utilities.utils.pre_post_psth,nems.utilities.utils.pred_act_psth_all,nems.utilities.utils.non_plot]
+    plot_fns=[nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pre_post_psth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
     input_name2='stim2'
     state_var='pupil'
     theta=np.zeros([1,2])

@@ -9,6 +9,7 @@ Created on Fri Aug  4 13:44:42 2017
 """
 from nems.modules.base import nems_module
 import nems.utilities.utils
+import nems.utilities.plot
 
 import numpy as np
 import scipy.stats as spstats
@@ -17,7 +18,7 @@ class mean_square_error(nems_module):
  
     name='metrics.mean_square_error'
     user_editable_fields=['input1','input2','norm','shrink']
-    plot_fns=[nems.utilities.utils.pred_act_psth,nems.utilities.utils.pred_act_psth_smooth,nems.utilities.utils.pred_act_scatter]
+    plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_psth_smooth,nems.utilities.plot.pred_act_scatter]
     input1='stim'
     input2='resp'
     norm=True
@@ -147,7 +148,7 @@ class pseudo_huber_error(nems_module):
     
     name='metrics.pseudo_huber_error'
     user_editable_fields=['input1','input2','b']
-    plot_fns=[nems.utilities.utils.pred_act_psth,nems.utilities.utils.pred_act_scatter]
+    plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_scatter]
     input1='stim'
     input2='resp'
     b=0.9 #sets the value of error where fall-off goes from linear to quadratic\
@@ -185,7 +186,7 @@ class correlation(nems_module):
  
     name='metrics.correlation'
     user_editable_fields=['input1','input2','norm']
-    plot_fns=[nems.utilities.utils.pred_act_psth, nems.utilities.utils.pred_act_scatter, nems.utilities.utils.pred_act_scatter_smooth]
+    plot_fns=[nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_scatter, nems.utilities.plot.pred_act_scatter_smooth]
     input1='stim'
     input2='resp'
     r_est=np.ones([1,1])

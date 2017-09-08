@@ -8,8 +8,9 @@ Created on Fri Aug 11 11:08:54 2017
 @author: shofer
 """
 import nems.modules as nm
-from nems.keyword.keyhelpers import mini_fit
+from nems.utilities.utils import mini_fit
 import nems.utilities as ut
+import nems.utilities.baphy as ub
 
 
 # Pupil Model keywords
@@ -22,7 +23,7 @@ def perfectpupil100(stack):
     rasters of each trial for a given stimulus. This keyword loads up the data
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
-    file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
+    file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.est_val.crossval)
@@ -35,7 +36,7 @@ def perfectpupil50(stack):
     rasters of each trial for a given stimulus. This keyword loads up the data
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
-    file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
+    file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval)
@@ -48,7 +49,7 @@ def perfectpupil50x(stack):
     rasters of each trial for a given stimulus. This keyword loads up the data
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
-    file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
+    file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval2)

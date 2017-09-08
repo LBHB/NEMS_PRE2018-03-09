@@ -57,12 +57,11 @@ class nems_stack:
     plot_stimidx=0
     parm_fits=[]
     fitted_modules=[]
-    #cv_counter=0
+    cv_counter=0
     keywords=[]
     keyfuns=[]  # to be populated from nems.keywords.keyfuns - dumb hack
-    #valfrac=0.05
     
-    def __init__(self):
+    def __init__(self,cellid="X",batch=0,modelname="X"):
         print("Creating new stack")
         self.modules=[]
         self.mod_names=[]
@@ -73,15 +72,24 @@ class nems_stack:
         self.data[0][0]['stim']=[] #This one too?
         
         self.meta={}  #Dictionary that will contain cellid, batch, modelname
-        #self.modelname='Empty stack'
+        self.meta['cellid']=cellid
+        self.meta['batch']=batch
+        self.meta['modelname']=modelname
+        self.meta['nests']=0
+        self.meta['cv_counter']=0
+        
+        # extract keywords from modelname
+        self.keywords=modelname.split("_")
+        
+        # TODO: move to meta:
+        self.nests=0 #Default is to have only one nest, i.e. standard crossval
+        self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
+        
         self.error=self.default_error
         self.valmode=False
         self.unresampled=[] #If the data is resampled by load_mat, holds an unresampled copy for raster plot
-        self.nests=0 #Default is to have only one nest, i.e. standard crossval
         self.parm_fits=[] #List of fitted parameters for each nest
         self.fitted_modules=[] #List of modules with fitted parameters
-        #self.cv_counter=0 #Counter for iterating through nests, used in nm.crossval
-        self.keywords=[] #The split modelname string
         self.mod_ids=[]
         #self.valfrac=0.05 #Fraction of the data used to create each validation nest
         
@@ -98,7 +106,7 @@ class nems_stack:
         Note that during valmode, the estimation dataset that is returned is the
         last dataset fit.
         """
-        if self.valmode is True and self.nests>0: 
+        if self.valmode and self.nests>0: 
             print('Evaluating nested validation data')
             mse_idx=ut.utils.find_modules(self,'metrics.mean_square_error')
             mse_idx=int(mse_idx[0])
@@ -107,9 +115,12 @@ class nems_stack:
             except:
                 xval_idx=1
             
-            if start !=0 and start<=xval_idx:
-                self.modules[xval_idx].evaluate()
-                start=xval_idx+1
+            if start>xval_idx:
+                start=xval_idx
+            for ii in range(start,xval_idx+1):
+                self.modules[ii].evaluate() 
+    
+            start=xval_idx+1
             for ii in range(start,mse_idx):
                 for cv_counter in range(0,self.nests):
                     print("Eval {0} in valmode, nest={1}".format(ii,cv_counter))
@@ -121,8 +132,79 @@ class nems_stack:
                         st+=np.prod(s)
                     self.modules[ii].evaluate(nest=cv_counter)
             ut.utils.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
-            for ij in range(mse_idx,len(self.modules)):
-                self.modules[ij].evaluate() 
+            
+            for ii in range(mse_idx,len(self.modules)):
+                self.modules[ii].evaluate()
+                
+        elif self.valmode and self.meta['nests']>0:
+            
+            try:
+                xval_idx=ut.utils.find_modules(self,'est_val.crossval')[0]
+            except:
+                xval_idx=1
+            
+            try:
+                mse_idx=ut.utils.find_modules(self,'metrics.mean_square_error')
+                mse_idx=int(mse_idx[0])
+            except:
+                mse_idx=len(self.modules)
+                
+            print("Evaluating nested validation data: xvidx={0} mseidx={1}".format(xval_idx,mse_idx))
+            
+            if start>xval_idx:
+                start=xval_idx
+            for ii in range(start,xval_idx):
+                print("eval {0} in valmode".format(ii))
+                self.modules[ii].evaluate() 
+    
+            
+            stack=self
+            exclude_keys=['avgresp','poststim','fs','isolation','stimparam','filestate',
+                       'prestim','duration','est','stimFs','respFs']
+            include_keys={}
+            for cv_counter in range(0,stack.meta['nests']):
+                stack.meta['cv_counter']=cv_counter
+                
+                # load in parameters for appropriate nested fit
+                st=0
+                for midx in stack.fitted_modules:
+                    phi_old=stack.modules[midx].parms2phi()
+                    s=phi_old.shape
+                    stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
+                    st+=np.prod(s)
+                
+                # evaluate stack for this nest up to error metrics
+                for ii in range(xval_idx,mse_idx):
+                    print("nest={0}, eval {1} in valmode".format(cv_counter,ii))
+                    stack.modules[ii].evaluate()
+                    
+                    # append data from this (nest,module) onto holders:
+                    if cv_counter==0:
+                        include_keys[ii]=stack.modules[ii].d_out[0].keys()-exclude_keys
+                    for d in stack.modules[ii].d_out:
+                        if not d['est']:
+                            for k in include_keys[ii]:
+                                k2='T'+k
+                                if cv_counter==0:
+                                    if d[k] is None:
+                                        d[k2]=d[k]
+                                    else:
+                                        d[k2]=d[k].copy()
+                                        print("{0} to {1} ndim {2}".format(k,k2,d[k].ndim))
+                                else:
+                                    if d[k] is None:
+                                        pass
+                                    elif d[k].ndim==3:
+                                        d[k2]=np.append(d[k2],d[k],axis=1)
+                                    else:
+                                        d[k2]=np.append(d[k2],d[k],axis=0)
+            #ut.utils.concatenate_helper(self,start=xval_idx+1,end=mse_idx+1)
+            
+            for ii in range(mse_idx,len(self.modules)):
+                print("eval {0} in valmode".format(ii))
+                self.modules[ii].evaluate()
+
+            
         else:
             # standard evaluation when not using nested cross-validation
             for ii in range(start,len(self.modules)):

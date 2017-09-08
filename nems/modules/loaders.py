@@ -10,8 +10,12 @@ Created on Fri Aug  4 13:14:24 2017
 """
 from nems.modules.base import nems_module
 import numpy as np
-import nems.utilities.utils
 import scipy.io
+
+import nems.utilities.utils
+import nems.utilities.plot
+import nems.utilities.io
+
 
 class load_mat(nems_module):
     """
@@ -47,7 +51,7 @@ class load_mat(nems_module):
     """
     name='loaders.load_mat'
     user_editable_fields=['output_name','est_files','fs','avg_resp']
-    plot_fns=[nems.utilities.utils.plot_spectrogram, nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_spectrogram, nems.utilities.plot.plot_spectrogram]
     est_files=[]
     fs=100
     avg_resp=True
@@ -70,7 +74,7 @@ class load_mat(nems_module):
         
         # load contents of Matlab data file and save in d_out list
         for f in self.est_files:
-            matdata = nems.utilities.utils.get_mat_file(f)
+            matdata = nems.utilities.io.get_mat_file(f)
             
             # go through each entry in structure array 'data'
             for s in matdata['data'][0]:
@@ -157,7 +161,7 @@ class dummy_data(nems_module):
     """
     name='loaders.dummy_data'
     user_editable_fields=['output_name','data_len','fs']
-    plot_fns=[nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_spectrogram]
     data_len=100
     fs=100
     

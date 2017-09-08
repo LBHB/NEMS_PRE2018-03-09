@@ -13,6 +13,7 @@ import copy
 
 from nems.modules.base import nems_module
 import nems.utilities.utils
+import nems.utilities.plot
 
 
 class normalize(nems_module):
@@ -157,7 +158,7 @@ class onset_edges(nems_module):
     user_editable_fields=['input_name','output_name','dim','state_mask']
     dim=0
     state_mask=[0,1]
-    plot_fns=[nems.utilities.utils.plot_stim, nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_stim, nems.utilities.plot.plot_spectrogram]
     
     def my_init(self, dim=2, state_mask=[0,1]):
         self.field_dict=locals()

@@ -11,6 +11,7 @@ import copy
 import math as mt
 
 import nems.utilities.utils
+import nems.utilities.plot
 
 
 class standard(nems_module):
@@ -120,7 +121,7 @@ class crossval2(nems_module):
     user_editable_fields=['input_name','output_name',
                           'valfrac','interleave_valtrials','val_mult_repeats',
                           'cv_counter']
-    plot_fns=[nems.utilities.utils.raster_plot,nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.raster_plot,nems.utilities.plot.plot_spectrogram]
     valfrac=0.05
     interleave_valtrials=True
     val_mult_repeats=True
@@ -131,7 +132,7 @@ class crossval2(nems_module):
     def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True):
         #self.field_dict=locals()
         #self.field_dict.pop('self',None)
-        nests=self.parent_stack.nests
+        nests=self.parent_stack.meta['nests']
         #if nests==0:
         #    nests=1;
         #    self.parent_stack.nests=1
@@ -153,12 +154,16 @@ class crossval2(nems_module):
 
         for i, d in enumerate(self.d_in):
             valfrac=self.valfrac
-            count=self.cv_counter
+            try:
+                count=self.parent_stack.meta['cv_counter']
+            except:
+                count=self.cv_counter
+                
             nests=int(1/valfrac)
             
             re=d['resp'].shape
             spl=re[0]*valfrac
-            if re[0]<self.parent_stack.nests:
+            if re[0]<nests:
                 raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
 
             # figure out grouping for each CV set 
@@ -222,8 +227,8 @@ class crossval2(nems_module):
             if self.parent_stack.valmode is True:
                 self.d_out.append(d_val)
                         
-            if self.cv_counter==self.nests-1:
-                self.parent_stack.cond=True
+            #if self.cv_counter==self.nests-1:
+            #    self.parent_stack.cond=True
                     
 
 class crossval(nems_module):
@@ -246,7 +251,7 @@ class crossval(nems_module):
     user_editable_fields=['input_name','output_name',
                           'valfrac','interleave_valtrials','val_mult_repeats',
                           'cv_counter']
-    plot_fns=[nems.utilities.utils.raster_plot,nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.raster_plot,nems.utilities.plot.plot_spectrogram]
     valfrac=0.05
     interleave_valtrials=True
     val_mult_repeats=True

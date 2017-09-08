@@ -24,8 +24,8 @@ the __all__ list, which could potentially crowd your namespace, and whatever
 function names you import will not be recognized by the importing file. Thus,
 it is not recommended. But you do you.
 """
-import nems.modules.user_def.load_baphy_ssa
-import nems.modules.user_def.demo
-
-
-__all__=['load_baphy_ssa','simple_demo']
+#import nems.modules.user_def.load_baphy_ssa
+#import nems.modules.user_def.demo
+#
+#
+#__all__=['load_baphy_ssa','simple_demo']

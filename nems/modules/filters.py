@@ -24,7 +24,7 @@ class weight_channels(nems_module):
     """
     name='filters.weight_channels'
     user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_chans','baseline','coefs','phi','parm_fun']
-    plot_fns=[nems.utilities.utils.plot_strf,nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_strf,nems.utilities.plot.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_chans=1
@@ -90,7 +90,7 @@ class fir(nems_module):
     """
     name='filters.fir'
     user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_coefs','coefs','baseline','random_init']
-    plot_fns=[nems.utilities.utils.plot_strf, nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_strf, nems.utilities.plot.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_dims=0
@@ -141,7 +141,7 @@ class stp(nems_module):
     """
     name='filters.stp'
     user_editable_fields=['input_name','output_name','fit_fields','num_channels','u','tau','offset_in','deponly','crosstalk']
-    plot_fns=[nems.utilities.utils.pre_post_psth, nems.utilities.utils.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.pre_post_psth, nems.utilities.plot.plot_spectrogram]
     coefs=None
     baseline=0
     u=np.zeros([1,1])
