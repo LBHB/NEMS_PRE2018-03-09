@@ -147,7 +147,19 @@ def pred_act_scatter_smooth(m,idx=None,size=FIGSIZE):
 
 def state_act_scatter_smooth(m,idx=None,size=FIGSIZE):
     scatter_smooth(m,idx=idx,size=size,x_name=m.state_var,y_name="resp")
-    
+    if 'theta' in dir(m):
+        t="theta: "+" ".join(str(x) for x in m.theta)
+    axes = plt.gca()
+    ymin, ymax = axes.get_ylim()
+    xmin, xmax = axes.get_xlim()
+    if ymin==ymax:
+        ymax=ymin+1
+    if xmin==xmax:
+        xmax=xmin+1
+    #print("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
+    plt.text(xmin+(xmax-xmin)/50,ymax-(ymax-ymin)/20,t,
+             verticalalignment='top')
+
 def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)

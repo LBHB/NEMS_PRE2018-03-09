@@ -192,7 +192,7 @@ class state_weight(nems_module):
     state_var='pupil'
     theta=np.zeros([1,2])
     def my_init(self,input_name="stim",input_name2="stim2",state_var="pupil",
-                weight_type='linear',fit_fields=['theta'],theta=[0,0.001]):
+                weight_type='linear',fit_fields=['theta'],theta=[.1,.1]):
         self.input_name=input_name
         self.input_name2=input_name2
         self.state_var=state_var
