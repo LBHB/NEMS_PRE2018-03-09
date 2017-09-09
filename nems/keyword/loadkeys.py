@@ -53,7 +53,7 @@ def parm50(stack):
                                      fs=200,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
-    stack.append(nm.est_val.crossval,cv_counter=stack.cv_counter)
+    stack.append(nm.est_val.crossval)
     
 def parm50x(stack):
     """

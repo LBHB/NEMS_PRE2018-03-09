@@ -53,10 +53,10 @@ batch=271 #A1
 
 
 # pupil gain test -- PPS data
-#cellid='eno052b-c1'
+cellid='gus021d-a2'
 #cellid="BOL006b-11-1"
 #cellid="eno053d-c1"
-cellid="eno048g-b1"
+#cellid="eno048g-b1"
 #cellid="eno054c-b2"
 batch=293
 #modelname="parm50_wcg01_fir10_pupwgt_fit01_nested5"

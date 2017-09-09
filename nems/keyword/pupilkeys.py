@@ -78,6 +78,7 @@ def pupgainctl(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
     
 def pupgain(stack):
     """
@@ -88,6 +89,7 @@ def pupgain(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
     
 def polypupgain04(stack):#4th degree polynomial gain fn
     """
