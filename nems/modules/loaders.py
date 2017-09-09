@@ -95,7 +95,7 @@ class load_mat(nems_module):
                     data['raw_stim']=data['stim'].copy()
                     data['raw_resp']=data['resp'].copy()
                 try:
-                    data['pupil']=s['pupil']
+                    data['pupil']=s['pupil']/100
                 except:
                     data['pupil']=None
                 try:

@@ -107,7 +107,10 @@ class nems_stack:
         Note that during valmode, the estimation dataset that is returned is the
         last dataset fit.
         """
+        
         if self.valmode and self.nests>0: 
+            # evaluate using the old nesting scheme devised by Noah
+            
             print('Evaluating nested validation data')
             mse_idx=ut.utils.find_modules(self,'metrics.mean_square_error')
             mse_idx=int(mse_idx[0])
@@ -139,7 +142,11 @@ class nems_stack:
                 
         elif self.valmode and self.meta['nests']>0:
             # new nested eval, doesn't require special evaluation procedure 
-            # by modules
+            # by modules. instead, all the remapping and collecting of val
+            # data from each nest handled inside this evaluation function.
+            
+            # 2017-09-08- still something not quite right.
+            
             try:
                 xval_idx=ut.utils.find_modules(self,'est_val.crossval')[0]
             except:

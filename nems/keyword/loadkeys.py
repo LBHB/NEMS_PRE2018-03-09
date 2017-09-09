@@ -53,8 +53,6 @@ def parm50(stack):
                                      fs=200,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
-    stack.cv_counter=stack.meta['cv_counter']
-    stack.nests=stack.meta['nests']
     stack.append(nm.est_val.crossval,cv_counter=stack.cv_counter)
     
 def parm50x(stack):

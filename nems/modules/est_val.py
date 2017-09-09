@@ -261,6 +261,10 @@ class crossval(nems_module):
     def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True,cv_counter=0):
         #self.field_dict=locals()
         #self.field_dict.pop('self',None)
+
+        self.parent_stack.cv_counter=self.parent_stack.meta['cv_counter']
+        self.parent_stack.nests=self.parent_stack.meta['nests']
+        
         nests=self.parent_stack.nests
         if nests==0:
             nests=1;
