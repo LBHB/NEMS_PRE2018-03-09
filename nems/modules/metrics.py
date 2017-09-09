@@ -209,7 +209,10 @@ class correlation(nems_module):
         keepidx=np.isfinite(X1) * np.isfinite(X2)
         X1=X1[keepidx]
         X2=X2[keepidx]
-        r_est,p=spstats.pearsonr(X1,X2)
+        if not X1.sum() or not X2.sum():
+            r_est=0
+        else:
+            r_est,p=spstats.pearsonr(X1,X2)
         self.r_est=r_est
         self.parent_stack.meta['r_est']=[r_est]
         
