@@ -390,9 +390,19 @@ class nems_stack:
             fig.savefig(fileobj, format=mode)
             fileobj.seek(0)
             s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+            #return ("s3://" + sc.PRIMARY_BUCKET + "/" + key)
         else:
-            if os.path.isfile(filename):
-                os.remove(filename)
+            dr = (
+                    sc.DIRECTORY_ROOT
+                    + "nems_saved_images/batch{0}/{1}/".format(batch, cellid)
+                    )
+            try:
+                os.stat(dr)
+                if os.path.isfile(filename):
+                    os.remove(filename)
+            except:
+                os.mkdir(dr)
+
             try:
                 fig.savefig(filename)
             except Exception as e:

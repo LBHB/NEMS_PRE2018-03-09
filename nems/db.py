@@ -44,7 +44,6 @@ try:
     db_uri = 'mysql+pymysql://{0}:{1}@{2}/{3}'.format(
                     db.user,db.passwd,db.host,db.database
                     )
-    echo = False
 except Exception as e:
     print('No database info detected')
     print(e)
@@ -52,8 +51,6 @@ except Exception as e:
     i = path.find('nems_config')
     db_path = (path[:i+11] + '/default_db.db')
     db_uri = 'sqlite:///' + db_path + '?check_same_thread=False'
-    echo = True
-    #raise e
 
 try:
     import nems_config.Cluster_Database_Info as clst_db
@@ -69,7 +66,7 @@ try:
                         clst_db.user, clst_db.passwd, clst_db.host,
                         port, clst_db.database,
                         )
-    clst_echo = False
+    
 except Exception as e:
     print('No cluster database info detected')
     print(e)
@@ -77,15 +74,14 @@ except Exception as e:
     i = path.find('nems_config')
     db_path = (path[:i+11] + '/default_db.db')
     clst_db_uri = 'sqlite:///' + db_path + '?check_same_thread=False'
-    clst_echo = True
-    #raise e
+
     
 # sets how often sql alchemy attempts to re-establish connection engine
 # TODO: query db for time-out variable and set this based on some fraction of that
 POOL_RECYCLE = 7200;
 
 # create a database connection engine
-engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE, echo=echo)
+engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE)
 
 #create base class to mirror existing database schema
 Base = automap_base()
@@ -108,7 +104,7 @@ Session = sessionmaker(bind=engine)
 
 # Same as above, but duplicated for use w/ cluster
 cluster_engine = create_engine(
-        clst_db_uri, pool_recycle=POOL_RECYCLE, echo=clst_echo
+        clst_db_uri, pool_recycle=POOL_RECYCLE,
         )
 
 cluster_Base = automap_base()

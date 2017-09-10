@@ -7,13 +7,14 @@ from flask_socketio import SocketIO
 from nems.utilities.output import SplitOutput
 
 app = Flask(__name__)
-try:
-    app.config.from_object('nems_config.Flask_Config')
-    
-except:
-    app.config.from_object('nems_config.defaults.FLASK_DEFAULTS')
-    print('No flask config file detected, using default settings')
-    pass
+app.config.from_object('nems_config.defaults.FLASK_DEFAULTS')
+#try:
+#    app.config.from_object('nems_config.Flask_Config')
+#    
+#except:
+#    app.config.from_object('nems_config.defaults.FLASK_DEFAULTS')
+#    print('No flask config file detected, using default settings')
+#    pass
 
 socketio = SocketIO(app, async_mode='threading')
 thread = None

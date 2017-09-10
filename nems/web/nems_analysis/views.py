@@ -522,7 +522,7 @@ def update_tag_options():
 
 
 @app.route('/edit_analysis', methods=['GET','POST'])
-#@login_required
+@login_required
 def edit_analysis():
     """Take input from Analysis Editor modal and save it to the database.
     
