@@ -954,7 +954,7 @@ $(document).ready(function(){
     
     
     $("#togglePlotOp").on('click',function(){
-        var pow = $('#plotOpWrapper');
+        var pow = $('#plotOpRow');
         
         if (pow.css('display') === 'block'){
             pow.css('display', 'none');
@@ -1241,5 +1241,47 @@ $(document).ready(function(){
         formInfo.submit();
         */  
     }
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////     Added div toggles / UI management     /////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    $("#toggleAnalysisOps").on('click', toggleAnalysisOps);
+    function toggleAnalysisOps(){
+        var div = $("#analysisButtonsWrapper")
+        if (div.css('display') === 'block'){
+            div.css('display', 'none');
+        } else if (div.css('display') === 'none'){
+            div.css('display', 'block');
+        } else {
+            return false;
+        }
+    }
+
+    $("#toggleCellSelector").on('click', toggleCellSelector);
+    function toggleCellSelector(){
+        var sel = $("#cellSelector");
+        if (sel.css('display') === 'none'){
+            sel.css('display', 'block');
+        } else if (sel.css('display') === 'block'){
+            sel.css('display', 'none');
+        } else {
+            return false;
+        }
+    }
+
+    $("#toggleModelSelector").on('click', toggleModelSelector);
+    function toggleModelSelector(){
+        var sel = $("#modelSelector");
+        if (sel.css('display') === 'none'){
+            sel.css('display', 'block');
+        } else if (sel.css('display') === 'block'){
+            sel.css('display', 'none');
+        } else {
+            return false;
+        }
+    }
+
+
 });
-        

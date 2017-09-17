@@ -1,0 +1,171 @@
+body {
+  padding-top: 25px;
+  background: #CDD6D8;
+}
+
+.starter-template {
+  padding: 40px 15px;
+  text-align: center;
+}
+
+select.form-control {
+  padding: 2px 4px; !important
+  height: 20px; !important
+  font-size: 10px;
+}
+
+tables.dataframe, table, th, td {
+  border: none;
+  border-bottom: 1px solid #C8C8C8;
+  border-collapse: collapse;
+  padding: 10px;
+  margin-bottom: 40px;
+  font-size: 0.9em;
+}
+
+#tableWrapper {
+  overflow: auto;
+  border: 1px solid #C8C8C8;
+}
+
+.jumbotron .py_con_msg {
+  font-size: 12px;
+  line-height: 14px;
+  margin: 4px;
+}
+
+.table-hover, .table-condensed {
+  display: block;
+  height: 100%;      
+  text-align: center;
+  border: none;
+}
+
+.dataframe th , .dataframe td {
+  cursor: pointer;
+  border:none;
+  text-align:center;        
+}
+
+#loadingPopup {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  color: white;
+  background: rgba( 0, 0, 0, .3)
+              url('http://imgur.com/qnRTMK6.gif')
+              50% 50%
+              no-repeat;
+}
+
+#selectionsRow {
+  background: #FFFFFF;
+  box-shadow: 7px 7px 5px #888888;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 3vh;
+  height: 35%;
+  display: flex;
+}
+
+#tableRow {
+  background: #FFFFFF;
+  box-shadow: 7px 7px 5px #888888;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 3vh;
+  height: 65%;
+  display: block;
+}
+
+#tableButtons {
+  height: 25%;
+}
+
+#tableRowInner {
+  height: 75%;
+}
+
+#tableWrapper {
+  height: 100%;
+}
+
+#displayRow {
+  background: #FFFFFF;
+  box-shadow: 7px 7px 5px #888888;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 3vh;
+  height: 100%;
+  display: block;
+}
+
+#rightCol {
+  margin-left: 3vh;
+  height: 100%;
+  display: block;
+}
+
+#leftCol {
+  height: 100%;
+  display: block;
+}
+
+#mainRow {
+  height: 90vh;
+  display: block;
+}
+
+#pyConRow {
+  background: #FFFFFF;
+  box-shadow: 7px 7px 5px #888888;
+  border-radius: 10px;
+  padding: 10px;S
+  height: 15vh;
+  margin: auto;
+}
+
+#fitOpDiv {
+  display: none;
+}
+
+#analysisButtonsWrapper {
+  display: none;
+}
+
+#analysisGroup {
+  margin-bottom: 2px;
+}
+
+#analysisRow {
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+#batchRow {
+  text-align: left;
+}
+
+#cellRow {
+  text-align: left;
+}
+
+#modelRow {
+  text-align: left;
+}
+
+#cellSelector {
+  display: none;
+}
+
+#modelSelector {
+  display: none;
+}
+
+#plotOpRow {
+  display: none;
+}
