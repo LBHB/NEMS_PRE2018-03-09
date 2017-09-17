@@ -179,6 +179,9 @@ def refresh_modelpane_json(modIdx):
             if isinstance(value, type(None)):
                 v = "None"
                 values[i][j] = v
+            if callable(value):
+                v = str(value)
+                values[i][j] = v
     
     return jsonify(
             plots=plots,
