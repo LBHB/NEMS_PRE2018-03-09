@@ -39,12 +39,12 @@ imp.reload(ns)
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
 
 #cellid='bbl034e-a1'
-cellid='bbl031f-a1'
+cellid='bbl070i-a1'
 batch=291  # IC
 
-cellid='chn010c-c3'
-batch=271 #A1
-#modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+#cellid='chn010c-c3'
+#batch=271 #A1
+modelname="fb18ch100_wcg03_fir15_dexp_fit01"
 #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
 #cellid="eno052d-a1"
@@ -53,14 +53,14 @@ batch=271 #A1
 
 
 # pupil gain test -- PPS data
-cellid='gus021d-a2'
+#cellid='gus021d-a2'
 #cellid="BOL006b-11-1"
 #cellid="eno053d-c1"
 #cellid="eno048g-b1"
 #cellid="eno054c-b2"
-batch=293
+#batch=293
 #modelname="parm50_wcg01_fir10_pupwgt_fit01_nested5"
-modelname="parm50_wcg01_fir10_pupwgt_fit01_nested5"
+#modelname="parm50x_wcg01_fir10_pupgain_fit01_nested5"
 #modelname="parm50x_wcg01_fir10_pupwgtctl_dexp_fit01"
 #modelname="parm50x_wcg01_fir10_dexp_fit01_nested5"
 #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
