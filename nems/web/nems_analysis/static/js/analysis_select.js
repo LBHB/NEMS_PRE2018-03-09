@@ -43,33 +43,21 @@ $(document).ready(function(){
         trigger: 'click',
     });
      
-    function sizeDragDisplay(){
-        display = $("#displayOuter");
-        display.resizable({
-            handles: "n, w, e, s"
-        });
-        display.draggable();
-    }
-        
-    function sizeDragTable(){
-        table = $("#resultsArea");
-        table.resizable({
-            handles: "n, w, e, s"     
-        });
-        table.draggable();
-    }
+    $("#displayRow").resizable({
+        handles: "n, w, e, s"
+    });
 
-    $("#selectArea").resizable({
+    $("#tableRow").resizable({
+        handles: "n, w, e, s"
+    })
+
+    $("#selectionsRow").resizable({
         handles: "n, w, e, s"        
     });
-    $("#py_console").resizable({
-        handles: "n, s"        
+    $("#pyConRow").resizable({
+        handles: "n, s, e, w"        
     });
-    //$("#py_console").draggable();
-    $("#selectArea").draggable();
 
-    sizeDragDisplay();
-    sizeDragTable();
     //drags start out disabld until alt is pressed
     $(".dragToggle").draggable('disable');
     
@@ -1249,7 +1237,7 @@ $(document).ready(function(){
 
     $("#toggleAnalysisOps").on('click', toggleAnalysisOps);
     function toggleAnalysisOps(){
-        var div = $("#analysisButtonsWrapper")
+        var div = $("#analysisButtons")
         if (div.css('display') === 'block'){
             div.css('display', 'none');
         } else if (div.css('display') === 'none'){
@@ -1259,9 +1247,24 @@ $(document).ready(function(){
         }
     }
 
-    $("#toggleCellSelector").on('click', toggleCellSelector);
-    function toggleCellSelector(){
-        var sel = $("#cellSelector");
+    $("#toggleCellsModels").on('click', toggleCellsModels);
+    function toggleCellsModels(){
+        var cell = $("#cellSelector");
+        var model = $("#modelSelector");
+        if (cell.css('display') === 'none'){
+            cell.css('display', 'block');
+            model.css('display', 'block');
+        } else if (cell.css('display') === 'block'){
+            cell.css('display', 'none');
+            model.css('display', 'none');
+        } else {
+            return false;
+        }
+    }
+
+    $("#toggleTags").on('click', toggleTags);
+    function toggleTags(){
+        var sel = $("#tagFilters");
         if (sel.css('display') === 'none'){
             sel.css('display', 'block');
         } else if (sel.css('display') === 'block'){
@@ -1271,9 +1274,9 @@ $(document).ready(function(){
         }
     }
 
-    $("#toggleModelSelector").on('click', toggleModelSelector);
-    function toggleModelSelector(){
-        var sel = $("#modelSelector");
+    $("#toggleStatus").on('click', toggleStatus);
+    function toggleStatus(){
+        var sel = $("#statusFilters");
         if (sel.css('display') === 'none'){
             sel.css('display', 'block');
         } else if (sel.css('display') === 'block'){
@@ -1282,6 +1285,5 @@ $(document).ready(function(){
             return false;
         }
     }
-
 
 });

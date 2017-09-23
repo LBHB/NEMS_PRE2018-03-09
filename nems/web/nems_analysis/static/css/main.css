@@ -24,8 +24,11 @@ tables.dataframe, table, th, td {
 }
 
 #tableWrapper {
-  overflow: auto;
   border: 1px solid #C8C8C8;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  overflow: auto;
 }
 
 .jumbotron .py_con_msg {
@@ -64,76 +67,77 @@ tables.dataframe, table, th, td {
 
 #selectionsRow {
   background: #FFFFFF;
-  box-shadow: 7px 7px 5px #888888;
+  box-shadow: 0px 7px 5px #888888;
   border-radius: 10px;
   padding: 10px;
   margin-bottom: 3vh;
-  height: 35%;
-  display: flex;
+  height: 15vh;
 }
 
-#tableRow {
-  background: #FFFFFF;
-  box-shadow: 7px 7px 5px #888888;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 3vh;
-  height: 65%;
-  display: block;
-}
-
-#tableButtons {
-  height: 25%;
-}
-
-#tableRowInner {
-  height: 75%;
-}
-
-#tableWrapper {
-  height: 100%;
-}
-
-#displayRow {
-  background: #FFFFFF;
-  box-shadow: 7px 7px 5px #888888;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 3vh;
-  height: 100%;
-  display: block;
-}
-
-#rightCol {
-  margin-left: 3vh;
-  height: 100%;
-  display: block;
+#mainRow {
+  height: 70vh;
 }
 
 #leftCol {
   height: 100%;
-  display: block;
+  position: relative;
 }
 
-#mainRow {
-  height: 90vh;
-  display: block;
+#tableRow {
+  background: #FFFFFF;
+  box-shadow: 0px 7px 5px #888888;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 3vh;
+  height: 100%;
+}
+
+#tableCol {
+  height: 100%;
+}
+
+#tableButtons {
+  height: 8%;
+}
+#tableRowInner {
+  height: 92%;
+}
+
+#displayRow {
+  background: #FFFFFF;
+  box-shadow: 0px 7px 5px #888888;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 3vh;
+  height: 100%;
+}
+
+#rightCol {
+  height: 100%;
+  position: relative;
+  margin-left: 3vh;
 }
 
 #pyConRow {
   background: #FFFFFF;
-  box-shadow: 7px 7px 5px #888888;
+  box-shadow: 0px 7px 5px #888888;
   border-radius: 10px;
-  padding: 10px;S
+  padding: 10px;
   height: 15vh;
-  margin: auto;
+  margin-top: 3vh;
+}
+
+#py_console {
+  height: 100%;
+  overflow: auto;
+  position: relative;
 }
 
 #fitOpDiv {
   display: none;
 }
 
-#analysisButtonsWrapper {
+#analysisButtons {
   display: none;
 }
 
@@ -168,4 +172,12 @@ tables.dataframe, table, th, td {
 
 #plotOpRow {
   display: none;
+}
+
+#cellCol {
+  padding-right: 5px;
+}
+
+#modelCol {
+  padding-left: 5px;
 }

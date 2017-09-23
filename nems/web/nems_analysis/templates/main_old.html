@@ -39,7 +39,7 @@
     <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
     
     <!-- Custom styles for this template -->
-    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/starter-template.css') }}" rel="stylesheet">
     
   </head>
 
@@ -139,44 +139,41 @@
       </div>
     </nav>
 
-    <!-- outer containers -->
     <div class="container-fluid">
     <div class="starter-template">
-    <div class="row">
-    <div class="col-xs-12">
     
-    <div class="row" id="mainRow">
+        <div class="row">
+        
 
-        <div class="col-xs-7" id="leftCol">
 
-            <div class="row" id="selectionsRow">
 
-                <div class="col-xs-4" id="analysisBatchCol">
+<!--            Left-hand-side, form selections       -->
 
-                    <div class="row" id="analysisRow"><div class="col-xs-12">
 
-                    <div class="form-group" id="analysisGroup">
-                        <label for="analysisSelector">
-                            Select Analysis
-                        </label>
-                        <select class="form-control plot-form"
-                                id="analysisSelector">
+
+
+            <div class="col-md-3 col-xs-12 dragToggle ui-widget-content"
+                 id="selectArea">
+                <div class="row" id="analysisRow">
+                    <div class="col-xs-12" id="analysisCol">
+                        <div class="form-group" id="analysisGroup">
+                            <label for="analysisSelector">
+                                Select Analysis
+                            </label>
+                            <select class="form-control plot-form"
+                                    id="analysisSelector">
                             {% for analysis in analysislist %}
-                            <option value="{{ analysis }}">
-                                {{ analysis }}
-                            </option>
+                                <option value="{{ analysis }}">
+                                    {{ analysis }}
+                                </option>
                             {% endfor %}
-                        </select>
-                    </div><!--form-group-->
+                            </select>
+                        </div><!--form-group-->
+                    </div><!-- analysis col-->
 
-                    <div class="input-group-btn" id="toggleAnalysisOpsDiv">
-                        <button class='btn-default btn-xs' type="button" id="toggleAnalysisOps">
-                            Analysis Options
-                        </button>
-                    </div>
-
-                    <div id="analysisButtonsWrapper">
+                    <div class="col-xs-12" id="analysisButtonsCol">
                         <div class="form-group" id="analysisButtons">
+
                             <div class="btn-group">
                                 <button type="button"
                                         class="btn btn-default btn-xs"
@@ -217,15 +214,8 @@
                                             Delete
                                 </button>
                             </div>
-                            
-                            <select id="statusFilters" class="form-control">
-                                {% for status in statuslist %}
-                                    <option name="statusOption[]" value='{{ status }}'>
-                                        {{ status }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <!--<div class="dropdown">
+                
+                            <div class="dropdown">
                                 <button type="button"
                                         tabindex="-1"
                                         class="btn btn-default btn-xs
@@ -257,8 +247,8 @@
                                         </span>
                                     </li>
                                     {% endfor %}
-                                </div>--><!-- status filters -->
-                            <!--</div> dropdown outer div -->
+                                </div><!-- status filters -->
+                            </div><!-- dropdown outer div -->
                 
                             <div class="dropdown">
                                 <button type="button"
@@ -313,13 +303,13 @@
                                              Fit Report
                                  </button>
                             </div>
+                                 
                         </div><!-- button form-group end -->
-                    </div><!-- analysis buttons wrapper -->
-
-                    </div></div><!-- analysis row and dummy col-->
-
-                    <div class="row" id="batchRow"><div class='col-xs-12'>
-
+                    </div><!-- button col end -->
+                </div><!-- analysis row end -->
+                
+                <div class="row" id="batchRow">
+                    <div class="col-xs-12" id="batchCol">
                         <div class="form-group" id="batchDiv">
                             <label for="batchSelector">
                                 Batch
@@ -338,31 +328,22 @@
                                     id="batchPerformance">
                                     Batch Performance
                             </button>
-                                All Models
+                                Find All Models
                             <input type="checkbox"
                                    id="findAll"
                                    value="1">
                         </div><!-- form-group -->
+                    </div><!-- batch col -->
+                </div><!-- batch row -->
 
-                    </div></div><!-- batch row and dummy col -->
-
-                </div><!-- analysis & batch column -->
-
-                <div class="col-xs-4" id="cellModelCol">
-
-                    <div class="row" id="cellRow"><div class='col-xs-12'>
-                        <div class="form-group" id="cellDiv">
-                            <label>
+                <div class="row" id="cellRow">
+                    <div class="col-xs-12"
+                         id="cellCol">
+                        <div class="form-group"
+                             id="cellDiv">
+                            <label for="cellSelector">
                                 Cell(s)
                             </label>
-                            <button class='btn btn-default btn-xs' type="button" id="toggleCellSelector">
-                                <span class="glyphicon glyphicon-menu-down">
-                                </span>
-                            </button>
-                            <input type="checkbox"
-                                   id="selectAllCells"
-                                   checked>
-                                   All
                             <select multiple="multiple"
                                     class="form-control plot-form" 
                                     name="celllist"
@@ -372,23 +353,22 @@
                                     Select a batch to populate cells.
                                 </option>
                             </select>
+                            <input type="checkbox"
+                                   id="selectAllCells"
+                                   checked>
+                                       Select All
                         </div><!-- form-group-->
-                    </div></div><!-- cell row and dummy col -->
+                    </div><!-- cell col -->
+                </div><!-- cell row -->
 
-                    <div class="row" id="modelRow"><div class='col-xs-12'>
+                <div class="row" id="modelRow">
+                    <div class="col-xs-12"
+                         id="modelCol">
                         <div class="form-group"
                              id="modelDiv">
                             <label for="modelSelector">
                                 Model(s)
                             </label>
-                            <button class='btn btn-default btn-xs' type="button" id="toggleModelSelector">
-                                <span class="glyphicon glyphicon-menu-down">
-                                </span>
-                            </button>
-                            <input type="checkbox"
-                                   id="selectAllModels"
-                                   checked>
-                                        All
                             <select multiple="multiple"
                                     class="form-control plot-form" 
                                     name="modelnames"
@@ -398,11 +378,15 @@
                                     Select an analysis to populate models.
                                 </option>
                             </select>
+                            <input type="checkbox"
+                                   id="selectAllModels"
+                                   checked>
+                                        Select All
                         </div><!-- form-group -->
-                    </div></div><!-- model row and dummy col -->
-
-                    <div class="row" id="modelButtonsRow"><div class='col-xs-12'>
-
+                    </div><!-- model col -->
+                
+                    <div class="col-xs-12"
+                         id="modelButtonsCol">
                         <div class="input-group form-inline"
                              id="modelButtons">
                             <div class="input-group-btn">
@@ -431,8 +415,8 @@
                                             Fit Options
                                 </button>
                             </div>
-                        </div>
-
+                        </div><!-- model buttons input-group -->
+                
                         <div class="input-group form-inline"
                              id="fitOpDiv">
                                 Force Rerun
@@ -440,132 +424,130 @@
                                    id="forceRerun"
                                    value="1">
                         </div>
-
-                    </div></div><!-- model buttons row and dummy col-->
-
-                </div><!-- cell and model column -->
-
-                <div class="col-xs-4" id="plotCol">
-                    <div class="row" id="plotSelectorsRow">
-
-                        <div class="col-xs-6">
-                            <div class="form-group">
-                                <label for="measureSelector">
-                                    Measure
-                                </label>
-                                <select class="form-control plot-form"
-                                        id="measureSelector" name="measure">
+                    </div><!-- model buttons col -->
+                </div><!-- model row -->
+                
+                <div class="row"
+                     id="plotRow">
+                    <div class="col-xs-12"
+                         id="plotCol">
+                        <div class="row"
+                             id="plotRowInner">
+                            <div class="col-xs-6">
+                                <div class="form-group">
+                                    <label for="measureSelector">
+                                        Measure
+                                    </label>
+                                    <select class="form-control plot-form"
+                                            id="measureSelector"
+                                            name="measure">
                                     {% for measure in measurelist %}
-                                    <option value="{{ measure }}"
-                                    {% if loop.index == 0 %}
-                                            checked
-                                    {% endif %}
-                                    >
-                                        {{ measure }}
-                                    </option>
-                                {% endfor %}
-                                </select>
-                                <div class="input-group-btn">
-                                    <button type="button"
-                                            class="btn btn-default btn-xs"
-                                            tabindex="-1"
-                                            id="togglePlotOp">
-                                                Plot Options
-                                    </button>
+                                        <option value="{{ measure }}"
+                                        {% if loop.index == 0 %}
+                                                checked
+                                        {% endif %}
+                                        >
+                                            {{ measure }}
+                                        </option>
+                                    {% endfor %}
+                                    </select>
+                                    <div class="input-group-btn">
+                                        <button type="button"
+                                                class="btn btn-default btn-xs"
+                                                tabindex="-1"
+                                                id="togglePlotOp">
+                                                    Plot Options
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                            
-                        <div class="col-xs-6">
-                            <div class="form-group">
-                                <label for="plotTypeSelector">
-                                    Plot Type
+                            <div class="col-xs-6">
+                                <div class="form-group">
+                                    <label for="plotTypeSelector">
+                                        Plot Type
+                                    </label>
+                                    <select class="form-control plot-form" 
+                                            id="plotTypeSelector">
+                                    {% for type in plotTypeList %}
+                                        <option value="{{ type }}">
+                                            {{ type | replace('_',' ') }}
+                                        </option>
+                                    {% endfor %}
+                                    </select>
+                                    <div class="input-group-btn">
+                                        <button class="btn btn-default btn-xs"
+                                                type="button"
+                                                id="submitPlot">
+                                                    Submit Plot
+                                        </button>
+                                    </div>
+                                </div><!-- form-group -->
+                            </div>
+                        </div><!-- plot row inner -->
+
+                        <div class="row" id="plotOpWrapper">
+                            <div class="form-group form-inline"
+                                 id="plotOpLabels">
+                                <label for="onlyFair">
+                                    Fair?
                                 </label>
-                                <select class="form-control plot-form" 
-                                        id="plotTypeSelector">
-                                {% for type in plotTypeList %}
-                                    <option value="{{ type }}">
-                                        {{ type | replace('_',' ') }}
-                                    </option>
-                                {% endfor %}
-                                </select>
-                                <div class="input-group-btn">
-                                    <button class="btn btn-default btn-xs"
-                                            type="button"
-                                            id="submitPlot">
-                                                Submit Plot
-                                    </button>
-                                </div>
-                            </div><!-- form-group -->
-                        </div>
-
-                    </div><!-- selector row -->
-
-                    <div class="row" id="plotOpRow"><div class='col-xs-12'>
-
-                        <div class="form-group form-inline"
-                             id="plotOpLabels">
-                            <label for="onlyFair">
-                                Fair?
-                            </label>
-                            <label for="includeOutliers">
-                                Outliers?
-                            </label>
-                            <label for="plotOpSelect">
-                                Use
-                            </label>
-                            <label for="plotOpVal">
-                                &gt;
-                            </label>
-                        </div><!-- label form-group -->
+                                <label for="includeOutliers">
+                                    Outliers?
+                                </label>
+                                <label for="plotOpSelect">
+                                    Use
+                                </label>
+                                <label for="plotOpVal">
+                                    &gt;
+                                </label>
+                            </div><!-- label form-group -->
                 
-                        <div class="form-group form-inline"
-                             id="plotOpGroup">
-                            <input type="checkbox"
-                                   id="onlyFair"
-                                   name="onlyFair" 
-                                   checked value="1">
-                            <input type="checkbox"
-                                   id="includeOutliers"
-                                   name="includeOutliers"
-                                   value="1">
-                            <select class="form-control"
-                                    id="plotOpSelect">
-                                <option value="snri">
-                                    SNRi
-                                </option>
-                                <option value="iso">
-                                    Iso
-                                </option>
-                                <option value="snr">
-                                    SNR
-                                </option>
-                            </select>
-                            <input type="text"
-                                   id="plotOpVal"
-                                   name="plotOpVal"
-                                   value="0">
-                        </div><!-- form-group -->
+                            <div class="form-group form-inline"
+                                 id="plotOpGroup">
+                                <input type="checkbox"
+                                       id="onlyFair"
+                                       name="onlyFair" 
+                                       checked value="1">
+                                <input type="checkbox"
+                                       id="includeOutliers"
+                                       name="includeOutliers"
+                                       value="1">
+                                <select class="form-control"
+                                        id="plotOpSelect">
+                                    <option value="snri">
+                                        SNRi
+                                    </option>
+                                    <option value="iso">
+                                        Iso
+                                    </option>
+                                    <option value="snr">
+                                        SNR
+                                    </option>
+                                </select>
+                                <input type="text"
+                                       id="plotOpVal"
+                                       name="plotOpVal"
+                                       value="0">
+                            </div><!-- form-group -->
                             
-                        <div class="form-group form-inline"
-                             id="plotOpLabelsTwo">
-                             <label for="plotNewWindow">
-                                 New Window
-                             </label>
-                        </div>
+                            <div class="form-group form-inline"
+                                 id="plotOpLabelsTwo">
+                                 <label for="plotNewWindow">
+                                     New Window
+                                 </label>
+                            </div>
                             
-                        <div class="form-group form-inline"
-                             id="plotOpGroupTwo">
-                             <input type="checkbox"
-                                    id="plotNewWindow"
-                                    name="plotNewWindow"
-                                    value="1">
-                        </div>
-
-                    </div></div><!-- plot ops row and dummy col -->
-
-
-                    <div class="row" id="customScriptRow"><div class='col-xs-12'>
+                            <div class="form-group form-inline"
+                                 id="plotOpGroupTwo">
+                                 <input type="checkbox"
+                                        id="plotNewWindow"
+                                        name="plotNewWindow"
+                                        value="1">
+                            </div>
+                        </div><!-- plotOpWrapper -->
+                    </div><!-- plot col -->
+                    <div class="col-xs-12"
+                         id="customCol">
                          <div class="form-group form-inline"
                               id="customGroup">
                               <button type="button"
@@ -587,19 +569,24 @@
                                           Run Script
                               </button>
                         </div> <!-- customGroup -->
-                    </div></div><!-- custom script row and dummy col -->
+                    </div> <!-- custom col -->
+                </div><!-- plot row -->
+            </div><!-- select area col -->
+            
 
-                </div><!-- plot col -->
-
-            </div><!-- selections row -->
 
 
-            <div class="row" id="tableRow">
+<!--     Right-hand-side, table display and options        -->
 
-                <div class="col-xs-12" id="tableCol">
 
-                    <div class="row" id="tableButtons"><div class='col-xs-12'>
 
+
+            <div class="col-md-4 col-xs-12 dragToggle ui-widget-content"
+                 id="resultsArea">
+                <div class="row"
+                     id="tableRow">
+                    <div class="col-xs-12"
+                         id="tableButtonsColTop">
                         <div class="input-group form-inline"
                              id="tableButtonsTop">
                             <div class="input-group-btn">
@@ -713,9 +700,16 @@
                                        value="1">
                             </div>
                         </div><!-- outer form group -->
+                    </div><!-- top table buttons col -->
+                
+                    <div class="col-xs-12"
+                         id="tableWrapperCol">
+                        <div id="tableWrapper">
+                        </div>
+                    </div>
 
-                <!-- previously bottom table buttons              -->
-
+                    <div class="col-xs-12"
+                         id="tableButtonsBottomCol">
                         <div class="input-group"
                              id="tableButtonsBottom">
                 <!-- open modelpane view for result(s) selected on table -->
@@ -764,43 +758,43 @@
                                 </button>
                             </div>
                         </div><!-- outer input group -->
+                    </div><!-- table buttons bottom col -->
+                </div><!-- table row -->
 
-                    </div></div><!-- table buttons row and dummy col -->
-
-                    <div class="row" id="tableRowInner"><div class='col-xs-12'>
-                        <div id="tableWrapper">
+                <div class="row"
+                     id="pyConRow">
+                    <div class="col-xs-12"
+                         id="pyConCol">
+                        <div class="jumbotron ui-widget-content"
+                             id="py_console">
                         </div>
-                    </div></div>
+                    </div>
+                </div><!-- py console row -->
 
-                </div><!-- table col -->
-            </div><!-- table row -->
+            </div><!-- resultsArea  col -->
 
-        </div><!-- left col -->
 
-        <div class="col-xs-4" id="rightCol">
-            <div class="row" id="displayRow"><div class='col-xs-12'>
+
+<!--       Display Area               -->
+
+
+
+            <div class="col-md-4 col-xs-12 ui-widget-content dragToggle"
+                 id="displayOuter">
+                <!--<label for="displayWrapper"> Plot Display </label>-->
                 <div id="displayWrapper">
                 </div>
                 <div id="statusReportWrapper">
                 </div>
-            </div></div>
-        </div>
-
-    </div><!-- main row -->
-
-    <div class="row" id="pyConRow"><div class="col-xs-12">
-        <div class="jumbotron ui-widget-content"
-             id="py_console">
-        </div>   
-    </div></div>
-
-    <!-- close outer containers -->
-    </div>
-    </div>
-    </div>
-    </div>
+            </div><!-- preview/plot area col -->
+            
 
 
+        </div><!-- outer row -->
+
+    </div><!-- starter template-->
+    </div><!-- container -->
+    
     <div class="modal" id="analysisEditorModal" tabindex="-1" role="dialog"
     aria-labelledby="analysisEditorModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
