@@ -62,7 +62,7 @@ cellid='gus027b-a1'
 #cellid="eno054c-b2"
 batch=293
 # "OLD" noah cross val
-modelname="parm50_wcg01_fir10_pupwgt_fit01_nested5"
+modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
 # "IMPROVED" svd cross val
 #modelname="parm50x_wcg01_fir10_pupgainctl_fit01_nested5"
 #modelname="parm50x_wcg01_fir10_pupwgtctl_dexp_fit01"
