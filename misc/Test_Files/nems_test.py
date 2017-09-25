@@ -38,6 +38,7 @@ imp.reload(ns)
 #est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
 
+""" NAT SOUND """
 #cellid='bbl034e-a1'
 cellid='bbl070i-a1'
 batch=291  # IC
@@ -52,26 +53,29 @@ modelname="fb18ch100_wcg03_fir15_dexp_fit01"
 #modelname="perfectpupil50_pupgain_fit01"
 
 
-# pupil gain test -- PPS data
+""" pupil gain test -- PPS data """
 #cellid='gus021d-a2'
+cellid='gus027b-a1'
 #cellid="BOL006b-11-1"
 #cellid="eno053d-c1"
 #cellid="eno048g-b1"
 #cellid="eno054c-b2"
-#batch=293
-#modelname="parm50_wcg01_fir10_pupwgt_fit01_nested5"
-#modelname="parm50x_wcg01_fir10_pupgain_fit01_nested5"
+batch=293
+# "OLD" noah cross val
+modelname="parm50_wcg01_fir10_pupwgt_fit01_nested5"
+# "IMPROVED" svd cross val
+#modelname="parm50x_wcg01_fir10_pupgainctl_fit01_nested5"
 #modelname="parm50x_wcg01_fir10_pupwgtctl_dexp_fit01"
 #modelname="parm50x_wcg01_fir10_dexp_fit01_nested5"
 #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
-# pupil gain test -- 2 x VOC data
+""" pupil gain test -- 2 x VOC data """
 #cellid="eno023c-c1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01_nested5"
 #modelname="perfectpupil50x_pupgain_fit01_nested5"
 
-# SSA test
+""" SSA test """
 #cellid='gus018d-d1'
 #cellid="gus023e-c2"
 #batch=296

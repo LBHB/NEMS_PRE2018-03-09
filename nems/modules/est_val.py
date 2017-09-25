@@ -187,7 +187,7 @@ class crossval2(nems_module):
             c2=mt.floor((count+1)*spl)
             print("Nest {0}/{1}, File {2}, c1-c2: {3}-{4}".format(count,nests,i,c1,c2))
             nidx=self.validx_sets[count]
-            #print(nidx)
+            print(nidx)
             
             d_est=d.copy()
             d_val=d.copy()               
