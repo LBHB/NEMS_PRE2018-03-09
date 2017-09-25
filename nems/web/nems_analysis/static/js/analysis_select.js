@@ -268,47 +268,6 @@ $(document).ready(function(){
             }    
         });
     };
-     
-    // initialize display option variables
-    var colSelected = [];
-    var ordSelected;
-    var sortSelected;
-    
-    // update function for each variable
-    function updatecols(){
-        var checks = document.getElementsByName('result-option[]');
-        colSelected.length = 0; //empty out the options, then push the new ones
-        for (var i=0; i < checks.length; i++) {
-            if (checks[i].checked) {
-                colSelected.push(checks[i].value);
-            }
-        }
-    }
-    
-    function updateOrder(){
-        var order = document.getElementsByName('order-option[]');
-        for (var i=0; i < order.length; i++) {
-            if (order[i].checked) {
-                ordSelected = order[i].value;
-                return false;
-            }
-        }
-    }
-    
-    function updateSort(){
-        var sort = document.getElementsByName('sort-option[]');
-        for (var i=0; i < sort.length; i++) {
-            if (sort[i].checked) {
-                sortSelected = sort[i].value;
-                return false;
-            }
-        }
-    }
-            
-    // update at start of page, and again if changes are made
-    updatecols();
-    ordSelected = updateOrder();
-    sortSelected = updateSort();
 
     function addLinksToTable(){
         // Iterate through each table row and convert each result
@@ -330,17 +289,24 @@ $(document).ready(function(){
         });
     }
     
-    $("#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
+    $("#modelSelector,#cellSelector,#rowLimit,#tableColSelector,#tableSortSelector,#descending")
     .change(updateResults);
     function updateResults(){
         
-        updatecols();
-        updateOrder();
-        updateSort();
+        //updatecols();
+        //updateOrder();
+        //updateSort();
         
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
+        var colSelected = $("#tableColSelector").val();
+        var sortSelected = $("#tableSortSelector").val();
+        if (document.getElementById("descending").checked){
+            var ordSelected = "desc";
+        } else {
+            var ordSelected = "asc";
+        }
         var rowLimit = $("#rowLimit").val();
                          
         $.ajax({
@@ -391,43 +357,13 @@ $(document).ready(function(){
             }
         });
     }
-    
-    var tagSelected;
-    var statSelected;
-    
-    function updateTag(){
-        var tags = document.getElementsByName('tagOption[]');
-        for (var i=0; i < tags.length; i++) {
-            if (tags[i].checked) {
-                tagSelected = tags[i].value;
 
-                //saved_selections.tag = tags[i].value;
-
-                return false;
-            }
-        }
-    }
-    
-    function updateStatus(){
-        var status = document.getElementsByName('statusOption[]');
-        for (var i=0; i < status.length; i++) {
-            if (status[i].checked) {
-                statSelected = status[i].value;
-                //saved_selections.status = tags[i].status;
-                return false;
-            }
-        }
-    }
-    
-    updateTag();
-    updateStatus();
     updateAnalysis();
-    $(".tagOption, .statusOption").change(updateAnalysis);
+    $("#tagFilters, #statusFilters").change(updateAnalysis);
     
     function updateAnalysis(){
-        updateTag();
-        updateStatus();
-
+        var tagSelected = $("#tagFilters").val();
+        var statSelected = $("#statusFilters").val();
         $.ajax({
            url: $SCRIPT_ROOT + '/update_analysis',
            data: { tagSelected:tagSelected, statSelected:statSelected },
@@ -1035,9 +971,6 @@ $(document).ready(function(){
             includeOutliers = 1;
         }
         var plotNewWindow = 0;
-        if (document.getElementById("plotNewWindow").checked){
-            plotNewWindow = 1;        
-        }
         
         addLoad();
         $.ajax({
@@ -1103,10 +1036,7 @@ $(document).ready(function(){
             includeOutliers = 1;
         }
         var plotNewWindow = 0;
-        if (document.getElementById("plotNewWindow").checked){
-            plotNewWindow = 1;        
-        }
-        
+
         addLoad();
         $.ajax({
             url: $SCRIPT_ROOT + '/run_custom',
@@ -1116,7 +1046,7 @@ $(document).ready(function(){
                     iso:iso, snr:snr, snri:snri },
             type: 'GET',
             success: function(data){
-                if(plotNewWindow){
+                if(odow){
                     var w = window.open(
                         $SCRIPT_ROOT + '/plot_window',
                         //"_blank",
@@ -1235,36 +1165,8 @@ $(document).ready(function(){
     ///////////////     Added div toggles / UI management     /////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    $("#toggleAnalysisOps").on('click', toggleAnalysisOps);
-    function toggleAnalysisOps(){
-        var div = $("#analysisButtons")
-        if (div.css('display') === 'block'){
-            div.css('display', 'none');
-        } else if (div.css('display') === 'none'){
-            div.css('display', 'block');
-        } else {
-            return false;
-        }
-    }
-
-    $("#toggleCellsModels").on('click', toggleCellsModels);
-    function toggleCellsModels(){
-        var cell = $("#cellSelector");
-        var model = $("#modelSelector");
-        if (cell.css('display') === 'none'){
-            cell.css('display', 'block');
-            model.css('display', 'block');
-        } else if (cell.css('display') === 'block'){
-            cell.css('display', 'none');
-            model.css('display', 'none');
-        } else {
-            return false;
-        }
-    }
-
-    $("#toggleTags").on('click', toggleTags);
-    function toggleTags(){
-        var sel = $("#tagFilters");
+    function toggleVisibility(div){
+        var sel = div;
         if (sel.css('display') === 'none'){
             sel.css('display', 'block');
         } else if (sel.css('display') === 'block'){
@@ -1274,16 +1176,24 @@ $(document).ready(function(){
         }
     }
 
-    $("#toggleStatus").on('click', toggleStatus);
-    function toggleStatus(){
-        var sel = $("#statusFilters");
-        if (sel.css('display') === 'none'){
-            sel.css('display', 'block');
-        } else if (sel.css('display') === 'block'){
-            sel.css('display', 'none');
-        } else {
-            return false;
-        }
-    }
+    $("#toggleAnalysisOps").on('click', function(){
+        toggleVisibility($("#analysisButtons"));
+    })
 
+    $("#toggleCellsModels").on('click', function(){
+        toggleVisibility($("#cellSelector"));
+        toggleVisibility($("#modelSelector"));
+    });
+
+    $("#toggleTags").on('click', function(){
+        toggleVisibility($("#tagFilters"));
+    });
+
+    $("#toggleStatus").on('click', function(){
+        toggleVisibility($("#statusFilters"));
+    });
+
+    $("#toggleTableCols").on('click', function(){
+        toggleVisibility($("#tableColSelector"));
+    });
 });

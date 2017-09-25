@@ -143,7 +143,7 @@
     <div class="container-fluid">
     <div class="starter-template">
     <div class="row" id="outerRow">
-    <div class="col-xs-12">
+    <div class="col-xs-12" id="outerCol">
 
     <div class="row" id="selectionsRow">
         <div class="col-xs-2" id="analysisCol">
@@ -227,7 +227,7 @@
                             </span>
                         </button>
                         <select multiple id="statusFilters" class="form-control" style="display: none;">
-                                <option name="statusOption[]" value="__any">
+                                <option name="statusOption[]" value="__any" selected>
                                     Any
                                 </option>
                             {% for status in statuslist %}
@@ -245,7 +245,7 @@
                             </span>
                         </button>
                         <select multiple id="tagFilters" class="form-control" style="display: none;">
-                                <option name="tagOption[]" value="__any">
+                                <option name="tagOption[]" value="__any" selected>
                                     Any
                                 </option>
                             {% for tag in taglist %}
@@ -385,10 +385,10 @@
 
                 </div><!-- cell and model column -->
 
-                <div class="col-xs-3" id="plotCol">
+                <div class="col-xs-5" id="plotCol">
                     <div class="row" id="plotSelectorsRow">
 
-                        <div class="col-xs-4">
+                        <div class="col-xs-3">
                             <div class="form-group">
                                 <label for="measureSelector">
                                     Measure
@@ -416,7 +416,7 @@
                             </div>
                         </div>
                             
-                        <div class="col-xs-4">
+                        <div class="col-xs-3">
                             <div class="form-group">
                                 <label for="plotTypeSelector">
                                     Plot Type
@@ -438,9 +438,12 @@
                                 </div>
                             </div><!-- form-group -->
                         </div>
-                        <div class='col-xs-4' id="customScriptCol">
+                        <div class='col-xs-6' id="customScriptCol">
                             <div class="form-group form-inline"
                                  id="customGroup">
+                                <label for="customSelector">
+                                    Custom Scripts
+                                </label>
                                 <button type="button"
                                       id="reloadScripts">
                                     <span class="glyphicon glyphicon-refresh">
@@ -508,112 +511,84 @@
                                    id="plotOpVal"
                                    name="plotOpVal"
                                    value="0"
-                                   style="width: 60px;">
+                                   style="width: 50px;">
                         </div>
                     </div><!-- plot ops row -->
                 </div><!-- plot col -->
 
     </div><!-- selections row -->
     <div class="row" id="mainRow">
-        <div class="col-xs-7" id="leftCol">
+        <div class="col-xs-8" id="leftCol">
 
             <div class="row" id="tableRow">
                 <div class="col-xs-12" id="tableCol">
 
-                    <div class="row" id="tableButtons"><div class='col-xs-12'>
+                    <div class="row" id="tableButtons">
 
-                        <div class="input-group form-inline"
-                             id="tableButtonsTop">
-                            <div class="input-group-btn">
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-sm"
-                                        type="button">
-                                            Show
-                                </button>
-                                <button tabindex="-1"
-                                        data-toggle="dropdown"
-                                        class="btn btn-default btn-sm
-                                               dropdown-toggle" 
-                                        type="button">
-                                    <span class="caret">
+                        <div class="col-xs-3" style="margin-right: 0px; padding-right: 0px;">
+                            <div class="row" name="dummyRow">
+                            <div class="col-xs-5" style="margin-right: 0px; padding-right: 0px;">
+                                <label for="colSelector">
+                                    Show
+                                </label>
+                                <button class='btn btn-default btn-xs' type="button" id="toggleTableCols">
+                                    <span class="glyphicon glyphicon-menu-down">
                                     </span>
                                 </button>
-                                <div id="tableColumns"
-                                     class="dropdown-menu">
+                                <select multiple="multiple"
+                                        class="form-control" 
+                                        name="tablecolumns"
+                                        size="6"
+                                        id="tableColSelector"
+                                        style="display: none;">
                                 {% for col in collist %}
-                                    <li>
-                                        <input class="result-option"
-                                               type="checkbox"
-                                               value="{{ col }}"
-                                               name="result-option[]"
+                                    <option name="result-option[]"
+                                            value="{{ col }}"
                                         {% if col in defaultcols %}
-                                               checked
+                                            checked
                                         {% endif %}
-                                        >
-                                        <span class="lbl">
+                                            >
                                             {{ col }}
-                                        </span>
-                                    </li>
+                                    </option>
                                 {% endfor %}
-                                </div><!-- table columns drop down -->
-                            </div><!-- button group -->
-                
-                            <div class="input-group-btn">
+                                </select>
                             </div>
-                
-                            <div class="input-group-btn">       
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-sm"
-                                        type="button">
-                                            Sort
-                                </button>
-                                <button tabindex="-1"
-                                        data-toggle="dropdown"
-                                        class="btn btn-default btn-sm
-                                               dropdown-toggle"
-                                        type="button">
-                                    <span class="caret">
-                                    </span>
-                                </button>
-                                <div id="tableSort"
-                                     class="dropdown-menu">
-                                    <li>
-                                        <input class="order-option"
-                                               type="radio"
-                                               value="asc"
-                                               name="order-option[]">
-                                        <span class="lbl">
-                                            Ascending
-                                        </span>
-                                    </li>
-                                    <li>
-                                        <input class="order-option"
-                                               type="radio"
-                                               value="desc"
-                                               name="order-option[]"
-                                               checked>
-                                        <span class="lbl">
-                                            Descending
-                                        </span>
-                                    </li>
-                                {% for col in sortlist %}
-                                    <li>
-                                        <input class="sort-option"
-                                               type="radio"
-                                               value="{{ col }}"
-                                               name="sort-option[]"
-                                        {% if col == defaultsort %}
-                                               checked
-                                        {% endif %}
-                                        >
-                                        <span class="lbl">
-                                            {{ col }}
-                                        </span>
-                                    </li>
-                                {% endfor %}
-                                </div><!-- table sort drop down -->
-                            </div><!-- input-group-btn -->
 
+                            <div class="col-xs-7" style="margin-left: 0px; padding-left: 0px;">
+
+                            <div class="row">
+                            <div class="col-xs-4" style="padding-right: 0px; margin-right: 0px;">
+                                <label for="sortSelector">
+                                    Sort
+                                </label>
+                            </div>
+                            <div class="col-xs-8" style="margin-left: 0px; padding-left: 5px;">
+                                <select class="form-control" 
+                                        name="tablecolumns"
+                                        id="tableSortSelector">
+                                {% for sort in sortlist %}
+                                    <option name="order-option[]"
+                                            value="{{ sort }}"
+                                        {% if sort == defaultsort %}
+                                            checked
+                                        {% endif %}
+                                            >
+                                            {{ sort }}
+                                    </option>
+                                {% endfor %}
+                                </select>
+                            </div>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class='col-xs-1' style="margin-left: 0px;">
+                            <label for="descending">
+                                <span class="glyphicon glyphicon-chevron-down"></span>
+                            </label>
+                            <input type="checkbox" id="descending">
+                        </div>
+                        <div class="col-xs-2">
                             <div class="input-group" id="rowLimitDiv">
                                 <span class="input-group-addon input-sm"
                                       id="row-limit-label"
@@ -626,7 +601,9 @@
                                        class="form-control input-sm"
                                        style="width: 65px;">
                             </div>
+                        </div>
 
+                        <div class='col-xs-3'>
                             <div class="input-group">
                                 <label for="autoPreview"
                                        id="autoPreviewLabel">
@@ -635,7 +612,10 @@
                                        id="autoPreview"
                                        value="1">
                             </div>
+                        </label>
+                        </div>
 
+                        <div class="col-xs-3">
                 <!-- open modelpane view for result(s) selected on table -->
                             <div class="input-group-btn">
                                 <button tabindex="-1"
@@ -644,9 +624,6 @@
                                         id="inspect">
                                             Inspect
                                 </button>
-                            </div>
-                
-                            <div class="input-group-btn">
                             </div>
                 <!-- open preview file for result(s) selected on table -->
                             <div class="input-group-btn">
@@ -657,21 +634,6 @@
                                             Preview
                                 </button>
                             </div>
-                
-                            <div class="input-group-btn">
-                            </div>
-                <!-- open STRF file for result(s) selected on table -->
-                            <div class="input-group-btn">
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-sm"
-                                        type="button"
-                                        id="strf">
-                                            STRF
-                                </button>
-                            </div>
-                
-                            <div class="input-group-btn">
-                            </div>
                 <!-- clear selected rows -->
                             <div class="input-group-btn">
                                 <button tabindex="-1"
@@ -681,11 +643,11 @@
                                             Clear
                                 </button>
                             </div>
-                        </div><!-- button gropu -->
+                        </div>
 
-                    </div></div><!-- table buttons row and dummy col -->
+                    </div>
 
-                    <div class="row" id="tableRowInner"><div class='col-xs-12' style="height: 100%;">
+                    <div class="row" id="tableRowInner"><div class='col-xs-12' style="height: 100%; padding-bottom: 2vh;">
                         <div id="tableWrapper">
                         </div>
                     </div></div>
@@ -706,7 +668,7 @@
 
     </div><!-- main row -->
 
-    <div class="row" id="pyConRow"><div class="col-xs-12">
+    <div class="row" id="pyConRow"><div class="col-xs-12" style="height: 100%;">
         <div class="jumbotron ui-widget-content"
              id="py_console">
         </div>   

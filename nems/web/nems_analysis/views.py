@@ -376,24 +376,30 @@ def update_analysis():
     user = get_current_user()
     session = Session()
     
-    tagSelected = request.args.get('tagSelected')
-    statSelected = request.args.get('statSelected')
+    tagSelected = request.args.getlist('tagSelected[]')
+    statSelected = request.args.getlist('statSelected[]')
     # If special '__any' value is passed, set tag and status to match any
     # string in ilike query.
-    if tagSelected == '__any':
-        tString = '%%'
+    if '__any' in tagSelected:
+        tagStrings = [NarfAnalysis.tags.ilike('%%')]
     else:
-        tString = '%' + tagSelected + '%'
-    if statSelected == '__any':
-        sString = '%%'
+        tagStrings = [
+                NarfAnalysis.tags.ilike('%{0}%'.format(tag))
+                for tag in tagSelected
+                ]
+    if '__any' in statSelected:
+        statStrings = [NarfAnalysis.status.ilike('%%')]
     else:
-        sString = statSelected
+        statStrings = [
+                NarfAnalysis.status.ilike('%{0}%'.format(stat))
+                for stat in statSelected
+                ]
 
     analysislist = [
             i[0] for i in 
             session.query(NarfAnalysis.name)
-            .filter(NarfAnalysis.tags.ilike(tString))
-            .filter(NarfAnalysis.status.ilike(sString))
+            .filter(or_(*tagStrings))
+            .filter(or_(*statStrings))
             .filter(or_(
                     int(user.sec_lvl) == 9,
                     NarfAnalysis.public == '1',
