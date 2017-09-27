@@ -216,3 +216,48 @@ def nest_helper(stack, nests=20):
         
     stack.meta['cv_counter']=0
     #stack.cv_counter=0  # reset to avoid problem with val stage
+
+def crossval_set(n_trials,cv_count=10,cv_idx=None,interleave_valtrials=True):
+    """ create a list trial indices to save for cross-validation in a nested
+    cross-val procedure. standardized so it can be used across different
+    analyses. user provides:
+        n_trials - total number of trials
+        cv_count - number of cross-val sets
+        cv_idx - the set 0..(cv_count-1) to return indices. if None, return
+            list with indices for all cv_idx values
+        interleave_valtrials: validx includes every cv_count-th trial if true
+            otherwise, just block by trials (maybe prone to bias from slow
+            changes in state)
+    returns (estidx,validx) tuple
+    """
+    
+    spl=n_trials/cv_count
+             
+    if n_trials<cv_count:
+        raise IndexError('Fewer stimuli than cv_count; cv_count<=n_trials required')
+
+    # figure out grouping for each CV set 
+    if interleave_valtrials:
+        smax=np.int(np.ceil(spl))
+        a=np.arange(np.ceil(spl)*cv_count).astype(int)
+        a=np.reshape(a,[smax,cv_count])
+        a=a.transpose()
+        a=np.reshape(a,[smax*cv_count])
+        a=a[a<n_trials]
+    else:
+        a=np.arange(n_trials).astype(int)
+    
+    estidx_sets=[]
+    validx_sets=[]
+    for cc in range(0,cv_count):
+        c1=np.int(np.floor((cc)*spl))
+        c2=np.int(np.floor((cc+1)*spl))
+        validx_sets.append(a[c1:c2])
+        estidx_sets.append(np.setdiff1d(a,validx_sets[-1]))
+        
+    if cv_idx is None:
+        return(estidx_sets,validx_sets)
+    else:
+        return(estidx_sets[cv_idx],validx_sets[cv_idx])
+    
+    
