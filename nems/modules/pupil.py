@@ -262,5 +262,75 @@ class state_weight(nems_module):
                 f_out[self.state_var]=Xp
                 
                 
+class state_filter(nems_module): 
+    """
+    apply some sort of transformation to state variable
+    @author: svd
+    """
+
+    name='pupil.state_filter'
+    user_editable_fields = ['input_name','output_name','fit_fields','state_var','input_name2','weight_type','theta']
+    filter_type='slope'
+    plot_fns=[nems.utilities.plot.pre_post_psth,nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
+    state_var='pupil'
+    theta=np.zeros([1,2])
+    def my_init(self,input_name="pupil",output_name="pupil",filter_type='linear'):
+        self.input_name=input_name
+        self.output_name=output_name
+        self.filter_type=filter_type
+        self.my_eval=getattr(self,self.filter_type+'_fn')
+        self.do_plot=self.plot_fns[0]
+        
+    def slope_fn(self,Xp):
+        """
+        linear weighting of two predicted PSTHs, depending on state_var
+        w= a + b * p(t)  hard bounded at 0 and 1 
+        """
+        
+        slope=(np.mean(Xp[:,-30:-10],axis=1)-np.mean(Xp[:,10:30],axis=1))
+        slope=np.reshape(slope,[-1,1])
+        Y=np.repeat(slope,Xp.shape[1],axis=1)
+        return(Y)
+    
+    def slopectl_fn(self,X1,X2,Xp):
+        """
+        shuffle pupil, keep same number of parameters for proper control
+        """
+        
+        # save current random state
+        prng = np.random.RandomState()
+        save_state = prng.get_state()
+        prng = np.random.RandomState(1234567890)
+        
+        # shuffle state vector across trials (time)
+        prng.shuffle(Xp)
+        
+        # restore saved random state
+        prng.set_state(save_state)
+        
+        #s=Xp.shape
+        #n=np.int(np.ceil(s[0]/2))
+        #Xp=np.roll(Xp,n,0)
+        
+        Y=self.slope_fn(Xp)
+        
+        return Y
+              
+    def evaluate(self,nest=0):
+        if nest==0:
+            del self.d_out[:]
+            for i,val in enumerate(self.d_in):
+                self.d_out.append(copy.deepcopy(val))
+        for f_in,f_out in zip(self.d_in,self.d_out):
+            if f_in['est'] is False:
+                Xp=copy.deepcopy(f_in[self.input_name][nest])
+                Xp=self.my_eval(Xp)
+                f_out[self.output_name][nest]=Xp
+            else:
+                Xp=copy.deepcopy(f_in[self.input_name])
+                Xp=self.my_eval(Xp)
+                f_out[self.output_name]=Xp
+                
+                
              
                 
