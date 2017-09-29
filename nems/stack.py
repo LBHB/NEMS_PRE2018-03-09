@@ -177,6 +177,7 @@ class nems_stack:
             include_keys={}
             d_save={}
             for cv_counter in range(0,stack.meta['nests']):
+            #for cv_counter in range(0,1):
                 stack.meta['cv_counter']=cv_counter
                 
                 # load in parameters for appropriate nested fit
@@ -185,7 +186,7 @@ class nems_stack:
                     phi_old=stack.modules[midx].parms2phi()
                     s=phi_old.shape
                     #stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
-                    stack.modules[midx].phi2parms(stack.parm_fits[0][st:(st+np.prod(s))])
+                    stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
                     st+=np.prod(s)
                 
                 # evaluate stack for this nest up to before error metric modules
@@ -197,6 +198,7 @@ class nems_stack:
                     if cv_counter==0:
                         include_keys[ii]=stack.modules[ii].d_out[0].keys()-exclude_keys
                         d_save[ii]=copy.deepcopy(stack.modules[ii].d_out)
+                        print(include_keys[ii])
                     for d,d2 in zip(stack.modules[ii].d_out,d_save[ii]):
                         if not d['est'] and cv_counter>0:
                             for k in include_keys[ii]:

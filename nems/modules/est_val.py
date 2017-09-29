@@ -127,6 +127,7 @@ class crossval2(nems_module):
     val_mult_repeats=True
     cv_counter=0
     nests=0
+    estidx_sets=[]
     validx_sets=[]
     
     def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True):
@@ -160,34 +161,16 @@ class crossval2(nems_module):
                 count=self.cv_counter
                 
             nests=int(1/valfrac)
+            n_trials=d['resp'].shape[0]
             
-            re=d['resp'].shape
-            spl=re[0]*valfrac
-            if re[0]<nests:
-                raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
-
-            # figure out grouping for each CV set 
-            if self.interleave_valtrials:
-                smax=np.int(np.ceil(spl))
-                a=np.arange(np.ceil(spl)*nests).astype(int)
-                a=np.reshape(a,[smax,nests])
-                a=a.transpose()
-                a=np.reshape(a,[smax*nests])
-                a=a[a<re[0]]
-            else:
-                a=np.arange(re[0]).astype(int)
+            self.estidx_sets,self.validx_sets=nems.utilities.utils.crossval_set(
+                    n_trials,cv_count=nests,cv_idx=None,
+                    interleave_valtrials=self.interleave_valtrials)
+            eidx=self.estidx_sets[count]
+            vidx=self.validx_sets[count]
             
-            self.validx_sets=[]
-            for cc in range(0,nests):
-                c1=mt.floor((cc)*spl)
-                c2=mt.floor((cc+1)*spl)
-                self.validx_sets.append(a[c1:c2])
-                
-            c1=mt.floor((count)*spl)
-            c2=mt.floor((count+1)*spl)
-            print("Nest {0}/{1}, File {2}, c1-c2: {3}-{4}".format(count,nests,i,c1,c2))
-            nidx=self.validx_sets[count]
-            print(nidx)
+            print("Nest {0}/{1}, File {2} validx:".format(count,nests,i))
+            print(vidx)
             
             d_est=d.copy()
             d_val=d.copy()               
@@ -195,30 +178,30 @@ class crossval2(nems_module):
             d_est['est']=True
             d_val['est']=False
             
-            d_est['resp']=np.delete(d['resp'],np.s_[nidx],0)
-            d_val['resp']=copy.deepcopy(d['resp'][nidx,:])
+            d_est['resp']=copy.deepcopy(d['resp'][eidx,:])
+            d_val['resp']=copy.deepcopy(d['resp'][vidx,:])
             
-            d_est['stim']=np.delete(d['stim'],np.s_[nidx],1)
-            d_val['stim']=copy.deepcopy(d['stim'][:,nidx,:])
+            d_est['stim']=copy.deepcopy(d['stim'][:,eidx,:])
+            d_val['stim']=copy.deepcopy(d['stim'][:,vidx,:])
 
             try:
-                d_est['pupil']=np.delete(d['pupil'],np.s_[nidx],0)
-                d_val['pupil']=copy.deepcopy(d['pupil'][nidx,:])
+                d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
+                d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
             except:
                 #print('No pupil data')
                 d_est['pupil']=[]
                 d_val['pupil']=[]
             
             try:
-                d_est['repcount']=np.delete(d['repcount'],np.s_[nidx],0)
-                d_val['repcount']=copy.deepcopy(d['repcount'][nidx])
+                d_est['repcount']=copy.deepcopy(d['repcount'][eidx])
+                d_val['repcount']=copy.deepcopy(d['repcount'][vidx])
             except:
                 d_est['repcount']=None
                 d_val['repcount']=None
                 
             try:
-                d_est['replist']=np.delete(d['replist'],np.s_[nidx],0)
-                d_val['replist']=copy.deepcopy(d['replist'][nidx])
+                d_est['replist']=copy.deepcopy(d['replist'][eidx])
+                d_val['replist']=copy.deepcopy(d['replist'][vidx])
             except:
                 d_est['replist']=None
                 d_val['replist']=None
@@ -280,6 +263,7 @@ class crossval(nems_module):
         self.val_mult_repeats=val_mult_repeats
         self.cv_counter=self.parent_stack.cv_counter
         print("Creating crossval, cv_counter={0}".format(self.parent_stack.cv_counter))
+
     def evaluate(self,nest=0):
 
         del self.d_out[:]
@@ -298,29 +282,17 @@ class crossval(nems_module):
                 count=self.cv_counter
                 nests=int(1/valfrac)
                 avg_resp=self.parent_stack.avg_resp
+                              
+                n_trials=d['resp'].shape[0]
                 
-                re=d['resp'].shape
-                if re[0]<self.parent_stack.nests:
-                    raise IndexError('Fewer stimuli than nests; use a higher valfrac/less nests')
+                self.estidx_sets,self.validx_sets=nems.utilities.utils.crossval_set(
+                        n_trials,cv_count=nests,cv_idx=None,
+                        interleave_valtrials=self.interleave_valtrials)
+                nidx=self.validx_sets[count]
                 
-                #a=np.find(np.isfinite(d['resp'][:,0]))
-                
-                spl=re[0]*valfrac
-                if self.interleave_valtrials:
-                    smax=np.int(np.ceil(spl))
-                    a=np.arange(np.ceil(spl)*nests).astype(int)
-                    a=np.reshape(a,[smax,nests])
-                    a=a.transpose()
-                    a=np.reshape(a,[smax*nests])
-                    a=a[a<re[0]]
-                else:
-                    a=np.arange(re[0]).astype(int)
-                
-                c1=mt.floor((count)*spl)
-                c2=mt.floor((count+1)*spl)
-                print("Nest {0}, File {1}, c1-c2: {2}-{3}".format(count,i,c1,c2))
-                nidx=a[c1:c2]
+                print("Nest {0}/{1}, File {2} validx:".format(count,nests,i))
                 print(nidx)
+                
                 d_est=d.copy()
                 
                 d_est['resp']=np.delete(d['resp'],np.s_[nidx],0)
@@ -361,26 +333,23 @@ class crossval(nems_module):
 
                     import copy
                     for count in range(0,self.parent_stack.nests):
-                        #print(count)
-                        re=d['resp'].shape
-                        spl=re[0]*valfrac
-                        c1=mt.floor((count)*spl)
-                        c2=mt.floor((count+1)*spl)
-                        nidx=a[c1:c2]
-                        print("V nest {0}, File {1}, c1-c2: {2}-{3}".format(count,i,c1,c2))
+                        
+                        nidx=self.validx_sets[count]
+                        print("V nest {0}/{1}, File {2} validx:".format(count,nests,i))
                         print(nidx)
+                        
                         if avg_resp:
                             try:
                                 d_val['pupil'].append(copy.deepcopy(d['pupil'][:,:,nidx]))
                             except TypeError:
-                                print('No pupil data')
+                                #print('No pupil data')
                                 d_val['pupil']=[]
                             d_val['repcount'].append(copy.deepcopy(d['repcount'][nidx]))
                         else:
                             try:
                                 d_val['pupil'].append(copy.deepcopy(d['pupil'][nidx,:]))
                             except TypeError:
-                                print('No pupil data')
+                                #print('No pupil data')
                                 d_val['pupil']=[]
                             d_val['replist'].append(copy.deepcopy(d['replist'][nidx]))
                             d_val['repcount']=copy.deepcopy(d['repcount'])
