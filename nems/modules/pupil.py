@@ -10,6 +10,7 @@ Created on Fri Aug  4 13:29:30 2017
 """
 from nems.modules.base import nems_module
 import nems.utilities.utils
+import nems.utilities.plot
 
 import numpy as np
 import copy 
@@ -17,7 +18,7 @@ import scipy.special as sx
 
 class model(nems_module):
     name='pupil.model'
-    plot_fns=[nems.utilities.utils.sorted_raster,nems.utilities.utils.raster_plot]
+    plot_fns=[nems.utilities.plot.sorted_raster,nems.utilities.plot.raster_plot]
     """
     Replaces stim with average resp for each stim. This is the 'perfect' model
     used for comparing different models of pupil state gain.
@@ -61,7 +62,7 @@ class pupgain(nems_module):
     name='pupil.pupgain'
     user_editable_fields = ['input_name','output_name','fit_fields','state_var','gain_type','theta']
     gain_type='linpupgain'
-    plot_fns=[nems.utilities.utils.state_act_scatter_smooth,nems.utilities.utils.pre_post_psth,nems.utilities.utils.pred_act_psth_all,nems.utilities.utils.non_plot]
+    plot_fns=[nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pre_post_psth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
     
     def my_init(self,input_name="stim",output_name="stim",state_var="pupil",
                 gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
@@ -88,17 +89,34 @@ class pupgain(nems_module):
         
         SVD mod: shuffle pupil, keep same number of parameters for proper control
         """
-        s=Xp.shape
-        n=np.int(np.ceil(s[0]/2))
-        #print(s)
-        #print(n)
-        #print(Xp.shape)
-        Xp=np.roll(Xp,n,0)
-        Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
-        return(Y)
+        
+        # OLD WAY -- not random enough
+        if 0:
+            s=Xp.shape
+            n=np.int(np.ceil(s[0]/2))
+            #print(s)
+            #print(n)
+            #print(Xp.shape)
+            Xp=np.roll(Xp,n,0)
+        else:
+            # save current random state
+            prng = np.random.RandomState()
+            save_state = prng.get_state()
+            prng = np.random.RandomState(1234567890)
+            
+            # shuffle state vector across trials (time)
+            prng.shuffle(Xp)
+            
+            # restore saved random state
+            prng.set_state(save_state)
+        
+        Y,Xp=self.linpupgain_fn(X,Xp)
+        return Y,Xp
+        
     def linpupgain_fn(self,X,Xp):
         Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
-        return(Y)
+        return Y,Xp
+        
     def exppupgain_fn(self,X,Xp):
         Y=self.theta[0,0]+self.theta[0,1]*X*np.exp(self.theta[0,2]*Xp+self.theta[0,3])
         return(Y)
@@ -139,23 +157,25 @@ class pupgain(nems_module):
         Y=self.theta[0,2]+self.theta[0,0]*X*np.divide(np.power(np.divide(Xp,self.theta[0,1]),n),
                     np.sqrt(1+np.power(np.divide(Xp,self.theta[0,1]),2*n)))
         return(Y)
-              
+        
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
             for i,val in enumerate(self.d_in):
                 self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
-            if f_in['est'] is False:
+            if self.parent_stack.nests>0 and f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 Xp=copy.deepcopy(f_in[self.state_var][nest])
-                Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+                Z,Xp=getattr(self,self.gain_type+'_fn')(X,Xp)
                 f_out[self.output_name][nest]=Z
+                f_out[self.state_var][nest]=Xp
             else:
                 X=copy.deepcopy(f_in[self.input_name])
                 Xp=copy.deepcopy(f_in[self.state_var])
-                Z=getattr(self,self.gain_type+'_fn')(X,Xp)
+                Z,Xp=getattr(self,self.gain_type+'_fn')(X,Xp)
                 f_out[self.output_name]=Z
+                f_out[self.state_var]=Xp
                 
                 
 class state_weight(nems_module): 
@@ -167,12 +187,12 @@ class state_weight(nems_module):
     name='pupil.state_weight'
     user_editable_fields = ['input_name','output_name','fit_fields','state_var','input_name2','weight_type','theta']
     weight_type='linear'
-    plot_fns=[nems.utilities.utils.state_act_scatter_smooth,nems.utilities.utils.pre_post_psth,nems.utilities.utils.pred_act_psth_all,nems.utilities.utils.non_plot]
+    plot_fns=[nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pre_post_psth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
     input_name2='stim2'
     state_var='pupil'
     theta=np.zeros([1,2])
     def my_init(self,input_name="stim",input_name2="stim2",state_var="pupil",
-                weight_type='linear',fit_fields=['theta'],theta=[0,0.001]):
+                weight_type='linear',fit_fields=['theta'],theta=[.1,.1]):
         self.input_name=input_name
         self.input_name2=input_name2
         self.state_var=state_var
@@ -193,17 +213,32 @@ class state_weight(nems_module):
         w[w<0]=0
         w[w>1]=1
         Y=(1-w)*X1+w*X2
-        return(Y)
+        return(Y,Xp)
     
     def linearctl_fn(self,X1,X2,Xp):
         """
         shuffle pupil, keep same number of parameters for proper control
         """
-        s=Xp.shape
-        n=np.int(np.ceil(s[0]/2))
-        Xp=np.roll(Xp,n,0)
-        Y=self.linear_fn(X1,X2,Xp)
-        return(Y)
+        
+        # save current random state
+        prng = np.random.RandomState()
+        save_state = prng.get_state()
+        prng = np.random.RandomState(1234567890)
+        
+        # shuffle state vector across trials (time)
+        prng.shuffle(Xp)
+        
+        # restore saved random state
+        prng.set_state(save_state)
+        
+        #s=Xp.shape
+        #n=np.int(np.ceil(s[0]/2))
+        #Xp=np.roll(Xp,n,0)
+        
+        Y,Xp=self.linear_fn(X1,X2,Xp)
+        
+        
+        return(Y,Xp)
               
     def evaluate(self,nest=0):
         if nest==0:
@@ -211,18 +246,20 @@ class state_weight(nems_module):
             for i,val in enumerate(self.d_in):
                 self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
-            if f_in['est'] is False:
+            if self.parent_stack.nests>0 and f_in['est'] is False:
                 X1=copy.deepcopy(f_in[self.input_name][nest])
                 X2=copy.deepcopy(f_in[self.input_name2][nest])
                 Xp=copy.deepcopy(f_in[self.state_var][nest])
-                Y=self.my_eval(X1,X2,Xp)
+                Y,Xp=self.my_eval(X1,X2,Xp)
                 f_out[self.output_name][nest]=Y
+                f_out[self.state_var][nest]=Xp
             else:
                 X1=copy.deepcopy(f_in[self.input_name])
                 X2=copy.deepcopy(f_in[self.input_name2])
                 Xp=copy.deepcopy(f_in[self.state_var])
-                Y=self.my_eval(X1,X2,Xp)
+                Y,Xp=self.my_eval(X1,X2,Xp)
                 f_out[self.output_name]=Y
+                f_out[self.state_var]=Xp
                 
                 
              
