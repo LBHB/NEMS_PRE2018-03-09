@@ -83,7 +83,7 @@ class normalize(nems_module):
         for f_in,f_out in zip(self.d_in,self.d_out):
             #X=copy.deepcopy(f_in[self.input_name])
             #f_out[self.output_name]=np.multiply(X-self.parent_stack.d[c],self.parent_stack.g[c])    
-            if f_in['est'] is False:
+            if self.parent_stack.nests>0 and f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 f_out[self.output_name][nest]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
             else:

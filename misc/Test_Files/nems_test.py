@@ -64,7 +64,7 @@ batch=293
 # "OLD" noah cross val
 #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 # "IMPROVED" svd cross val
-modelname="parm50x_wcg01_fir10_pupgainctl_fit01"
+modelname="parm50x_wcg01_fir10_pupgainctl_fit01_nested5"
 #modelname="parm50x_wcg01_fir10_pupwgtctl_dexp_fit01"
 #modelname="parm50x_wcg01_fir10_dexp_fit01_nested5"
 #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"

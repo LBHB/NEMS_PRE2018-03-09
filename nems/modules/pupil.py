@@ -164,7 +164,7 @@ class pupgain(nems_module):
             for i,val in enumerate(self.d_in):
                 self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
-            if f_in['est'] is False:
+            if self.parent_stack.nests>0 and f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 Xp=copy.deepcopy(f_in[self.state_var][nest])
                 Z,Xp=getattr(self,self.gain_type+'_fn')(X,Xp)
@@ -246,7 +246,7 @@ class state_weight(nems_module):
             for i,val in enumerate(self.d_in):
                 self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
-            if f_in['est'] is False:
+            if self.parent_stack.nests>0 and f_in['est'] is False:
                 X1=copy.deepcopy(f_in[self.input_name][nest])
                 X2=copy.deepcopy(f_in[self.input_name2][nest])
                 Xp=copy.deepcopy(f_in[self.state_var][nest])
