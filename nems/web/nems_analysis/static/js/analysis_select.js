@@ -1180,11 +1180,6 @@ $(document).ready(function(){
         toggleVisibility($("#analysisButtons"));
     })
 
-    $("#toggleCellsModels").on('click', function(){
-        toggleVisibility($("#cellSelector"));
-        toggleVisibility($("#modelSelector"));
-    });
-
     $("#toggleTags").on('click', function(){
         toggleVisibility($("#tagFilters"));
     });

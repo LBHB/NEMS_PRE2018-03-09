@@ -76,7 +76,7 @@ tables.dataframe, table, th, td {
   border-radius: 10px;
   padding: 10px;
   margin-bottom: 2vh;
-  height: 15%;
+  min-height: 15%;
   display: block;
 }
 
@@ -154,11 +154,6 @@ tables.dataframe, table, th, td {
   position: relative;
 }
 
-#analysisButtons {
-  display: none;
-  position: relative;
-}
-
 #analysisGroup {
   margin-bottom: 2px;
 }
@@ -178,16 +173,6 @@ tables.dataframe, table, th, td {
 
 #modelRow {
   text-align: left;
-}
-
-#cellSelector {
-  display: none;
-  position: relative;
-}
-
-#modelSelector {
-  display: none;
-  position: relative;
 }
 
 #plotOpRow {
