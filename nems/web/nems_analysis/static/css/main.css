@@ -1,10 +1,9 @@
 body {
-  padding-top: 25px;
   background: #CDD6D8;
 }
 
 .starter-template {
-  padding: 40px 15px;
+  padding: 2vh;
   text-align: center;
 }
 
@@ -76,7 +75,7 @@ tables.dataframe, table, th, td {
   border-radius: 10px;
   padding: 10px;
   margin-bottom: 2vh;
-  min-height: 15%;
+  min-height: 1%;
   display: block;
 }
 
@@ -149,11 +148,6 @@ tables.dataframe, table, th, td {
   display: block;
 }
 
-#fitOpDiv {
-  display: none;
-  position: relative;
-}
-
 #analysisGroup {
   margin-bottom: 2px;
 }
@@ -173,11 +167,6 @@ tables.dataframe, table, th, td {
 
 #modelRow {
   text-align: left;
-}
-
-#plotOpRow {
-  display: none;
-  position: relative;
 }
 
 #cellCol {

@@ -283,7 +283,7 @@ $(document).ready(function(){
                     + "id='" + cellid + "'>" + cellid + "</a>"
                     );
             $(this).children().eq(1).html(
-                    "<a href='" + model_link + modelname + "' target='_blank'"
+                    "<a href='" + model_link + modelname
                     + "id='" + modelname + "'>" + modelname + "</a>"
                     );
         });
@@ -385,7 +385,39 @@ $(document).ready(function(){
            }
         });
     }
-            
+    
+    $("#statusFilters").change(updateStatusText);
+    $("#tagFilters").change(updateTagText);
+
+    function updateStatusText(){
+        button = $("#statusModalButton");
+        text = $("#statusFilters").val();  
+        button.html("");
+        for (i=0; i<text.length; i++){
+            if (!(text[i] === '__any')) {
+                button.append(text[i] + ", ");
+            } else {
+                button.html('Status');
+                break;
+            }
+        }
+    }
+
+    function updateTagText(){
+        button = $("#tagModalButton");
+        text = $("#tagFilters").val();
+        button.html("");
+        for (i=0; i<text.length; i++){
+            if (!(text[i] === '__any')) {
+                button.append(text[i] + ", ");
+            } else {
+                button.html('Tags');
+                break;
+            }
+        }
+    }
+
+
     function updateTagOptions(){
         $.ajax({
            url: $SCRIPT_ROOT + '/update_tag_options',
@@ -1175,10 +1207,6 @@ $(document).ready(function(){
             return false;
         }
     }
-
-    $("#toggleAnalysisOps").on('click', function(){
-        toggleVisibility($("#analysisButtons"));
-    })
 
     $("#toggleTags").on('click', function(){
         toggleVisibility($("#tagFilters"));

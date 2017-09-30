@@ -44,101 +44,6 @@
   </head>
 
   <body>
-
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" 
-              data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{{ url_for('main_view') }}">NEMS Analysis</a>
-        </div>
-        <div id="navbar" class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li><a href="https://bitbucket.org/lbhb/nems" target="_blank">
-            Source & Info</a></li>
-            <li><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
-            CellDB</a></li>
-            <li><a href="https://bitbucket.org/lbhb/nems/issues?status=new&status=open"
-                   target="_blank">
-                       Issue Tracker
-            </a></li>
-            <li><a href="#" id="enableDraggable">Enable Draggable</a></li>
-            <li><a href="#" id="disableDraggable">Disable Draggable</a></li>
-            <li>
-                <a href="{{ url_for('login') }}" id="login">
-                    {% if username %}
-                        <script>
-                            var login = document.getElementById('login');
-                            login.style.display = 'none';
-                        </script>
-                    {% else %}
-                        <script>
-                            var login = document.getElementById('login');
-                            login.style.display = 'block';
-                        </script>
-                        Log In
-                    {% endif %}
-                </a>
-            </li>
-            <li>
-                <a href="{{ url_for('logout') }}" id="logout">
-                    {% if username %}
-                        <script>
-                            var logout = document.getElementById('logout');
-                            logout.style.display = 'block';
-                        </script>
-                        Log Out
-                    {% else %}
-                        <script>
-                            var logout = document.getElementById('logout');
-                            logout.style.display = 'none';
-                        </script>
-                    {% endif %}
-                </a>
-            </li>
-            <li>
-                <a href="{{ url_for('register') }}" id="register">
-                    {% if username %}
-                        <script>
-                            var register = document.getElementById('register');
-                            register.style.display = 'none';
-                        </script>
-                    {% else %}
-                        <script>
-                            var register = document.getElementById('register');
-                            register.style.display = 'block';
-                        </script>
-                        Register
-                    {% endif %}
-                </a>
-            </li>
-            <li><a href="#">{{ username }}</a></li>
-            <li>
-                <a href="{{ url_for('upload') }}" id="upload">
-                    {% if username %}
-                        <script>
-                            var upload = document.getElementById('upload');
-                            upload.style.display = 'block';
-                        </script>
-                        Upload
-                    {% else %}
-                        <script>
-                            var upload = document.getElementById('upload');
-                            upload.style.display = 'none';
-                        </script>
-                    {% endif %}
-                </a>
-            </li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
-
     <!-- outer containers -->
     <div class="container-fluid">
     <div class="starter-template">
@@ -211,41 +116,23 @@
                     </button>
                 </div>
 
-                <div class="row" id="statTagRow">
+                <div class="row" id="statTagRow" style="margin-top: 10px;">
                     <div class="col-xs-6" id="statCol" style="padding-right: 5px;">
-                        <span style="line-height: 2.0;"> Status </span>
-                        <button type="button" class='btn-xs btn-default' id="toggleStatus">
-                            <span class="glyphicon glyphicon-menu-down">
-                            </span>
+                        <button type="button" data-toggle="modal" data-target="#statusModal"
+                                id="statusModalButton" class="btn btn-default btn-xs"
+                                style="width: 100%; white-space: normal;">
+                                Status
                         </button>
-                        <select multiple id="statusFilters" class="form-control" style="display: none;">
-                                <option name="statusOption[]" value="__any" selected>
-                                    Any
-                                </option>
-                            {% for status in statuslist %}
-                                <option name="statusOption[]" value='{{ status }}'>
-                                    {{ status }}
-                                </option>
-                            {% endfor %}
-                        </select>
+                        <!--<input type='text' id='statusText' style="width: 100%; margin-top: 5px;">-->
                     </div><!-- stat column -->
 
                     <div class="col-xs-6" id="tagCol" style="padding-left: 5px;">
-                        <span style="line-height: 2.0;"> Tags </span>
-                        <button type="button" class='btn-xs btn-default' id="toggleTags">
-                            <span class="glyphicon glyphicon-menu-down">
-                            </span>
+                        <button type="button" data-toggle="modal" data-target="#tagModal"
+                                id="tagModalButton" class="btn btn-default btn-xs"
+                                style="width: 100%; white-space: normal;">
+                                Tags
                         </button>
-                        <select multiple id="tagFilters" class="form-control" style="display: none;">
-                                <option name="tagOption[]" value="__any" selected>
-                                    Any
-                                </option>
-                            {% for tag in taglist %}
-                                <option name="tagOption[]" value='{{ tag }}'>
-                                    {{ tag }}
-                                </option>
-                            {% endfor %}
-                        </select>
+                        <!--<input type='text' id='tagText' style="width: 100%; margin-top: 5px;">-->
                     </div><!-- tag column -->
                 </div><!-- status and tag row -->
             </div></div><!-- analysis row and dummy col-->
@@ -279,9 +166,9 @@
             </div><!-- batch row -->
         </div> <!-- analysis + batch col -->
 
-        <div class="col-xs-3" id="cellModelCol">
+        <div class="col-xs-4" id="cellModelCol">
             <div class="row" id="cellModelRow">
-                <div class="col-xs-5" id="cellCol">
+                <div class="col-xs-4" id="cellCol">
                     <div class="form-group" id="cellDiv">
                         <label>
                             Cell(s)
@@ -302,7 +189,7 @@
                     </div><!-- form-group-->
                 </div><!-- cell column -->
 
-                <div class='col-xs-7' id="modelCol">
+                <div class='col-xs-8' id="modelCol">
                     <div class="form-group" id="modelDiv">
                         <label for="modelSelector">
                             Model(s)
@@ -352,15 +239,17 @@
                                     Fit Options
                         </button>
                     </div>
+
+                    <div class="input-group form-inline"
+                         id="fitOpDiv">
+                            Force Rerun
+                        <input type="checkbox"
+                               id="forceRerun"
+                               value="1">
+                    </div>
                 </div>
 
-                <div class="input-group form-inline"
-                     id="fitOpDiv">
-                        Force Rerun
-                    <input type="checkbox"
-                           id="forceRerun"
-                           value="1">
-                </div>
+
 
             </div></div><!-- model buttons row and dummy col-->
         </div><!-- cell and model column -->
@@ -500,6 +389,86 @@
             </div>
         </div></div> <!-- custom col -->
         </div><!-- plot col -->
+        <div class='col-xs-2' id="linksCol" style="text-align: right !important;">
+            <h4><a href="https://bitbucket.org/lbhb/nems" target="_blank">
+            Source & Info</a></h4>
+            <h4><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
+            CellDB</a></h4>
+            <h4><a href="https://bitbucket.org/lbhb/nems/issues?status=new&status=open"
+                   target="_blank">
+                       Issue Tracker
+            </a></h4>
+            <!-- <h4><a href="#" id="enableDraggable">Enable Draggable</a></h4>
+            <h4><a href="#" id="disableDraggable">Disable Draggable</a></h4> -->
+            <br><br><br>
+            <h4><a href="#">{{ username }}</a></h4>
+            <h4>
+                <a href="{{ url_for('login') }}" id="login">
+                    {% if username %}
+                        <script>
+                            var login = document.getElementById('login');
+                            login.style.display = 'none';
+                        </script>
+                    {% else %}
+                        <script>
+                            var login = document.getElementById('login');
+                            login.style.display = 'block';
+                        </script>
+                        Log In
+                    {% endif %}
+                </a>
+            </h4>
+            <h4>
+                <a href="{{ url_for('logout') }}" id="logout">
+                    {% if username %}
+                        <script>
+                            var logout = document.getElementById('logout');
+                            logout.style.display = 'block';
+                        </script>
+                        Log Out
+                    {% else %}
+                        <script>
+                            var logout = document.getElementById('logout');
+                            logout.style.display = 'none';
+                        </script>
+                    {% endif %}
+                </a>
+            </h4>
+            <h4>
+                <a href="{{ url_for('register') }}" id="register">
+                    {% if username %}
+                        <script>
+                            var register = document.getElementById('register');
+                            register.style.display = 'none';
+                        </script>
+                    {% else %}
+                        <script>
+                            var register = document.getElementById('register');
+                            register.style.display = 'block';
+                        </script>
+                        Register
+                    {% endif %}
+                </a>
+            </h4>
+            <!--
+            <h4>
+                <a href="{{ url_for('upload') }}" id="upload">
+                    {% if username %}
+                        <script>
+                            var upload = document.getElementById('upload');
+                            upload.style.display = 'block';
+                        </script>
+                        Upload Data
+                    {% else %}
+                        <script>
+                            var upload = document.getElementById('upload');
+                            upload.style.display = 'none';
+                        </script>
+                    {% endif %}
+                </a>
+            </h4>
+            -->
+        </div>
     </div><!-- selections row -->
 
     <div class="row" id="mainRow">
@@ -758,6 +727,60 @@
                     <button type="button" class="btn btn-primary" id="submitEditForm"
                     > Save Analysis </button>
                 </div><!-- footer -->
+            </div><!--content -->
+        </div><!--dialog-->
+    </div><!--modal-->
+
+    <div class="modal" id="statusModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title"> Status Filters
+                    <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </h3>
+                </div><!-- header -->
+                <div class="modal-body">
+                    <select multiple id="statusFilters" class="form-control" size="7">
+                            <option name="statusOption[]" value="__any" selected>
+                                Any
+                            </option>
+                        {% for status in statuslist %}
+                            <option name="statusOption[]" value='{{ status }}'>
+                                {{ status }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div><!-- body -->
+            </div><!--content -->
+        </div><!--dialog-->
+    </div><!--modal-->
+
+    <div class="modal" id="tagModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title"> Tag Filters
+                    <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </h3>
+                </div><!-- header -->
+                <div class="modal-body">
+                    <select multiple id="tagFilters" class="form-control" size="7">
+                            <option name="tagOption[]" value="__any" selected>
+                                Any
+                            </option>
+                        {% for tag in taglist %}
+                            <option name="tagOption[]" value='{{ tag }}'>
+                                {{ tag }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div><!-- body -->
             </div><!--content -->
         </div><!--dialog-->
     </div><!--modal-->
