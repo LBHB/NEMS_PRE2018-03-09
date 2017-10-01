@@ -11,7 +11,7 @@ Created on Fri Aug 11 11:14:52 2017
 import nems.modules as nm
 import nems.fitters
 #import nems.tensorflow_fitters as ntf
-from nems.keyword.keyhelpers import create_parmlist
+from nems.utilities.utils import create_parmlist
 
 
 def fit00(stack):

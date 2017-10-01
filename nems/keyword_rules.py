@@ -25,7 +25,7 @@ import inspect
 import pkgutil as pk
 
 import nems.keyword as nk
-import nems.nested as nn
+import nems.keyword.keyhelpers as nn
 
 def keyword_test_routine(modelname):
     """ Runs the check_keywords() method of each test class defined in this

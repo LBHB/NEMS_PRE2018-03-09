@@ -8,8 +8,9 @@ Created on Fri Aug 11 11:08:54 2017
 @author: shofer
 """
 import nems.modules as nm
-from nems.keyword.keyhelpers import mini_fit
+from nems.utilities.utils import mini_fit
 import nems.utilities as ut
+import nems.utilities.baphy as ub
 
 
 # Pupil Model keywords
@@ -22,7 +23,7 @@ def perfectpupil100(stack):
     rasters of each trial for a given stimulus. This keyword loads up the data
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
-    file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
+    file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.est_val.crossval)
@@ -35,7 +36,7 @@ def perfectpupil50(stack):
     rasters of each trial for a given stimulus. This keyword loads up the data
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
-    file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
+    file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval)
@@ -48,7 +49,7 @@ def perfectpupil50x(stack):
     rasters of each trial for a given stimulus. This keyword loads up the data
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
-    file=ut.baphy_utils.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
+    file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval2)
@@ -77,6 +78,7 @@ def pupgainctl(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
     
 def pupgain(stack):
     """
@@ -87,6 +89,7 @@ def pupgain(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
     
 def polypupgain04(stack):#4th degree polynomial gain fn
     """
@@ -210,9 +213,11 @@ def pupwgt(stack,weight_type='linear'):
     stack.modules[firidx].output_name='stim2'
     stack.evaluate(wtidx)
     stack.append(nm.filters.weight_channels,num_chans=num_chans,phi=phi,parm_type=parm_type)
+    stack.modules[-1].phi=phi
+    stack.modules[-1].wcoefs=wcoefs
     stack.append(nm.filters.fir,num_coefs=num_coefs)
-    stack.modules[-1].coefs=coefs*0.95
-    stack.modules[-1].baseline=baseline*0.95
+    stack.modules[-1].coefs=coefs*0.99
+    stack.modules[-1].baseline=baseline*0.99
 
     stack.append(nm.pupil.state_weight,weight_type=weight_type,fit_fields=['theta'],theta=[0,0.01])
     stack.evaluate(wtidx)

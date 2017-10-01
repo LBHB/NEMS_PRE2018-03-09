@@ -8,7 +8,11 @@ Created on Thu Aug  3 17:05:14 2017
 
 #Initialization file for nems/utilities
 
-import nems.utilities.utils
-import nems.utilities.baphy_utils
+#import nems.utilities.baphy
+#import nems.utilities.io
+#import nems.utilities.plot
+#import nems.utilities.print
+#import nems.utilities.utils
 
-__all__=['utils','baphy_utils']
+__all__=['baphy','io','plot','print','utils']
+

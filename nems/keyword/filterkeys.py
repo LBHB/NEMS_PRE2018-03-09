@@ -7,8 +7,8 @@ Created on Fri Aug 11 10:37:57 2017
 """
 
 import nems.modules as nm
-from nems.keyword.keyhelpers import mini_fit
-    
+from nems.utilities.utils import mini_fit
+
 def wc01(stack):
     """
     Applies a 1 channel spectral filter matrix to the data

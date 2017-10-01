@@ -12,7 +12,6 @@ import nems.keyword as nk
 import operator as op
 import numpy as np
 import pkgutil as pk
-#import nems.nested as nn
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -97,63 +96,10 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         stack.quick_plot()
     
     # save
-    filename = nems.utilities.utils.get_file_name(cellid, batch, modelname)
-    nems.utilities.utils.save_model(stack, filename)
+    filename = nems.utilities.io.get_file_name(cellid, batch, modelname)
+    nems.utilities.io.save_model(stack, filename)
 
     return(stack)
-
-"""
-load_single_model - load and evaluate a model, specified by cellid, batch and modelname
-
-example:
-    import lib.nems_main as nems
-    cellid='bbl061h-a1'
-    batch=291
-    modelname='fb18ch100_ev_fir10_dexp_fit00'
-    stack=nems.load_single_model(cellid,batch,modelname)
-    stack.quick_plot()
-    
-"""
-def load_single_model(cellid, batch, modelname):
-    
-    filename = nems.utilities.utils.get_file_name(cellid, batch, modelname)
-    stack = nems.utilities.utils.load_model(filename)
-    
-    try:
-        stack.valmode = True
-        stack.evaluate()
-    except Exception as e:
-        print("Error evaluating stack")
-        print(e)
-        # TODO: What to do here? Is there a special case to handle, or
-        #       did something just go wrong?
-    #stack.quick_plot()
-    return stack
-
-def load_from_dict(batch,cellid,modelname):
-    filepath = nems.utilities.utils.get_file_name(cellid, batch, modelname)
-    sdict=nems.utilities.utils.load_model_dict(filepath)
-    
-    #Maybe move some of this to the load_model_dict function?
-    stack=ns.nems_stack()
-    
-    stack.meta=sdict['meta']
-    stack.nests=sdict['nests']
-    parm_list=[]
-    for i in sdict['parm_fits']:
-        parm_list.append(np.array(i))
-    stack.parm_fits=parm_list
-    #stack.cv_counter=sdict['cv_counter']
-    stack.fitted_modules=sdict['fitted_modules']
-    
-    for i in range(0,len(sdict['modlist'])):
-        stack.append(op.attrgetter(sdict['modlist'][i])(nm),**sdict['mod_dicts'][i])
-        #stack.evaluate()
-        
-    stack.valmode=True
-    stack.evaluate()
-    #stack.quick_plot()
-    return stack
 
 
     

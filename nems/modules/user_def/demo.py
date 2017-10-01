@@ -7,7 +7,7 @@ Created on Wed Aug  9 12:26:54 2017
 """
 #Needs to be imported for all nems_module child classes:
 from nems.modules.base import nems_module 
-import nems.utilities.utils as nu
+import nems.utilities as ut
 
 #Import specific to this module:
 import numpy as np
@@ -36,7 +36,7 @@ class simple_demo(nems_module):
     NOTE: this module should be imported into the user_def package __init__ file.
     """
     name='user_def.demo.simple_demo' #name of module, starting from modules package
-    plot_fns=[nu.pre_post_psth] #plot function to be used for this module
+    plot_fns=[ut.plot.pre_post_psth] #plot function to be used for this module
     
     
     def my_init(self,fit_fields=['phi'],phi=[1,0],thresh=False):
@@ -90,7 +90,7 @@ class adv_demo(nems_module):
     is associated to. 
     """
     name='user_def.demo.adv_demo'
-    plot_fns=[nu.pre_post_psth]
+    plot_fns=[ut.plot.pre_post_psth]
     
     
     def my_init(self,fit_fields=['theta'],theta=[1,0,0]):
@@ -120,7 +120,7 @@ class adv_demo(nems_module):
                 self.d_out.append(copy.deepcopy(val))
         for f_in,f_out in zip(self.d_in,self.d_out):
             #For each input dictionary in the current level of the nems_stack:
-            if f_in['est'] is False:
+            if self.parent_stack.nests>0 and f_in['est'] is False:
                 """
                 If 'est' is False, it indicates that this dictionary is validation
                 data. Since validation data is often nested, we need to specify 

@@ -8,7 +8,7 @@ Created on Fri Aug 11 11:08:08 2017
 @author: shofer
 """
 import nems.modules as nm
-from nems.keyword.keyhelpers import mini_fit
+from nems.utilities.utils import mini_fit
 
 def dlog(stack):
     """
