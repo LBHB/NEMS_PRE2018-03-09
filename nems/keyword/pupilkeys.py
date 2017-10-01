@@ -236,5 +236,10 @@ def pupwgtctl(stack):
     pupwgt(stack,weight_type='linearctl')
     
     
+def pupslope(stack):
+    """
+    replace pupil with slope of gross change on each trial
+    """
+    stack.append(nm.pupil.state_filter,filter_type='slope')
 
     
