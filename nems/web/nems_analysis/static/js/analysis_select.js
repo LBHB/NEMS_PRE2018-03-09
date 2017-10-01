@@ -286,7 +286,7 @@ $(document).ready(function(){
                     + "id='" + cellid + "'>" + cellid + "</a>"
                     );
             $(this).children().eq(1).html(
-                    "<a href='" + model_link + modelname
+                    "<a href='" + model_link + modelname + "' "
                     + "id='" + modelname + "'>" + modelname + "</a>"
                     );
         });
@@ -342,7 +342,7 @@ $(document).ready(function(){
         button = $("#colsModalButton");
         text = $("#tableColSelector").val();  
         button.html("");
-        for (i=0; i<text.length; i++){
+        for (i=0; i < text.length; i++){
             button.append(text[i] + ', ');
             if (i >= 4){
                 button.append('...');

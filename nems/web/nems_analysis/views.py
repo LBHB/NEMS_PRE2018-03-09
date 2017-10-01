@@ -766,6 +766,7 @@ def get_preview():
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
 
+    # only need this to be backwards compatible with NARF preview images?
     path = (
             session.query(NarfResults.figurefile)
             .filter(NarfResults.batch == bSelected)
@@ -789,6 +790,7 @@ def get_preview():
             return jsonify(image=image)
         except Exception as e:
             print(e)
+            print("key was: {0}".format(path.figurefile[len(sc.DIRECTORY_ROOT)]))
             try:
                 key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
                 fileobj = s3_client.get_object(
