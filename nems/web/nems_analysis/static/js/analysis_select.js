@@ -44,20 +44,22 @@ $(document).ready(function(){
     });
      
     $("#displayRow").resizable({
-        handles: "n, w, e, s"
+        handles: "w, e"
     });
 
     $("#tableRow").resizable({
-        handles: "n, w, e, s"
+        handles: "w, e"
     })
 
-    $("#selectionsRow").resizable({
-        handles: "n, w, e, s"        
-    });
-    $("#pyConRow").resizable({
-        handles: "n, s, e, w"        
-    });
+    //$("#selectionsRow").resizable({
+    //    handles: "n, w, e, s"        
+    //});
 
+    //$("#pyConRow").resizable({
+    //    handles: "n, s"        
+    //});
+
+    /*
     //drags start out disabld until alt is pressed
     $(".dragToggle").draggable('disable');
     
@@ -69,6 +71,7 @@ $(document).ready(function(){
         $(".dragToggle").draggable('disable');
         return false;
     });
+    */
                  
     function initTable(table){
         // turned off DataTable for now since it wasn't being used for much.
@@ -333,6 +336,23 @@ $(document).ready(function(){
         });
     }
     
+    updateColText();
+    $("#tableColSelector").change(updateColText);
+    function updateColText(){
+        button = $("#colsModalButton");
+        text = $("#tableColSelector").val();  
+        button.html("");
+        for (i=0; i<text.length; i++){
+            button.append(text[i] + ', ');
+            if (i >= 4){
+                button.append('...');
+                break;
+            }
+        }
+        if (text.length === 0){
+            button.html("Columns");
+        }
+    }
 
     ////////////////////////////////////////////////////////////////////////
     //         Analysis details, tags/status, edit/delete/new             //
@@ -386,6 +406,10 @@ $(document).ready(function(){
         });
     }
     
+
+    updateStatusText();
+    updateTagText();
+
     $("#statusFilters").change(updateStatusText);
     $("#tagFilters").change(updateTagText);
 
@@ -400,6 +424,10 @@ $(document).ready(function(){
                 button.html('Status');
                 break;
             }
+            if (i >= 4){
+                button.append('...');
+                break;
+            }
         }
     }
 
@@ -412,6 +440,10 @@ $(document).ready(function(){
                 button.append(text[i] + ", ");
             } else {
                 button.html('Tags');
+                break;
+            }
+            if (i >= 4){
+                button.append('...');
                 break;
             }
         }
@@ -1214,9 +1246,5 @@ $(document).ready(function(){
 
     $("#toggleStatus").on('click', function(){
         toggleVisibility($("#statusFilters"));
-    });
-
-    $("#toggleTableCols").on('click', function(){
-        toggleVisibility($("#tableColSelector"));
     });
 });
