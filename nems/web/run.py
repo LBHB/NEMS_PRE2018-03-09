@@ -31,4 +31,4 @@ socketio.run(
         use_reloader=True, #ssl_context=context
         )
 
-#app.run(host="0.0.0.0", port=8000, debug=True)
+#app.run(host="0.0.0.0", port=80, debug=True)
