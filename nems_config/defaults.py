@@ -7,6 +7,7 @@ on the results table or what minimum SNR to require for plots by default.
 
 """
 
+import importlib
 import os
 import nems_sample as ns
 sample_path = os.path.abspath(ns.__file__)[:-11]
@@ -38,4 +39,25 @@ class STORAGE_DEFAULTS():
 class FLASK_DEFAULTS():
     Debug = False
     COPY_PRINTS = False
+    CSRF_ENABLED = True
+
+# TODO: Any way to put this outside of the config file and still guarantee
+#       that it gets run?
+#       Can put it in app initialization for web app, but some modules use
+#       these settings w/o ever launching the app.
+def update_settings(module_name, default_class):
+    try:
+        mod = importlib.import_module('.' + module_name, 'nems_config')
+    except Exception as e:
+        print(e)
+        print(
+                "Couldn't import settings for: %s -- using defaults... "
+                %module_name
+                )
+        return
     
+    for key in mod.__dict__:
+        setattr(default_class, key, getattr(mod, key))
+        
+update_settings("Storage_Config", STORAGE_DEFAULTS)
+update_settings("Flask_Config", FLASK_DEFAULTS)

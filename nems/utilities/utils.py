@@ -9,27 +9,9 @@ Created on Fri Jun 16 05:20:07 2017
 import scipy.signal as sps
 import scipy
 import numpy as np
-import numpy.ma as npma
-import matplotlib.pyplot as plt
-import pickle
-import os
-import copy
-import io
-import json
 
-try:
-    import boto3
-    import nems_config.Storage_Config as sc
-    AWS = sc.USE_AWS
-except Exception as e:
-    print(e)
-    from nems_config.defaults import STORAGE_DEFAULTS
-    sc = STORAGE_DEFAULTS
-    AWS = False
-    
-    
-# set default figsize for pyplots (so we don't have to change each function)
-FIGSIZE=(12,4)
+import nems.modules
+import nems.fitters
 
 #
 # random utilties
@@ -40,6 +22,7 @@ def find_modules(stack, mod_name):
         raise ValueError('Module not present in this stack')
     return matchidx
 
+<<<<<<< HEAD
 def save_model(stack, file_path):
     
     # truncate data to save disk space
@@ -629,6 +612,8 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE):
 # Other support functions
 #
 
+=======
+>>>>>>> 50e402f24dd39b6340106423fc1b956668404daa
 def shrinkage(mH,eH,sigrat=1,thresh=0):
 
     smd=np.abs(mH)/(eH+np.finfo(float).eps*(eH==0)) / sigrat
@@ -753,3 +738,118 @@ def stretch_trials(data):
 #    replist=np.array(lis)
     return stim, resp, pupil, replist
 
+
+def mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp']):
+    """
+    Helper function that module coefficients in mod list prior to fitting 
+    all the model coefficients. This is often helpful, as it gets the model in the
+    right ballpark before fitting other model parameters, especially when nonlinearities
+    are included in the model.
+    
+    This function is not appended directly to the stack, but instead is included
+    in keywords
+    """
+    stack.append(nems.modules.metrics.mean_square_error)
+    stack.error=stack.modules[-1].error
+    fitidx=[]
+    for i in mods:
+        try:
+            fitidx=fitidx+find_modules(stack,i)
+        except:
+            fitidx=fitidx+[]
+    stack.fitter=nems.fitters.fitters.basic_min(stack,fit_modules=fitidx,tolerance=0.00001)
+    
+    stack.fitter.do_fit()
+    stack.popmodule()
+    
+    
+def create_parmlist(stack):
+    """
+    Helper function that assigns all fitted parameters for a model to a single (n,)
+    phi vector and accociates it to the stack.parm_fits object
+    """
+    stack.fitted_modules=[]
+    phi=[] 
+    for idx,m in enumerate(stack.modules):
+        this_phi=m.parms2phi()
+        if this_phi.size:
+            stack.fitted_modules.append(idx)
+            phi.append(this_phi)
+    phi=np.concatenate(phi)
+    stack.parm_fits.append(phi)
+
+
+def nest_helper(stack, nests=20):
+    """
+    Helper function for implementing nested cross-validation. Essentially sets up
+    a loop with the estimation part of fit_single_model inside. 
+    """
+    stack.meta['cv_counter']=0
+    stack.meta['nests']=nests
+    #stack.cond=False
+    #stack.nests=nests
+    
+    while stack.meta['cv_counter']<nests:
+        print('Nest #'+str(stack.meta['cv_counter']))
+        stack.clear()
+        
+        stack.valmode=False
+        
+        for i in range(0,len(stack.keywords)-1):
+            stack.keyfuns[stack.keywords[i]](stack)
+            #if stack.modules[-1].name=="est_val.crossval2":
+            #    stack.modules[-1].cv_counter=stack.meta['cv_counter']
+            #    stack.modules[-1].evaluate()
+            #if stack.modules[-1].name=="est_val.crossval":
+            #    stack.modules[-1].cv_counter=stack.meta['cv_counter']
+            #    stack.nests=stack.meta['nests']
+            #    stack.modules[-1].evaluate()
+        stack.meta['cv_counter']+=1
+        
+    stack.meta['cv_counter']=0
+    #stack.cv_counter=0  # reset to avoid problem with val stage
+
+def crossval_set(n_trials,cv_count=10,cv_idx=None,interleave_valtrials=True):
+    """ create a list trial indices to save for cross-validation in a nested
+    cross-val procedure. standardized so it can be used across different
+    analyses. user provides:
+        n_trials - total number of trials
+        cv_count - number of cross-val sets
+        cv_idx - the set 0..(cv_count-1) to return indices. if None, return
+            list with indices for all cv_idx values
+        interleave_valtrials: validx includes every cv_count-th trial if true
+            otherwise, just block by trials (maybe prone to bias from slow
+            changes in state)
+    returns (estidx,validx) tuple
+    """
+    
+    spl=n_trials/cv_count
+             
+    if n_trials<cv_count:
+        raise IndexError('Fewer stimuli than cv_count; cv_count<=n_trials required')
+
+    # figure out grouping for each CV set 
+    if interleave_valtrials:
+        smax=np.int(np.ceil(spl))
+        a=np.arange(np.ceil(spl)*cv_count).astype(int)
+        a=np.reshape(a,[smax,cv_count])
+        a=a.transpose()
+        a=np.reshape(a,[smax*cv_count])
+        a=a[a<n_trials]
+    else:
+        a=np.arange(n_trials).astype(int)
+    
+    estidx_sets=[]
+    validx_sets=[]
+    for cc in range(0,cv_count):
+        c1=np.int(np.floor((cc)*spl))
+        c2=np.int(np.floor((cc+1)*spl))
+        validx_sets.append(a[c1:c2])
+        estidx_sets.append(np.setdiff1d(a,validx_sets[-1]))
+        
+    if cv_idx is None:
+        return(estidx_sets,validx_sets)
+    else:
+        return(estidx_sets[cv_idx],validx_sets[cv_idx])
+    
+    

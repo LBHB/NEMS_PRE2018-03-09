@@ -8,7 +8,8 @@ Created on Fri Aug  4 13:39:49 2017
 @author: shofer
 """
 from nems.modules.base import nems_module
-import nems.utilities.utils as nu
+import nems.utilities.utils
+import nems.utilities.plot
 
 import numpy as np
 
@@ -25,7 +26,7 @@ class gain(nems_module):
     """
     #Added helper functions and removed look up table --njs June 29 2017
     name='nonlin.gain'
-    plot_fns=[nu.pre_post_psth,nu.io_scatter_smooth,nu.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.pre_post_psth,nems.utilities.plot.io_scatter_smooth,nems.utilities.plot.plot_spectrogram]
     user_editable_fields = ['input_name','output_name','fit_fields','nltype','phi']
     phi=np.array([1])
     nltype='dlog'

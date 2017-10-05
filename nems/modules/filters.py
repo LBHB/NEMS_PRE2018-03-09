@@ -9,7 +9,7 @@ Created on Fri Aug  4 13:36:43 2017
 @author: shofer
 """
 from nems.modules.base import nems_module
-import nems.utilities.utils as nu
+import nems.utilities.utils
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class weight_channels(nems_module):
     """
     name='filters.weight_channels'
     user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_chans','baseline','coefs','phi','parm_fun']
-    plot_fns=[nu.plot_strf,nu.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_strf,nems.utilities.plot.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_chans=1
@@ -44,8 +44,8 @@ class weight_channels(nems_module):
             if parm_type=='gauss':
                 self.parm_fun=self.gauss_fn
                 m=np.matrix(np.linspace(1,self.num_dims,self.num_chans+2))
-                m=m[:,1:-1]
-                s=np.ones([self.num_chans,1])*2
+                m=m[:,1:-1]/10
+                s=np.ones([self.num_chans,1])*4/10
                 phi=np.concatenate([m.transpose(),s],1)
             self.coefs=self.parm_fun(phi)
             if not fit_fields:
@@ -55,13 +55,14 @@ class weight_channels(nems_module):
             self.coefs=np.random.normal(1,0.1,[num_chans,num_dims])/num_dims
             if not fit_fields:
                 self.fit_fields=['coefs']
+        self.parm_type=parm_type
         self.phi=np.array(phi)
     
     def gauss_fn(self,phi):
         coefs=np.zeros([self.num_chans,self.num_dims])
         for i in range(0,self.num_chans):
-            m=phi[i,0]
-            s=phi[i,1]
+            m=phi[i,0]*10
+            s=phi[i,1]*10
             x=np.arange(0,self.num_dims)
             coefs[i,:]=np.exp(-np.square((x-m)/s))
             coefs[i,:]=coefs[i,:]/np.sum(coefs[i,:])
@@ -89,14 +90,14 @@ class fir(nems_module):
     """
     name='filters.fir'
     user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_coefs','coefs','baseline','random_init']
-    plot_fns=[nu.plot_strf, nu.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_strf, nems.utilities.plot.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_dims=0
     random_init=False
     num_coefs=20
     
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False):
+    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False, coefs=None):
         """
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
@@ -112,7 +113,9 @@ class fir(nems_module):
         self.num_coefs=num_coefs
         self.baseline[0]=baseline
         self.random_init=random_init
-        if random_init is True:
+        if coefs:
+            self.coefs=coefs
+        elif random_init is True:
             self.coefs=np.random.normal(loc=0.0,scale=0.0025,size=[num_dims,num_coefs])
         else:
             self.coefs=np.zeros([num_dims,num_coefs])
@@ -138,7 +141,7 @@ class stp(nems_module):
     """
     name='filters.stp'
     user_editable_fields=['input_name','output_name','fit_fields','num_channels','u','tau','offset_in','deponly','crosstalk']
-    plot_fns=[nu.pre_post_psth, nu.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.pre_post_psth, nems.utilities.plot.plot_spectrogram]
     coefs=None
     baseline=0
     u=np.zeros([1,1])

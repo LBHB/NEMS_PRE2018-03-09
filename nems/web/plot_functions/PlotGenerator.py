@@ -365,6 +365,7 @@ class Scatter_Plot(PlotGenerator):
                     x_axis_label=modelX, y_axis_label=modelY,
                     title=self.measure[0], tools=tools, responsive=True,
                     toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
+                    output_backend="svg"
                     )
             glyph = Circle(
                     x='x_values', y='y_values', size=CIRCLE_SIZE,
@@ -500,7 +501,8 @@ class Bar_Plot(PlotGenerator):
                 y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
                 title="Mean %s Performance By Model"%self.measure[0],
                 tools=tools, responsive=True, toolbar_location=TOOL_LOC,
-                toolbar_sticky=TOOL_STICK
+                toolbar_sticky=TOOL_STICK,
+                output_backend="svg"
                 )
         p.xaxis.major_label_orientation=-(np.pi/4)
         glyph = VBar(

@@ -14,7 +14,7 @@ import nems.modules as nm
 import nems.main as main
 import nems.fitters as nf
 import nems.keyword as nk
-import nems.utilities.utils as nu
+import nems.utilities as ut
 import nems.stack as ns
 
 import numpy as np
@@ -25,7 +25,7 @@ imp.reload(nm)
 imp.reload(main)
 imp.reload(nf)
 imp.reload(nk)
-imp.reload(nu)
+imp.reload(ut)
 imp.reload(ns)
 
 
@@ -38,37 +38,44 @@ imp.reload(ns)
 #est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
 
+""" NAT SOUND """
 #cellid='bbl034e-a1'
-cellid='bbl031f-a1'
+cellid='bbl070i-a1'
 batch=291  # IC
 
-cellid='chn010c-c3'
-batch=271 #A1
-modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-#modelname="fb18ch100_wc01_stp1pc_fir15_dexp_fititer00"
-#modelname="fb18ch100_wc01_fir15_dexp_fititer00"
-#modelname="fb18ch100_wc01_fir15_dexp_fititer00"
-#modelname="fb18ch100_wc01_stp2pc_fir15_dexp"
+#cellid='chn010c-c3'
+#batch=271 #A1
+modelname="fb18ch100_wcg03_fir15_dexp_fit01"
+#modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+#modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
 #cellid="eno052d-a1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
 
-# pupil gain test -- PPS data
-#cellid='eno052b-c1'
+""" pupil gain test -- PPS data """
+#cellid='gus021d-a2'
+cellid='gus027b-a1'
 #cellid="BOL006b-11-1"
 #cellid="eno053d-c1"
-#batch=293
-#modelname="parm50_wcg01_fir15_pupwgt_dexp_fit01_nested5"
-#modelname="parm50_wc01_fir15_fititer00"
+#cellid="eno048g-b1"
+#cellid="eno054c-b2"
+batch=293
+# "OLD" noah cross val
+#modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
+# "IMPROVED" svd cross val
+modelname="parm50x_wcg01_fir10_pupgainctl_fit01_nested5"
+#modelname="parm50x_wcg01_fir10_pupwgtctl_dexp_fit01"
+#modelname="parm50x_wcg01_fir10_dexp_fit01_nested5"
+#modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
-# pupil gain test -- 2 x VOC data
+""" pupil gain test -- 2 x VOC data """
 #cellid="eno023c-c1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01_nested5"
-#modelname="perfectpupil50x_pupgain_fit01"
+#modelname="perfectpupil50x_pupgain_fit01_nested5"
 
-# SSA test
+""" SSA test """
 #cellid='gus018d-d1'
 #cellid="gus023e-c2"
 #batch=296
@@ -81,20 +88,15 @@ modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 if 0:
     stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
 else:
-    stack=ns.nems_stack()
-    
-    stack.meta['batch']=batch
-    stack.meta['cellid']=cellid
-    stack.meta['modelname']=modelname
+    stack=ns.nems_stack(cellid=cellid,batch=batch,modelname=modelname)
     stack.valmode=False
     stack.keyfuns=nk.keyfuns
     
     # extract keywords from modelname, look up relevant functions in nk and save
     # so they don't have to be found again.
-    stack.keywords=modelname.split("_")
     
     # evaluate the stack of keywords    
-    if 'nested' in stack.keywords[-1]:
+    if 'nest' in stack.keywords[-1]:
         # special case if last keyword contains "nested". TODO: better imp!
         print('Evaluating stack using nested cross validation. May be slow!')
         k=stack.keywords[-1]
@@ -104,24 +106,28 @@ else:
         for k in stack.keywords:
             stack.keyfuns[k](stack)
 
-if 1:
-    # validation stuff
-    stack.valmode=True
-    stack.evaluate(1)
-    
-    stack.append(nm.metrics.correlation)
-                    
-    print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
-                 stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
-    valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
-    if valdata:
-        stack.plot_dataidx=valdata[0]
-    else:
-        stack.plot_dataidx=0
+    if 1:
+        # validation stuff
+        stack.valmode=True
+        stack.evaluate(1)
+        
+        stack.append(nm.metrics.correlation)
+        
+        print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+                     stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+        valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
+        if valdata:
+            stack.plot_dataidx=valdata[0]
+        else:
+            stack.plot_dataidx=0
 
-#nlidx=nu.find_modules(stack,'nonlin.gain')
-#stack.modules[nlidx[0]].do_plot=nu.io_scatter_smooth
-stack.quick_plot()
+    #nlidx=nems.utilities.utils.find_modules(stack,'nonlin.gain')
+    #stack.modules[nlidx[0]].do_plot=nems.utilities.utils.io_scatter_smooth
+    stack.quick_plot()
+    
+    if 0:
+        filename = ut.io.get_file_name(cellid, batch, modelname)
+        ut.io.save_model(stack, filename)
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2
@@ -175,7 +181,7 @@ stack.fitter.do_fit()
 
 stack.valmode=True
 stack.evaluate(1)
-corridx=nu.find_modules(stack,'correlation')
+corridx=nems.utilities.utils.find_modules(stack,'correlation')
 if not corridx:
     # add MSE calculator module to stack if not there yet
     stack.append(nm.correlation)    
@@ -187,7 +193,7 @@ stack.quick_plot()
 
 # save
 #filename="/auto/data/code/nems_saved_models/batch{0}/{1}.pkl".format(stack.meta['batch'],stack.meta['cellid'])
-#nu.save_model(stack,filename)
+#nems.utilities.utils.save_model(stack,filename)
 
 
 ## single figure display
