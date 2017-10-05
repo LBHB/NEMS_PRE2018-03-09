@@ -401,6 +401,76 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
     plt.ylabel('Trial')
     plt.xlabel('Time')
     plt.title('Sorted by Pupil: Stimulus #'+str(ids))
+
+def plot_ssa_idx(m, idx=None, size=FIGSIZE):
+    '''
+    specific plotting function for the ssa_index module, essentially overlayed PSTHs for each tone type.
+    '''
+    if idx:
+        pass
+    else:
+        return None
+    slice_dict = m.folded_tones[m.parent_stack.plot_stimidx]
+
+    smooth = False
+
+    if smooth:
+        box_pts = 20
+    else:
+        box_pts = 1
+
+    box = np.ones(box_pts) / box_pts
+
+    act_dict = {key: (np.convolve(np.nanmean(value, axis=0), box, mode='same'))
+                for key, value in slice_dict.items()}
+
+    err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
+                for key, value in slice_dict.items()}
+
+    # concatenates standards and deviants for cell plot
+
+    tone_type = ['Std', 'Dev']
+
+    cell_act = {key: (
+        np.convolve(
+            np.nanmean(np.concatenate([val for k, val in slice_dict.items() if k[-3:] == key], axis=0), axis=0),
+            box, mode='same')) for key in tone_type}
+
+    cell_err = {key: (
+        np.convolve(
+            np.nanstd(np.concatenate([val for k, val in slice_dict.items() if k[-3:] == key], axis=0), axis=0),
+            box, mode='same')) for key in tone_type}
+
+    x_ax = act_dict['stream0Std'].shape[0]
+
+    fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
+    keys = ['stream0Std', 'stream0Dev', 'stream1Std', 'stream1Dev']
+    colors = ['C0', 'C0', 'C1', 'C1']
+    lines = ['-', ':', '-', ':']
+
+    # todo find a better metric for dispersion, the std gives a huge shadow
+
+    for k, c, l in zip(keys, colors, lines):
+        ax[0].plot(act_dict[k], color=c, linestyle=l, label=k)
+        # ax[0].fill_between(range(x_ax), act_dict[k]-err_dict[k], act_dict[k]+err_dict[k], facecolor = c, alpha = 0.5)
+    ax[0].axvline(x_ax / 3, color='black')
+    ax[0].axvline((x_ax / 3) * 2, color='black')
+    ax[0].set_xlabel('Time Step')
+    ax[0].set_ylabel('Firing Rate')
+    ax[0].legend()
+
+    lines = ['-', ':']
+
+    for k, l in zip(tone_type, lines):
+        ax[1].plot(cell_act[k], color='black', linestyle=l, label=k)
+        # ax[1].fill_between(range(x_ax), cell_act[k]-cell_err[k], cell_act[k]+cell_err[k], facecolor = 'gray', alpha = 0.5)
+    ax[1].axvline(x_ax / 3, color='black')
+    ax[1].axvline((x_ax / 3) * 2, color='black')
+    ax[1].set_xlabel('Time Step')
+    ax[1].set_ylabel('Firing Rate')
+    ax[1].legend()
+
+    fig.show()
     
 
 #
