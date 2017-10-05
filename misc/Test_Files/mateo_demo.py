@@ -78,7 +78,7 @@ else:
         else:
             stack.plot_dataidx=0
 
-# OVERRIDE default plot for mean_square_error module
+# OVERRIDE default plot for mean_square_error mo/home/mateo/nems/untitled0.pydule
 mse_idx=nu.find_modules(stack,'metrics.mean_square_error')
 stack.modules[mse_idx[0]].do_plot=nu.pred_act_psth_smooth
 
