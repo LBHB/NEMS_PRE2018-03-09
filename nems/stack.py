@@ -7,6 +7,7 @@ Created on Fri Jul 14 15:54:26 2017
 """
 
 import matplotlib.pyplot as plt, mpld3
+import matplotlib.gridspec as gridspec
 import nems.utilities as ut
 import numpy as np
 import os
@@ -405,22 +406,36 @@ class nems_stack:
         return np.zeros([1,1])
     
     def quick_plot(self,size=(12,24)):
-        plt.figure(figsize=size)
+        fig = plt.figure(figsize=size)
         
         # find all modules with plotfn
         plot_set=[]
         for idx,m in enumerate(self.modules):
             if m.auto_plot:
                 plot_set.append(idx)
+        outer = gridspec.GridSpec(len(plot_set), 1)  # outer grid corresponding to a subplot for each of the modules.
         
-        spidx=1
-        for idx in plot_set:
+        spidx=1 #this is for old subplot handling, since they have 1 based indexing.
+        for sp, idx in enumerate(plot_set):
             print("quick_plot: {}".format(self.modules[idx].name))
-            plt.subplot(len(plot_set),1,spidx)
-            self.modules[idx].do_plot(self.modules[idx])
-            if idx==plot_set[0]:
-                plt.title("{0} - {1} - {2}".format(self.meta['cellid'],self.meta['batch'],self.meta['modelname']))
+
+            #plt.subplot(len(plot_set),1,spidx)   <- this is to work without grispec
+            try:
+                # if the module specific plotting uses an inner subplot grid, passes the outer grid
+                # this implementation is quite nasty since it relies on an error to choose between cases
+                # although passing the handlers of figure and outer grid to the plotting function
+                # seems overall much more cleaner.
+                self.modules[idx].do_plot(self.modules[idx], figure = fig ,outer=outer[sp]) #, wspace=0.2, hspace=0.2)
+            except:
+                mod_ax = plt.Subplot(fig, outer[sp])
+                fig.add_subplot(mod_ax)
+                self.modules[idx].do_plot(self.modules[idx])
+
+            #if idx==plot_set[0]:
+            #    plt.title("{0} - {1} - {2}".format(self.meta['cellid'],self.meta['batch'],self.meta['modelname']))
             spidx+=1
+
+        fig.suptitle("{0} - {1} - {2}".format(self.meta['cellid'],self.meta['batch'],self.meta['modelname']))
         
         #plt.tight_layout()
         #TODO: Use gridspec to fix spacing issue? Addition of labels makes

@@ -271,7 +271,7 @@ class ssa_index(nems_module):
 
     name = 'metrics.ssa_index'
     user_editable_fields = ['input1', 'input2', 'baseline', 'window']
-    plot_fns = [nu.plot_ssa_idx]
+    plot_fns = [nems.utilities.plot.plot_ssa_idx]
     input1 = 'stim'
     input2 = 'resp'
     baseline = False
@@ -290,6 +290,8 @@ class ssa_index(nems_module):
         # todo, implement baseline substraction and integration window selection, are they really necessary?
         self.baseline = baseline
         self.window = window
+        self.do_plot = self.plot_fns[0]
+        self.do_trial_plot = self.plot_fns[0]
 
     def evaluate(self, **kwargs):
         del self.d_out[:]
@@ -390,14 +392,3 @@ class ssa_index(nems_module):
         self.SI0  = [block['stream0'] for block in ssa_index]
         self.SI1 = [block['stream1'] for block in ssa_index]
         self.SIcell = [block['cell'] for block in ssa_index]
-
-
-
-
-
-
-
-
-
-
-
