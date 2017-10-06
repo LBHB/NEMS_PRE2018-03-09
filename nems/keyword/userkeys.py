@@ -48,3 +48,6 @@ def simpledemo01(stack):
     
 def advdemo00(stack):
     stack.append(ud.demo.adv_demo)
+
+def ssaindex(stack):
+    stack.append(nm.metrics.ssa_index)

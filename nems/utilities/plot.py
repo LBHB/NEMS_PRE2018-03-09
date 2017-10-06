@@ -13,6 +13,7 @@ import scipy
 import numpy as np
 import numpy.ma as npma
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 import nems.utilities.utils
 
@@ -407,6 +408,104 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
     plt.ylabel('Trial')
     plt.xlabel('Time')
     plt.title('Sorted by Pupil: Stimulus #'+str(ids))
+
+def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None):
+    '''
+    specific plotting function for the ssa_index module, essentially overlayed PSTHs for each tone type.
+    '''
+    if idx:
+        figure = plt.figure(num=idx, figsize=size)
+
+    if isinstance(outer, gridspec.SubplotSpec):
+        inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer) #,wspace=0.1, hspace=0.1)
+    elif figure == None:
+        figure = plt.figure(num=idx, figsize=size)
+        inner = gridspec.GridSpec(1,2)
+    else:
+        raise ('"outer" has to be an instance of gridspec.GridSpecFromSubplotSpec or None (default)')
+
+
+    slice_dict = m.folded_tones[m.parent_stack.plot_stimidx]
+
+    # smooths the data, right now deactivated since the import already downsamples.
+    smooth = False
+    if smooth:
+        box_pts = 20
+    else:
+        box_pts = 1
+
+    box = np.ones(box_pts) / box_pts
+
+    # Calculates traces and errors for each tone type
+    act_dict = {key: (np.convolve(np.nanmean(value, axis=0), box, mode='same'))
+                for key, value in slice_dict.items()}
+
+    # todo find a better metric for dispersion, the std gives a huge shadow
+    err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
+                for key, value in slice_dict.items()}
+
+    # concatenates standards and deviants for cell plot, and calculates traces and errors
+
+    tone_type = ['Std', 'Dev']
+
+    cell_act = {key: (
+        np.convolve(
+            np.nanmean(np.concatenate([val for k, val in slice_dict.items() if k[-3:] == key], axis=0), axis=0),
+            box, mode='same')) for key in tone_type}
+
+    cell_err = {key: (
+        np.convolve(
+            np.nanstd(np.concatenate([val for k, val in slice_dict.items() if k[-3:] == key], axis=0), axis=0),
+            box, mode='same')) for key in tone_type}
+
+    # this figure/subplot call works for multiple subplots, for tone dependant and agnostic plotting,
+    # however it seems to be incompatible with stack.quick_plot .
+    '''
+    fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
+    fig.number = idx
+    fig.set_figwidth = FIGSIZE[0]
+    fig.set_figheight = FIGSIZE[1]
+    '''
+
+    keys = ['stream0Std', 'stream0Dev', 'stream1Std', 'stream1Dev']
+    colors = ['C0', 'C0', 'C1', 'C1']
+    lines = ['-', ':', '-', ':']
+
+    ax = plt.Subplot(figure, inner[0])
+
+    for k, c, l in zip(keys, colors, lines):
+        ax.plot(act_dict[k], color=c, linestyle=l, label=k)
+        # ax[0].fill_between(range(x_ax), act_dict[k]-err_dict[k], act_dict[k]+err_dict[k], facecolor = c, alpha = 0.5)
+
+    x_ax = act_dict['stream0Std'].shape[0]
+    ax.axvline(x_ax / 3, color='black')
+    ax.axvline((x_ax / 3) * 2, color='black')
+    ax.set_xlabel('Time Step')
+    ax.set_ylabel('Firing Rate')
+    ax.legend()
+    figure.add_subplot(ax)
+
+
+    # second part: contains cell (stream agnostic) PSTH in standard and deviant conditions.
+
+    lines = ['-', ':']
+
+    ax = plt.Subplot(figure, inner[1])
+
+    for k, l in zip(tone_type, lines):
+        ax.plot(cell_act[k], color='black', linestyle=l, label=k)
+        # ax[1].fill_between(range(x_ax), cell_act[k]-cell_err[k], cell_act[k]+cell_err[k], facecolor = 'gray', alpha = 0.5)
+    ax.axvline(x_ax / 3, color='black')
+    ax.axvline((x_ax / 3) * 2, color='black')
+    ax.set_xlabel('Time Step')
+    ax.set_ylabel('Firing Rate')
+    ax.legend()
+    figure.add_subplot(ax)
+
+    # sets the y axis so they are shared
+    axes = figure.get_axes()
+    axes[1].set_ylim(axes[0].get_ylim())
+
     
 
 #

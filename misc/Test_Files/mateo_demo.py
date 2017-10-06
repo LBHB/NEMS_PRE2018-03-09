@@ -13,7 +13,7 @@ import nems.main as main
 import nems.modules as nm
 import nems.fitters as nf
 import nems.keyword as nk
-import nems.utilities.utils as nu
+import nems.utilities as nu
 import nems.stack as ns
 
 import numpy as np
@@ -78,12 +78,12 @@ else:
         else:
             stack.plot_dataidx=0
 
-# OVERRIDE default plot for mean_square_error module
-mse_idx=nu.find_modules(stack,'metrics.mean_square_error')
-stack.modules[mse_idx[0]].do_plot=nu.pred_act_psth_smooth
+# OVERRIDE default plot for mean_square_error mo/home/mateo/nems/untitled0.pydule
+mse_idx=nu.utils.find_modules(stack,'metrics.mean_square_error')
+stack.modules[mse_idx[0]].do_plot=nu.plot.pred_act_psth_smooth
 
-edge_idx=nu.find_modules(stack,'aux.onset_edges')
-stack.modules[edge_idx[0]].do_plot=nu.plot_spectrogram
+edge_idx=nu.utils.find_modules(stack,'aux.onset_edges')
+stack.modules[edge_idx[0]].do_plot=nu.plot.plot_spectrogram
 
 
 stack.plot_dataidx=0

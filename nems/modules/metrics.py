@@ -179,8 +179,6 @@ class pseudo_huber_error(nems_module):
         else: 
             return(self.huber_val)
         
-            
-        
 class correlation(nems_module):
  
     name='metrics.correlation'
@@ -243,3 +241,153 @@ class correlation(nems_module):
             return [r_val]
         else:
             return [r_est]
+
+class ssa_index(nems_module):
+
+    '''
+    SSA index (SI) calculations as stated by Ulanovsky et al., 2003. The module take a in stimulus envelope input
+    with 3 dimensions corresponding to stream (tone 1 or tone 2), trial and time; and a response input lacking
+    the first dimention.
+
+    Using the envelope defines for each trial which tone is being standard, deviant and onset, and then precedes to
+    cut the response to such tones and pool them in 6 bins (3 tone natures times to streams)
+
+    for each pool, all tone responses are averaged and then the average is integrated from the onset of the tone to
+    twice the lenght of the tone (to include any offset responses).
+
+    for each stream (tone 1 or 2) the SI is calculated as:
+
+        (tone n deviant - tone n standard) / (tone n devian + tone n standard)
+
+    SI can also be calculated for the whole cell in a tone "independent" way:
+
+        (tone1 deviant + tone2 deviant - tone1 standard - tone2 standard) /
+        (tone1 deviant + tone2 deviant + tone1 standard + tone2 standard)
+
+
+
+    '''
+
+    name = 'metrics.ssa_index'
+    user_editable_fields = ['input1', 'input2', 'baseline', 'window']
+    plot_fns = [nems.utilities.plot.plot_ssa_idx]
+    input1 = 'stim'
+    input2 = 'resp'
+    baseline = False
+    window = 'start'
+    SI0 = 0
+    SI1 = 0
+    SIcell = 0
+    folded_tones = list()
+    SI_dict = dict()
+
+    def my_init(self, input1='stim', input2='resp', baseline=False, window='start') :
+        self.field_dict = locals()
+        self.field_dict.pop('self',None)
+        self.input1 = input1
+        self.input2 = input2
+        # todo, implement baseline substraction and integration window selection, are they really necessary?
+        self.baseline = baseline
+        self.window = window
+        self.do_plot = self.plot_fns[0]
+        self.do_trial_plot = self.plot_fns[0]
+
+    def evaluate(self, **kwargs):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+
+        ssa_index = list()
+        folded_tones = list()
+
+        # get the data, then slice the tones and asign to the right bin
+        # this iteration asumes that multiple sets of data are from multiple states e.g. jitter on/off
+        # this totaly obviates that the datasets might instead differ in estimation / validation nature.
+
+        for iid, b in enumerate(self.d_in):
+            stim = b['stim'] # input 3d array: 0d #streasm ; 1d #trials; 2d time
+            stim = stim.astype(np.int16) #input stim is in uint8 which is problematic for diff
+            resp = b['resp'] # input 2d array: 0d #trials ; 1d time
+            diff = np.diff(stim, axis=2)
+
+            slice_dict = {'stream0Std': list(),
+                          'stream0Dev': list(),
+                          'stream0Ons': list(),
+                          'stream1Std': list(),
+                          'stream1Dev': list(),
+                          'stream1Ons': list()}
+
+            # define the length of the tones, assumes all tones are equal. defines flanking silences as with the same
+            # lenght as the tone
+            # TODO; this infers the tone length from the envelope shape, overlaping tones will give problems, import values form parameter file
+
+
+            adiff = diff[0, 0, :]
+            IdxStrt = np.where(adiff == 1)[0][0]
+            IdxEnd = np.where(adiff == -1)[0][0]
+            toneLen = IdxEnd - IdxStrt
+
+            for trialcounter in range(stim.shape[1]):
+
+                # get starting indexes for both streams
+
+                where0 = np.where(diff[0, trialcounter, :] == 1)[0] + 1
+                where1 = np.where(diff[1, trialcounter, :] == 1)[0] + 1
+
+                # slices both streams
+
+                stream0 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
+                stream1 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
+
+                # checks which comes first and extract onset
+
+                if where0[0] < where1[0]:
+                    # Onset is in stream 0
+                    slice_dict['stream0Ons'] = slice_dict['stream0Ons'] + [stream0[0]]
+                    stream0 = stream0[1:]
+
+                elif where0[0] > where1[0]:
+                    # Onset in in stream 1
+                    slice_dict['stream1Ons'] = slice_dict['stream1Ons'] + [stream1[0]]
+                    stream1 = stream1[1:]
+
+                # Count tones by integration
+                tone_count = np.nansum(stim[:, trialcounter, :], axis=1)
+
+                # Check which stream is standard and appends slices in the right list
+                if tone_count[0] > tone_count[1]:
+                    # stream 0 is standard, stream 1 is deviant
+                    slice_dict['stream0Std'] = slice_dict['stream0Std'] + stream0
+                    slice_dict['stream1Dev'] = slice_dict['stream1Dev'] + stream1
+
+                elif tone_count[0] < tone_count[1]:
+                    # Stream 1 is standard, stream 0 is deviant
+
+                    slice_dict['stream1Std'] = slice_dict['stream1Std'] + stream1
+                    slice_dict['stream0Dev'] = slice_dict['stream0Dev'] + stream0
+
+            # calculates activity for each slice pool: first averages across trials, then integrates from the start
+            # of the tone to the end of the slice. Organizes in an Activity dictionary with the same keys
+            slice_dict = {key: np.asarray(value) for key, value in slice_dict.items()}
+
+            act_dict = {key: np.nansum(np.nanmean(value, axis=0)[toneLen:])
+                        for key, value in slice_dict.items()}
+
+            SI_dict = {'stream0': (act_dict['stream0Dev'] - act_dict['stream0Std']) /  # dev - std over...
+                                  (act_dict['stream0Dev'] + act_dict['stream0Std']),  # dev + std
+
+                       'stream1': (act_dict['stream1Dev'] - act_dict['stream1Std']) /  # dev - std over...
+                                  (act_dict['stream1Dev'] + act_dict['stream1Std']),  # dev + std
+
+                       'cell': (act_dict['stream0Dev'] + act_dict['stream1Dev'] -  # dev + dev minus
+                                act_dict['stream0Std'] - act_dict['stream1Std']) /  # std - std over
+                               (act_dict['stream0Dev'] + act_dict['stream1Dev'] +  # dev + dev plus
+                                act_dict['stream0Std'] + act_dict['stream1Std'])}  # std + std
+            folded_tones.append(slice_dict)
+            ssa_index.append(SI_dict)
+
+        self.folded_tones = folded_tones
+        self.SI_dict = ssa_index
+        self.SI0  = [block['stream0'] for block in ssa_index]
+        self.SI1 = [block['stream1'] for block in ssa_index]
+        self.SIcell = [block['cell'] for block in ssa_index]
