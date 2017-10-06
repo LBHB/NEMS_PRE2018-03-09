@@ -146,6 +146,7 @@ class nems_stack:
             # data from each nest handled inside this evaluation function.
             
             # 2017-09-08- still something not quite right.
+            # 2017-10-06- working finally. this is new norm for cross-val
             
             try:
                 xval_idx=ut.utils.find_modules(self,'est_val.crossval')[0]

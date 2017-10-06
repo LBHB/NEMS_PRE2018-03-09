@@ -5,8 +5,7 @@ Modules for computing scores/ assessing model performance
 
 Created on Fri Aug  4 13:44:42 2017
 
-@author: shofer
-"""
+s"""
 from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
@@ -19,14 +18,14 @@ class mean_square_error(nems_module):
     name='metrics.mean_square_error'
     user_editable_fields=['input1','input2','norm','shrink']
     plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_psth_smooth,nems.utilities.plot.pred_act_scatter]
-    input1='stim'
+    input1='pred'
     input2='resp'
     norm=True
     shrink=0
     mse_est=np.ones([1,1])
     mse_val=np.ones([1,1])
         
-    def my_init(self, input1='stim',input2='resp',norm=True,shrink=False):
+    def my_init(self, input1='pred',input2='resp',norm=True,shrink=False):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.input1=input1
@@ -149,13 +148,13 @@ class pseudo_huber_error(nems_module):
     name='metrics.pseudo_huber_error'
     user_editable_fields=['input1','input2','b']
     plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_scatter]
-    input1='stim'
+    input1='pred'
     input2='resp'
     b=0.9 #sets the value of error where fall-off goes from linear to quadratic\
     huber_est=np.ones([1,1])
     huber_val=np.ones([1,1])
     
-    def my_init(self, input1='stim',input2='resp',b=0.9):
+    def my_init(self, input1='pred',input2='resp',b=0.9):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.input1=input1
@@ -187,12 +186,12 @@ class correlation(nems_module):
     name='metrics.correlation'
     user_editable_fields=['input1','input2','norm']
     plot_fns=[nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_scatter, nems.utilities.plot.pred_act_scatter_smooth]
-    input1='stim'
+    input1='pred'
     input2='resp'
     r_est=np.ones([1,1])
     r_val=np.ones([1,1])
         
-    def my_init(self, input1='stim',input2='resp',norm=True):
+    def my_init(self, input1='pred',input2='resp',norm=True):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.input1=input1

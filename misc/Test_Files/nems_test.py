@@ -45,7 +45,7 @@ batch=291  # IC
 
 #cellid='chn010c-c3'
 #batch=271 #A1
-modelname="fb18ch100_wcg03_fir15_dexp_fit01"
+modelname="fb18ch100_wcg01_fir15_dexp_fit01"
 #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
 #cellid="eno052d-a1"
@@ -55,31 +55,34 @@ modelname="fb18ch100_wcg03_fir15_dexp_fit01"
 
 """ pupil gain test -- PPS data """
 #cellid='gus021d-a2'
-cellid='gus027b-a1'
+#cellid='gus021d-b1'
 #cellid="BOL006b-11-1"
-#cellid="eno053d-c1"
+cellid="eno053d-c1"
 #cellid="eno048g-b1"
 #cellid="eno054c-b2"
 batch=293
 # "OLD" noah cross val
-#modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
+#modelname="parm50x_wcg01_fir10_pupgain_fit01_nested5"
 # "IMPROVED" svd cross val
-modelname="parm50x_wcg01_fir10_pupgainctl_fit01_nested5"
-#modelname="parm50x_wcg01_fir10_pupwgtctl_dexp_fit01"
-#modelname="parm50x_wcg01_fir10_dexp_fit01_nested5"
+#modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
+modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
+#modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
 #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
 """ pupil gain test -- 2 x VOC data """
-#cellid="eno023c-c1"
-#batch=294
-#modelname="perfectpupil50_pupgain_fit01_nested5"
-#modelname="perfectpupil50x_pupgain_fit01_nested5"
+if 0:
+    cellid="eno052d-a1"
+    #cellid="eno023c-c1"
+    batch=294
+    modelname="perfectpupil50_pupgain_fit01_nested5"
+    #modelname="perfectpupil50_pupgainctl_fit01_nested5"
+    #modelname="perfectpupil50x_pupgain_fit01_nested5"
 
 """ SSA test """
 #cellid='gus018d-d1'
-#cellid="gus023e-c2"
-#batch=296
-#modelname="env100e_stp1pc_fir20_fit01"
+cellid="gus023e-c2"
+batch=296
+modelname="env100e_stp1pc_fir20_fit01"
 #modelname="env100e_fir20_dexp_fit01"
 
 # following is equivalent of 

@@ -35,7 +35,7 @@ class weight_channels(nems_module):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         if self.d_in and not(num_dims):
-            num_dims=self.d_in[0]['stim'].shape[0]
+            num_dims=self.d_in[0][self.input_name].shape[0]
         self.num_dims=num_dims
         self.num_chans=num_chans
         self.baseline=np.array(baseline)
@@ -108,7 +108,7 @@ class fir(nems_module):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         if self.d_in and not(num_dims):
-            num_dims=self.d_in[0]['stim'].shape[0]
+            num_dims=self.d_in[0][self.input_name].shape[0]
         self.num_dims=num_dims
         self.num_coefs=num_coefs
         self.baseline[0]=baseline
@@ -162,7 +162,7 @@ class stp(nems_module):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         if self.d_in and not(num_dims):
-            num_dims=self.d_in[0]['stim'].shape[0]
+            num_dims=self.d_in[0][self.input_name].shape[0]
         Zmat=np.zeros([num_dims,num_channels])
         if not u:
             u=Zmat

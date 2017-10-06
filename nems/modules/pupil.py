@@ -41,14 +41,14 @@ class model(nems_module):
                 #X=np.zeros(f_in['resp'][nest].shape)
                 #for i in range(0,R.shape[0]):
                 #    X[i,:]=Xa[R[i],:]
-                f_out['stim'][nest]=X
+                f_out[self.output_name][nest]=X
             else:
                 R=f_in['replist']
                 X=np.squeeze(Xa[R,:])
                 #X=np.zeros(f_in['resp'].shape)
                 #for i in range(0,R.shape[0]):
                 #    X[i,:]=Xa[R[i],:]
-                f_out['stim']=X
+                f_out[self.output_name]=X
                 
 class pupgain(nems_module): 
     """
@@ -64,8 +64,7 @@ class pupgain(nems_module):
     gain_type='linpupgain'
     plot_fns=[nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pre_post_psth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
     
-    def my_init(self,input_name="stim",output_name="stim",state_var="pupil",
-                gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
+    def my_init(self,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0],
                 order=None):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
@@ -185,17 +184,14 @@ class state_weight(nems_module):
     """
 
     name='pupil.state_weight'
-    user_editable_fields = ['input_name','output_name','fit_fields','state_var','input_name2','weight_type','theta']
+    user_editable_fields = ['input_name','input_name2','output_name','fit_fields','state_var','input_name2','weight_type','theta']
     weight_type='linear'
     plot_fns=[nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pre_post_psth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
-    input_name2='stim2'
-    state_var='pupil'
+    input_name2='pred2'
     theta=np.zeros([1,2])
-    def my_init(self,input_name="stim",input_name2="stim2",state_var="pupil",
+    def my_init(self,input_name2="pred2",
                 weight_type='linear',fit_fields=['theta'],theta=[.1,.1]):
-        self.input_name=input_name
         self.input_name2=input_name2
-        self.state_var=state_var
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.fit_fields=fit_fields
@@ -272,11 +268,8 @@ class state_filter(nems_module):
     user_editable_fields = ['input_name','output_name','fit_fields','state_var','input_name2','weight_type','theta']
     filter_type='slope'
     plot_fns=[nems.utilities.plot.pre_post_psth,nems.utilities.plot.state_act_scatter_smooth,nems.utilities.plot.pred_act_psth_all,nems.utilities.plot.non_plot]
-    state_var='pupil'
     theta=np.zeros([1,2])
-    def my_init(self,input_name="pupil",output_name="pupil",filter_type='linear'):
-        self.input_name=input_name
-        self.output_name=output_name
+    def my_init(self,filter_type='linear'):
         self.filter_type=filter_type
         self.my_eval=getattr(self,self.filter_type+'_fn')
         self.do_plot=self.plot_fns[0]

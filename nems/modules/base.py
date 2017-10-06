@@ -35,8 +35,8 @@ class nems_module:
     user_editable_fields=['input_name','output_name','fit_fields']
     plot_fns=[nems.utilities.plot.plot_spectrogram]
     
-    input_name='stim'  # name of input matrix in d_in
-    output_name='stim' # name of output matrix in d_out
+    input_name='pred'  # name of input matrix in d_in
+    output_name='pred' # name of output matrix in d_out
     state_var='pupil'
     parent_stack=None # pointer to stack instance that owns this module
     idm=None  # unique name for this module to be referenced from the stack??
@@ -48,7 +48,8 @@ class nems_module:
     #
     # Begin standard functions
     #
-    def __init__(self,parent_stack=None,**xargs):
+    def __init__(self,parent_stack=None,input_name=None,
+                 output_name=None,state_var=None,**xargs):
         """
         Standard initialization for all modules. Sets up next step in data
         stream linking parent_stack.data to self.d_in and self.d_out.
@@ -64,7 +65,12 @@ class nems_module:
             # d_in is by default the last entry of parent_stack.data
             self.d_in=parent_stack.data[-1]
             self.idm="{0}{1}".format(self.name,len(parent_stack.modules))
-        
+        if not input_name is None:
+            self.input_name=input_name
+        if not output_name is None:
+            self.output_name=output_name
+        if not state_var is None:
+            self.state_var=state_var
         self.d_out=copy.deepcopy(self.d_in)
         self.auto_plot=True
         self.do_plot=self.plot_fns[0]  # default is first in list
