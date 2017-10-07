@@ -3,11 +3,31 @@ from io import StringIO
 
 from flask import Flask
 from flask_socketio import SocketIO
+from flask_assets import Environment, Bundle
 
 from nems.utilities.output import SplitOutput
 
 app = Flask(__name__)
 app.config.from_object('nems_config.defaults.FLASK_DEFAULTS')
+
+assets = Environment(app)
+
+js = Bundle(
+        'js/analysis_select.js', 'js/account_management/account_management.js',
+        'js/modelpane/modelpane.js', output='gen/packed.%(version)s.js'
+        )
+
+# disabled for now because css files are overwriting each other, so styles
+# for different pages end up merging. need to add classes/ids to individual
+# css files so they don't conflict.
+#css = Bundle(
+#        'css/main.css', 'css/account_management/account_management.css',
+#        'css/modelpane/modelpane.css', output='gen/packed.css'
+#        )
+
+#assets.register('css_all', css)
+assets.register('js_all', js)
+
 #try:
 #    app.config.from_object('nems_config.Flask_Config')
 #    

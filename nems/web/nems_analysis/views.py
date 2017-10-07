@@ -21,8 +21,10 @@ any other category (so far, just one function to serve error_log.txt).
 
 """
 
+import copy
 import datetime
 from base64 import b64encode
+import json
 
 from flask import (
         render_template, jsonify, request, 
@@ -174,6 +176,7 @@ def main_view():
     # then removes the leading 'NarfResults.' from each string
     collist = ['%s'%(s) for s in NarfResults.__table__.columns]
     collist = [s.replace('NarfResults.', '') for s in collist]
+    sortlist = copy.deepcopy(collist)
     # Remove cellid and modelname from options toggles- make them required.
     required_cols = n_ui.required_cols
     for col in required_cols:
@@ -189,7 +192,7 @@ def main_view():
     return render_template(
             'main.html', analysislist=analysislist, batchlist=batchlist,
             collist=collist, defaultcols=defaultcols, measurelist=measurelist,
-            defaultrowlimit=defaultrowlimit,sortlist=collist,
+            defaultrowlimit=defaultrowlimit,sortlist=sortlist,
             defaultsort=defaultsort,statuslist=statuslist, taglist=taglist,
             plotTypeList=plotTypeList, username=user.username,
             iso=n_ui.iso, snr=n_ui.snr, snri=n_ui.snri, scripts=scriptList
@@ -838,21 +841,29 @@ def get_saved_selections():
             .filter(NarfUsers.username == user.username)
             .first()
             )
+    if not user_entry:
+        return jsonify(response="user not logged in, can't load selections")
     selections = user_entry.selections
+    null = False
+    if not selections:
+        null = True
     session.close()
-    return jsonify(selections=selections)
+    return jsonify(selections=selections, null=null)
 
 @app.route('/set_saved_selections')
 def set_saved_selections():
     user = get_current_user()
     if not user.username:
-        return jsonify(response="user not logged in, don't save")
+        return jsonify(response="user not logged in, can't save selections")
     session = Session()
-    new_selections = request.args.get('newSelections')
+    saved_selections = request.args.get('saved_selections')
     user_entry = (
             session.query(NarfUsers)
             .filter(NarfUsers.username == user.username)
             .first()
             )
-    user_entry.selections = new_selections
+    user_entry.selections = json.dumps(saved_selections)
+    session.commit()
+    session.close()
+    
     return jsonify(response='selections saved')

@@ -115,3 +115,4 @@ saved_models/
 !**/nems_config/defaults.py
 !**/nems_config/default_db.db
 
+**/gen/packed**

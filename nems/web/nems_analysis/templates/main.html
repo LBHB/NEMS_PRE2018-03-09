@@ -40,6 +40,11 @@
     
     <!-- Custom styles for this template -->
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    {#
+    {% assets "css_all" %}
+        <link href="{{ ASSET_URL }}" rel="stylesheet">
+    {% endassets %}
+    #}
     
   </head>
 
@@ -479,6 +484,9 @@
                 </a>
             </h4>
             -->
+            <button type="button" id="testSave"> Test Save </button>
+            <button type="button" id="testGet"> Test Get </button>
+            <button type="button" id="testPrint"> Test Print </button>
         </div>
     </div><!-- selections row -->
 
@@ -515,7 +523,7 @@
                                             <option name="order-option[]"
                                                     value="{{ sort }}"
                                                 {% if sort == defaultsort %}
-                                                    checked
+                                                    selected
                                                 {% endif %}
                                                     >
                                                     {{ sort }}
@@ -792,13 +800,14 @@
                             class="form-control" 
                             name="tablecolumns"
                             size="7"
-                            id="tableColSelector">
+                            id="tableColSelector"
+                            autocomplete="off">
                     {% for col in collist %}
                         <option name="result-option[]"
                                 value="{{ col }}"
-                            {% if col in defaultcols %}
-                                checked
-                            {% endif %}
+                                {% if col in defaultcols %}
+                                    checked=""
+                                {% endif %}
                                 >
                                 {{ col }}
                         </option>
@@ -874,8 +883,13 @@
     <!-- ajax javascript -->
     <script type="text/javascript">
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
+
+    <!--
     <script type="text/javascript" src=
-    "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
+    "{{ url_for('static', filename='js/analysis_select.js') }}"></script> -->
+    {% assets "js_all" %}
+        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
 
   </body>
 </html>
