@@ -46,8 +46,7 @@ if app.config['COPY_PRINTS']:
 
 # redirect output of stdout to py_console div in web browser
 def py_console():
-    while app.config['COPY_PRINTS']:
-    #while True:
+    while True:
         # Set sampling rate for console reader in seconds
         socketio.sleep(1)
         try:
@@ -73,6 +72,8 @@ def py_console():
 # start looping py_console() in the background when socket is connected
 @socketio.on('connect', namespace='/py_console')
 def start_logging():
+    if not app.config['COPY_PRINTS']:
+        return
     global thread
     if thread is None:
         print('Initializing console reader...')

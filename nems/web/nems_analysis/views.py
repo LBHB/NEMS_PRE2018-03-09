@@ -850,19 +850,23 @@ def get_saved_selections():
     session.close()
     return jsonify(selections=selections, null=null)
 
-@app.route('/set_saved_selections')
+@app.route('/set_saved_selections', methods=['GET', 'POST'])
 def set_saved_selections():
     user = get_current_user()
     if not user.username:
         return jsonify(response="user not logged in, can't save selections")
     session = Session()
-    saved_selections = request.args.get('saved_selections')
+    saved_selections = request.args.get('stringed_selections')
+    print(type(saved_selections))
+    print(saved_selections)
     user_entry = (
             session.query(NarfUsers)
             .filter(NarfUsers.username == user.username)
             .first()
             )
-    user_entry.selections = json.dumps(saved_selections)
+    print("json dumps output: ")
+    print(json.dumps(saved_selections))
+    user_entry.selections = saved_selections
     session.commit()
     session.close()
     

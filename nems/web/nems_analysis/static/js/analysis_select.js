@@ -108,6 +108,8 @@ $(document).ready(function(){
     }
 
     var saved_selections = new Saved_Selections();
+    // call on page load
+    get_saved_selections();
 
     function get_saved_selections(){
         $.ajax({
@@ -118,13 +120,16 @@ $(document).ready(function(){
                 if (data.null === false){
                     saved = JSON.parse(data.selections);
                     keys = Object.keys(saved);
-                    for (i=0; i<keys.size; i++){
+                    console.log("retrieved selections: " + keys);
+                    for (i=0; i<keys.length; i++){
+                        console.log("key: " + keys[i] + ", value: " + saved[keys[i]])
                         saved_selections[keys[i]] = saved[keys[i]];
                     }
                 } else {
                     console.log("no selections to load");
                     return false;
                 }
+                assign_selections();
             },
             error: function(error){
                 console.log(error);
@@ -135,7 +140,7 @@ $(document).ready(function(){
     function set_saved_selections(){
         $.ajax({
             url: $SCRIPT_ROOT + '/set_saved_selections',
-            data: {saved_selections:saved_selections},
+            data: {stringed_selections:JSON.stringify(saved_selections)},
             type: 'GET',
             success: function(data){
                 console.log('user selections saved successfully');
@@ -146,15 +151,14 @@ $(document).ready(function(){
         });
     }
 
-    function update_selections(){
-        get_saved_selections();
+    function assign_selections(){
+        $("#tagFilters").val(saved_selections.tags).change();
+        $("#statusFilters").val(saved_selections.status).change();
+        $("#analysisSelector").val(saved_selections.analysis).change();
 
-        $("#analysisSelector").val(saved_selections.analysis);
         $("#rowLimit").val(saved_selections.row_limit);
-        $("#tagFilters").val(saved_selections.tags);
-        $("#statusFilters").val(saved_selections.status);
-        $("#tableColSelector").val(saved_selections.cols);
         $("#tableSortSelector").val(saved_selections.sort);
+        $("#tableColSelector").val(saved_selections.cols).change();
 
         if (saved_selections.onlyFair === 1){
             document.getElementById('onlyFair').checked = true;
@@ -174,10 +178,9 @@ $(document).ready(function(){
         snr = saved_selections.snr;
         snri = saved_selections.snri;
         iso = saved_selections.iso;
-    }
 
-    // call on page load
-    update_selections();
+        updatePlotOpVal();
+    }
 
     function store_selection(key, val){
         saved_selections[key] = val;
@@ -231,7 +234,7 @@ $(document).ready(function(){
     $("#testSave").click(set_saved_selections);
     $("#testGet").click(get_saved_selections);
     $("#testPrint").click(function(){
-        console.log(saved_selections.analysis + " " + saved_selections.tags);
+        py_console_log(saved_selections.analysis + " " + saved_selections.tags);
     });
 
     var analysisCheck = document.getElementById("analysisSelector").value;
@@ -1324,4 +1327,5 @@ $(document).ready(function(){
     $("#toggleStatus").on('click', function(){
         toggleVisibility($("#statusFilters"));
     });
+
 });
