@@ -65,7 +65,8 @@ batch=293
 #modelname="parm50x_wcg01_fir10_pupgain_fit01_nested5"
 # "IMPROVED" svd cross val
 #modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
-modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
+#modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
+modelname="parm50_wcg01_fir10_pupwgtctl_fit01_nested5"
 #modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
 #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
@@ -79,11 +80,12 @@ if 0:
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 
 """ SSA test """
-#cellid='gus018d-d1'
-cellid="gus023e-c2"
-batch=296
-modelname="env100e_stp1pc_fir20_fit01"
-#modelname="env100e_fir20_dexp_fit01"
+if 0:
+    #cellid='gus018d-d1'
+    cellid="gus023e-c2"
+    batch=296
+    modelname="env100e_stp1pc_fir20_fit01"
+    #modelname="env100e_fir20_dexp_fit01"
 
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
