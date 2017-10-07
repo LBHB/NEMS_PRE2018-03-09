@@ -32,7 +32,7 @@ imp.reload(ns)
 batch=296
 #cellid='gus018d-d1'
 cellid='gus023e-c2'
-modelname="env100e_fir20_fit01"
+modelname="env100e_fir20_fit01_ssa"
 #modelname="env100e_stp1pc_fir20_fit01"
 
 

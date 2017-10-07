@@ -247,7 +247,7 @@ class ssa_index(nems_module):
     '''
     SSA index (SI) calculations as stated by Ulanovsky et al., 2003. The module take a in stimulus envelope input
     with 3 dimensions corresponding to stream (tone 1 or tone 2), trial and time; and a response input lacking
-    the first dimention.
+    the first dimension.
 
     Using the envelope defines for each trial which tone is being standard, deviant and onset, and then precedes to
     cut the response to such tones and pool them in 6 bins (3 tone natures times to streams)
@@ -300,11 +300,21 @@ class ssa_index(nems_module):
         ssa_index = list()
         folded_tones = list()
 
-        # get the data, then slice the tones and asign to the right bin
-        # this iteration asumes that multiple sets of data are from multiple states e.g. jitter on/off
-        # this totaly obviates that the datasets might instead differ in estimation / validation nature.
 
-        for iid, b in enumerate(self.d_in):
+        # if validation is active picks only estimation blocks for SSA Index calculation. Validation subsets can be
+        # inconveniently short, this leads to lack of devians and estandars for one or other streams, preventing any
+        # calculation of ssa  .
+        if self.parent_stack.valmode is True:
+            blocks = [block for block in self.d_in if block['est'] is True ]
+
+        else:
+            blocks = self.d_in
+
+
+        # get the data, then slice the tones and asign to the right bin
+        for ii, b in enumerate(blocks):
+
+
             stim = b['stim'] # input 3d array: 0d #streasm ; 1d #trials; 2d time
             stim = stim.astype(np.int16) #input stim is in uint8 which is problematic for diff
             resp = b['resp'] # input 2d array: 0d #trials ; 1d time
@@ -319,7 +329,7 @@ class ssa_index(nems_module):
 
             # define the length of the tones, assumes all tones are equal. defines flanking silences as with the same
             # lenght as the tone
-            # TODO; this infers the tone length from the envelope shape, overlaping tones will give problems, import values form parameter file
+            # TODO; this infers the tone length from the envelope shape, overlaping tones will give problems, import values form parameter file?
 
 
             adiff = diff[0, 0, :]
