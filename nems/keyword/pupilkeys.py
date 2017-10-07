@@ -219,7 +219,7 @@ def pupwgt(stack,weight_type='linear'):
     stack.modules[-1].coefs=coefs*0.99
     stack.modules[-1].baseline=baseline*0.99
 
-    stack.append(nm.pupil.state_weight,weight_type=weight_type,fit_fields=['theta'],theta=[0,0.01])
+    stack.append(nm.pupil.state_weight,input_name="pred1",input_name2="pred2",weight_type=weight_type,fit_fields=['theta'],theta=[0,0.01])
     stack.evaluate(wtidx)
     
     #mini_fit(stack,mods=['pupil.state_weight'])
