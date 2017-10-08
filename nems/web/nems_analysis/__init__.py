@@ -3,11 +3,31 @@ from io import StringIO
 
 from flask import Flask
 from flask_socketio import SocketIO
+from flask_assets import Environment, Bundle
 
 from nems.utilities.output import SplitOutput
 
 app = Flask(__name__)
 app.config.from_object('nems_config.defaults.FLASK_DEFAULTS')
+
+assets = Environment(app)
+
+js = Bundle(
+        'js/analysis_select.js', 'js/account_management/account_management.js',
+        'js/modelpane/modelpane.js', output='gen/packed.%(version)s.js'
+        )
+
+# disabled for now because css files are overwriting each other, so styles
+# for different pages end up merging. need to add classes/ids to individual
+# css files so they don't conflict.
+#css = Bundle(
+#        'css/main.css', 'css/account_management/account_management.css',
+#        'css/modelpane/modelpane.css', output='gen/packed.css'
+#        )
+
+#assets.register('css_all', css)
+assets.register('js_all', js)
+
 #try:
 #    app.config.from_object('nems_config.Flask_Config')
 #    
@@ -26,8 +46,7 @@ if app.config['COPY_PRINTS']:
 
 # redirect output of stdout to py_console div in web browser
 def py_console():
-    while app.config['COPY_PRINTS']:
-    #while True:
+    while True:
         # Set sampling rate for console reader in seconds
         socketio.sleep(1)
         try:
@@ -53,6 +72,8 @@ def py_console():
 # start looping py_console() in the background when socket is connected
 @socketio.on('connect', namespace='/py_console')
 def start_logging():
+    if not app.config['COPY_PRINTS']:
+        return
     global thread
     if thread is None:
         print('Initializing console reader...')

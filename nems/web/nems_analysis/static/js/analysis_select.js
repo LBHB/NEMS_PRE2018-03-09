@@ -88,78 +88,155 @@ $(document).ready(function(){
         });
     }
 
-    /*
-    var saved_selections = new Object()
+    class Saved_Selections {
+        constructor(){
+            this.tags = '__any';
+            this.status = '__any';
+            this.analysis = 'fitters';
+            this.plot_measure = 'r_test';
+            this.plot_type = 'Scatter_Plot';
+            this.script = 'demo_script';
+            this.onlyFair = 1;
+            this.includeOutliers = 0;
+            this.snri = 0;
+            this.snr = 0;
+            this.iso = 0;
+            this.cols = 'r_test';
+            this.sort = 'cellid';
+            this.row_limit = 500;
+        }
+    }
+
+    var saved_selections = new Saved_Selections();
+    // call on page load
+    get_saved_selections();
+
     function get_saved_selections(){
         $.ajax({
-            url: $SCRIPT_ROOT + '/get_saved_selections'
+            url: $SCRIPT_ROOT + '/get_saved_selections',
             data: {},
             type: 'GET',
             success: function(data){
-                saved_selections = data.selections;
-            }
+                if (data.null === false){
+                    saved = JSON.parse(data.selections);
+                    keys = Object.keys(saved);
+                    console.log("retrieved selections: " + keys);
+                    for (i=0; i<keys.length; i++){
+                        console.log("key: " + keys[i] + ", value: " + saved[keys[i]])
+                        saved_selections[keys[i]] = saved[keys[i]];
+                    }
+                } else {
+                    console.log("no selections to load");
+                    return false;
+                }
+                assign_selections();
+            },
             error: function(error){
                 console.log(error);
             }
         });
     }
 
-    function update_selections(){
-        get_saved_selections();
-
-        if (saved_selections.hasOwnProperty('tag')){
-            // iterate through tag options and select the one that matches,
-            // set others to unchecked
-        }
-        if (saved_selections.hasOwnProperty('status')){
-            // iterate through status options and select the one that matches,
-            // set others to unchecked
-        }
-        if (saved_selections.hasOwnProperty('analysis')){
-            $("#analysisSelector").val(saved_selections['analysis']);
-        }
-        if (saved_selections.hasOwnProperty('plot_measure')){
-            $("#measureSelector").val(saved_selections['plot_measure']);
-        }
-        if (saved_selections.hasOwnProperty('plot_type')){
-            $("#plotTypeSelector").val(saved_selections['plot_type']);
-        }
-        if (saved_selections.hasOwnProperty('onlyFair')){
-            if ((int)saved_selections['onlyFair'] === 1){
-                document.getElementById('onlyFair').checked = true;
-            } else{
-                document.getElementById('onlyFair').checked = false;
+    function set_saved_selections(){
+        $.ajax({
+            url: $SCRIPT_ROOT + '/set_saved_selections',
+            data: {stringed_selections:JSON.stringify(saved_selections)},
+            type: 'GET',
+            success: function(data){
+                console.log('user selections saved successfully');
+            },
+            error: function(error){
+                console.log('error when saving user selections');
             }
-        }
-        if (saved_selections.hasOwnProperty('includeOutliers')){
-            if ((int)saved_selections['includeOutliers'] === 1){
-                document.getElementById('includeOutliers').checked = true;
-            } else{
-                document.getElementById('includeOutliers').checked = false;
-            }
-        }
-        if (saved_selections.hasOwnProperty('snr')){
-            snr = saved_selections['snr'];
-        }
-        if (saved_selections.hasOwnProperty('snri')){
-            snri = saved_selections['snri'];
-        }
-        if (saved_selections.hasOwnProperty('iso')){
-            iso = saved_selections['iso'];
-        }
-        if (saved_selectoins.hasOwnProperty('table_cols')){
-            // iterate through dropdown div -- check matching options
-        }
-        if (saved_selections.hasOwnProperty('sort_options')){
-            // check either ascending or descending
-            // iterate through other options, check matches.
-        }
-        if (saved_selections.hasOwnProperty('row_limit')){
-            $("#rowLimit").val(saved_selections['row_limit']);
-        }
+        });
     }
-    */
+
+    function assign_selections(){
+        $("#tagFilters").val(saved_selections.tags).change();
+        $("#statusFilters").val(saved_selections.status).change();
+        $("#analysisSelector").val(saved_selections.analysis).change();
+
+        $("#rowLimit").val(saved_selections.row_limit);
+        $("#tableSortSelector").val(saved_selections.sort);
+        $("#tableColSelector").val(saved_selections.cols).change();
+
+        if (saved_selections.onlyFair === 1){
+            document.getElementById('onlyFair').checked = true;
+        } else{
+            document.getElementById('onlyFair').checked = false;
+        }
+
+        if (saved_selections.includeOutliers === 1){
+            document.getElementById('includeOutliers').checked = true;
+        } else{
+            document.getElementById('includeOutliers').checked = false;
+        }
+
+        $("#plotTypeSelector").val(saved_selections.plot_type);
+        $("#measureSelector").val(saved_selections.plot_measure);
+        $("#customSelector").val(saved_selections.script);
+        snr = saved_selections.snr;
+        snri = saved_selections.snri;
+        iso = saved_selections.iso;
+
+        updatePlotOpVal();
+    }
+
+    function store_selection(key, val){
+        saved_selections[key] = val;
+    }
+
+    // saved_selections updater functions
+    $("#analysisSelector").change(function(){
+        saved_selections.analysis = $(this).val();
+    });
+    $("#rowLimit").change(function(){
+        saved_selections.row_limit = $(this).val();
+    });
+    $("#tagFilters").change(function(){
+        saved_selections.tags = $(this).val();
+    });
+    $("#statusFilters").change(function(){
+        saved_selections.status = $(this).val();
+    });
+    $("#tableColSelector").change(function(){
+        saved_selections.cols = $(this).val();
+    });
+    $("#tableSortSelector").change(function(){
+        saved_selections.sort = $(this).val();
+    });
+    $("#onlyFair").change(function(){
+        if (document.getElementById("onlyFair").checked){
+            saved_selections.onlyFair = 1;
+        } else {
+            saved_selections.onlyFair = 0;
+        }
+    });
+    $("#includeOutliers").change(function(){
+        if (document.getElementById("includeOutliers").checked){
+            saved_selections.includeOutliers = 1;
+        } else {
+            saved_selections.includeOutliers = 0;
+        }
+    });
+    $("#plotTypeSelector").change(function(){
+        saved_selections.plot_type = $(this).val();
+    });
+    $("#measureSelector").change(function(){
+        saved_selections.plot_measure = $(this).val();
+    });
+    // snri, snr and iso handled in their own section since they aren't DOM elements
+
+    // Note: How often should the updated saved_selections variable be written to the database?
+    //       Is there a way to only write it when the page is closed/interrupted/etc.?
+    //       update on a timer? every 10 or 20 seconds?
     
+    $("#testSave").click(set_saved_selections);
+    $("#testGet").click(get_saved_selections);
+    $("#testPrint").click(function(){
+        py_console_log(saved_selections.analysis + " " + saved_selections.tags);
+    });
+
     var analysisCheck = document.getElementById("analysisSelector").value;
     if ((analysisCheck !== "") && (analysisCheck !== undefined) && (analysisCheck !== null)){
         updateBatchModel();
@@ -291,7 +368,7 @@ $(document).ready(function(){
                     );
         });
     }
-    
+
     $("#modelSelector,#cellSelector,#rowLimit,#tableColSelector,#tableSortSelector,#descending")
     .change(updateResults);
     function updateResults(){
@@ -955,28 +1032,28 @@ $(document).ready(function(){
         }
     })
     
-    /*
     // Default values -- based on 'good' from NarfAnalysis > filter_cells
-    if saved_selections.hasOwnProperty('snr'){
-        var snr = saved_selections['snr'];
+    if (saved_selections.snr !== null){
+        var snr = saved_selections.snr;
     } else{
         var snr = $("#default_snr").val();
     }
-    if saved_selections.hasOwnProperty('iso'){
+    if (saved_selections.iso !== null){
         var iso = saved_selections['iso'];
     } else{
         var iso = $("#default_iso").val();
     }
-    if saved_selections.hasOwnProperty('snri'){
+    if (saved_selections.snri !== null){
         var snri = saved_selections['snri'];
     } else{
         var snri = $("#default_snri").val();
     }     
-    */
 
+    /*
     var snr = $("#default_snr").val();
     var iso = $("#default_iso").val();
     var snri = $("#default_snri").val();
+    */
 
     $("#plotOpSelect").val('snri');
     $("#plotOpVal").val(snri); 
@@ -1006,13 +1083,16 @@ $(document).ready(function(){
         var setVal = opVal.val();
         
         if (select.val() === 'snr'){
-            snr = setVal;       
+            snr = setVal;
+            saved_selections.snr = setVal;
         }
         if (select.val() === 'iso'){
-            iso = setVal;                
+            iso = setVal;
+            saved_selections.iso = setVal;                
         }
         if (select.val() === 'snri'){
-            snri = setVal;       
+            snri = setVal;
+            saved_selections.snri = setVal;
         }
     }
      
@@ -1247,4 +1327,5 @@ $(document).ready(function(){
     $("#toggleStatus").on('click', function(){
         toggleVisibility($("#statusFilters"));
     });
+
 });

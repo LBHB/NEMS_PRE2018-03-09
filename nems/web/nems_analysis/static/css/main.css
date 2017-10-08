@@ -130,6 +130,10 @@ tables.dataframe, table, th, td {
   display: block;
 }
 
+.plotOps {
+  margin-bottom: 15px;
+}
+
 #displayRow {
   background: #FFFFFF;
   box-shadow: 5px 7px 5px #888888;

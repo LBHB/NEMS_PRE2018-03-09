@@ -40,6 +40,11 @@
     
     <!-- Custom styles for this template -->
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    {#
+    {% assets "css_all" %}
+        <link href="{{ ASSET_URL }}" rel="stylesheet">
+    {% endassets %}
+    #}
     
   </head>
 
@@ -256,7 +261,7 @@
 
         <div class="col-xs-3" id="plotCol">
         <div class="row"> <!-- nested row and col for 1.5 width -->
-        <div class="col-xs-5" style="text-align: left;">
+        <div class="col-xs-7 text-left">
             <div class="row" id="measureSelectorRow"><div class="col-xs-12">
                 <div class="form-group">
                     <label for="measureSelector">
@@ -310,9 +315,41 @@
                         </div>
                     </div><!-- form-group -->
             </div></div><!-- plot selector row and dummy col -->
+
+            <div class="row" id="customScriptRow" style="text-align: center;">
+            <div class='col-xs-12' id="customScriptCol">
+                <div class="input-group">
+                    <label for="customSelector">
+                        Custom Scripts
+                    </label>
+                </div>
+                <div class="input-group">
+                    <button type="button"
+                            id="reloadScripts">
+                        <span class="glyphicon glyphicon-refresh">
+                        </span>
+                    </button>
+                    <button type="button"
+                            class="btn btn-default btn-xs"
+                            id="submitCustom">
+                                Run Script
+                    </button>
+                </div>
+                <div class='form-group'>
+                    <select class="form-control"
+                            id="customSelector">
+                        {% for script in scripts %}
+                            <option value="{{ script }}">
+                                {{ script }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div></div> <!-- custom col -->
         </div><!-- plot col -->
-        <div class="col-xs-7" style="text-align: right;">
-            <div class="input-group" id="onlyFairGroup">
+        <div class="col-xs-4">
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="onlyFairGroup">
                 <label for="onlyFair">
                     Fair?
                 </label>
@@ -321,8 +358,10 @@
                        name="onlyFair" 
                        checked value="1">
             </div>
+            </div></div>
 
-            <div class="input-group" id="includeOutliersGroup">
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="includeOutliersGroup">
                 <label for="includeOutliers">
                     Outliers?
                 </label>
@@ -331,8 +370,10 @@
                        name="includeOutliers"
                        value="1">
             </div>
+            </div></div>
 
-            <div class="input-group" id="useGroup">
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="useGroup">
                 <select class="form-control"
                         id="plotOpSelect">
                     <option value="snri">
@@ -346,8 +387,10 @@
                     </option>
                 </select>
             </div>
+            </div></div>
 
-            <div class="input-group" id="plotOpValGroup">
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="plotOpValGroup">
                 <label for="plotOpVal">
                     &gt;
                 </label>
@@ -357,37 +400,10 @@
                        value="0"
                        style="width: 50px;">
             </div>
+            </div></div>
+
         </div></div><!-- nested row and col for 1.5 width -->
-        <div class="row" id="customScriptRow" style="text-align: center;">
-        <div class='col-xs-12' id="customScriptCol">
-            <div class="input-group"
-                 id="customGroup">
-                <label for="customSelector">
-                    Custom Scripts
-                </label>
-                <button type="button"
-                        id="reloadScripts">
-                    <span class="glyphicon glyphicon-refresh">
-                    </span>
-                </button>
-                <button type="button"
-                        class="btn btn-default btn-xs"
-                        id="submitCustom">
-                            Run Script
-                </button>
-            </div>
-            <div class='form-group'>
-                <select class="form-control"
-                        id="customSelector"
-                        style="width: 75%;">
-                    {% for script in scripts %}
-                        <option value="{{ script }}">
-                            {{ script }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div></div> <!-- custom col -->
+
         </div><!-- plot col -->
         <div class='col-xs-2' id="linksCol" style="text-align: right !important;">
             <h4><a href="https://bitbucket.org/lbhb/nems" target="_blank">
@@ -468,6 +484,9 @@
                 </a>
             </h4>
             -->
+            <button type="button" id="testSave"> Test Save </button>
+            <button type="button" id="testGet"> Test Get </button>
+            <button type="button" id="testPrint"> Test Print </button>
         </div>
     </div><!-- selections row -->
 
@@ -504,7 +523,7 @@
                                             <option name="order-option[]"
                                                     value="{{ sort }}"
                                                 {% if sort == defaultsort %}
-                                                    checked
+                                                    selected
                                                 {% endif %}
                                                     >
                                                     {{ sort }}
@@ -781,13 +800,14 @@
                             class="form-control" 
                             name="tablecolumns"
                             size="7"
-                            id="tableColSelector">
+                            id="tableColSelector"
+                            autocomplete="off">
                     {% for col in collist %}
                         <option name="result-option[]"
                                 value="{{ col }}"
-                            {% if col in defaultcols %}
-                                checked
-                            {% endif %}
+                                {% if col in defaultcols %}
+                                    checked=""
+                                {% endif %}
                                 >
                                 {{ col }}
                         </option>
@@ -863,8 +883,13 @@
     <!-- ajax javascript -->
     <script type="text/javascript">
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
+
+    <!--
     <script type="text/javascript" src=
-    "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
+    "{{ url_for('static', filename='js/analysis_select.js') }}"></script> -->
+    {% assets "js_all" %}
+        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
 
   </body>
 </html>
