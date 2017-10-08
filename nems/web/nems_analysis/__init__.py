@@ -1,5 +1,6 @@
 import sys
 from io import StringIO
+import threading
 
 from flask import Flask
 from flask_socketio import SocketIO
@@ -46,7 +47,7 @@ if app.config['COPY_PRINTS']:
 
 # redirect output of stdout to py_console div in web browser
 def py_console():
-    while True:
+    while app.config['COPY_PRINTS']:
         # Set sampling rate for console reader in seconds
         socketio.sleep(1)
         try:
@@ -69,7 +70,9 @@ def py_console():
         except Exception as e:
             print(e)
             pass
+        
 # start looping py_console() in the background when socket is connected
+# but only if COPY_PRINTS is set to true
 @socketio.on('connect', namespace='/py_console')
 def start_logging():
     if not app.config['COPY_PRINTS']:
@@ -83,6 +86,14 @@ def start_logging():
             {'data':'console connected or re-connected'},
             namespace='/py_console',
             )
+
+def track_thread_count():
+    while True:
+        socketio.sleep(180)
+        print("current thread count: ")
+        print(threading.active_count())
+        
+socketio.start_background_task(target=track_thread_count)
 
 # these don't get used for anything within this module, 
 # just have to be loaded when app is initiated
