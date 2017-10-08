@@ -804,11 +804,7 @@
                             autocomplete="off">
                     {% for col in collist %}
                         <option name="result-option[]"
-                                value="{{ col }}"
-                                {% if col in defaultcols %}
-                                    checked=""
-                                {% endif %}
-                                >
+                                value="{{ col }}">
                                 {{ col }}
                         </option>
                     {% endfor %}
@@ -858,6 +854,12 @@
         <input type="hidden" id="default_iso" value="{{ iso }}">
         <input type="hidden" id="default_snr" value="{{ snr }}">
         <input type="hidden" id="default_snri" value="{{ snri }}">
+    </div>
+
+    <div style="display:none;" id="defaultColsDiv">
+        {% for col in defaultcols %}
+            <input type="hidden" name="{{ col }}" value="{{ col }}">
+        {% endfor %}
     </div>
     
     <!-- load jquery -->

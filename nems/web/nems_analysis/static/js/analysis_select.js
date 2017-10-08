@@ -88,6 +88,16 @@ $(document).ready(function(){
         });
     }
 
+    var cols_array = []
+    function get_default_cols(){
+        $("#defaultColsDiv").children().each(function(){
+            cols_array.push($(this).val());
+        });
+        py_console_log("default cols pushed to array: " + cols_array);
+        $("#tableColSelector").val(cols_array);
+    }
+    get_default_cols();
+
     class Saved_Selections {
         constructor(){
             this.tags = '__any';
@@ -98,10 +108,10 @@ $(document).ready(function(){
             this.script = 'demo_script';
             this.onlyFair = 1;
             this.includeOutliers = 0;
-            this.snri = 0;
-            this.snr = 0;
-            this.iso = 0;
-            this.cols = 'r_test';
+            this.snri = $("#default_snri").val();
+            this.snr = $("#default_snr").val();
+            this.iso = $("#default_iso").val();
+            this.cols = cols_array;
             this.sort = 'cellid';
             this.row_limit = 500;
         }
@@ -182,10 +192,6 @@ $(document).ready(function(){
         updatePlotOpVal();
     }
 
-    function store_selection(key, val){
-        saved_selections[key] = val;
-    }
-
     // saved_selections updater functions
     $("#analysisSelector").change(function(){
         saved_selections.analysis = $(this).val();
@@ -227,10 +233,12 @@ $(document).ready(function(){
     });
     // snri, snr and iso handled in their own section since they aren't DOM elements
 
-    // Note: How often should the updated saved_selections variable be written to the database?
-    //       Is there a way to only write it when the page is closed/interrupted/etc.?
-    //       update on a timer? every 10 or 20 seconds?
-    
+    // save user selections on refresh, window close or navigate away
+    window.onbeforeunload = save_before_close;
+    function save_before_close(){
+        set_saved_selections();
+    }
+
     $("#testSave").click(set_saved_selections);
     $("#testGet").click(get_saved_selections);
     $("#testPrint").click(function(){
