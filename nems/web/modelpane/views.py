@@ -21,6 +21,7 @@ import nems.keyword as nk
 import nems.utilities.utils as nu
 import nems.main as nems
 from nems.utilities.print import web_print
+import nems.utilities as ut
 import pkgutil as pk
 
 from nems.web.nems_analysis import app
@@ -46,7 +47,7 @@ def modelpane_view():
     mSelected = request.form.get('modelname')
 
     try:
-        mp_stack = nems.load_single_model(
+        mp_stack = ut.io.load_single_model(
                 cellid=cSelected, batch=bSelected, modelname=mSelected,
                 )
     except Exception as e:
