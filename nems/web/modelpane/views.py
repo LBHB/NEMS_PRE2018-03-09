@@ -19,10 +19,11 @@ import numpy as np
 import nems.modules as nm
 import nems.keyword as nk
 import nems.utilities.utils as nu
-import nems.utilities.io as n_io
+
 import nems.utilities.plot as plots
 import nems.main as nems
 from nems.utilities.print import web_print
+import nems.utilities as ut
 import pkgutil as pk
 
 from nems.web.nems_analysis import app
@@ -48,7 +49,7 @@ def modelpane_view():
     mSelected = request.form.get('modelname')
 
     try:
-        mp_stack = n_io.load_single_model(
+        mp_stack = ut.io.load_single_model
                 cellid=cSelected, batch=bSelected, modelname=mSelected,
                 )
     except Exception as e:
