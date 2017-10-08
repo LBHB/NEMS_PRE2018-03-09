@@ -49,7 +49,7 @@ def modelpane_view():
     mSelected = request.form.get('modelname')
 
     try:
-        mp_stack = ut.io.load_single_model
+        mp_stack = ut.io.load_single_model(
                 cellid=cSelected, batch=bSelected, modelname=mSelected,
                 )
     except Exception as e:
