@@ -459,6 +459,19 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
             pred_err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
                         for key, value in folded_pred.items()}
 
+    else:
+        tone_type = ['Std', 'Dev']
+
+        cell_act = {key: (
+            np.convolve(
+                np.nanmean(np.concatenate([val for k, val in folded_resp.items() if k[-3:] == key], axis=0), axis=0),
+                box, mode='same')) for key in tone_type}
+        if error:
+            cell_err = {key: (
+                np.convolve(
+                    np.nanstd(np.concatenate([val for k, val in folded_resp.items() if k[-3:] == key], axis=0), axis=0),
+                    box, mode='same')) for key in tone_type}
+
 
 
     # plotting parameters: keys = Tone types to be ploted; colors = color of line, correspond with stream;
@@ -475,27 +488,38 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
     for k, c, l in zip(keys, colors, lines):
         axes[0].plot(resp_dict[k], color=c, linestyle=l, label=k)
         if error:
-            axes[0].fill_between(range(x_ax), resp_dict[k]-resp_err_dict[k], resp_dict[k]+resp_err_dict[k], facecolor = c, alpha = 0.5)
+            axes[0].fill_between(range(x_ax), resp_dict[k] - resp_err_dict[k], resp_dict[k] + resp_err_dict[k],
+                                 facecolor=c, alpha=0.5)
 
     axes[0].axvline(x_ax / 3, color='black')
     axes[0].axvline((x_ax / 3) * 2, color='black')
     axes[0].set_xlabel('Time Step')
     axes[0].set_ylabel('Firing Rate')
-    axes[0].legend()
+    axes[0].legend(loc='upper left', fontsize='xx-small')
 
     # second part: plot of predicted cell activity by tone type.
 
-    for k, c, l in zip(keys, colors, lines):
-        axes[1].plot(pred_dict[k], color=c, linestyle=l, label=k)
-        if error:
-            axes[1].fill_between(range(x_ax), pred_dict[k] - pred_err_dict[k], pred_dict[k] + pred_err_dict[k],
-                                 facecolor=c, alpha=0.5)
+    if has_pred:
+
+        for k, c, l in zip(keys, colors, lines):
+            axes[1].plot(pred_dict[k], color=c, linestyle=l, label=k)
+            if error:
+                axes[1].fill_between(range(x_ax), pred_dict[k] - pred_err_dict[k], pred_dict[k] + pred_err_dict[k],
+                                     facecolor=c, alpha=0.5)
+    else:
+        lines = ['-', ':']
+
+        for k, l in zip(tone_type, lines):
+            axes[1].plot(cell_act[k], color='black', linestyle=l, label=k)
+            if error:
+                axes[1].fill_between(range(x_ax), cell_act[k] - cell_err[k], cell_act[k] + cell_err[k],
+                                     facecolor='gray', alpha=0.5)
 
     axes[1].axvline(x_ax / 3, color='black')
     axes[1].axvline((x_ax / 3) * 2, color='black')
     axes[1].set_xlabel('Time Step')
     axes[1].set_ylabel('Firing Rate')
-    axes[1].legend()
+    axes[1].legend(loc='upper left', fontsize='xx-small')
 
 
     for ax in axes:

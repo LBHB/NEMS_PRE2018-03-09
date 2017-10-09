@@ -319,7 +319,7 @@ class ssa_index(nems_module):
             blocks = self.d_in
 
         # check if d_in has or not 'pred' to perform or skip calculations.
-        if blocks[0]['pred'] in locals():
+        if 'pred' in blocks[0].keys():
             self.has_pred = True
         else:
             self.has_pred = False
