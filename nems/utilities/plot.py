@@ -409,7 +409,7 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
     plt.xlabel('Time')
     plt.title('Sorted by Pupil: Stimulus #'+str(ids))
 
-def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None):
+def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=False):
     '''
     specific plotting function for the ssa_index module, essentially overlayed PSTHs for each tone type.
     '''
@@ -424,8 +424,13 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None):
     else:
         raise ('"outer" has to be an instance of gridspec.GridSpecFromSubplotSpec or None (default)')
 
+    has_pred = m.has_pred
 
-    slice_dict = m.folded_tones[m.parent_stack.plot_stimidx]
+
+    folded_resp = m.folded_resp[m.parent_stack.plot_stimidx]
+
+    if has_pred:
+        folded_pred = m.folded_pred[m.parent_stack.plot_stimidx]
 
     # smooths the data, right now deactivated since the import already downsamples.
     smooth = False
@@ -436,74 +441,67 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None):
 
     box = np.ones(box_pts) / box_pts
 
-    # Calculates traces and errors for each tone type
-    act_dict = {key: (np.convolve(np.nanmean(value, axis=0), box, mode='same'))
-                for key, value in slice_dict.items()}
+    # Calculates traces and errors for each tone type of response
+    resp_dict = {key: (np.convolve(np.nanmean(value, axis=0), box, mode='same'))
+                for key, value in folded_resp.items()}
 
-    # todo find a better metric for dispersion, the std gives a huge shadow
-    err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
-                for key, value in slice_dict.items()}
+    if error:
+        resp_err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
+                for key, value in folded_resp.items()}
 
-    # concatenates standards and deviants for cell plot, and calculates traces and errors
+    # calculates traces and errors for each tone type of predictions, or whole cell values if no pred.
 
-    tone_type = ['Std', 'Dev']
+    if has_pred:
+        pred_dict = {key: (np.convolve(np.nanmean(value, axis=0), box, mode='same'))
+                     for key, value in folded_pred.items()}
 
-    cell_act = {key: (
-        np.convolve(
-            np.nanmean(np.concatenate([val for k, val in slice_dict.items() if k[-3:] == key], axis=0), axis=0),
-            box, mode='same')) for key in tone_type}
+        if error:
+            pred_err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
+                        for key, value in folded_pred.items()}
 
-    cell_err = {key: (
-        np.convolve(
-            np.nanstd(np.concatenate([val for k, val in slice_dict.items() if k[-3:] == key], axis=0), axis=0),
-            box, mode='same')) for key in tone_type}
 
-    # this figure/subplot call works for multiple subplots, for tone dependant and agnostic plotting,
-    # however it seems to be incompatible with stack.quick_plot .
-    '''
-    fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
-    fig.number = idx
-    fig.set_figwidth = FIGSIZE[0]
-    fig.set_figheight = FIGSIZE[1]
-    '''
 
+    # plotting parameters: keys = Tone types to be ploted; colors = color of line, correspond with stream;
+    # Lines = type of line, correspond with standard or deviant .
     keys = ['stream0Std', 'stream0Dev', 'stream1Std', 'stream1Dev']
     colors = ['C0', 'C0', 'C1', 'C1']
     lines = ['-', ':', '-', ':']
 
-    ax = plt.Subplot(figure, inner[0])
+    axes = [plt.Subplot(figure, ax) for ax in inner]
+    x_ax = resp_dict['stream0Std'].shape[0]
+
+    # First part: plot of cell response by tone type.
 
     for k, c, l in zip(keys, colors, lines):
-        ax.plot(act_dict[k], color=c, linestyle=l, label=k)
-        # ax[0].fill_between(range(x_ax), act_dict[k]-err_dict[k], act_dict[k]+err_dict[k], facecolor = c, alpha = 0.5)
+        axes[0].plot(resp_dict[k], color=c, linestyle=l, label=k)
+        if error:
+            axes[0].fill_between(range(x_ax), resp_dict[k]-resp_err_dict[k], resp_dict[k]+resp_err_dict[k], facecolor = c, alpha = 0.5)
 
-    x_ax = act_dict['stream0Std'].shape[0]
-    ax.axvline(x_ax / 3, color='black')
-    ax.axvline((x_ax / 3) * 2, color='black')
-    ax.set_xlabel('Time Step')
-    ax.set_ylabel('Firing Rate')
-    ax.legend()
-    figure.add_subplot(ax)
+    axes[0].axvline(x_ax / 3, color='black')
+    axes[0].axvline((x_ax / 3) * 2, color='black')
+    axes[0].set_xlabel('Time Step')
+    axes[0].set_ylabel('Firing Rate')
+    axes[0].legend()
+
+    # second part: plot of predicted cell activity by tone type.
+
+    for k, c, l in zip(keys, colors, lines):
+        axes[1].plot(pred_dict[k], color=c, linestyle=l, label=k)
+        if error:
+            axes[1].fill_between(range(x_ax), pred_dict[k] - pred_err_dict[k], pred_dict[k] + pred_err_dict[k],
+                                 facecolor=c, alpha=0.5)
+
+    axes[1].axvline(x_ax / 3, color='black')
+    axes[1].axvline((x_ax / 3) * 2, color='black')
+    axes[1].set_xlabel('Time Step')
+    axes[1].set_ylabel('Firing Rate')
+    axes[1].legend()
 
 
-    # second part: contains cell (stream agnostic) PSTH in standard and deviant conditions.
-
-    lines = ['-', ':']
-
-    ax = plt.Subplot(figure, inner[1])
-
-    for k, l in zip(tone_type, lines):
-        ax.plot(cell_act[k], color='black', linestyle=l, label=k)
-        # ax[1].fill_between(range(x_ax), cell_act[k]-cell_err[k], cell_act[k]+cell_err[k], facecolor = 'gray', alpha = 0.5)
-    ax.axvline(x_ax / 3, color='black')
-    ax.axvline((x_ax / 3) * 2, color='black')
-    ax.set_xlabel('Time Step')
-    ax.set_ylabel('Firing Rate')
-    ax.legend()
-    figure.add_subplot(ax)
+    for ax in axes:
+        figure.add_subplot(ax)
 
     # sets the y axis so they are shared
-    axes = figure.get_axes()
     axes[1].set_ylim(axes[0].get_ylim())
 
     
