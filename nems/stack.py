@@ -204,7 +204,7 @@ class nems_stack:
                     for d,d2 in zip(stack.modules[ii].d_out,d_save[ii]):
                         if not d['est'] and cv_counter>0:
                             for k in include_keys[ii]:
-                                if d[k] is None:
+                                if d[k] is None or d[k]==[]:
                                     pass
                                 elif d[k].ndim==3:
                                     d2[k]=np.append(d2[k],d[k],axis=1)
