@@ -247,7 +247,7 @@ class ssa_index(nems_module):
     '''
     SSA index (SI) calculations as stated by Ulanovsky et al., 2003. The module take a in stimulus envelope input
     with 3 dimensions corresponding to stream (tone 1 or tone 2), trial and time; and a response input lacking
-    the first dimention.
+    the first dimension.
 
     Using the envelope defines for each trial which tone is being standard, deviant and onset, and then precedes to
     cut the response to such tones and pool them in 6 bins (3 tone natures times to streams)
@@ -275,11 +275,16 @@ class ssa_index(nems_module):
     input2 = 'resp'
     baseline = False
     window = 'start'
-    SI0 = 0
-    SI1 = 0
-    SIcell = 0
-    folded_tones = list()
-    SI_dict = dict()
+    resp_SI0 = 0
+    resp_SI1 = 0
+    resp_SIcell = 0
+    pred_SI0 = 0
+    pred_SI1 = 0
+    pred_SIcell = 0
+    folded_resp = list()
+    folded_pred = list()
+    resp_SI = dict()
+    pred_SI = dict()
 
     def my_init(self, input1='stim', input2='resp', baseline=False, window='start') :
         self.field_dict = locals()
@@ -291,35 +296,65 @@ class ssa_index(nems_module):
         self.window = window
         self.do_plot = self.plot_fns[0]
         self.do_trial_plot = self.plot_fns[0]
+        self.has_pred = False
 
     def evaluate(self, **kwargs):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
 
-        ssa_index = list()
-        folded_tones = list()
+        resp_SI = list()
+        pred_SI = list()
+        folded_resp = list()
+        folded_pred = list()
+
+
+        # if validation is active picks only estimation blocks for SSA Index calculation. Validation subsets can be
+        # inconveniently short, this leads to lack of deviants and standards for one or other streams, preventing any
+        # calculation of ssa  .
+        if self.parent_stack.valmode is True:
+            blocks = [block for block in self.d_in if block['est'] is True ]
+
+        else:
+            blocks = self.d_in
+
+        # check if d_in has or not 'pred' to perform or skip calculations.
+        if 'pred' in blocks[0].keys():
+            self.has_pred = True
+        else:
+            self.has_pred = False
+
 
         # get the data, then slice the tones and asign to the right bin
-        # this iteration asumes that multiple sets of data are from multiple states e.g. jitter on/off
-        # this totaly obviates that the datasets might instead differ in estimation / validation nature.
+        for ii, b in enumerate(blocks):
 
-        for iid, b in enumerate(self.d_in):
+
             stim = b['stim'] # input 3d array: 0d #streasm ; 1d #trials; 2d time
             stim = stim.astype(np.int16) #input stim is in uint8 which is problematic for diff
             resp = b['resp'] # input 2d array: 0d #trials ; 1d time
+            if self.has_pred:
+                pred = b['pred'] # same shape as resp
+
             diff = np.diff(stim, axis=2)
 
-            slice_dict = {'stream0Std': list(),
-                          'stream0Dev': list(),
-                          'stream0Ons': list(),
-                          'stream1Std': list(),
-                          'stream1Dev': list(),
-                          'stream1Ons': list()}
+            resp_slice_dict = {'stream0Std': list(),
+                               'stream0Dev': list(),
+                               'stream0Ons': list(),
+                               'stream1Std': list(),
+                               'stream1Dev': list(),
+                               'stream1Ons': list()}
+
+            if self.has_pred:
+                pred_slice_dict = {'stream0Std': list(),
+                                   'stream0Dev': list(),
+                                   'stream0Ons': list(),
+                                   'stream1Std': list(),
+                                   'stream1Dev': list(),
+                                   'stream1Ons': list()}
 
             # define the length of the tones, assumes all tones are equal. defines flanking silences as with the same
             # lenght as the tone
-            # TODO; this infers the tone length from the envelope shape, overlaping tones will give problems, import values form parameter file
+            # TODO; this infers the tone length from the envelope shape, overlaping tones will give problems, import values form parameter file?
 
 
             adiff = diff[0, 0, :]
@@ -336,20 +371,33 @@ class ssa_index(nems_module):
 
                 # slices both streams
 
-                stream0 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
-                stream1 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
+                respstream0 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
+                respstream1 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
+
+                if self.has_pred:
+
+                    predstream0 = [pred[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
+                    predstream1 = [pred[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
 
                 # checks which comes first and extract onset
 
                 if where0[0] < where1[0]:
                     # Onset is in stream 0
-                    slice_dict['stream0Ons'] = slice_dict['stream0Ons'] + [stream0[0]]
-                    stream0 = stream0[1:]
+                    resp_slice_dict['stream0Ons'] = resp_slice_dict['stream0Ons'] + [respstream0[0]]
+                    respstream0 = respstream0[1:]
+
+                    if self.has_pred:
+                        pred_slice_dict['stream0Ons'] = pred_slice_dict['stream0Ons'] + [predstream0[0]]
+                        predstream0 = predstream0[1:]
 
                 elif where0[0] > where1[0]:
                     # Onset in in stream 1
-                    slice_dict['stream1Ons'] = slice_dict['stream1Ons'] + [stream1[0]]
-                    stream1 = stream1[1:]
+                    resp_slice_dict['stream1Ons'] = resp_slice_dict['stream1Ons'] + [respstream1[0]]
+                    respstream1 = respstream1[1:]
+
+                    if self.has_pred:
+                        pred_slice_dict['stream1Ons'] = pred_slice_dict['stream1Ons'] + [predstream1[0]]
+                        predstream1 = predstream1[1:]
 
                 # Count tones by integration
                 tone_count = np.nansum(stim[:, trialcounter, :], axis=1)
@@ -357,37 +405,75 @@ class ssa_index(nems_module):
                 # Check which stream is standard and appends slices in the right list
                 if tone_count[0] > tone_count[1]:
                     # stream 0 is standard, stream 1 is deviant
-                    slice_dict['stream0Std'] = slice_dict['stream0Std'] + stream0
-                    slice_dict['stream1Dev'] = slice_dict['stream1Dev'] + stream1
+                    resp_slice_dict['stream0Std'] = resp_slice_dict['stream0Std'] + respstream0
+                    resp_slice_dict['stream1Dev'] = resp_slice_dict['stream1Dev'] + respstream1
+
+                    if self.has_pred:
+                        pred_slice_dict['stream0Std'] = pred_slice_dict['stream0Std'] + predstream0
+                        pred_slice_dict['stream1Dev'] = pred_slice_dict['stream1Dev'] + predstream1
 
                 elif tone_count[0] < tone_count[1]:
                     # Stream 1 is standard, stream 0 is deviant
 
-                    slice_dict['stream1Std'] = slice_dict['stream1Std'] + stream1
-                    slice_dict['stream0Dev'] = slice_dict['stream0Dev'] + stream0
+                    resp_slice_dict['stream1Std'] = resp_slice_dict['stream1Std'] + respstream1
+                    resp_slice_dict['stream0Dev'] = resp_slice_dict['stream0Dev'] + respstream0
+
+                    if self.has_pred:
+                        pred_slice_dict['stream1Std'] = pred_slice_dict['stream1Std'] + predstream1
+                        pred_slice_dict['stream0Dev'] = pred_slice_dict['stream0Dev'] + predstream0
 
             # calculates activity for each slice pool: first averages across trials, then integrates from the start
             # of the tone to the end of the slice. Organizes in an Activity dictionary with the same keys
-            slice_dict = {key: np.asarray(value) for key, value in slice_dict.items()}
+            resp_slice_dict = {key: np.asarray(value) for key, value in resp_slice_dict.items()}
+            resp_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[toneLen:])
+                        for key, value in resp_slice_dict.items()}
 
-            act_dict = {key: np.nansum(np.nanmean(value, axis=0)[toneLen:])
-                        for key, value in slice_dict.items()}
+            if self.has_pred:
+                pred_slice_dict = {key: np.asarray(value) for key, value in pred_slice_dict.items()}
+                pred_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[toneLen:])
+                            for key, value in pred_slice_dict.items()}
 
-            SI_dict = {'stream0': (act_dict['stream0Dev'] - act_dict['stream0Std']) /  # dev - std over...
-                                  (act_dict['stream0Dev'] + act_dict['stream0Std']),  # dev + std
+            resp_SI_dict = {
+                'stream0': (resp_act_dict['stream0Dev'] - resp_act_dict['stream0Std']) /  # dev - std over...
+                           (resp_act_dict['stream0Dev'] + resp_act_dict['stream0Std']),  # dev + std
 
-                       'stream1': (act_dict['stream1Dev'] - act_dict['stream1Std']) /  # dev - std over...
-                                  (act_dict['stream1Dev'] + act_dict['stream1Std']),  # dev + std
+                'stream1': (resp_act_dict['stream1Dev'] - resp_act_dict['stream1Std']) /  # dev - std over...
+                               (resp_act_dict['stream1Dev'] + resp_act_dict['stream1Std']),  # dev + std
 
-                       'cell': (act_dict['stream0Dev'] + act_dict['stream1Dev'] -  # dev + dev minus
-                                act_dict['stream0Std'] - act_dict['stream1Std']) /  # std - std over
-                               (act_dict['stream0Dev'] + act_dict['stream1Dev'] +  # dev + dev plus
-                                act_dict['stream0Std'] + act_dict['stream1Std'])}  # std + std
-            folded_tones.append(slice_dict)
-            ssa_index.append(SI_dict)
+                'cell': (resp_act_dict['stream0Dev'] + resp_act_dict['stream1Dev'] -  # dev + dev minus
+                         resp_act_dict['stream0Std'] - resp_act_dict['stream1Std']) /  # std - std over
+                        (resp_act_dict['stream0Dev'] + resp_act_dict['stream1Dev'] +  # dev + dev plus
+                         resp_act_dict['stream0Std'] + resp_act_dict['stream1Std'])}  # std + std
+            if self.has_pred:
+                pred_SI_dict = {
+                    'stream0': (pred_act_dict['stream0Dev'] - pred_act_dict['stream0Std']) /  # dev - std over...
+                               (pred_act_dict['stream0Dev'] + pred_act_dict['stream0Std']),  # dev + std
 
-        self.folded_tones = folded_tones
-        self.SI_dict = ssa_index
-        self.SI0  = [block['stream0'] for block in ssa_index]
-        self.SI1 = [block['stream1'] for block in ssa_index]
-        self.SIcell = [block['cell'] for block in ssa_index]
+                    'stream1': (pred_act_dict['stream1Dev'] - pred_act_dict['stream1Std']) /  # dev - std over...
+                                   (pred_act_dict['stream1Dev'] + pred_act_dict['stream1Std']),  # dev + std
+
+                    'cell': (pred_act_dict['stream0Dev'] + pred_act_dict['stream1Dev'] -  # dev + dev minus
+                             pred_act_dict['stream0Std'] - pred_act_dict['stream1Std']) /  # std - std over
+                            (pred_act_dict['stream0Dev'] + pred_act_dict['stream1Dev'] +  # dev + dev plus
+                             pred_act_dict['stream0Std'] + pred_act_dict['stream1Std'])}  # std + std
+
+            folded_resp.append(resp_slice_dict)
+            resp_SI.append(resp_SI_dict)
+
+            if self.has_pred:
+                folded_pred.append(pred_slice_dict)
+                pred_SI.append(pred_SI_dict)
+
+        self.folded_resp = folded_resp
+        self.resp_SI = resp_SI
+        self.resp_SI0  = [block['stream0'] for block in resp_SI]
+        self.resp_SI1 = [block['stream1'] for block in resp_SI]
+        self.resp_SIcell = [block['cell'] for block in resp_SI]
+
+
+        if self.has_pred:
+            self.folded_pred = folded_pred
+            self.pred_SI = pred_SI
+            self.pred_SI0 = [block['stream0'] for block in pred_SI]
+            self.pred_SI1 = [block['stream1'] for block in pred_SI]
+            self.pred_SIcell = [block['cell'] for block in pred_SI]
