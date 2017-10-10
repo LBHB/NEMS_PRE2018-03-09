@@ -138,6 +138,16 @@ def stretch_trials(data):
     replist = np.repeat(lis, s[1], axis=1)
     replist = np.reshape(replist.transpose(), (-1, 1))
 
+    # find non-nan response trials
+    keepidx=np.isfinite(resp[:,0])
+    resp=resp[keepidx,:]
+    stim=stim[:,keepidx,:]
+    replist=replist[keepidx]
+    if not pupil is None:
+        pupil=pupil[keepidx,:]
+    
+        
+        
     #    Y=data['stim'][:,0,:]
     #    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
     #    for i in range(1,s[2]):
