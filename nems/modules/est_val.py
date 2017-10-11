@@ -27,6 +27,7 @@ class standard(nems_module):
     crossvalidation.
     """
     name='est_val.standard'
+    input_name='stim'
     user_editable_fields=['input_name','output_name','valfrac']
     valfrac=0.05
     def my_init(self,valfrac=0.05):
@@ -70,6 +71,7 @@ class standard(nems_module):
                 d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
                 d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
                 d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
+                d_est['pred']=d_est['stim']
                 #d_val['repcount']=copy.deepcopy(d['repcount'][validx])
                 #d_val['resp']=copy.deepcopy(d['resp'][validx,:])
                 #d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
@@ -90,6 +92,7 @@ class standard(nems_module):
                     d_val['repcount']=copy.deepcopy(d['repcount'][validx])
                     d_val['resp']=copy.deepcopy(d['resp'][validx,:])
                     d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
+                    d_val['pred']=d_val['stim']
                     try:
                         if d['pupil'].size:
                             d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
@@ -101,7 +104,7 @@ class standard(nems_module):
                     self.d_out.append(d_val)
 
             
-class crossval2(nems_module):
+class crossval(nems_module):
     """
     Splits data into estimation and validation datasets. If estimation and 
     validation sets are already flagged (if d['est'] exists), it just passes 
@@ -115,9 +118,9 @@ class crossval2(nems_module):
     case, it will run through the dataset, taking a different validation set 
     each time. 
     
-    @author: shofer
     """
-    name='est_val.crossval2'
+    name='est_val.crossval'
+    input_name='stim'
     user_editable_fields=['input_name','output_name',
                           'valfrac','interleave_valtrials','val_mult_repeats',
                           'cv_counter']
@@ -183,6 +186,10 @@ class crossval2(nems_module):
             
             d_est['stim']=copy.deepcopy(d['stim'][:,eidx,:])
             d_val['stim']=copy.deepcopy(d['stim'][:,vidx,:])
+            
+            # just copy pointers as placeholders for prediction trace
+            d_est['pred']=d_est['stim']
+            d_val['pred']=d_val['stim']
 
             try:
                 d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
@@ -214,7 +221,7 @@ class crossval2(nems_module):
             #    self.parent_stack.cond=True
                     
 
-class crossval(nems_module):
+class crossval_old(nems_module):
     """
     Splits data into estimation and validation datasets. If estimation and 
     validation sets are already flagged (if d['est'] exists), it just passes 
@@ -230,7 +237,8 @@ class crossval(nems_module):
     
     @author: shofer
     """
-    name='est_val.crossval'
+    name='est_val.crossval_old'
+    input_name='stim'
     user_editable_fields=['input_name','output_name',
                           'valfrac','interleave_valtrials','val_mult_repeats',
                           'cv_counter']
@@ -316,7 +324,9 @@ class crossval(nems_module):
                     except KeyError:
                         d_est['replist']=None
                 
-
+                # just copy pointers as placeholders for prediction trace
+                d_est['pred']=d_est['stim']
+                
                 d_est['est']=True
                 
                 self.d_out.append(d_est)
@@ -355,6 +365,9 @@ class crossval(nems_module):
                             d_val['repcount']=copy.deepcopy(d['repcount'])
                         d_val['resp'].append(copy.deepcopy(d['resp'][nidx,:]))
                         d_val['stim'].append(copy.deepcopy(d['stim'][:,nidx,:]))
+                        
+                        # just copy pointer as placeholder for prediction trace
+                        d_val['pred']=d_val['stim']
                         
                       
                     #TODO: this code runs if crossval allocated
