@@ -66,11 +66,27 @@ def fit02(stack):
 def fit03(stack):
     """
     Fits the model parameters using a mean squared error loss function with 
-    the L-BFGS-B algorithm, to a cost function tolerance of 10^-8.
+    the L-BFGS-B algorithm, to a cost function tolerance of 10^-7.
     
     Should be appended last in a modelname (excepting "nested" keywords)
     """
     stack.append(nm.metrics.mean_square_error)
+    stack.error=stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter=nems.fitters.fitters.basic_min(stack)
+    stack.fitter.tolerance=0.0000001
+    stack.fitter.do_fit()
+    create_parmlist(stack)
+    
+def fit04(stack):
+    """
+    Fits the model parameters using a Poisson LL loss function with 
+    the L-BFGS-B algorithm, to a cost function tolerance of 10^-7.
+    
+    Should be appended last in a modelname (excepting "nested" keywords)
+    """
+    stack.append(nm.metrics.likelihood_poisson)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
 

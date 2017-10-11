@@ -160,6 +160,19 @@ def fb18ch50(stack):
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=True)
     stack.append(nm.est_val.standard)
 
+def fb18ch50u(stack):
+    """
+    Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch,
+    then downsamples to 50 Hz.
+    Averages the response to each stimulus over its respective raster, and
+    applies a 5% estimation/validation split if the est/val datasets are not 
+    specified in the file. 
+    """
+    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
+    stack.append(nm.est_val.crossval)
+
 def loadlocal(stack):
     """
     This keyword is just to load up a local file that is not yet on the BAPHY database.

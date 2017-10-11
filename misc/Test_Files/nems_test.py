@@ -46,10 +46,10 @@ imp.reload(ns)
 #cellid='chn010c-c3'
 #batch=271 #A1
 
-cellid='eno052b-b1'
+cellid='zee015h-15-1'
 batch=289 #A1
 
-modelname="fb18ch100u_wcg01_fir15_pupgain_dexp_fit01"
+modelname="fb18ch50u_wcg01_fir10_fit04"
 #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
 #cellid="eno052d-a1"
@@ -123,8 +123,8 @@ else:
         
         stack.append(nm.metrics.correlation)
         
-        print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
-                     stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
+        #print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+        #             stack.meta['mse_val'],stack.meta['r_est'],stack.meta['r_val']))
         valdata=[i for i, d in enumerate(stack.data[-1]) if not d['est']]
         if valdata:
             stack.plot_dataidx=valdata[0]

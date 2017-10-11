@@ -121,6 +121,73 @@ class mean_square_error(nems_module):
             # placeholder for something that can distinguish between est and val
             return self.mse_val
         
+        
+class likelihood_poisson(nems_module):
+ 
+    name='metrics.likelihood_poisson'
+    user_editable_fields=['input1','input2','shrink']
+    plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_psth_smooth,nems.utilities.plot.pred_act_scatter]
+    input1='pred'
+    input2='resp'
+    norm=True
+    shrink=0
+    ll_est=np.zeros([1,1])
+    ll_val=np.zeros([1,1])
+        
+    def my_init(self, input1='pred',input2='resp',shrink=False):
+        self.input1=input1
+        self.input2=input2
+        self.shrink=shrink
+        self.do_trial_plot=self.plot_fns[1]
+        
+    def evaluate(self,nest=0):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+
+        X1=self.unpack_data(self.input1,est=True)            
+        X2=self.unpack_data(self.input2,est=True)
+        keepidx=np.isfinite(X1) * np.isfinite(X2)
+        X1=X1[keepidx]
+        X2=X2[keepidx]
+        X1[X1<0.00001]=0.00001
+        
+        ll_est=np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
+        
+        self.ll_est=ll_est
+        self.parent_stack.meta['ll_est']=[ll_est]
+       
+        #ee(bb)= -nanmean(r(bbidx).*log(p(bbidx)) - p(bbidx))./(d+(d==0));
+
+        X1=self.unpack_data(self.input1,est=False)
+                 
+        if X1.size:
+            X2=self.unpack_data(self.input2,est=False)
+            keepidx=np.isfinite(X1) * np.isfinite(X2)
+            X1=X1[keepidx]
+            X2=X2[keepidx]
+            X1[X1<0.00001]=0.00001
+            
+            ll_val=-np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
+            
+            self.ll_val=ll_val
+            self.parent_stack.meta['ll_val']=[ll_val]
+                
+            return [ll_val]
+        else:
+            return [ll_est]
+
+
+    def error(self, est=True):
+        if est:
+            return self.ll_est
+        else:
+            # placeholder for something that can distinguish between est and val
+            return self.ll_val
+        
+        
+        
+        
 class pseudo_huber_error(nems_module):
     """
     Pseudo-huber "error" to use with fitter cost functions. This is more robust to
