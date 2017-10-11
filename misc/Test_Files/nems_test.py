@@ -49,7 +49,7 @@ imp.reload(ns)
 cellid='zee015h-15-1'
 batch=289 #A1
 
-modelname="fb18ch50u_wcg01_fir10_fit04"
+modelname="fb18ch50u_wcg01_fir10_fit03"
 #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
 #cellid="eno052d-a1"

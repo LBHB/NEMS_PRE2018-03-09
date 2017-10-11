@@ -25,7 +25,7 @@ class mean_square_error(nems_module):
     mse_est=np.ones([1,1])
     mse_val=np.ones([1,1])
         
-    def my_init(self, input1='pred',input2='resp',norm=True,shrink=False):
+    def my_init(self, input1='pred',input2='resp',norm=True,shrink=0):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.input1=input1
