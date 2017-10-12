@@ -489,7 +489,7 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
         axes[0].plot(resp_dict[k], color=c, linestyle=l, label=k)
         if error:
             axes[0].fill_between(range(x_ax), resp_dict[k] - resp_err_dict[k], resp_dict[k] + resp_err_dict[k],
-                                 facecolor=c, alpha=0.5)
+                                 facecolor=c, alpha=0.2)
 
     axes[0].axvline(x_ax / 3, color='black')
     axes[0].axvline((x_ax / 3) * 2, color='black')
@@ -505,7 +505,7 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
             axes[1].plot(pred_dict[k], color=c, linestyle=l, label=k)
             if error:
                 axes[1].fill_between(range(x_ax), pred_dict[k] - pred_err_dict[k], pred_dict[k] + pred_err_dict[k],
-                                     facecolor=c, alpha=0.5)
+                                     facecolor=c, alpha=0.2)
     else:
         lines = ['-', ':']
 
@@ -513,7 +513,7 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
             axes[1].plot(cell_act[k], color='black', linestyle=l, label=k)
             if error:
                 axes[1].fill_between(range(x_ax), cell_act[k] - cell_err[k], cell_act[k] + cell_err[k],
-                                     facecolor='gray', alpha=0.5)
+                                     facecolor='gray', alpha=0.2)
 
     axes[1].axvline(x_ax / 3, color='black')
     axes[1].axvline((x_ax / 3) * 2, color='black')
