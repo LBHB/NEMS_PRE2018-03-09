@@ -70,7 +70,7 @@ def fit03(stack):
     
     Should be appended last in a modelname (excepting "nested" keywords)
     """
-    stack.append(nm.metrics.mean_square_error,shrink=0.5)
+    stack.append(nm.metrics.mean_square_error,shrink=0.05)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
 

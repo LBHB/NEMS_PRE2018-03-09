@@ -161,9 +161,9 @@ class nems_module:
             del self.d_out[:]
             # create a copy of each input variable
             for i,d in enumerate(self.d_in):
-                self.d_out.append(copy.deepcopy(d))
+                #self.d_out.append(copy.deepcopy(d))
                 # TODO- make it so don't deepcopy eveything. deal with nesting!
-                #self.d_out.append(copy.copy(d))
+                self.d_out.append(copy.copy(d))
         
         for f_in,f_out in zip(self.d_in,self.d_out):
             if self.parent_stack.nests>0 and f_in['est'] is False:

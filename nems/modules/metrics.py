@@ -40,17 +40,25 @@ class mean_square_error(nems_module):
             for i, d in enumerate(self.d_in):
                 self.d_out.append(d.copy())
             
-        if self.shrink is True:
+        if self.shrink:
             X1=self.unpack_data(self.input1,est=True)
             X2=self.unpack_data(self.input2,est=True)
             bounds=np.round(np.linspace(0,len(X1)+1,11)).astype(int)
             E=np.zeros([10,1])
-            P=np.mean(np.square(X2))
+            #P=np.mean(np.square(X2))
             for ii in range(0,10):
-                E[ii]=np.mean(np.square(X1[bounds[ii]:bounds[ii+1]]-X2[bounds[ii]:bounds[ii+1]]))
-            E=E/P
+                E[ii]=np.mean(np.square(X1[bounds[ii]:bounds[ii+1]]-X2[bounds[ii]:bounds[ii+1]]))/np.mean(np.square(X2[bounds[ii]:bounds[ii+1]]))
+            #E=E/P
+            
             mE=E.mean()
             sE=E.std()
+            
+            if self.parent_stack.valmode:
+                print(E)
+                print(mE)
+                print(sE)
+                print("MSE shrink: {0}".format(self.shrink))
+                
             if mE<1:
                 # apply shrinkage filter to 1-E with factors self.shrink
                 mse=1-nems.utilities.utils.shrinkage(1-mE,sE,self.shrink)
@@ -89,28 +97,29 @@ class mean_square_error(nems_module):
             else:
                 mse=E/N
                 
-            self.mse_est=mse
-            self.parent_stack.meta['mse_est']=[mse]
+        self.mse_est=mse
+        self.parent_stack.meta['mse_est']=[mse]
                 
-            if self.parent_stack.valmode is True:   
-                X1=self.unpack_data(self.input1,est=False)            
-                X2=self.unpack_data(self.input2,est=False)
-                keepidx=np.isfinite(X1) * np.isfinite(X2)
-                X1=X1[keepidx]
-                X2=X2[keepidx]
-                E=np.sum(np.square(X1-X2))
-                P=np.sum(X2*X2)
-                N=X1.size
-    
-                if self.norm:
-                    if P>0:
-                        mse=E/P
-                    else:
-                        mse=1    
+        if self.parent_stack.valmode:
+            
+            X1=self.unpack_data(self.input1,est=False)            
+            X2=self.unpack_data(self.input2,est=False)
+            keepidx=np.isfinite(X1) * np.isfinite(X2)
+            X1=X1[keepidx]
+            X2=X2[keepidx]
+            E=np.sum(np.square(X1-X2))
+            P=np.sum(X2*X2)
+            N=X1.size
+
+            if self.norm:
+                if P>0:
+                    mse=E/P
                 else:
-                    mse=E/N
-                self.mse_val=mse
-                self.parent_stack.meta['mse_val']=mse
+                    mse=1    
+            else:
+                mse=E/N
+            self.mse_val=mse
+            self.parent_stack.meta['mse_val']=[mse]
         
         return mse
 
