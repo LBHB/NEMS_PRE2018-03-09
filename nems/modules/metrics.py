@@ -404,7 +404,6 @@ class ssa_index(nems_module):
         # get the data, then slice the tones and asign to the right bin
         for ii, b in enumerate(blocks):
 
-
             stim = b['stim'] # input 3d array: 0d #streasm ; 1d #trials; 2d time
             stim = stim.astype(np.int16) #input stim is in uint8 which is problematic for diff
             resp = b['resp'] # input 2d array: 0d #trials ; 1d time
@@ -429,8 +428,8 @@ class ssa_index(nems_module):
                                    'stream1Ons': list()}
 
             # define the length of the tones, assumes all tones are equal. defines flanking silences as with the same
-            # lenght as the tone
-            # TODO; this infers the tone length from the envelope shape, overlaping tones will give problems, import values form parameter file?
+            # length as the tone
+            # this infers the tone length from the envelope shape, overlaping tones will give problems.
 
 
             adiff = diff[0, 0, :]
@@ -445,19 +444,66 @@ class ssa_index(nems_module):
                 where0 = np.where(diff[0, trialcounter, :] == 1)[0] + 1
                 where1 = np.where(diff[1, trialcounter, :] == 1)[0] + 1
 
+                # get the index of the onset tone, if one stream lacks tones then sets the index to max by default
+                # so the other stream necessarily has the onset.
+                try:
+                    first0 = where0[0]
+                except:
+                    first0 = stim.shape[2]
+
+                try:
+                    first1 = where1[0]
+                except:
+                    first1 = stim.shape[2]
+
+
                 # slices both streams
 
-                respstream0 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
-                respstream1 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
+                # this cool list comprehension should work, if trials didnt terminate prematurely
+                #respstream0 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
+                #respstream1 = [resp[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
+
+                respstream0 = list()
+                for ii in where0:
+                    single_tone = np.empty(toneLen * 3)
+                    single_tone[:] = np.NAN
+                    tone = resp[trialcounter, ii - toneLen: ii + (toneLen * 2)]
+                    single_tone[0:len(tone)] = tone
+                    respstream0.append(single_tone)
+
+                respstream1 = list()
+                for ii in where1:
+                    single_tone = np.empty(toneLen * 3)
+                    single_tone[:] = np.NAN
+                    tone = resp[trialcounter, ii - toneLen: ii + (toneLen * 2)]
+                    single_tone[0:len(tone)] = tone
+                    respstream1.append(single_tone)
+
 
                 if self.has_pred:
 
-                    predstream0 = [pred[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
-                    predstream1 = [pred[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
+                    #predstream0 = [pred[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where0]
+                    #predstream1 = [pred[trialcounter, ii - toneLen: ii + (toneLen * 2)] for ii in where1]
+
+                    predstream0 = list()
+                    for ii in where0:
+                        single_tone = np.empty(toneLen * 3)
+                        single_tone[:] = np.NAN
+                        tone = pred[trialcounter, ii - toneLen: ii + (toneLen * 2)]
+                        single_tone[0:len(tone)] = tone
+                        predstream0.append(single_tone)
+
+                    predstream1 = list()
+                    for ii in where1:
+                        single_tone = np.empty(toneLen * 3)
+                        single_tone[:] = np.NAN
+                        tone = pred[trialcounter, ii - toneLen: ii + (toneLen * 2)]
+                        single_tone[0:len(tone)] = tone
+                        predstream1.append(single_tone)
 
                 # checks which comes first and extract onset
 
-                if where0[0] < where1[0]:
+                if first0 < first1:
                     # Onset is in stream 0
                     resp_slice_dict['stream0Ons'] = resp_slice_dict['stream0Ons'] + [respstream0[0]]
                     respstream0 = respstream0[1:]
@@ -466,7 +512,7 @@ class ssa_index(nems_module):
                         pred_slice_dict['stream0Ons'] = pred_slice_dict['stream0Ons'] + [predstream0[0]]
                         predstream0 = predstream0[1:]
 
-                elif where0[0] > where1[0]:
+                elif first0 > first1:
                     # Onset in in stream 1
                     resp_slice_dict['stream1Ons'] = resp_slice_dict['stream1Ons'] + [respstream1[0]]
                     respstream1 = respstream1[1:]
@@ -545,7 +591,8 @@ class ssa_index(nems_module):
         self.resp_SI0  = [block['stream0'] for block in resp_SI]
         self.resp_SI1 = [block['stream1'] for block in resp_SI]
         self.resp_SIcell = [block['cell'] for block in resp_SI]
-
+        self.parent_stack.meta['ssa_index'] = dict()
+        self.parent_stack.meta['ssa_index']['resp_SI']=resp_SI
 
         if self.has_pred:
             self.folded_pred = folded_pred
@@ -553,3 +600,4 @@ class ssa_index(nems_module):
             self.pred_SI0 = [block['stream0'] for block in pred_SI]
             self.pred_SI1 = [block['stream1'] for block in pred_SI]
             self.pred_SIcell = [block['cell'] for block in pred_SI]
+            self.parent_stack.meta['ssa_index']['pred_SI'] = pred_SI
