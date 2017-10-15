@@ -220,13 +220,18 @@ def get_file_name(cellid, batch, modelname):
 
 
 def get_mat_file(filename, chars_as_strings=True):
+    """ 
+    get_mat_file : load matfile using scipy loadmat, but redirect to s3 if toggled on.
+        TODO: generic support of s3 URI, not NEMS-specific
+           check for local version (where, cached? before loading from s3)
+    """
     if AWS:
         s3_client = boto3.client('s3')
         key = filename[len(sc.DIRECTORY_ROOT):]
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-        file = scipy.io.loadmat(io.BytesIO(fileobj['Body'].read()), chars_as_strings=chars_as_strings)
-        return file
+        data = scipy.io.loadmat(io.BytesIO(fileobj['Body'].read()), chars_as_strings=chars_as_strings)
+        return data
     else:
-        file = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
-        return file
+        data = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
+        return data
 
