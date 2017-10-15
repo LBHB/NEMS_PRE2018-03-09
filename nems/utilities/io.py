@@ -274,5 +274,7 @@ def load_ecog(stack,fs=25):
 
     data['repcount']=np.ones([data['resp'].shape[0],1])
     data['pred']=data['stim']
+    data['respFs']=25
+    data['stimFs']=25
     
     return data

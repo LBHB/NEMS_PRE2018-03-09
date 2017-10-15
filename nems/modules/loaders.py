@@ -153,12 +153,13 @@ class load_mat(nems_module):
                 # with entries stim, resp, etc...
                 #print('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
+               
                 
 class load_gen(nems_module):
     """
-    load_gen : general-purpose loading wrapper 
+    load_gen : general-purpose loading wrapper. currently only supports load_ecog
     """
-    name='loaders.load_mat'
+    name='loaders.load_gen'
     user_editable_fields=['output_name','stimfile','respfile','fs','avg_resp']
     plot_fns=[nems.utilities.plot.plot_spectrogram, nems.utilities.plot.raster_plot]
     stimfile=None

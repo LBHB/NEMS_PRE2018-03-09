@@ -179,6 +179,7 @@ def mini_fit(stack, mods=['filters.weight_channels', 'filters.fir', 'filters.stp
             fitidx = fitidx + find_modules(stack, i)
         except:
             fitidx = fitidx + []
+    fitidx.sort()
     stack.fitter = nems.fitters.fitters.basic_min(stack, fit_modules=fitidx, tolerance=0.00001)
 
     stack.fitter.do_fit()

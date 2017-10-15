@@ -28,6 +28,15 @@ imp.reload(nk)
 imp.reload(ut)
 imp.reload(ns)
 
+try:
+    import nems.db as nd
+    db_exists = True
+except Exception as e:
+    # If there's an error import nems.db, probably missing database
+    # dependencies. So keep going but don't do any database stuff.
+    print("Problem importing nems.db, can't update tQueue")
+    print(e)
+    db_exists = False
 
 #datapath='/Users/svd/python/nems/ref/week5_TORCs/'
 #est_files=[datapath + 'tor_data_por073b-b1.mat']
@@ -61,7 +70,7 @@ if 1:
     channel=1
     cellid="sam-{0:03d}".format(channel)
     batch=300 #ECOG
-    modelname="ecog25_wcg01_fir10_fit01"
+    modelname="ecog25_wcg01_stp1pc_fir10_fit01"
 
 """ pupil gain test -- PPS data """
 if 0:
