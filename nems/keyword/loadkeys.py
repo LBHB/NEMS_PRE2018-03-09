@@ -186,6 +186,11 @@ def fb18ch50u(stack):
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval)
 
+def ecog25(stack):
+    stack.append(nm.loaders.load_gen, load_fun='load_ecog')
+    stack.append(nm.est_val.crossval)
+    stack.modules[-1].do_plot=ut.plot.plot_spectrogram
+
 def loadlocal(stack):
     """
     This keyword is just to load up a local file that is not yet on the BAPHY database.

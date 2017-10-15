@@ -56,6 +56,12 @@ modelname="fb18ch50u_wcg01_fir10_fit03"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
+# ecog test
+if 1:
+    channel=1
+    cellid="sam-{0:03d}".format(channel)
+    batch=300 #ECOG
+    modelname="ecog25_wcg01_fir10_fit01"
 
 """ pupil gain test -- PPS data """
 if 0:
@@ -138,6 +144,12 @@ else:
     if 0:
         filename = ut.io.get_file_name(cellid, batch, modelname)
         ut.io.save_model(stack, filename)
+        preview_file = stack.quick_plot_save(mode="png")
+        print("Preview saved to: {0}".format(preview_file))
+        if db_exists:
+            queueid = None
+            r_id = nd.save_results(stack, preview_file, queueid=queueid)
+            print("Fit results saved to NarfResults, id={0}".format(r_id))
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2
