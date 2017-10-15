@@ -80,7 +80,8 @@ class pupgain(nems_module):
         state variable. This is the "control" for the state_gain exploration.
         """
         Y=self.theta[0,0]+self.theta[0,1]*X
-        return(Y)   
+        return(Y)
+        
     def linpupgainctl_fn(self,X,Xp):
         """
         Applies a simple dc gain & offset to the stim data. Does not actually involve 

@@ -52,18 +52,20 @@ except Exception as e:
 #cellid='bbl070i-a1'
 #batch=291  # IC
 
-#cellid='chn010c-c3'
-#batch=271 #A1
+cellid='chn010c-c3'
+batch=271 #A1
 
-cellid='zee015h-15-1'
-batch=289 #A1
-
-modelname="fb18ch50u_wcg01_fir10_fit03"
+modelname="fb18ch100_wcg03_fir15_fit03"
 #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
 #cellid="eno052d-a1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
+
+if 1:
+    cellid='gus019d-b2'
+    batch=289 #A1
+    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03_nested5"
 
 # ecog test
 if 1:
