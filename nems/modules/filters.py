@@ -63,6 +63,11 @@ class weight_channels(nems_module):
         for i in range(0,self.num_chans):
             m=phi[i,0]*10
             s=phi[i,1]*10
+            if (m<0 and m<s):
+                s=-m
+            elif (m>self.num_dims and m>self.num_dims+s):
+                s=m-self.num_dims
+                               
             x=np.arange(0,self.num_dims)
             coefs[i,:]=np.exp(-np.square((x-m)/s))
             coefs[i,:]=coefs[i,:]/np.sum(coefs[i,:])
@@ -207,8 +212,8 @@ class stp(nems_module):
                 elif ui[i]<-0.5:
                     ui[i]=-0.5
                     
-                if taui[i]<1:
-                    taui[i]=1
+                if taui[i]<0.5:
+                    taui[i]=0.5
                     
                 for tt in range(1,s[2]):
                     td=di[i,:,tt-1]

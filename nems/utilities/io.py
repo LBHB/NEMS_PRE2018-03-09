@@ -276,5 +276,7 @@ def load_ecog(stack,fs=25):
     data['pred']=data['stim']
     data['respFs']=25
     data['stimFs']=25
+    del data['D']
+    del data['coch_all']
     
     return data

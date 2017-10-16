@@ -45,7 +45,7 @@ class gain(nems_module):
         if nltype=='dlog':
             self.do_plot=self.plot_fns[2]
         else:
-            self.do_plot=self.plot_fns[0]
+            self.do_plot=self.plot_fns[1]
         
     def dlog_fn(self,X):
         #TODO: need to find a good way to weed out negative and zero values

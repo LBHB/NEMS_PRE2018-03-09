@@ -188,7 +188,7 @@ def fb18ch50u(stack):
 
 def ecog25(stack):
     stack.append(nm.loaders.load_gen, load_fun='load_ecog')
-    stack.append(nm.est_val.crossval)
+    stack.append(nm.est_val.crossval,valfrac=0.2)
     stack.modules[-1].do_plot=ut.plot.plot_spectrogram
 
 def loadlocal(stack):
