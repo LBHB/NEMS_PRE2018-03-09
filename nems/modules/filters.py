@@ -196,7 +196,7 @@ class stp(nems_module):
         for j in range(0,self.num_channels):
             ui=np.absolute(self.u[:,j])
             #ui=self.u[:,j]
-            taui=self.tau[:,j]*100  # norm by sampling rate so that tau is in units of sec
+            taui=np.absolute(self.tau[:,j])*self.d_in[0]['respFs']  # norm by sampling rate so that tau is in units of sec
             
             # go through each stimulus channel
             for i in range(0,s[0]):
@@ -207,8 +207,8 @@ class stp(nems_module):
                 elif ui[i]<-0.5:
                     ui[i]=-0.5
                     
-                if taui[i]<0.001:
-                    taui[i]=0.001
+                if taui[i]<1:
+                    taui[i]=1
                     
                 for tt in range(1,s[2]):
                     td=di[i,:,tt-1]

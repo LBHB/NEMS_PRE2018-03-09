@@ -28,6 +28,15 @@ imp.reload(nk)
 imp.reload(ut)
 imp.reload(ns)
 
+try:
+    import nems.db as nd
+    db_exists = True
+except Exception as e:
+    # If there's an error import nems.db, probably missing database
+    # dependencies. So keep going but don't do any database stuff.
+    print("Problem importing nems.db, can't update tQueue")
+    print(e)
+    db_exists = False
 
 #datapath='/Users/svd/python/nems/ref/week5_TORCs/'
 #est_files=[datapath + 'tor_data_por073b-b1.mat']
@@ -43,19 +52,27 @@ imp.reload(ns)
 #cellid='bbl070i-a1'
 #batch=291  # IC
 
-#cellid='chn010c-c3'
-#batch=271 #A1
+cellid='chn010c-c3'
+batch=271 #A1
 
-cellid='zee015h-15-1'
-batch=289 #A1
-
-modelname="fb18ch50u_wcg01_fir10_fit03"
+modelname="fb18ch100_wcg03_fir15_fit03"
 #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
 #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
 #cellid="eno052d-a1"
 #batch=294
 #modelname="perfectpupil50_pupgain_fit01"
 
+if 1:
+    cellid='gus019d-b2'
+    batch=289 #A1
+    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03_nested5"
+
+# ecog test
+if 1:
+    channel=1
+    cellid="sam-{0:03d}".format(channel)
+    batch=300 #ECOG
+    modelname="ecog25_wcg01_stp1pc_fir10_fit01"
 
 """ pupil gain test -- PPS data """
 if 0:
@@ -138,6 +155,12 @@ else:
     if 0:
         filename = ut.io.get_file_name(cellid, batch, modelname)
         ut.io.save_model(stack, filename)
+        preview_file = stack.quick_plot_save(mode="png")
+        print("Preview saved to: {0}".format(preview_file))
+        if db_exists:
+            queueid = None
+            r_id = nd.save_results(stack, preview_file, queueid=queueid)
+            print("Fit results saved to NarfResults, id={0}".format(r_id))
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2
