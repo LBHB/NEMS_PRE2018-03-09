@@ -67,7 +67,9 @@ class weight_channels(nems_module):
                 s=-m
             elif (m>self.num_dims and m>self.num_dims+s):
                 s=m-self.num_dims
-                               
+            if s<0.05:
+                s=0.05
+                
             x=np.arange(0,self.num_dims)
             coefs[i,:]=np.exp(-np.square((x-m)/s))
             coefs[i,:]=coefs[i,:]/np.sum(coefs[i,:])
