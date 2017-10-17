@@ -46,6 +46,9 @@ except Exception as e:
 #datapath='/Users/svd/python/nems/misc/ref/'
 #est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
+def dexp_fn(phi,X):
+    Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
+    return(Y)
 
 if 0:
     """ NAT SOUND """
@@ -75,6 +78,7 @@ if 1:
     batch=300 #ECOG
     #modelname="ecog25_wcg01_fir15_fit03_nested5"
     modelname="ecog25_wcg01_fir15_dexp_fit01_nested5"
+    #modelname="ecog25_wcg01_fir15_dexp"
     
     
 """ pupil gain test -- PPS data """
@@ -136,7 +140,7 @@ else:
         for k in stack.keywords:
             stack.keyfuns[k](stack)
 
-    if 1:
+    if 0:
         # validation stuff
         stack.valmode=True
         stack.evaluate(1)
