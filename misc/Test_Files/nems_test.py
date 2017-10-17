@@ -70,11 +70,11 @@ if 0:
 
 # ecog test
 if 1:
-    channel=3
+    channel=8
     cellid="sam-{0:03d}".format(channel)
     batch=300 #ECOG
     #modelname="ecog25_wcg01_fir15_fit03_nested5"
-    modelname="ecog25_wcg02_fir15_dexp_fit01_nested5"
+    modelname="ecog25_wcg01_fir15_dexp_fit01_nested5"
     
     
 """ pupil gain test -- PPS data """
