@@ -53,7 +53,16 @@ def dexp(stack):
     mini_fit(stack,mods=['nonlin.gain'])
     
 def logsig(stack):
-    phi=[0,1,0,1]
+#        a=self.phi[0,0]
+#        b=self.phi[0,1]
+#        c=self.phi[0,2]
+#        d=self.phi[0,3]
+#        Y=a+b/(1+np.exp(-(X-c)/d))
+    resp=stack.modules[-1].unpack_data('resp',use_dout=True)
+    pred=stack.modules[-1].unpack_data('pred',use_dout=True)
+    meanr=np.mean(resp)
+    stdr=np.std(resp)
+    phi=[meanr-stdr*3,stdr*6,np.mean(pred),np.std(pred)]
     stack.append(nm.nonlin.gain,nltype='logsig',fit_fields=['phi'],phi=phi) 
     mini_fit(stack,mods=['nonlin.gain'])
     
