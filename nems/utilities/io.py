@@ -275,8 +275,64 @@ def load_ecog(stack,fs=25):
     data['repcount']=np.ones([data['resp'].shape[0],1])
     data['pred']=data['stim']
     data['respFs']=25
-    data['stimFs']=25
+    data['stimFs']=400  # original
+    data['fs']=25       # final, matched for both
     del data['D']
     del data['coch_all']
     
     return data
+
+def load_nat_cort(fs=100,prestimsilence=0.5,duration=3,poststimsilence=0.5):
+    """
+    special hard-coded loader for cortical filtered version of NAT
+    
+    file saved with 200 Hz fs and 3-sec duration + 1-sec poststim silence to tail off filters
+    use pre/dur/post parameters to adjust size appropriately
+    """
+      
+    stimfile='/auto/data/tmp/filtcoch_PCs_100.mat'
+    stimdata = h5py.File(stimfile,'r')
+    
+    data={}
+    for name,d in stimdata.items():
+        #print (name)
+        #if name=='S_mod':
+        #    S_mod=d.value
+        if name=='U_mod':
+            U_mod=d.value
+        #if name=='V_mod':
+        #    V_mod=d.value
+    fs_in=200
+    noise_thresh=0.0
+    stim_resamp_factor=int(fs_in/fs)
+    
+    data['stim']=np.reshape(U_mod,[100,93,800])
+    if stim_resamp_factor != 1:
+        data['stim']=ut.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
+    s=data['stim'].shape
+    prepad=np.zeros([s[0],s[1],int(prestimsilence*fs)])
+    offbin=int((duration+poststimsilence)*fs)
+    data['stim']=np.concatenate((prepad,data['stim'][:,:,0:offbin]),axis=2)
+    data['stimFs']=fs_in
+    data['fs']=fs
+    
+    return data
+
+    # reshape stimulus to be channel X stim X time and downsample from 400 to 25 Hz
+#    stim_resamp_factor=int(400/25)
+#    noise_thresh=0
+#    # reduce spectral sampling to speed things up
+#    data['stim']=ut.utils.thresh_resamp(data['coch_all'],6,thresh=noise_thresh,ax=1)
+#    
+#    # match temporal sampling to response
+#    data['stim']=ut.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
+#    data['stim']=np.transpose(data['stim'],[1,0,2])
+#
+#    data['repcount']=np.ones([data['resp'].shape[0],1])
+#    data['pred']=data['stim']
+#    data['respFs']=25
+#    data['stimFs']=25
+#    del data['D']
+#    del data['coch_all']
+#    
+#    return data
