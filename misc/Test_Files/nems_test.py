@@ -50,7 +50,7 @@ def dexp_fn(phi,X):
     Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
     return(Y)
 
-if 0:
+if 1:
     """ NAT SOUND """
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
@@ -59,7 +59,9 @@ if 0:
     cellid='chn010c-c3'
     batch=271 #A1
     
-    modelname="fb18ch100_wcg03_fir15_fit03"
+    #modelname="fb18ch100_wcg01_fir15_fit03"
+    modelname="ctx100ch100_wc01_fir15_fit01"
+    modelname="fb18ch100_wc01_fir15_fit01"
     #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
     #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
     #cellid="eno052d-a1"
@@ -72,7 +74,7 @@ if 0:
     modelname="fb18ch50u_wcg01_fir10_pupgain_fit03_nested5"
 
 # ecog test
-if 1:
+if 0:
     channel=38
     cellid="sam-{0:03d}".format(channel)
     batch=300 #ECOG

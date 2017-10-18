@@ -206,7 +206,7 @@ class stp(nems_module):
             #ui=self.u[:,j]
             
             # convert tau units from sec to bins
-            taui=np.absolute(self.tau[:,j])*self.d_in[0]['respFs']  
+            taui=np.absolute(self.tau[:,j])*self.d_in[0]['fs']  
             
             # go through each stimulus channel
             for i in range(0,s[0]):
