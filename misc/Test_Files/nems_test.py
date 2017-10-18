@@ -52,16 +52,17 @@ def dexp_fn(phi,X):
 
 if 1:
     """ NAT SOUND """
+    cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
-    #batch=291  # IC
+    batch=291  # IC
     
-    cellid='chn010c-c3'
+    cellid="gus018b-c2"
     batch=271 #A1
-    
-    #modelname="fb18ch100_wcg01_fir15_fit03"
+    #modelname="fb18ch100_wcg01_fir15_fit01"
+    #modelname="fb24ch100_wcg01_fir15_fit01"
     modelname="ctx100ch100_wc01_fir15_fit01"
-    modelname="fb18ch100_wc01_fir15_fit01"
+    #modelname="fb18ch100_wc01_fir15_fit01"
     #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
     #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
     #cellid="eno052d-a1"

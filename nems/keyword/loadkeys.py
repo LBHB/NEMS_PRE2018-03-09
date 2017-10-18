@@ -147,7 +147,8 @@ def ctx100ch100(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stimdata=ut.io.load_nat_cort(100,stack.data[-1][0]['prestim'],stack.data[-1][0]['duration'],stack.data[-1][0]['poststim'])
-    stack.data[-1][0]['stim']=stimdata['stim']
+    for d in stack.data[-1]:
+        d['stim']=stimdata['stim']
     stack.append(nm.est_val.standard)
     
 def fb18ch100x(stack):
