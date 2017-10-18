@@ -142,6 +142,7 @@ class fir(nems_module):
 class stp(nems_module):
     """
     stp - simulate short-term plasticity with the Tsodyks and Markram model
+    
     m.editable_fields = {'num_channels', 'strength', 'tau', 'strength2', 'tau2',...
                     'per_channel', 'offset_in', 'facil_on', 'crosstalk',...
                     'input', 'input_mod','time', 'output' };
@@ -201,24 +202,25 @@ class stp(nems_module):
         Y=np.zeros([0,s[1],s[2]])
         di=np.ones(s)
         for j in range(0,self.num_channels):
-            ui=np.absolute(self.u[:,j])
+            ui=np.absolute(self.u[:,j])  # force only depression, no facilitation
             #ui=self.u[:,j]
-            taui=np.absolute(self.tau[:,j])*self.d_in[0]['respFs']  # norm by sampling rate so that tau is in units of sec
+            
+            # convert tau units from sec to bins
+            taui=np.absolute(self.tau[:,j])*self.d_in[0]['respFs']  
             
             # go through each stimulus channel
             for i in range(0,s[0]):
                 
-                # limits:
+                # limits, assumes input (X) range is approximately -1 to +1
                 if ui[i]>0.5:
                     ui[i]=0.5
                 elif ui[i]<-0.5:
-                    ui[i]=-0.5
-                    
+                    ui[i]=-0.5                    
                 if taui[i]<0.5:
                     taui[i]=0.5
                     
                 for tt in range(1,s[2]):
-                    td=di[i,:,tt-1]
+                    td=di[i,:,tt-1]  # previous time bin depression
                     if ui[i]>0:
                         delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
                         td=td+delta

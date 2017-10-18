@@ -140,7 +140,7 @@ else:
         for k in stack.keywords:
             stack.keyfuns[k](stack)
 
-    if 0:
+    if 1:
         # validation stuff
         stack.valmode=True
         stack.evaluate(1)

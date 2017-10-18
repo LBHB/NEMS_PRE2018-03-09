@@ -280,3 +280,46 @@ def load_ecog(stack,fs=25):
     del data['coch_all']
     
     return data
+
+def load_nat_cort(stack,fs=100):
+    """
+    special hard-coded loader for cortical filtered version of NAT
+    """
+    
+    cellinfo=stack.meta["cellid"].split("-")
+    channel=int(cellinfo[1])
+    
+    stimfile='/auto/data/tmp/filtcoch_PCs_100.mat'
+    
+    stimdata = h5py.File(stimfile,'r')
+    
+    data={}
+    for name,d in stimdata.items():
+        print (name)
+        if name=='S_mod':
+            data['S_mod']=d.value
+        if name=='U_mod':
+            data['U_mod']=d.value
+        if name=='V_mod':
+            data['V_mod']=d.value
+   
+    return data
+
+    # reshape stimulus to be channel X stim X time and downsample from 400 to 25 Hz
+#    stim_resamp_factor=int(400/25)
+#    noise_thresh=0
+#    # reduce spectral sampling to speed things up
+#    data['stim']=ut.utils.thresh_resamp(data['coch_all'],6,thresh=noise_thresh,ax=1)
+#    
+#    # match temporal sampling to response
+#    data['stim']=ut.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
+#    data['stim']=np.transpose(data['stim'],[1,0,2])
+#
+#    data['repcount']=np.ones([data['resp'].shape[0],1])
+#    data['pred']=data['stim']
+#    data['respFs']=25
+#    data['stimFs']=25
+#    del data['D']
+#    del data['coch_all']
+#    
+#    return data
