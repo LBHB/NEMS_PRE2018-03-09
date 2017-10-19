@@ -50,18 +50,20 @@ def dexp_fn(phi,X):
     Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
     return(Y)
 
+doval=0
+
 if 1:
     """ NAT SOUND """
-    cellid="bbl031f-a1"
+    cellid="bbl034e-a2"
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
     batch=291  # IC
     
-    cellid="gus018b-c2"
-    batch=271 #A1
+    #cellid="gus021b-a1"
+    #batch=271 #A1
     #modelname="fb18ch100_wcg01_fir15_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
-    modelname="ctx100ch100_wc01_fir15_fit01"
+    modelname="ctx100ch100_wc01_fir15_dexp"
     #modelname="fb18ch100_wc01_fir15_fit01"
     #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
     #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
@@ -143,7 +145,7 @@ else:
         for k in stack.keywords:
             stack.keyfuns[k](stack)
 
-    if 1:
+    if doval:
         # validation stuff
         stack.valmode=True
         stack.evaluate(1)

@@ -306,7 +306,9 @@ def load_nat_cort(fs=100,prestimsilence=0.5,duration=3,poststimsilence=0.5):
     noise_thresh=0.0
     stim_resamp_factor=int(fs_in/fs)
     
-    data['stim']=np.reshape(U_mod,[100,93,800])
+    # reshape and normalize to max of approx 1
+    
+    data['stim']=np.reshape(U_mod,[100,93,800])/0.05
     if stim_resamp_factor != 1:
         data['stim']=ut.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
     s=data['stim'].shape
