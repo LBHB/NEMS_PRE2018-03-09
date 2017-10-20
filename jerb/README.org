@@ -26,14 +26,14 @@
 * Technical Overview 
 ** The Object
    A Jerb object is only allowed to have these six fields:
-   | FIELD   | TYPE   | DESCRIPTION                                               |
-   |---------+--------+-----------------------------------------------------------|
-   | jid     | SHA256 | A unique identifier (and anti-tampering hash)             |
-   | deps    | set    | Execution dependenciees used to answer: "Can I run this?" |
-   | parents | tuple  | Parent Jerbs whose data is used in this function.         |
-   | props   | map    | Any metadata you want to attach to this                   |
-   | fn      | *      | The code to be execute; a base64 zlib'd fileobj           |
-   | val     | *      | The result payload; a base64 zlib'd fileobj               |
+   | FIELD   | TYPE   | DESCRIPTION                                              |
+   |---------+--------+----------------------------------------------------------|
+   | jid     | SHA256 | A unique identifier (and anti-tampering hash)            |
+   | deps    | set    | Execution dependencies used to answer: "Can I run this?" |
+   | parents | tuple  | Parent Jerbs whose data is used in this function.        |
+   | props   | map    | Any metadata you want to attach to this                  |
+   | fn      | *      | The code to be execute; a base64 zlib'd fileobj          |
+   | val     | *      | The result payload; a base64 zlib'd fileobj              |
 
 ** FAQ / HOWTO
 *** How do I update the Jerb if it is immutable?
@@ -50,7 +50,7 @@
 *** What does the HTTP protocol for Jerbs look like?
     |-------------+-----------------------------------------------------------|
     | PUT(jid)    | Upload and INDEX Jerb                                     |
-    | HEAD(jid)   | Return a preview jerb? Or how big it is?                  |
+    | HEAD(jid)   | Return a 'preview' jerb? Or how many bytes it is? TODO    |
     | GET(jid)    | Get the full Jerb                                         |
     | DELETE(jid) | Remove and UNINDEX Jerb (TODO: iff there are no children) |
     |-------------+-----------------------------------------------------------|
@@ -85,6 +85,8 @@
     | exec_user        | The user who executed the src payload     |
     |------------------+-------------------------------------------|
 
+    But of course, there may be other properties that you come up with, like the AWS execution context, the type of EC2 instance running the Jerb, and so on
+
 *** How does my code and data stay secret?
     If you are using the HTTPS connection, nobody will be able to eavesdrop the URLs that you are visiting, which means that they cannot learn your JIDs. Mining hashes is easily detected on the server side and can result in blocking of clients trying to guess JIDs at random.
 
@@ -93,8 +95,8 @@
     (TODO: Can this be restricted to children only? Or parents only?)
     
 *** How do attach documentation to the Jerb?
-    The following properties
-    | docs | Documentation for this JERB |
+    The following prop might be a good convention:
+    | docs | Documentation for this JERB, what its intent was. |
     
 * Unhelpful Jerbs Quotes
 
