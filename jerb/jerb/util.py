@@ -41,14 +41,19 @@ def just_keys(dictionary, keys):
     return d
 
 
+# TODO: I should rethink this decision. This is the wrong way to do this.
 def environment_credentials():
     """ Returns a dict of the credentials found in the environment. """
+
     default_env = {'MYSQL_PORT': '3306'}
     cred_keys = ['MYSQL_HOST',
                  'MYSQL_USER',
                  'MYSQL_PASS',
                  'MYSQL_DB',
                  'MYSQL_PORT',
+                 'REDIS_HOST',
+                 'REDIS_PORT',
+                 'REDIS_PASS',
                  'AWS_ACCESS_KEY_ID',
                  'AWS_SECRET_KEY']
     env = merge_dicts(default_env, os.environ)

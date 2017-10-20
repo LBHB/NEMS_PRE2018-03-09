@@ -91,3 +91,6 @@ class Jerb ():
     #         return ValueError("time_finished not after time_started")
 
     #     return False
+
+# TODO: Functions to add, get, update, or delete properties?
+#       Or is it easier to just leave it as a dictionary?
