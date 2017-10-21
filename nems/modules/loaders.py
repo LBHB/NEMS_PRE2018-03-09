@@ -153,7 +153,34 @@ class load_mat(nems_module):
                 # with entries stim, resp, etc...
                 #print('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
+               
                 
+class load_gen(nems_module):
+    """
+    load_gen : general-purpose loading wrapper. currently only supports load_ecog
+    """
+    name='loaders.load_gen'
+    user_editable_fields=['output_name','stimfile','respfile','fs','avg_resp']
+    plot_fns=[nems.utilities.plot.plot_spectrogram, nems.utilities.plot.raster_plot]
+    stimfile=None
+    respfile=None
+    fs=100
+    avg_resp=True
+    
+    def my_init(self,stimfile=None,respfile=None,fs=100,avg_resp=True,load_fun='load_ecog'):
+        self.stimfile=stimfile
+        self.respfile=respfile
+        self.fs=fs
+        self.avg_resp=avg_resp
+        self.auto_plot=False
+
+    def evaluate(self):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+        self.d_out[0]=nems.utilities.io.load_ecog(stack=self.parent_stack,fs=self.fs)
+        
+        
 class dummy_data(nems_module):
     """
     dummy_data - generate some very dumb test data without loading any files. 

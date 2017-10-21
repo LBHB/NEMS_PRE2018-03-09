@@ -208,18 +208,18 @@ def pupwgt(stack,weight_type='linear'):
     num_coefs=stack.modules[firidx].num_coefs
     coefs=stack.modules[firidx].coefs
     baseline=stack.modules[firidx].baseline
-    stack.modules[wtidx].output_name='stim2'
-    stack.modules[firidx].input_name='stim2'
-    stack.modules[firidx].output_name='stim2'
+    stack.modules[wtidx].output_name='pred1'
+    stack.modules[firidx].input_name='pred1'
+    stack.modules[firidx].output_name='pred1'
     stack.evaluate(wtidx)
-    stack.append(nm.filters.weight_channels,num_chans=num_chans,phi=phi,parm_type=parm_type)
+    stack.append(nm.filters.weight_channels,output_name="pred2",num_chans=num_chans,phi=phi,parm_type=parm_type)
     stack.modules[-1].phi=phi
     stack.modules[-1].wcoefs=wcoefs
-    stack.append(nm.filters.fir,num_coefs=num_coefs)
+    stack.append(nm.filters.fir,num_coefs=num_coefs,input_name="pred2",output_name="pred2")
     stack.modules[-1].coefs=coefs*0.99
     stack.modules[-1].baseline=baseline*0.99
 
-    stack.append(nm.pupil.state_weight,weight_type=weight_type,fit_fields=['theta'],theta=[0,0.01])
+    stack.append(nm.pupil.state_weight,input_name="pred1",input_name2="pred2",weight_type=weight_type,fit_fields=['theta'],theta=[0,0.01])
     stack.evaluate(wtidx)
     
     #mini_fit(stack,mods=['pupil.state_weight'])

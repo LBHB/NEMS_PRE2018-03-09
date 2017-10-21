@@ -40,11 +40,10 @@ class normalize(nems_module):
     d=0
     g=1
     
-    def my_init(self, force_positive=True,data='stim'):
+    def my_init(self, force_positive=True):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.force_positive=force_positive
-        self.input_name=data
         self.auto_plot=False
         if self.parent_stack.cv_counter==0:
             print('norm lists created')

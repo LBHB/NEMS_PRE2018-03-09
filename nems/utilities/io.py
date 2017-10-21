@@ -14,6 +14,9 @@ import copy
 import io
 import json
 import pprint
+import h5py
+
+import nems.utilities as ut
 
 try:
     import boto3
@@ -220,13 +223,58 @@ def get_file_name(cellid, batch, modelname):
 
 
 def get_mat_file(filename, chars_as_strings=True):
+    """ 
+    get_mat_file : load matfile using scipy loadmat, but redirect to s3 if toggled on.
+        TODO: generic support of s3 URI, not NEMS-specific
+           check for local version (where, cached? before loading from s3)
+    """
     if AWS:
         s3_client = boto3.client('s3')
         key = filename[len(sc.DIRECTORY_ROOT):]
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-        file = scipy.io.loadmat(io.BytesIO(fileobj['Body'].read()), chars_as_strings=chars_as_strings)
-        return file
+        data = scipy.io.loadmat(io.BytesIO(fileobj['Body'].read()), chars_as_strings=chars_as_strings)
+        return data
     else:
-        file = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
-        return file
+        data = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
+        return data
 
+
+def load_ecog(stack,fs=25):
+    """
+    special hard-coded loader from ECOG data from Sam
+    """
+    
+    cellinfo=stack.meta["cellid"].split("-")
+    channel=int(cellinfo[1])
+    
+    stimfile='/auto/data/daq/ecog/coch.mat'
+    respfile='/auto/data/daq/ecog/reliability0.1.mat'
+    
+    stimdata = h5py.File(stimfile,'r')
+    respdata = h5py.File(respfile,'r')
+    
+    data={}
+    for name,d in respdata.items():
+        #print (name)
+        data[name]=d.value
+    for name,d in stimdata.items():
+        #print (name)
+        data[name]=d.value
+    data['resp']=data['D'][channel,:,:]   # shape to stim X time (25Hz)
+    
+    # reshape stimulus to be channel X stim X time and downsample from 400 to 25 Hz
+    stim_resamp_factor=int(400/25)
+    noise_thresh=0
+    # reduce spectral sampling to speed things up
+    data['stim']=ut.utils.thresh_resamp(data['coch_all'],6,thresh=noise_thresh,ax=1)
+    
+    # match temporal sampling to response
+    data['stim']=ut.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
+    data['stim']=np.transpose(data['stim'],[1,0,2])
+
+    data['repcount']=np.ones([data['resp'].shape[0],1])
+    data['pred']=data['stim']
+    data['respFs']=25
+    data['stimFs']=25
+    
+    return data

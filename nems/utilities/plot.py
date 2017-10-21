@@ -13,6 +13,7 @@ import scipy
 import numpy as np
 import numpy.ma as npma
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 import nems.utilities.utils
 
@@ -39,18 +40,18 @@ def plot_spectrogram(m,idx=None,size=FIGSIZE):
     for i in range(0,r):
         lis.extend([i]*reps[i])
     new_id=lis[ids]
-    if out1['stim'].ndim==3:
+    if out1[m.output_name].ndim==3:
         try:
-            plt.imshow(out1['stim'][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower', interpolation='none')
+            plt.imshow(out1[m.output_name][:,m.parent_stack.plot_stimidx,:], aspect='auto', origin='lower', interpolation='none')
         except:
-            plt.imshow(out1['stim'][:,new_id,:], aspect='auto', origin='lower', interpolation='none')
+            plt.imshow(out1[m.output_name][:,new_id,:], aspect='auto', origin='lower', interpolation='none')
         cbar = plt.colorbar()
         cbar.set_label('amplitude')
         # TODO: colorbar is intensity of spectrogram/response, units not clearly specified yet
         plt.xlabel('Time')
         plt.ylabel('Channel')
     else:
-        s=out1['stim'][:,new_id]
+        s=out1[m.output_name][:,new_id]
         #r=out1['resp'][m.parent_stack.plot_stimidx,:]
         pred, =plt.plot(s,label='Average Model')
         #resp, =plt.plot(r,'r',label='Response')
@@ -66,9 +67,9 @@ def plot_stim(m,idx=None,size=FIGSIZE):
         plt.figure(num=str(idx),figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
     #c=out1['repcount'][m.parent_stack.plot_stimidx]
-    #h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    #h=out1[m.output_name][m.parent_stack.plot_stimidx].shape
     #scl=int(h[0]/c)
-    s2=np.squeeze(out1['stim'][:,m.parent_stack.plot_stimidx,:]).transpose()
+    s2=np.squeeze(out1[m.output_name][:,m.parent_stack.plot_stimidx,:]).transpose()
     print(s2.shape)
     plt.plot(s2)
     #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
@@ -164,7 +165,7 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
-    s=out1['stim'][m.parent_stack.plot_stimidx,:]
+    s=out1[m.output_name][m.parent_stack.plot_stimidx,:]
     r=out1['resp'][m.parent_stack.plot_stimidx,:]
     pred, =plt.plot(s,label='Predicted')
     act, =plt.plot(r,'r',label='Actual')
@@ -177,7 +178,7 @@ def pred_act_psth_smooth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
-    s=out1['stim'][m.parent_stack.plot_stimidx,:]
+    s=out1[m.output_name][m.parent_stack.plot_stimidx,:]
     r=out1['resp'][m.parent_stack.plot_stimidx,:]
         
     box_pts=20
@@ -249,9 +250,9 @@ def plot_stim_psth(m,idx=None,size=FIGSIZE):
         plt.figure(num=str(idx),figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
     #c=out1['repcount'][m.parent_stack.plot_stimidx]
-    #h=out1['stim'][m.parent_stack.plot_stimidx].shape
+    #h=out1[m.output_name][m.parent_stack.plot_stimidx].shape
     #scl=int(h[0]/c)
-    s2=out1['stim'][m.parent_stack.plot_stimidx,:]
+    s2=out1[m.output_name][m.parent_stack.plot_stimidx,:]
     resp, =plt.plot(s2,'r',label='Post-'+m.name)
     plt.legend(handles=[resp])
     #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
@@ -284,11 +285,17 @@ def plot_strf(m,idx=None,size=FIGSIZE):
     plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
     plt.clim(-mmax,mmax)
     cbar = plt.colorbar()
-    #TODO: cbar.set_label('???')
-    #plt.title(m.name)S
-    plt.xlabel('Channel') #or kHz?
-    # Is this correct? I think so...
-    plt.ylabel('Latency')
+    cbar.set_label('gain')
+    if m.name=="filters.fir":
+        plt.xlabel('Latency')
+        plt.ylabel('Channel') #or kHz?
+    elif m.name=="filters.weight_channels":
+        plt.xlabel('Channel in')
+        plt.ylabel('Channel out') #or kHz?
+    else:
+        pass
+        #plt.xlabel('Channel') #or kHz?
+        #plt.ylabel('Latency')
     
 def non_plot(m):
     pass
@@ -401,6 +408,126 @@ def sorted_raster(m,idx=None,size=FIGSIZE):
     plt.ylabel('Trial')
     plt.xlabel('Time')
     plt.title('Sorted by Pupil: Stimulus #'+str(ids))
+
+def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=False):
+    '''
+    specific plotting function for the ssa_index module, essentially overlayed PSTHs for each tone type.
+    '''
+    if idx:
+        figure = plt.figure(num=idx, figsize=size)
+
+    if isinstance(outer, gridspec.SubplotSpec):
+        inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer) #,wspace=0.1, hspace=0.1)
+    elif figure == None:
+        figure = plt.figure(num=idx, figsize=size)
+        inner = gridspec.GridSpec(1,2)
+    else:
+        raise ('"outer" has to be an instance of gridspec.GridSpecFromSubplotSpec or None (default)')
+
+    has_pred = m.has_pred
+
+
+    folded_resp = m.folded_resp[m.parent_stack.plot_stimidx]
+
+    if has_pred:
+        folded_pred = m.folded_pred[m.parent_stack.plot_stimidx]
+
+    # smooths the data, right now deactivated since the import already downsamples.
+    smooth = False
+    if smooth:
+        box_pts = 20
+    else:
+        box_pts = 1
+
+    box = np.ones(box_pts) / box_pts
+
+    # Calculates traces and errors for each tone type of response
+    resp_dict = {key: (np.convolve(np.nanmean(value, axis=0), box, mode='same'))
+                for key, value in folded_resp.items()}
+
+    if error:
+        resp_err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
+                for key, value in folded_resp.items()}
+
+    # calculates traces and errors for each tone type of predictions, or whole cell values if no pred.
+
+    if has_pred:
+        pred_dict = {key: (np.convolve(np.nanmean(value, axis=0), box, mode='same'))
+                     for key, value in folded_pred.items()}
+
+        if error:
+            pred_err_dict = {key: (np.convolve(np.nanstd(value, axis=0), box, mode='same'))
+                        for key, value in folded_pred.items()}
+
+    else:
+        tone_type = ['Std', 'Dev']
+
+        cell_act = {key: (
+            np.convolve(
+                np.nanmean(np.concatenate([val for k, val in folded_resp.items() if k[-3:] == key], axis=0), axis=0),
+                box, mode='same')) for key in tone_type}
+        if error:
+            cell_err = {key: (
+                np.convolve(
+                    np.nanstd(np.concatenate([val for k, val in folded_resp.items() if k[-3:] == key], axis=0), axis=0),
+                    box, mode='same')) for key in tone_type}
+
+
+
+    # plotting parameters: keys = Tone types to be ploted; colors = color of line, correspond with stream;
+    # Lines = type of line, correspond with standard or deviant .
+    keys = ['stream0Std', 'stream0Dev', 'stream1Std', 'stream1Dev']
+    colors = ['C0', 'C0', 'C1', 'C1']
+    lines = ['-', ':', '-', ':']
+
+    axes = [plt.Subplot(figure, ax) for ax in inner]
+    x_ax = resp_dict['stream0Std'].shape[0]
+
+    # First part: plot of cell response by tone type.
+
+    for k, c, l in zip(keys, colors, lines):
+        axes[0].plot(resp_dict[k], color=c, linestyle=l, label=k)
+        if error:
+            axes[0].fill_between(range(x_ax), resp_dict[k] - resp_err_dict[k], resp_dict[k] + resp_err_dict[k],
+                                 facecolor=c, alpha=0.2)
+
+    axes[0].axvline(x_ax / 3, color='black')
+    axes[0].axvline((x_ax / 3) * 2, color='black')
+    axes[0].set_xlabel('Time Step')
+    axes[0].set_ylabel('Firing Rate')
+    axes[0].legend(loc='upper left', fontsize='xx-small')
+
+    # second part: plot of predicted cell activity by tone type.
+
+    if has_pred:
+
+        for k, c, l in zip(keys, colors, lines):
+            axes[1].plot(pred_dict[k], color=c, linestyle=l, label=k)
+            if error:
+                axes[1].fill_between(range(x_ax), pred_dict[k] - pred_err_dict[k], pred_dict[k] + pred_err_dict[k],
+                                     facecolor=c, alpha=0.2)
+    else:
+        lines = ['-', ':']
+
+        for k, l in zip(tone_type, lines):
+            axes[1].plot(cell_act[k], color='black', linestyle=l, label=k)
+            if error:
+                axes[1].fill_between(range(x_ax), cell_act[k] - cell_err[k], cell_act[k] + cell_err[k],
+                                     facecolor='gray', alpha=0.2)
+
+    axes[1].axvline(x_ax / 3, color='black')
+    axes[1].axvline((x_ax / 3) * 2, color='black')
+    axes[1].set_xlabel('Time Step')
+    axes[1].set_ylabel('Firing Rate')
+    axes[1].legend(loc='upper left', fontsize='xx-small')
+
+
+    for ax in axes:
+        figure.add_subplot(ax)
+
+    # sets the y axis so they are shared
+    axes[1].set_ylim(axes[0].get_ylim())
+
     
 
 #
