@@ -90,8 +90,12 @@ def start_logging():
 def track_thread_count():
     while True:
         socketio.sleep(180)
-        print("current thread count: ")
-        print(threading.active_count())
+        if threading.active_count() >= 10:
+            print("current thread count: ")
+            print(threading.active_count())
+            print("active threads: ")
+            for t in threading.enumerate():
+                print(t.name)
         
 socketio.start_background_task(target=track_thread_count)
 

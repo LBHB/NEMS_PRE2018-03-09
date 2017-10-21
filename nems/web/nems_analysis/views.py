@@ -769,6 +769,7 @@ def get_preview():
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
 
+    figurefile = None
     # only need this to be backwards compatible with NARF preview images?
     path = (
             session.query(NarfResults.figurefile)
@@ -779,23 +780,27 @@ def get_preview():
             )
     
     if not path:
+        session.close()
         return jsonify(image='missing preview')
+    else:
+        figurefile = str(path.figurefile)
+        session.close()
     
     # TODO: Make this not ugly.
     
     if AWS:
         s3_client = boto3.client('s3')
         try:
-            key = path.figurefile[len(sc.DIRECTORY_ROOT):]
+            key = figurefile[len(sc.DIRECTORY_ROOT):]
             fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
             image = str(b64encode(fileobj['Body'].read()))[2:-1]
-
+            
             return jsonify(image=image)
         except Exception as e:
             print(e)
             print("key was: {0}".format(path.figurefile[len(sc.DIRECTORY_ROOT)]))
             try:
-                key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
+                key = figurefile[len(sc.DIRECTORY_ROOT)-1:]
                 fileobj = s3_client.get_object(
                         Bucket=sc.PRIMARY_BUCKET, 
                         Key=key
@@ -810,12 +815,12 @@ def get_preview():
     else:
         try:
             #local = sc.DIRECTORY_ROOT + path.figurefile.strip('/auto/data/code')
-            with open('/' + path.figurefile, 'r+b') as img:
+            with open('/' + figurefile, 'r+b') as img:
                 image = str(b64encode(img.read()))[2:-1]
             return jsonify(image=image)
         except:
             try:
-                with open(path.figurefile, 'r+b') as img:
+                with open(figurefile, 'r+b') as img:
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)
             except Exception as e:
@@ -854,7 +859,10 @@ def get_saved_selections():
 def set_saved_selections():
     user = get_current_user()
     if not user.username:
-        return jsonify(response="user not logged in, can't save selections")
+        return jsonify(
+                response="user not logged in, can't save selections",
+                null=True,
+                )
     session = Session()
     saved_selections = request.args.get('stringed_selections')
     print(type(saved_selections))
@@ -870,4 +878,4 @@ def set_saved_selections():
     session.commit()
     session.close()
     
-    return jsonify(response='selections saved')
+    return jsonify(response='selections saved', null=False)
