@@ -11,7 +11,7 @@ representations of the bokeh plot for the data, which can then be embedded in
 an html document.
 
 """
-
+import io
 import math
 import itertools
 
@@ -21,18 +21,21 @@ from bokeh.plotting import figure
 from bokeh.embed import components
 from bokeh.models import (
         ColumnDataSource, HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
-        PanTool, ResetTool, Range1d, FactorRange,
+        PanTool, ResetTool, Range1d, FactorRange, Title
         )
 from bokeh.charts import BoxPlot
 from bokeh.models.glyphs import VBar,Circle
 #from bokeh.models.widgets import DataTable, TableColumn
 import pandas as pd
 import numpy as np
+import scipy.stats as st
+import matplotlib.pyplot as plt, mpld3
 
 #NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
 #      list for use with web interface
 PLOT_TYPES = [
-        'Scatter_Plot', 'Bar_Plot', 'Pareto_Plot', 'Tabular_Plot'
+        'Scatter_Plot', 'Bar_Plot', 'Pareto_Plot', 'Tabular_Plot',
+        'Significance_Plot',
         ]
 
 # Setting default tools as global variable was causing issues with scatter
@@ -353,6 +356,19 @@ class Scatter_Plot(PlotGenerator):
                 else:
                     cells = cellsY
             
+            x_mean = np.mean(dataX[self.measure[0]])
+            x_median = np.median(dataX[self.measure[0]])
+            y_mean = np.mean(dataY[self.measure[0]])
+            y_median = np.median(dataY[self.measure[0]])
+            x_label = (
+                    "{0}, mean: {1:5.4f}, median: {2:5.4f}"
+                    .format(modelX, x_mean, x_median)
+                    )
+            y_label = (
+                    "{0}, mean: {1:5.4f}, median: {2:5.4f}"
+                    .format(modelY, y_mean, y_median)
+                    )
+            
             data = pd.DataFrame({
                     'x_values':dataX[self.measure[0]],
                     'y_values':dataY[self.measure[0]],
@@ -362,7 +378,7 @@ class Scatter_Plot(PlotGenerator):
                 
             p = figure(
                     x_range=[0,1], y_range=[0,1],
-                    x_axis_label=modelX, y_axis_label=modelY,
+                    x_axis_label=x_label, y_axis_label=y_label,
                     title=self.measure[0], tools=tools, responsive=True,
                     toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
                     output_backend="svg"
@@ -692,11 +708,76 @@ class Tabular_Plot(PlotGenerator):
         #self.script, self.div = components(data_table)
 
 
+class Significance_Plot(PlotGenerator):
+    def __init__(self, data, measure, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, fair, outliers)
+        
+    def extents(self, f):
+        # reference:
+        # https://bl.ocks.org/fasiha/eff0763ca25777ec849ffead370dc907
+        # (calculates the data coordinates of the corners for array chunks)
+        if len(f) == 1:
+            delta = 1
+        else:
+            delta = f[1] - f[0]
+        return [f[0] - delta/2, f[-1] + delta/2]
+            
+    def generate_plot(self):
+        modelnames = self.data.index.levels[0].tolist()
+        
+        array = np.ndarray(
+                shape=(len(modelnames), len(modelnames)),
+                dtype=float,
+                )
+        for i, m_one in enumerate(modelnames):
+            for j, m_two in enumerate(modelnames):
+                mean_one = np.mean(self.data.loc[m_one][self.measure[0]])
+                mean_two = np.mean(self.data.loc[m_two][self.measure[0]])
+                array[i][j] = abs(mean_one - mean_two)
+        
+        xticks = range(len(modelnames))
+        yticks = xticks
+        minor_xticks = np.arange(-0.5, len(modelnames), 1)
+        minor_yticks = np.arange(-0.5, len(modelnames), 1)
+        extent = self.extents(xticks) + self.extents(yticks)
+
+        p = plt.figure(figsize=(len(modelnames),len(modelnames)))
+        img = plt.imshow(
+                array, aspect='auto', origin='lower', 
+                cmap=plt.get_cmap('RdBu'), interpolation='none',
+                extent=extent,
+                )
+        
+        ax = plt.gca()
+        
+        for (i, j), z in np.ndenumerate(array):
+            ax.text(
+                    j, i, '{:0.2f}'.format(z), ha='center', va='center',
+                    bbox=dict(boxstyle="round", facecolor="white", edgecolor='0.3'),
+                    )
+
+        ax.set_ylabel('')
+        ax.set_xlabel('')
+        ax.set_yticks(yticks)
+        ax.set_yticklabels(modelnames, fontsize=8)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(modelnames, fontsize=8, rotation="vertical")
+        ax.set_yticks(minor_yticks, minor=True)
+        ax.set_xticks(minor_xticks, minor=True)
+        ax.grid(b=False)
+        ax.grid(which='minor', color='w', linestyle='-', linewidth=0.75)
+
+
+        img = io.BytesIO()
+        plt.savefig(img, bbox_inches='tight')
+        #html = mpld3.fig_to_html(p)
+        plt.close(p)
+        img.seek(0)
+        self.img_str = img.read()
             
             
             
-            
-            
+
             
             
             

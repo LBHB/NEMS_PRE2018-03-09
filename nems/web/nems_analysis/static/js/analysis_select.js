@@ -110,7 +110,7 @@ $(document).ready(function(){
         constructor(){
             this.tags = '__any';
             this.status = '__any';
-            this.analysis = 'fitters';
+            this.analysis = 'nems testing';
             this.plot_measure = 'r_test';
             this.plot_type = 'Scatter_Plot';
             this.script = 'demo_script';
@@ -122,6 +122,7 @@ $(document).ready(function(){
             this.cols = cols_array;
             this.sort = 'cellid';
             this.row_limit = 500;
+            this.code_hash = '';
         }
     }
 
@@ -177,9 +178,10 @@ $(document).ready(function(){
     }
 
     function assign_selections(){
-        $("#analysisSelector").val(saved_selections.analysis).change();
         $("#tagFilters").val(saved_selections.tags).change();
         $("#statusFilters").val(saved_selections.status).change();
+
+        $("#codeHash").val(saved_selections.code_hash);
 
         $("#rowLimit").val(saved_selections.row_limit);
         $("#tableSortSelector").val(saved_selections.sort);
@@ -200,6 +202,7 @@ $(document).ready(function(){
         $("#plotTypeSelector").val(saved_selections.plot_type);
         $("#measureSelector").val(saved_selections.plot_measure);
         $("#customSelector").val(saved_selections.script);
+
         snr = saved_selections.snr;
         snri = saved_selections.snri;
         iso = saved_selections.iso;
@@ -209,6 +212,7 @@ $(document).ready(function(){
         // temporary solution but not great since time to finish ajax calls might
         // be longer in some cases.
         //setTimeout(function(){ wait_on_analysis = false; }, 3000);
+        $("#analysisSelector").val(saved_selections.analysis).change();
     }
 
 
@@ -259,6 +263,14 @@ $(document).ready(function(){
     function save_before_close(){
         set_saved_selections();
     }
+    // also save selections every 60 seconds just to be safe
+    // TODO: 60 seconds okay, or would shorter/longer be better?
+    setInterval(function(){
+        set_saved_selections();
+        console.log("Selections saved.");
+        },
+        60000
+    );
 
     $("#testSave").click(set_saved_selections);
     $("#testGet").click(get_saved_selections);
@@ -317,7 +329,11 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                $("#batchSelector").val(data.batch).change();
+                if ((data.blank === 1) || (data.blank === "1")){
+                    $("#batchSelector").val($("#batchSelector option:first").val()).change();
+                } else {
+                    $("#batchSelector").val(data.batch).change();
+                }
             },
             error: function(error) {
                 console.log(error);
@@ -436,7 +452,9 @@ $(document).ready(function(){
                 //sizeDragTable();
                 var table = results.children("table");
                 initTable(table);
-                addLinksToTable();
+                //disabled for now - need to figure out agood way to let user
+                // toggle the links on and off
+                //addLinksToTable();
             },
             error: function(error) {
                 console.log(error);
@@ -510,8 +528,9 @@ $(document).ready(function(){
                 console.log("changing analysis selector value inside updateAnalysis() function");
                 if (data.analysislist.includes(saved_selections.analysis)){
                     $("#analysisSelector").val(saved_selections.analysis);
+                } else {
+                    $("#analysisSelector").val($("#analysisSelector option:first").val()).change();
                 }
-                $("#analysisSelector").val($("#analysisSelector option:first").val());
            },
            error: function(error){
                 console.log(error);
@@ -1187,6 +1206,25 @@ $(document).ready(function(){
                     } else{
                         $("#statusReportWrapper").html('');
                         plotDiv.html(data.html);
+                    }
+                }
+                if (data.hasOwnProperty('image')){
+                    if(plotNewWindow){
+                        var w = window.open(
+                            $SCRIPT_ROOT + '/plot_window',
+                            )
+                        $(w.document).ready(function(){
+                            w.$(w.document.body).append(
+                                '<img id="preview_image" src="data:image/png;base64,'
+                                + data.image + '" />'
+                            );
+                        });
+                    } else{
+                        $("#statusReportWrapper").html();
+                        plotDiv.html(
+                            '<img id="preview_image" src="data:image/png;base64,'
+                            + data.image + '" />'
+                        );
                     }
                 }
                 removeLoad();

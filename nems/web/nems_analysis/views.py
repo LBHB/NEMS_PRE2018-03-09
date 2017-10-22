@@ -203,20 +203,13 @@ def main_view():
 def update_batch():
     """Update current batch selection after an analysis is selected."""
     
-    user = get_current_user()
     session = Session()
+    blank = 0
     
     aSelected = request.args.get('aSelected', type=str)
-    
     batch = (
             session.query(NarfAnalysis.batch)
             .filter(NarfAnalysis.name == aSelected)
-            #.filter(or_(
-                    #int(user.sec_lvl) == 9,
-                    #NarfBatches.public == '1',
-                    #NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
-                    #NarfBatches.username == user.username,
-                    #))
             .first()
             )
     try:
@@ -224,10 +217,11 @@ def update_batch():
     except Exception as e:
         print(e)
         batch = ''
+        blank = 1
     
     session.close()
     
-    return jsonify(batch=batch)
+    return jsonify(batch=batch, blank=blank)
     
 
 @app.route('/update_models')
@@ -294,7 +288,8 @@ def update_cells():
             .filter(NarfAnalysis.name == aSelected)
             .first()
             )
-    if analysis:
+    # don't change batch association if batch is blank
+    if analysis and bSelected:
         analysis.batch = batch
 
     session.commit()
@@ -865,15 +860,11 @@ def set_saved_selections():
                 )
     session = Session()
     saved_selections = request.args.get('stringed_selections')
-    print(type(saved_selections))
-    print(saved_selections)
     user_entry = (
             session.query(NarfUsers)
             .filter(NarfUsers.username == user.username)
             .first()
             )
-    print("json dumps output: ")
-    print(json.dumps(saved_selections))
     user_entry.selections = saved_selections
     session.commit()
     session.close()

@@ -10,6 +10,7 @@ components to pass back to the JS ajax function, which will insert them into
 the display area in the browser.
 
 """
+from base64 import b64encode
 
 import pandas.io.sql as psql
 
@@ -137,6 +138,9 @@ def generate_plot_html():
         return jsonify(script=plot.script, div=plot.div)
     elif hasattr(plot, 'html'):
         return jsonify(html=plot.html)
+    elif hasattr(plot, 'img_str'):
+        image = str(b64encode(plot.img_str))[2:-1]
+        return jsonify(image=image)
     else:
         return jsonify(script="Couldn't find anything ", div="to return")
     
