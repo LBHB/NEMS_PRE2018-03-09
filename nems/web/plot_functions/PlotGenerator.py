@@ -729,31 +729,57 @@ class Significance_Plot(PlotGenerator):
                 shape=(len(modelnames), len(modelnames)),
                 dtype=float,
                 )
+        
         for i, m_one in enumerate(modelnames):
             for j, m_two in enumerate(modelnames):
-                mean_one = np.mean(self.data.loc[m_one][self.measure[0]])
-                mean_two = np.mean(self.data.loc[m_two][self.measure[0]])
-                array[i][j] = abs(mean_one - mean_two)
+                # get series of values corresponding to selected measure
+                # for each model
+                series_one = self.data.loc[m_one][self.measure[0]]
+                series_two = self.data.loc[m_two][self.measure[0]]
+                if j == i:
+                    # if indices equal, on diagonal so no comparison
+                    array[i][j] = 0.00
+                elif j > i:
+                    # if j is larger, below diagonal so get mean difference
+                    mean_one = np.mean(series_one)
+                    mean_two = np.mean(series_two)
+                    array[i][j] = abs(mean_one - mean_two)
+                else:
+                    # if j is smaller, above diagonal so run t-test and
+                    # get p-value
+                    array[i][j] = st.ttest_rel(series_one, series_two)[1]
         
         xticks = range(len(modelnames))
         yticks = xticks
         minor_xticks = np.arange(-0.5, len(modelnames), 1)
         minor_yticks = np.arange(-0.5, len(modelnames), 1)
-        extent = self.extents(xticks) + self.extents(yticks)
 
         p = plt.figure(figsize=(len(modelnames),len(modelnames)))
-        img = plt.imshow(
-                array, aspect='auto', origin='lower', 
-                cmap=plt.get_cmap('RdBu'), interpolation='none',
-                extent=extent,
-                )
+
+        #extent = self.extents(xticks) + self.extents(yticks)
+        #img = plt.imshow(
+        #        array, aspect='auto', origin='lower', 
+        #        cmap=plt.get_cmap('RdBu'), interpolation='none',
+        #        extent=extent,
+        #        )
         
         ax = plt.gca()
         
+        # ripped from stackoverflow. adds text labels to the grid
+        # at positions i,j (model x model)  with text z (value of array at i, j)
         for (i, j), z in np.ndenumerate(array):
+            if j == i:
+                color="red"
+            elif j > i:
+                color="blue"
+            else:
+                if array[i][j] < 0.001:
+                    color="green"
+                else:
+                    color="white"
             ax.text(
-                    j, i, '{:0.2f}'.format(z), ha='center', va='center',
-                    bbox=dict(boxstyle="round", facecolor="white", edgecolor='0.3'),
+                    j, i, '{:.2E}'.format(z), ha='center', va='center',
+                    bbox=dict(boxstyle="round", facecolor=color, edgecolor='0.3'),
                     )
 
         ax.set_ylabel('')
@@ -765,8 +791,7 @@ class Significance_Plot(PlotGenerator):
         ax.set_yticks(minor_yticks, minor=True)
         ax.set_xticks(minor_xticks, minor=True)
         ax.grid(b=False)
-        ax.grid(which='minor', color='w', linestyle='-', linewidth=0.75)
-
+        ax.grid(which='minor', color='b', linestyle='-', linewidth=0.75)
 
         img = io.BytesIO()
         plt.savefig(img, bbox_inches='tight')
