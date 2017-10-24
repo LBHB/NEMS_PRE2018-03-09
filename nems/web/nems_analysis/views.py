@@ -203,20 +203,13 @@ def main_view():
 def update_batch():
     """Update current batch selection after an analysis is selected."""
     
-    user = get_current_user()
     session = Session()
+    blank = 0
     
     aSelected = request.args.get('aSelected', type=str)
-    
     batch = (
             session.query(NarfAnalysis.batch)
             .filter(NarfAnalysis.name == aSelected)
-            #.filter(or_(
-                    #int(user.sec_lvl) == 9,
-                    #NarfBatches.public == '1',
-                    #NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
-                    #NarfBatches.username == user.username,
-                    #))
             .first()
             )
     try:
@@ -224,10 +217,11 @@ def update_batch():
     except Exception as e:
         print(e)
         batch = ''
+        blank = 1
     
     session.close()
     
-    return jsonify(batch=batch)
+    return jsonify(batch=batch, blank=blank)
     
 
 @app.route('/update_models')
@@ -294,7 +288,8 @@ def update_cells():
             .filter(NarfAnalysis.name == aSelected)
             .first()
             )
-    if analysis:
+    # don't change batch association if batch is blank
+    if analysis and bSelected:
         analysis.batch = batch
 
     session.commit()
@@ -769,6 +764,7 @@ def get_preview():
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
 
+    figurefile = None
     # only need this to be backwards compatible with NARF preview images?
     path = (
             session.query(NarfResults.figurefile)
@@ -779,23 +775,27 @@ def get_preview():
             )
     
     if not path:
+        session.close()
         return jsonify(image='missing preview')
+    else:
+        figurefile = str(path.figurefile)
+        session.close()
     
     # TODO: Make this not ugly.
     
     if AWS:
         s3_client = boto3.client('s3')
         try:
-            key = path.figurefile[len(sc.DIRECTORY_ROOT):]
+            key = figurefile[len(sc.DIRECTORY_ROOT):]
             fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
             image = str(b64encode(fileobj['Body'].read()))[2:-1]
-
+            
             return jsonify(image=image)
         except Exception as e:
             print(e)
             print("key was: {0}".format(path.figurefile[len(sc.DIRECTORY_ROOT)]))
             try:
-                key = path.figurefile[len(sc.DIRECTORY_ROOT)-1:]
+                key = figurefile[len(sc.DIRECTORY_ROOT)-1:]
                 fileobj = s3_client.get_object(
                         Bucket=sc.PRIMARY_BUCKET, 
                         Key=key
@@ -810,12 +810,12 @@ def get_preview():
     else:
         try:
             #local = sc.DIRECTORY_ROOT + path.figurefile.strip('/auto/data/code')
-            with open('/' + path.figurefile, 'r+b') as img:
+            with open('/' + figurefile, 'r+b') as img:
                 image = str(b64encode(img.read()))[2:-1]
             return jsonify(image=image)
         except:
             try:
-                with open(path.figurefile, 'r+b') as img:
+                with open(figurefile, 'r+b') as img:
                     image = str(b64encode(img.read()))[2:-1]
                 return jsonify(image=image)
             except Exception as e:
@@ -854,20 +854,19 @@ def get_saved_selections():
 def set_saved_selections():
     user = get_current_user()
     if not user.username:
-        return jsonify(response="user not logged in, can't save selections")
+        return jsonify(
+                response="user not logged in, can't save selections",
+                null=True,
+                )
     session = Session()
     saved_selections = request.args.get('stringed_selections')
-    print(type(saved_selections))
-    print(saved_selections)
     user_entry = (
             session.query(NarfUsers)
             .filter(NarfUsers.username == user.username)
             .first()
             )
-    print("json dumps output: ")
-    print(json.dumps(saved_selections))
     user_entry.selections = saved_selections
     session.commit()
     session.close()
     
-    return jsonify(response='selections saved')
+    return jsonify(response='selections saved', null=False)

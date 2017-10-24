@@ -172,6 +172,7 @@
         </div> <!-- analysis + batch col -->
 
         <div class="col-xs-4" id="cellModelCol">
+
             <div class="row" id="cellModelRow">
                 <div class="col-xs-4" id="cellCol">
                     <div class="form-group" id="cellDiv">
@@ -217,6 +218,7 @@
             </div><!-- model and cell row -->
 
             <div class="row" id="modelButtonsRow"><div class='col-xs-12'>
+
                 <div class="input-group form-inline"
                      id="modelButtons">
                     <div class="input-group-btn">
@@ -244,18 +246,18 @@
                                     Fit Options
                         </button>
                     </div>
-
-                    <div class="input-group form-inline"
-                         id="fitOpDiv">
-                            Force Rerun
+                </div>
+                <div class="input-group form-inline"
+                     id="fitOpDiv">
+                        Force Rerun
                         <input type="checkbox"
                                id="forceRerun"
                                value="1">
-                    </div>
+                        Code Hash
+                        <input type="text"
+                               id="codeHash"
+                               style="width: 85px;">
                 </div>
-
-
-
             </div></div><!-- model buttons row and dummy col-->
         </div><!-- cell and model column -->
 
@@ -486,11 +488,9 @@
             </h4>
             -->
             <!-- buttons for manually testing saved user selections -->
-            <!--
             <button type="button" id="testSave"> Test Save </button>
             <button type="button" id="testGet"> Test Get </button>
             <button type="button" id="testPrint"> Test Print </button>
-            -->
         </div>
     </div><!-- selections row -->
 
@@ -867,8 +867,14 @@
     </div>
     
     <!-- load jquery -->
+    <!--
     <script type=text/javascript src=
-        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>-->
+    <!-- non-minified version. easier debugging? -->
+    <script
+              src="https://code.jquery.com/jquery-3.2.1.js"
+              integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
+              crossorigin="anonymous"></script>
         
     <!-- load jquery ui -->
     <script src=

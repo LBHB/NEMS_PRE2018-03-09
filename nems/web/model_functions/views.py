@@ -87,11 +87,15 @@ def enqueue_models_view():
     bSelected = request.args.get('bSelected')[:3]
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
+    codeHash = request.args.get('codeHash')
+    if not codeHash:
+        codeHash = "master"
     force_rerun = request.args.get('forceRerun', type=int)
     
     enqueue_models(
             cSelected, bSelected, mSelected,
             force_rerun=bool(force_rerun), user=user.username,
+            codeHash=codeHash,
             )
     return jsonify(data=True)
     
