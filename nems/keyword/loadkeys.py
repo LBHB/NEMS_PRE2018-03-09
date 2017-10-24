@@ -136,6 +136,20 @@ def fb18ch100(stack):
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.standard)
     
+def fb93ch100(stack):
+    """
+    Loads a 93-channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
+    Averages the response to each stimulus over its respective raster, and
+    applies a 5% estimation/validation split if the est/val datasets are not 
+    specified in the file. 
+
+    This is for DIRECT comparison with Sam N-H's cochlear model.
+    """
+    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=93)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stack.append(nm.est_val.standard)
+    
 def ctx100ch100(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
