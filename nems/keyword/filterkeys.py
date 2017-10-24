@@ -131,3 +131,11 @@ def stp2pc(stack):
     stack.append(nm.filters.stp,num_channels=2)
     stack.modules[-1].u[:,0]=0.01
     stack.modules[-1].u[:,1]=0.1
+
+def stp1pcn(stack):
+    #stack.append(nm.aux.normalize)
+    #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])
+    stack.append(nm.aux.normalize)
+    stack.append(nm.filters.stp,num_channels=1)
+    stack.modules[-1].u[:]=0.01
+
