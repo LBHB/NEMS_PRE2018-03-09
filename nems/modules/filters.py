@@ -80,9 +80,13 @@ class weight_channels(nems_module):
         #    # only allocate memory once, the first time evaling. rish is that output_name could change
         if self.parm_fun:
             self.coefs=self.parm_fun(self.phi)
+            coefs=self.coefs
+        else:
+            coefs=self.coefs
+            
         s=X.shape
         X=np.reshape(X,[s[0],-1])
-        X=np.matmul(self.coefs,X)
+        X=np.matmul(coefs,X)
         s=list(s)
         s[0]=self.num_chans
         Y=np.reshape(X,s)

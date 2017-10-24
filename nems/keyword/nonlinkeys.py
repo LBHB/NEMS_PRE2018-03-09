@@ -49,6 +49,7 @@ def dexp(stack):
     meanr=np.mean(resp)
     stdr=np.std(resp)
     phi=[meanr+stdr*4, stdr*8, np.std(pred)/10, np.mean(pred)]
+    print(phi)
     stack.append(nm.nonlin.gain,nltype='dexp',fit_fields=['phi'],phi=phi) 
     mini_fit(stack,mods=['nonlin.gain'])
     
