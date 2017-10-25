@@ -44,8 +44,8 @@ class weight_channels(nems_module):
             if parm_type=='gauss':
                 self.parm_fun=self.gauss_fn
                 m=np.matrix(np.linspace(1,self.num_dims,self.num_chans+2))
-                m=m[:,1:-1]/10
-                s=np.ones([self.num_chans,1])*4/10
+                m=m[:,1:-1]/self.num_dims
+                s=np.ones([self.num_chans,1])/4
                 phi=np.concatenate([m.transpose(),s],1)
             self.coefs=self.parm_fun(phi)
             if not fit_fields:
@@ -61,8 +61,8 @@ class weight_channels(nems_module):
     def gauss_fn(self,phi):
         coefs=np.zeros([self.num_chans,self.num_dims])
         for i in range(0,self.num_chans):
-            m=phi[i,0]*10
-            s=phi[i,1]*10
+            m=phi[i,0]*self.num_dims
+            s=phi[i,1]*self.num_dims
             if s<0.05:
                 s=0.05
             if (m<0 and m<s):
