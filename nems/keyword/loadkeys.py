@@ -191,6 +191,7 @@ def fb18ch100x(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.crossval)
+    stack.modules[-1].do_plot=ut.plot.plot_spectrogram
     
 def fb18ch100u(stack):
     """

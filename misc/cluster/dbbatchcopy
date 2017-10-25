@@ -3,7 +3,7 @@
 echo "Dumping local batch data to file"
 locdump='mysqldump --host=hyrax.ohsu.edu -udavid -pnine1997'
 
-$locdump cell NarfBatches >/tmp/NarfBatches.sql
+$locdump cell sBatch NarfBatches >/tmp/NarfBatches.sql
 
 echo "Reading batch data into remote db"
 mysql --host=neuralprediction.org --database="cell" -udavid -pnine1997 < /tmp/NarfBatches.sql
