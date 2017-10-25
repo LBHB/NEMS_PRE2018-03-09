@@ -57,13 +57,14 @@ if 1:
     cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
+    cellid="bbl031f-a1"
     batch=291  # IC
     
-    cellid="eno009c-a1"
-    batch=271 #A1
+    #cellid="bbl031f-a1"
+    #batch=271 #A1
     #modelname="fb18ch100_wcg01_fir15_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
-    modelname="coch93ch100_wc01_stp1pc_fir15_fit01"
+    modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
     #modelname="fb18ch100_wc01_fir15_fit01"
     #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
     #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
