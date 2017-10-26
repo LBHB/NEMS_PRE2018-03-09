@@ -123,8 +123,9 @@ if 0:
 if 1:
     #cellid='gus018d-d1'
     cellid="gus021c-b2"
+    cellid='gus018d-d1'
     batch=296
-    modelname="env100e_stp1pcon_fir20_fit01_ssa"
+    modelname="env100e_fir20_fit01_ssa"
     #modelname="env100e_fir20_dexp_fit01"
 
 # following is equivalent of 
