@@ -52,7 +52,7 @@ def dexp_fn(phi,X):
 
 doval=1
 
-if 1:
+if 0:
     """ NAT SOUND """
     cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
@@ -71,6 +71,11 @@ if 1:
     #cellid="eno052d-a1"
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
+if 0:
+    """ TORC-TONE """
+    cellid="TAR010c-06-1"
+    batch=301 #A1
+    modelname="fb18ch100x_wcg02_fir15_fit01_nested5"
 
 if 0:
     cellid='gus019d-b2'
@@ -115,11 +120,11 @@ if 0:
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 
 """ SSA test """
-if 0:
+if 1:
     #cellid='gus018d-d1'
-    cellid="gus023e-c2"
+    cellid="gus021c-b2"
     batch=296
-    modelname="env100e_stp1pc_fir20_fit01"
+    modelname="env100e_stp1pcon_fir20_fit01_ssa"
     #modelname="env100e_fir20_dexp_fit01"
 
 # following is equivalent of 
