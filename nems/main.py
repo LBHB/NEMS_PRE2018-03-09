@@ -45,24 +45,14 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     stack.meta['cellid']=cellid
     stack.meta['modelname']=modelname
     stack.valmode=False
-    stack.keyfuns=nk.keyfuns
-    
-    # extract keywords from modelname, look up relevant functions in nk and save
-    # so they don't have to be found again.
     stack.keywords=modelname.split("_")
-    #stack.keyfun={}
-    #for k in stack.keywords:
-    #    for importer, modname, ispkg in pk.iter_modules(nk.__path__):
-    #        try:
-    #            f=getattr(importer.find_module(modname).load_module(modname),k)
-    #            break
-    #        except:
-    #            pass
-        #stack.keyfun[k]=f
+    
+    # pre-indexed set of keyword functions
+    stack.keyfuns=nk.keyfuns
 
     # evaluate the stack of keywords    
     if 'nested' in stack.keywords[-1]:
-        # special case for nested keywords. fix this somehow
+        # special case for nested keywords. Stick with this design?
         print('Using nested cross-validation, fitting will take longer!')
         k=stack.keywords[-1]
         stack.keyfuns[k](stack)
@@ -70,9 +60,6 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
         print('Using standard est/val conditions')
         for k in stack.keywords:
             stack.keyfuns[k](stack)
-#        for k in stack.keywords:
-#            f = getattr(nk, k)
-#            f(stack)
 
     # measure performance on both estimation and validation data
     stack.valmode=True

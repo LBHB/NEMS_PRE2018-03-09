@@ -49,7 +49,7 @@ def env100e(stack):
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.est_val.crossval,valfrac=0.00)
+    stack.append(nm.est_val.crossval,valfrac=0.1)
     stack.append(nm.aux.onset_edges)
     
 def parm50x(stack):
@@ -136,6 +136,50 @@ def fb18ch100(stack):
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.standard)
     
+def fb93ch100(stack):
+    """
+    Loads a 93-channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
+    Averages the response to each stimulus over its respective raster, and
+    applies a 5% estimation/validation split if the est/val datasets are not 
+    specified in the file. 
+
+    This is for DIRECT comparison with Sam N-H's cochlear model.
+    """
+    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=93)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stack.append(nm.est_val.standard)
+    
+def ctx100ch100(stack):
+    """
+    Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
+    Averages the response to each stimulus over its respective raster, and
+    applies a 5% estimation/validation split if the est/val datasets are not 
+    specified in the file. 
+    """
+    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stimdata=ut.io.load_nat_cort(100,stack.data[-1][0]['prestim'],stack.data[-1][0]['duration'],stack.data[-1][0]['poststim'])
+    for d in stack.data[-1]:
+        d['stim']=stimdata['stim']
+    stack.append(nm.est_val.standard)
+
+def coch93ch100(stack):
+    """
+    Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
+    Averages the response to each stimulus over its respective raster, and
+    applies a 5% estimation/validation split if the est/val datasets are not 
+    specified in the file. 
+    """
+    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stimdata=ut.io.load_nat_coch(100,stack.data[-1][0]['prestim'],stack.data[-1][0]['duration'],stack.data[-1][0]['poststim'])
+    for d in stack.data[-1]:
+        d['stim']=stimdata['stim']
+    stack.append(nm.est_val.standard)
+    
 def fb18ch100x(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
@@ -147,6 +191,7 @@ def fb18ch100x(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.crossval)
+    stack.modules[-1].do_plot=ut.plot.plot_spectrogram
     
 def fb18ch100u(stack):
     """
@@ -185,6 +230,11 @@ def fb18ch50u(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval)
+
+def ecog25(stack):
+    stack.append(nm.loaders.load_gen, load_fun='load_ecog')
+    stack.append(nm.est_val.crossval,valfrac=0.2)
+    stack.modules[-1].do_plot=ut.plot.plot_spectrogram
 
 def loadlocal(stack):
     """

@@ -28,6 +28,15 @@ imp.reload(nk)
 imp.reload(ut)
 imp.reload(ns)
 
+try:
+    import nems.db as nd
+    db_exists = True
+except Exception as e:
+    # If there's an error import nems.db, probably missing database
+    # dependencies. So keep going but don't do any database stuff.
+    print("Problem importing nems.db, can't update tQueue")
+    print(e)
+    db_exists = False
 
 #datapath='/Users/svd/python/nems/ref/week5_TORCs/'
 #est_files=[datapath + 'tor_data_por073b-b1.mat']
@@ -37,26 +46,52 @@ imp.reload(ns)
 #datapath='/Users/svd/python/nems/misc/ref/'
 #est_files=[datapath + 'bbl031f-a1_nat_export.mat']
 #'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
+def dexp_fn(phi,X):
+    Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
+    return(Y)
 
-""" NAT SOUND """
-#cellid='bbl034e-a1'
-#cellid='bbl070i-a1'
-#batch=291  # IC
+doval=1
 
-#cellid='chn010c-c3'
-#batch=271 #A1
+if 0:
+    """ NAT SOUND """
+    cellid="bbl031f-a1"
+    #cellid='bbl034e-a1'
+    #cellid='bbl070i-a1'
+    cellid="bbl031f-a1"
+    batch=291  # IC
+    
+    #cellid="bbl031f-a1"
+    #batch=271 #A1
+    #modelname="fb18ch100_wcg01_fir15_fit01"
+    #modelname="fb24ch100_wcg01_fir15_fit01"
+    modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
+    #modelname="fb18ch100_wc01_fir15_fit01"
+    #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+    #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
+    #cellid="eno052d-a1"
+    #batch=294
+    #modelname="perfectpupil50_pupgain_fit01"
+if 0:
+    """ TORC-TONE """
+    cellid="TAR010c-06-1"
+    batch=301 #A1
+    modelname="fb18ch100x_wcg02_fir15_fit01_nested5"
 
-cellid='zee015h-15-1'
-batch=289 #A1
+if 0:
+    cellid='gus019d-b2'
+    batch=289 #A1
+    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03_nested5"
 
-modelname="fb18ch50u_wcg01_fir10_fit03"
-#modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-#modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
-#cellid="eno052d-a1"
-#batch=294
-#modelname="perfectpupil50_pupgain_fit01"
-
-
+# ecog test
+if 0:
+    channel=38
+    cellid="sam-{0:03d}".format(channel)
+    batch=300 #ECOG
+    #modelname="ecog25_wcg01_fir15_fit03_nested5"
+    modelname="ecog25_wcg01_fir15_dexp_fit01_nested5"
+    modelname="ecog25_wcg01_fir15_logsig_fit01_nested5"
+    
+    
 """ pupil gain test -- PPS data """
 if 0:
     #cellid='gus021d-a2'
@@ -85,11 +120,12 @@ if 0:
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 
 """ SSA test """
-if 0:
+if 1:
     #cellid='gus018d-d1'
-    cellid="gus023e-c2"
+    cellid="gus021c-b2"
+    cellid='gus018d-d1'
     batch=296
-    modelname="env100e_stp1pc_fir20_fit01"
+    modelname="env100e_fir20_fit01_ssa"
     #modelname="env100e_fir20_dexp_fit01"
 
 # following is equivalent of 
@@ -116,7 +152,7 @@ else:
         for k in stack.keywords:
             stack.keyfuns[k](stack)
 
-    if 1:
+    if doval:
         # validation stuff
         stack.valmode=True
         stack.evaluate(1)
@@ -138,6 +174,12 @@ else:
     if 0:
         filename = ut.io.get_file_name(cellid, batch, modelname)
         ut.io.save_model(stack, filename)
+        preview_file = stack.quick_plot_save(mode="png")
+        print("Preview saved to: {0}".format(preview_file))
+        if db_exists:
+            queueid = None
+            r_id = nd.save_results(stack, preview_file, queueid=queueid)
+            print("Fit results saved to NarfResults, id={0}".format(r_id))
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2

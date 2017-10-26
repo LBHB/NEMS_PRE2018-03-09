@@ -7,8 +7,19 @@ Created on Fri Aug 11 11:08:08 2017
 
 @author: shofer
 """
+import numpy as np
 import nems.modules as nm
 from nems.utilities.utils import mini_fit
+
+def dlog2(stack):
+    """
+    Applies a natural logarithm entry-by-entry to the datastream: 
+        y = log(x+v1)
+    where x is the input matrix and v1 is a fitted parameter applied to each
+    matrix entry (the same across all entries)
+    """
+    stack.append(nm.nonlin.gain,nltype='dlog',fit_fields=[],phi=[1])
+    #stack.append(nm.normalize)
 
 def dlog(stack):
     """
@@ -41,12 +52,28 @@ def dexp(stack):
     
     Performs a fit on the nonlinearity parameters, as well.
     """
-    stack.append(nm.nonlin.gain,nltype='dexp',fit_fields=['phi'],phi=[1,.01,.001,0]) 
+    resp=stack.modules[-1].unpack_data('resp',use_dout=True)
+    pred=stack.modules[-1].unpack_data('pred',use_dout=True)
     #choose phi s.t. dexp starts as almost a straight line 
+    # phi=[max_out min_out slope mean_in]
+    meanr=np.mean(resp)
+    stdr=np.std(resp)
+    phi=[meanr+stdr*4, stdr*8, np.std(pred)/10, np.mean(pred)]
+    print(phi)
+    stack.append(nm.nonlin.gain,nltype='dexp',fit_fields=['phi'],phi=phi) 
     mini_fit(stack,mods=['nonlin.gain'])
     
 def logsig(stack):
-    phi=[0,1,0,1]
+#        a=self.phi[0,0]
+#        b=self.phi[0,1]
+#        c=self.phi[0,2]
+#        d=self.phi[0,3]
+#        Y=a+b/(1+np.exp(-(X-c)/d))
+    resp=stack.modules[-1].unpack_data('resp',use_dout=True)
+    pred=stack.modules[-1].unpack_data('pred',use_dout=True)
+    meanr=np.mean(resp)
+    stdr=np.std(resp)
+    phi=[meanr-stdr*3,stdr*6,np.mean(pred),np.std(pred)]
     stack.append(nm.nonlin.gain,nltype='logsig',fit_fields=['phi'],phi=phi) 
     mini_fit(stack,mods=['nonlin.gain'])
     
