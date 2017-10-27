@@ -41,7 +41,7 @@ from nems.db import (
 from nems.web.nems_analysis.ModelFinder import ModelFinder
 from nems.web.plot_functions.PlotGenerator import PLOT_TYPES
 from nems.web.account_management.views import get_current_user
-from nems.keyword_rules import keyword_test_routine
+#from nems.keyword_rules import keyword_test_routine
 from nems.web.run_custom.script_utils import scan_for_scripts
 from nems.utilities.print import web_print
 from nems_config.defaults import UI_OPTIONS
@@ -550,13 +550,14 @@ def edit_analysis():
     #TODO: this requires that all analyses have to have a unique name.
     #       better way to do this or just enforce the rule?
     
+    # Turned this off for now -- can re-enable when rule needs are more stable
     # Make sure the keyword combination is valid using nems.keyword_rules
-    try:
-        mf = ModelFinder(eTree)
-        for modelname in mf.modellist:
-            keyword_test_routine(modelname)
-    except Exception as e:
-        return jsonify(success='Analysis not saved: \n' + str(e))
+    #try:
+    #    mf = ModelFinder(eTree)
+    #    for modelname in mf.modellist:
+    #        keyword_test_routine(modelname)
+    #except Exception as e:
+    #    return jsonify(success='Analysis not saved: \n' + str(e))
     
     # Find out if an analysis with same name already exists.
     # If it does, grab its sql alchemy object and update it with new values,
@@ -767,7 +768,7 @@ def get_preview():
     figurefile = None
     # only need this to be backwards compatible with NARF preview images?
     path = (
-            session.query(NarfResults.figurefile)
+            session.query(NarfResults)
             .filter(NarfResults.batch == bSelected)
             .filter(NarfResults.cellid.in_(cSelected))
             .filter(NarfResults.modelname.in_(mSelected))

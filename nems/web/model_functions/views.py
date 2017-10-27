@@ -40,12 +40,13 @@ def fit_single_model_view():
     if (len(cSelected) > 1) or (len(mSelected) > 1):
         return jsonify(r_est='error',r_val='more than 1 cell and/or model')
     
-    try:
-        keyword_test_routine(mSelected[0])
-    except Exception as e:
-        web_print(e)
-        web_print('Fit failed.')
-        raise e
+    # turn off keyword rules tests for now
+    #try:
+    #    keyword_test_routine(mSelected[0])
+    #except Exception as e:
+    #    web_print(e)
+    #    web_print('Fit failed.')
+    #    raise e
     
     web_print(
             "Beginning model fit -- this may take several minutes."

@@ -411,13 +411,17 @@ $(document).ready(function(){
             var cell_link = $SCRIPT_ROOT + '/cell_details/';
             var model_link = $SCRIPT_ROOT + '/model_details/';
             $(this).children().eq(0).html(
-                    "<a href='" + cell_link + cellid + "' target='_blank'"
-                    + "id='" + cellid + "'>" + cellid + "</a>"
+                    "<p id='" + cellid + "'>" + cellid + "</p>"
                     );
+                    // can switch this back in when figure out a good way to toggle
+                    // links on and off
+                    //"<a href='" + cell_link + cellid + "' target='_blank'"
+                    //+ "id='" + cellid + "'>" + cellid + "</a>"
             $(this).children().eq(1).html(
-                    "<a href='" + model_link + modelname + "' "
-                    + "id='" + modelname + "'>" + modelname + "</a>"
+                    "<p id='" + modelname + "'>" + modelname + "</p>"
                     );
+                    //"<a href='" + model_link + modelname + "' "
+                    //+ "id='" + modelname + "'>" + modelname + "</a>"
         });
     }
 
@@ -454,7 +458,7 @@ $(document).ready(function(){
                 initTable(table);
                 //disabled for now - need to figure out agood way to let user
                 // toggle the links on and off
-                //addLinksToTable();
+                addLinksToTable();
             },
             error: function(error) {
                 console.log(error);
@@ -844,11 +848,12 @@ $(document).ready(function(){
         var mSelected = [];
         var bSelected = $("#batchSelector").val();
         
+        // have to change .children('p')  back to 'a' if table links put back in
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(0).children('a').attr('id'));
+            cSelected.push($(this).children().eq(0).children('p').attr('id'));
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(1).children('a').attr('id'));
+            mSelected.push($(this).children().eq(1).children('p').attr('id'));
         });
 
         // only proceed if selections have been made

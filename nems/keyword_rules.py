@@ -20,6 +20,11 @@
     
 """
 
+### Note: Disconnected calls to this module from the web interface since the
+### rules are causing issues as the stack/modules/etc change around.
+### If used in the future, will need to re-think which rules are appropritate
+### (or if it would be better to just enforce behavior through the modules)
+
 import sys
 import inspect
 import pkgutil as pk
