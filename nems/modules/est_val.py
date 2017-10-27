@@ -192,8 +192,13 @@ class crossval(nems_module):
             d_val['pred']=d_val['stim']
 
             try:
-                d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
-                d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                if len(d['pupil'])==2:
+                    d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                else:
+                    print(d['pupil'].shape)
+                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:,eidx])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,:,vidx])
             except:
                 #print('No pupil data')
                 d_est['pupil']=[]
