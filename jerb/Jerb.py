@@ -2,32 +2,27 @@
 See: README.org for more details.
 """
 
+import os
 import json
-
-
+import binascii
 from jerb.util import dict2json, sha256, unzip64, parse_iso8601
 
 
 class Jerb ():
     def __init__(self, init_json_string):
-        """ Inits Jerb object with the provided JSON string. """
+        """ Inits Jerb object from the provided JSON string or filepath. """
+
         j = json.loads(init_json_string)
 
-        # Required
         self.jid = j['jid']
-        self.deps = j['deps'] ## TODO: I'm not sure this is correct
-        self.props = j['props']
-        self.parents = j['parents']
+        self.meta = j['meta']
+        self.pack = binascii.a2b_base64(j['pack']) if 'pack' in j else None
 
-        # Payload: For holding the src and val (which may be empty)
-        self.src = unzip64(j['src']) if 'src' in j else None
-        self.val = unzip64(j['val']) if 'val' in j else None
-
+        # Internal storage
         self.__init_json_string__ = init_json_string
 
         # Internal flags: If there is no payload, we'll need to fetch it
-        self.__nopayload__ = True if not (self.src or self.val) else False
-        self.__unexecuted__ = True if not self.val else False
+        self.__nopayload__ = True if not (self.pack) else False
 
         # Check for any internal consistency errors
         err = any(self.errors())
@@ -36,11 +31,8 @@ class Jerb ():
 
     def as_dict(self):
         d = {'jid': self.jid,
-             'props': self.props,
-             'deps': self.deps,
-             'parents': self.parents,
-             'src': self.src,
-             'val': self.val}
+             'meta': self.meta,
+             'pack': self.pack}
         return d
 
     def __str__(self):
@@ -52,7 +44,19 @@ class Jerb ():
     def errors(self):
         """ Returns an iterable of errors found when validating this JERB for
         self-consistency. """
-        return None
+        return [None]
+
+
+def load_jerb_from_file(filepath):
+    """ Tries to load a Jerb from a file. """
+    if os.path.exists(filepath):
+        with open(filepath, "rb") as f:
+            init_json_string = f.read()
+            j = Jerb(init_json_string.decode())
+            return j
+    else:
+        raise ValueError("File not found: "+filepath)
+
 
 # TODO: Write common methods you would like to do on Jerbs
 
