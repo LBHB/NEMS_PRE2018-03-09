@@ -11,6 +11,16 @@ import numpy as np
 import nems.modules as nm
 from nems.utilities.utils import mini_fit
 
+def dlog2(stack):
+    """
+    Applies a natural logarithm entry-by-entry to the datastream: 
+        y = log(x+v1)
+    where x is the input matrix and v1 is a fitted parameter applied to each
+    matrix entry (the same across all entries)
+    """
+    stack.append(nm.nonlin.gain,nltype='dlog',fit_fields=[],phi=[1])
+    #stack.append(nm.normalize)
+
 def dlog(stack):
     """
     Applies a natural logarithm entry-by-entry to the datastream: 

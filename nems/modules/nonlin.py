@@ -48,9 +48,9 @@ class gain(nems_module):
             self.do_plot=self.plot_fns[1]
         
     def dlog_fn(self,X):
-        #TODO: need to find a good way to weed out negative and zero values
-        s_indices= X<=0
-        X[s_indices]=0
+        #threshold input so that minimum of X is 1 and min output is 0
+        s_indices= (X+self.phi[0,0])<=1
+        X[s_indices]=1-self.phi[0,0]
         Y=np.log(X+self.phi[0,0])
         return(Y)
     def exp_fn(self,X):

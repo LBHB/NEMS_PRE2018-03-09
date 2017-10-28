@@ -40,15 +40,17 @@ class standard(nems_module):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
-            #self.d_out.append(d)
-            try:
+            
+            if 'est' in d:
+                # old format. Is this used any more?
                 if d['est']:
                     # flagged as est data
                     self.d_out.append(d)
                 elif self.parent_stack.valmode:
+                    # only keep if in validation mode
                     self.d_out.append(d)
                     
-            except:
+            else:
                 # est/val not flagged, need to figure out
                 
                 #--made a new est/val specifically for pupil --njs, June 28 2017
@@ -192,8 +194,13 @@ class crossval(nems_module):
             d_val['pred']=d_val['stim']
 
             try:
-                d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
-                d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                if len(d['pupil'])==2:
+                    d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                else:
+                    print(d['pupil'].shape)
+                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:,eidx])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,:,vidx])
             except:
                 #print('No pupil data')
                 d_est['pupil']=[]

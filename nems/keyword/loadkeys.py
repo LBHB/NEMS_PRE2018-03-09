@@ -49,7 +49,7 @@ def env100e(stack):
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.est_val.crossval,valfrac=0.05)
+    stack.append(nm.est_val.crossval,valfrac=0.1)
     stack.append(nm.aux.onset_edges)
     
 def parm50x(stack):
@@ -191,6 +191,7 @@ def fb18ch100x(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.crossval)
+    stack.modules[-1].do_plot=ut.plot.plot_spectrogram
     
 def fb18ch100u(stack):
     """
