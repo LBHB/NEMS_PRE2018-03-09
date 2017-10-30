@@ -111,6 +111,7 @@ class nems_stack:
         
         if self.valmode and self.nests>0: 
             # evaluate using the old nesting scheme devised by Noah
+            # this section is deprecated and should be deleted
             
             print('Evaluating nested validation data')
             mse_idx=ut.utils.find_modules(self,'metrics.mean_square_error')
@@ -175,7 +176,8 @@ class nems_stack:
             # new data elements to be created (stim2, etc)
             stack=self
             exclude_keys=['avgresp','poststim','fs','isolation','stimparam','filestate',
-                       'prestim','duration','est','stimFs','respFs']
+                          'prestim','duration','est','stimFs','respFs',
+                          'resp_raw','pupil_raw']
             include_keys={}
             d_save={}
             for cv_counter in range(0,stack.meta['nests']):
@@ -206,17 +208,32 @@ class nems_stack:
                             for k in include_keys[ii]:
                                 if d[k] is None or d[k]==[]:
                                     pass
+                                elif k=='pupil' and d[k].ndim==3:
+                                    d2[k]=np.append(d2[k],d[k],axis=2)
                                 elif d[k].ndim==3:
                                     d2[k]=np.append(d2[k],d[k],axis=1)
                                 else:
                                     d2[k]=np.append(d2[k],d[k],axis=0)
                                     
             # save accumulated data stack back to main data stack
+            
+            # figure out mapping to get val data back into original order
+            validx=np.concatenate(stack.modules[xval_idx].validx_sets)
+            mapidx=np.argsort(validx)
             for ii in range(xval_idx,mse_idx):
                 for d,d2 in zip(stack.modules[ii].d_out,d_save[ii]):
                     if not d['est']:
                         for k in include_keys[ii]:
-                            d[k]=d2[k]
+                            if d2[k] is None or d[k]==[]:
+                                d[k]=d2[k]
+                            elif k=='pupil' and d[k].ndim==3:
+                                d[k]=d2[k][:,:,mapidx]
+                            elif d[k].ndim==3:
+                                d[k]=d2[k][:,mapidx,:]
+                            elif d[k].ndim==2:
+                                d[k]=d2[k][mapidx,:]
+                            else:
+                                d[k]=d2[k][mapidx]
             
             # continue standard evaluation of later stack elements
             for ii in range(mse_idx,len(self.modules)):

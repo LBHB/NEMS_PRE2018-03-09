@@ -132,7 +132,9 @@ class load_mat(nems_module):
                     data['resp']=nems.utilities.utils.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
                     if data['pupil'] is not None:
                         data['pupil']=nems.utilities.utils.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
-                    
+                        # save raw pupil-- may be somehow transposed differently than resp_raw
+                        data['pupil_raw']=data['pupil'].copy()
+                   
                 # fund number of reps of each stimulus
                 data['repcount']=np.sum(np.isfinite(data['resp'][0,:,:]),axis=0)
                 self.parent_stack.unresampled['repcount']=data['repcount']
@@ -141,14 +143,15 @@ class load_mat(nems_module):
                 # TODO - why does this execute(and produce a warning?)
                 print(data['resp'].shape)
                 data['avgresp']=np.nanmean(data['resp'],axis=1)
-                    
                 data['avgresp']=np.transpose(data['avgresp'],(1,0))
-
+                
                 if self.avg_resp is True:
+                    data['resp_raw']=data['resp'].copy()
                     data['resp']=data['avgresp']
                 else:
                     data['stim'],data['resp'],data['pupil'],data['replist']=nems.utilities.utils.stretch_trials(data)
-
+                    data['resp_raw']=data['resp']
+                print("saved resp_raw")
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 #print('load_mat: appending {0} to d_out stack'.format(f))

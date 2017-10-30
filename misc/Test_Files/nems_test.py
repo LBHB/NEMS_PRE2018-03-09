@@ -71,7 +71,7 @@ if 0:
     #cellid="eno052d-a1"
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
-if 0:
+if 1:
     """ TORC-TONE """
     cellid="TAR010c-06-1"
     batch=301 #A1
@@ -106,7 +106,7 @@ if 0:
     # "IMPROVED" svd cross val
     #modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
-    modelname="parm50_wcg01_fir10_pupwgtctl_fit01_nested5"
+    modelname="parm50_wcg01_fir10_pupwgtctl_fit01_nested2"
     #modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
@@ -120,7 +120,7 @@ if 0:
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 
 """ SSA test """
-if 1:
+if 0:
     #cellid='gus018d-d1'
     cellid="gus021c-b2"
     cellid='gus018d-d1'
