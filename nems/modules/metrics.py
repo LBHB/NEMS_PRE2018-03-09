@@ -120,7 +120,7 @@ class mean_square_error(nems_module):
                 mse=E/N
             self.mse_val=mse
             self.parent_stack.meta['mse_val']=[mse]
-        
+
         return mse
 
     def error(self, est=True):
@@ -348,24 +348,25 @@ class ssa_index(nems_module):
     plot_fns = [nems.utilities.plot.plot_ssa_idx, nems.utilities.plot.plot_ssa_timing]
     input1 = 'stim'
     input2 = 'resp'
-    baseline = False
     window = 'start'
-    intervals = list()
-    folded_resp = list()
-    resp_SI = dict()
-    resp_tone_act = list()
 
-    folded_pred = list()
+    resp_SI = dict()
     pred_SI = dict()
+
+    # for raster and PSTH plotting
+    folded_resp = list()
+    folded_pred = list()
+
+    # for tone timing plot and stp calculation
+    intervals = list()
+    resp_tone_act = list()
     pred_tone_act = list()
 
-    def my_init(self, input1='stim', input2='resp', baseline=False, window='start', z_score = 'spont'):
+    def my_init(self, input1='stim', input2='resp', window='start', z_score = 'spont'):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         self.input1 = input1
         self.input2 = input2
-        # todo, implement baseline substraction and integration window selection, are they really necessary?
-        self.baseline = baseline
         self.window = window
         self.do_plot = self.plot_fns[0]
         self.do_trial_plot = self.plot_fns[0]
@@ -382,10 +383,12 @@ class ssa_index(nems_module):
         resp_SI = list()
         folded_resp = list()
         resp_tone_act = list()
+        cell_resp_spont = list()
 
         pred_SI = list()
         folded_pred = list()
         pred_tone_act = list()
+        cell_pred_spont = list()
 
         out_SI_dicts = list()
         out_act_dicts = list()
@@ -540,13 +543,13 @@ class ssa_index(nems_module):
                     interval_dict['stream1Ons'].append(time1[0])
                     time1 = time1[1:]
                     # actual silence to onset
-                    resp_spont.append(resp[trialcounter, :where0[1]])
+                    resp_spont.append(resp[trialcounter, :where1[0]])
 
                     if self.has_pred:
                         pred_slice_dict['stream1Ons'] = pred_slice_dict['stream1Ons'] + [predstream1[0]]
                         predstream1 = predstream1[1:]
                         # predicted silence to onset
-                        pred_spont.append(pred[trialcounter, :where0[1]])
+                        pred_spont.append(pred[trialcounter, :where1[0]])
 
                 # Count tones by integration
                 tone_count = np.nansum(stim[:, trialcounter, :], axis=1)
@@ -619,8 +622,21 @@ class ssa_index(nems_module):
                             (pred_act_dict['stream0Dev'] + pred_act_dict['stream1Dev'] +  # dev + dev plus
                              pred_act_dict['stream0Std'] + pred_act_dict['stream1Std'])}  # std + std
 
+            # transformt the spontaneous activity list of heterogeneous lists into a 2d array padded with nan
+            def aspadedarray(v, fillval=np.nan):
+                lens = np.array([len(item) for item in v])
+                mask = lens[:, None] > np.arange(lens.max())
+                out = np.full(mask.shape, fillval)
+                out[mask] = np.concatenate(v)
+                return out
+
+            resp_spont = aspadedarray(resp_spont, np.nan)
+            if self.has_pred:
+                pred_spont = aspadedarray(pred_spont, np.nan)
+
             # organizes the ssa index data into a dictionary containing the SI of the response and of the prediction in
             # corresponding keys, then append to the block list.
+            # also append block dependent calculations into lists for such elements across all blocks of one cell.
 
             block_SI_dict = dict()
 
@@ -630,23 +646,21 @@ class ssa_index(nems_module):
             interval_dict = {key: np.asarray(value) for key, value in interval_dict.items()}
             intervals.append(interval_dict)
             resp_SI.append(resp_SI_dict)
+            cell_resp_spont.append(resp_spont)
 
             if self.has_pred:
                 block_SI_dict['pred_SI'] = pred_SI_dict
                 pred_tone_act.append(pred_tone_act_dict)
                 folded_pred.append(pred_slice_dict)
                 pred_SI.append(pred_SI_dict)
+                cell_pred_spont.append(pred_spont)
 
             out_SI_dicts.append(block_SI_dict)
 
             # calculates the stream activitiy for all tones, and calculates the activity ratio between the streams
-            # todo should the activity level be calculated only in regard of the starndard tone for each stream?
-            self.z_score = 'all'  # either trial or tone
-
             # pools all the tones into the respective stream, regardless onset, standard or deviant.
             all_resp_act = [list(), list()]
             for key, value in all_resp_tone_types.items():
-
                 if self.z_score == 'all':
                     if key[:7] == 'stream0':
                         all_resp_act[0] += value
@@ -666,8 +680,9 @@ class ssa_index(nems_module):
                     all_resp_act[ii] = (np.nanmean(np.nanmean(stream, axis=0)[toneLen:])) * np.nanmean(
                         resp) / np.nanstd(resp)
                 elif self.z_score == 'spont':
-                    all_resp_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(resp_spont)) / np.nanstd(
-                        resp_spont)
+                    all_resp_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(resp_spont)) / (
+                                        np.nanstd(np.nanmean(stream[:, toneLen:], axis = 1)))
+
             # creates a dictionary and appends it to the block list
             all_resp_act_dict = {'stream0': all_resp_act[0],
                                  'stream1': all_resp_act[1],
@@ -693,18 +708,20 @@ class ssa_index(nems_module):
 
                 # Then calculates the activity
                 for ii, stream in enumerate(all_pred_act):
+                    stream = np.asarray(stream)
                     if self.z_score == 'all':
                         all_pred_act[ii] = np.nanmean(np.nanmean(np.asarray(stream), axis=0)[toneLen:]) * np.nanmean(
                             pred) / np.nanstd(pred)
                     elif self.z_score == 'spont':
-                        all_resp_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(resp_spont)) / np.nanstd(
-                            resp_spont)
+                        all_pred_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(pred_spont)) / (
+                                            np.nanstd(np.nanmean(stream[:, toneLen:], axis = 1)))
 
                 # creates a dictionary and appends it to the block list
                 all_pred_act_dict = {'stream0': all_pred_act[0],
                                      'stream1': all_pred_act[1],
                                      'ratio': np.min(all_pred_act) / np.max(all_pred_act),
                                      'mean': np.nanmean(all_pred_act)}
+
 
             block_act_dict = dict()
             block_act_dict['resp_act'] = all_resp_act_dict
@@ -719,8 +736,10 @@ class ssa_index(nems_module):
         self.resp_SI = resp_SI
         self.parent_stack.meta['ssa_index'] = out_SI_dicts
         self.stream_activity = out_act_dicts
+        self.resp_spont = cell_resp_spont
 
         if self.has_pred:
             self.folded_pred = folded_pred
             self.pred_tone_act = pred_tone_act
             self.pred_SI = pred_SI
+            self.pred_spont = cell_pred_spont
