@@ -5,6 +5,7 @@ import json
 import shutil
 import uuid
 import subprocess
+from jerb.Jerb import Jerb
 
 # TODO: Ensure that the git repo or environment variables have JERB_USER
 # So that commits are done using the correct jerb system user name
@@ -29,9 +30,34 @@ def ensure_in_git_dir():
         ragequit('Error: Not in the base directory of a git repo.\n')
 
 
+def ensure_not_in_git_dir():
+    if os.path.isdir('.git/'):
+        ragequit('Error: It is bad practice to nest git repos.\n')
+
+
+def init_jerb_repo(dirname):
+    """ Initializes a new jerb repo DIRNAME in the current working dir."""
+    subprocess.run(['git', 'init', dirname])
+
+
+def load_jerb_from_file(filepath):
+    """ Loads a .jerb file and returns a Jerb object. """
+    if os.path.exists(filepath):
+        with open(filepath, "rb") as f:
+            init_json_string = f.read()
+            s = init_json_string.decode()
+            j = Jerb(s)
+            return j
+    else:
+        raise ValueError("File not found: "+filepath)
+
+
 def make_single_pack():
     """ Makes a shallow clone of this repository's last master commit only,
     then pack all it's git object files into a single .pack file """
+    # Attach the metadata to the present commit
+    md = get_repo_metadata()
+    mref = get_master_ref()
     temp_repo_path = os.path.join(TMP_DIR, str(uuid.uuid4()))
     subprocess.call(['git', 'clone',
                      '--quiet',
@@ -39,17 +65,23 @@ def make_single_pack():
                      '--depth', '1',
                      '--branch', 'master',
                      '.', temp_repo_path])
-
-    # Also fetch the notes
-    subprocess.call(['git', 'fetch',
-                     '--quiet',
-                     '--depth', '1',
-                     'origin', 'refs/notes/*:refs/notes/*'],
+    # Add metadata to the last commit before packing it
+    # Refactor: This is very similar to write_metadata
+    js = json.dumps(md)
+    # TODO: This is insufficient; the notes are lost anyway! 
+    subprocess.call(['git', 'notes', 'add', '-f', '-m',
+                     js, mref],
                     cwd=temp_repo_path)
 
-    # Now repack the clone into a single .pack,
-    # read out the pack,
-    # then delete the clone repo
+    # This works, but assumes that we have already added notes to the latest commit, which often is not what we want. 
+    # subprocess.call(['git', 'fetch',
+    #                  '--quiet',
+    #                  '--depth', '1',
+    #                  'origin', 'refs/notes/*:refs/notes/*'],
+    #                 cwd=temp_repo_path)
+
+    # Now repack the clone into a single .pack, read out the .pack
+    # then delete the cloned repo
     subprocess.call(['git', 'repack', '-a', '-d', '--quiet'],
                     cwd=temp_repo_path)
     tmppck_dir = os.path.join(temp_repo_path, PACK_DIR)
@@ -59,7 +91,7 @@ def make_single_pack():
         pack = f.read()
     shutil.rmtree(temp_repo_path)
 
-    # Rage quit if there were more than one pack files, because we screwed up!
+    # Quit if there were more than one pack files, because we screwed up!
     if 1 != len(packs):
         ragequit('Error: More than one .pack file found:\n')
 
@@ -76,8 +108,7 @@ def get_master_ref():
 def make_jerbstring(packfile, master_ref):
     """ Return a string containing a JSON Jerb string. """
     od = {'jid': master_ref,
-          'meta': {"user": "ivar",
-                   "key": "sampledata"},
+          'meta': get_repo_metadata(),
           'pack': binascii.b2a_base64(packfile).decode()}
     j = json.dumps(od, sort_keys=True)
     return j
@@ -97,34 +128,58 @@ def default_metadata():
     return md
 
 
+def ensure_metadata_exists():
+    """ Ensure the orphan 'jerb_metadata' object exists in .git """
+    # Get the existing metadata as a dictionary d
+    if not os.path.isfile('.git/jerb_metadata'):
+        init_metadata()
+
+
+def init_metadata():
+    h = subprocess.check_output(['git', 'hash-object', '--stdin', '-w'],
+                                input='jerb_metadata'.encode())
+    h = h.strip().decode()
+    h = subprocess.run(['git', 'update-ref', 'jerb_metadata', h])
+    d = default_metadata()
+    write_metadata(d)
+
+
+def write_metadata(mydict):
+    ensure_metadata_exists()
+    js = json.dumps(mydict)
+    ref ='jerb_metadata'
+    subprocess.call(['git', 'notes', 'add', '-f', '-m', js, ref])
+
+
+def edit_metadata():
+    """ Initializes a new jerb repo DIRNAME in the current working dir."""
+    ensure_metadata_exists()
+    subprocess.run(['git', 'notes', 'edit', 'jerb_metadata'])
+
+
+def get_repo_metadata():
+    """ Returns the metadata in the present repo. """
+    ensure_metadata_exists()
+    s = subprocess.check_output(['git', 'notes', 'show', 'jerb_metadata'])
+    s = s.strip().decode()
+    d = json.loads(s)
+    return d
+
+
 def add_parent_metadata(jid):
     """ Adds the jid to the parent metadata, if any exists. """
-
-    # Get the existing metadata as a dictionary d
-    if os.path.isfile('.git/jerb_metadata'):
-        s = subprocess.check_output(['git', 'notes', 'show', 'jerb_metadata'])
-        s = s.strip().decode()
-        d = json.loads(s)
-    else:
-        # Ensure the 'hidden' repo metadata object exists in .git
-        h = subprocess.check_output(['git', 'hash-object', '--stdin', '-w'],
-                                    input='jerb_metadata'.encode())
-        h = h.strip().decode()
-        h = subprocess.run(['git', 'update-ref', 'jerb_metadata', h])
-        d = default_metadata()
+    ensure_metadata_exists()
+    d = get_repo_metadata()
 
     # Add the JID to the "parents" list
     if 'parents' in d:
         parents = set([x.strip() for x in d['parents'].split(',')])
         parents.add(jid)
-        d['parents'] = parents.join(', ')
+        d['parents'] = ', '.join(parents)
     else:
         d['parents'] = jid
 
-    # Save the updated json as a note
-    js = json.dumps(d)
-    subprocess.call(['git', 'notes', 'add', '-q', '-f', '-m', js,
-                     'jerb_metadata'])
+    write_metadata(d)
 
 
 def unpack_jerb(jerb):
@@ -135,4 +190,5 @@ def unpack_jerb(jerb):
         subprocess.run(['git', 'index-pack', '--stdin', '--keep'],
                        input=jerb.pack, stdout=devnull)
     subprocess.call(['git', 'merge', jerb.jid, '--quiet', '--no-edit'])
+    # TODO: add refs for the notes from the parents so we see them in the log
     add_parent_metadata(jerb.jid)

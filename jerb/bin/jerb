@@ -1,23 +1,21 @@
 #!/usr/bin/python
 
-# The Trampoline script for jerblib
-
 import os
 import sys
-import jerblib as jb
+import jerb.jerblib as jb
 
 
 def print_usage():
     """ Prints usage information to the user. """
-    print(""" jerb example workflow:
+    print("""Example jerb workflow:
 
-    # 1. Create a new, empty jerb/git repository named "myname"
+    # 1. Create a new, empty jerb/git repository 
     jerb init <my_new_repo_name>
 
     # 2. Download and merge one or more .jerb files into this repository
     curl https://jerbcentral.org/jid/9832476701987984398342 -o jerbfile1.jerb
-    # or more friendly
-    curl https://jerbcentral.org/tag/ivar/helloworld -o jerbfile2.jerb
+    # If you know the user and branch, this is a friendlier way to do the same
+    curl https://jerbcentral.org/branch/ivar/helloworld -o jerbfile1.jerb
     jerb merge <jerbfile1.jerb> [jerbfile2.jerb ...]
 
     # 3. A) Hack away in this repo with your editor
@@ -28,42 +26,59 @@ def print_usage():
     # 4. Optional: update the repo's metadata to tag it with more information
     jerb metadata
 
-    # 5. Create a jerb
+    # 5. Create a jerb usable in other contexts
     jerb jerb > mynewjerb.jerb
 
-    # 6. Optional: Upload your jerb to jerbcentral.org to share it!
+    # 6. Optional: Upload your jerb to jerbcentral.org to index it
     curl -t PUT --payload mynewjerb.jerb https://jerbcentral.org/upload
     """)
 
 
-def read_command_line_args():
+def handle_command_line():
     """ Reads in the arguments from the command line """
-    op = sys.argv[1]
-    if op == 'init':
-        pass
 
-    elif op == 'merge':
+    if len(sys.argv) < 2:
+        print_usage()
+        exit(-1)
+
+    op = sys.argv[1]
+
+    if op == 'init':
+        jb.ensure_not_in_git_dir()
+        jb.init_jerb_repo(sys.argv[2])        
+        exit(0)
+
+    elif op == 'help':
+        print_usage()
+        exit(0)
+
+    elif op == 'meta':
         jb.ensure_in_git_dir()
-        jerbs = []
-        for j in sys.argv[1:]:
-            if not os.path.exists(j):
-                jb.ragequit('Not a file: ' + j + "\n")
-                jerbs.append(jb.load_jerb_from_file(j))
-        for j in jerbs:
-            jb.unpack_jerb(j)
+        jb.edit_metadata()
+        exit(0)
 
     elif op == 'jerb':
         jb.ensure_in_git_dir()
         pk = jb.make_single_pack()
         ref = jb.get_master_ref()
         js = jb.make_jerbstring(pk, ref)
-        print(js)
+        print(js) # TODO: Should I save to a default JID filename?
+        exit(0)
 
-    elif op == 'help':
-        print_usage()
+    elif op == 'merge':    
+        jb.ensure_in_git_dir()
+        if len(sys.argv) < 3:
+            ragequit('Usage: jerb merge <file1.jerb> [<file2.jerb> ...]')
+        jerbs = []
+        for j in sys.argv[2:]:
+            if not os.path.exists(j):
+                jb.ragequit('Not a file: ' + j + "\n")
+            jerbs.append(jb.load_jerb_from_file(j))
+        for j in jerbs:
+            jb.unpack_jerb(j)
 
     else:
-        print_usage()
-        exit(-1)
+        jb.ragequit("Unknown command: " + op + "\n")
 
-    exit(-1)
+
+handle_command_line()

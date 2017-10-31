@@ -1,11 +1,9 @@
-""" JERB: JSON Executable Resource Blob Package
+""" JERB: JSON Executable Resource Blob Package.
 See: README.org for more details.
 """
 
-import os
-import json
 import binascii
-from jerb.util import dict2json, sha256, unzip64, parse_iso8601
+import json
 
 
 class Jerb ():
@@ -38,7 +36,7 @@ class Jerb ():
     def __str__(self):
         """ Returns a string that is the serialized Jerb.
         Warning: ordering of key/values is not guaranteed to be consistent """
-        s = dict2json(self.as_dict())
+        s = json.dumps(self.as_dict())
         return s
 
     def errors(self):
@@ -46,23 +44,6 @@ class Jerb ():
         self-consistency. """
         return [None]
 
-
-def load_jerb_from_file(filepath):
-    """ Tries to load a Jerb from a file. """
-    if os.path.exists(filepath):
-        with open(filepath, "rb") as f:
-            init_json_string = f.read()
-            j = Jerb(init_json_string.decode())
-            return j
-    else:
-        raise ValueError("File not found: "+filepath)
-
-
-# TODO: Write common methods you would like to do on Jerbs
-
-# TODO: Decide an unambigious way to compute the JID hash based on the data
-#    - Should we just use the serialized string itself?
-#    - Is it necessary for a JERB to be able to seralize and unserialize itself in a bit-for-bit perfectly repeatable way?
 
 # TODO: Check that the JID hash matches the data
 #     -
@@ -72,14 +53,17 @@ def load_jerb_from_file(filepath):
 #       that we get the same, bit-for-bit result from two different workers?
 
 # TODO: Function to load a JID from a string
+
 # TODO: Function to load a JID from a file
+
 # TODO: Function to load a JID from a HTTP(s) URI
 
 # TODO: Function to return a dictionary of properties you would like indexed
-# TODO: Function to return a JSON of properties you would like indexed 
-#       (for sending to indexing server)
+
+# TODO: Function to return a JSON of properties you would like indexed
 
 # TODO: Function that adds timestamp, user information when saving a JERB
+
 # TODO: Function that checks a date is ISO8601 compatible (strptime?)
 #       parse_iso8601 may be useful
 
