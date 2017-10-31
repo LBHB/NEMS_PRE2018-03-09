@@ -224,7 +224,7 @@ class nems_stack:
                 for d,d2 in zip(stack.modules[ii].d_out,d_save[ii]):
                     if not d['est']:
                         for k in include_keys[ii]:
-                            if d2[k] is None or d[k].size==0:
+                            if d2[k] is None or d[k]==[]:
                                 d[k]=d2[k]
                             elif k=='pupil' and d[k].ndim==3:
                                 d[k]=d2[k][:,:,mapidx]
