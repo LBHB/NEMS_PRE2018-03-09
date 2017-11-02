@@ -13,24 +13,21 @@ def print_usage():
     jerb init <my_new_repo_name>
 
     # 2. Download and merge one or more .jerb files into this repository
-    curl https://jerbcentral.org/jid/9832476701987984398342 -o jerbfile1.jerb
-    # If you know the user and branch, this is a friendlier way to do the same
-    curl https://jerbcentral.org/branch/ivar/helloworld -o jerbfile1.jerb
+    cd <my_new_repo_name>
+    curl https://jerbs.org/jid/9832476701987984398342 -o jerbfile1.jerb
     jerb merge <jerbfile1.jerb> [jerbfile2.jerb ...]
 
     # 3. A) Hack away in this repo with your editor
-    #    B) git add, git commit
-    #    C) Hack some more
-    #    D) git add, git commit
+    #    B) git add, git commit, then go back to A) if desired
 
     # 4. Optional: update the repo's metadata to tag it with more information
-    jerb metadata
+    jerb meta
 
-    # 5. Create a jerb usable in other contexts
-    jerb jerb > mynewjerb.jerb
+    # 5. Pack up the git repo into a new jerbfile
+    jerb jerb > newjerb.jerb
 
     # 6. Optional: Upload your jerb to jerbcentral.org to index it
-    curl -t PUT --payload mynewjerb.jerb https://jerbcentral.org/upload
+    curl -t PUT --payload newjerb.jerb https://jerbs.org/upload
     """)
 
 

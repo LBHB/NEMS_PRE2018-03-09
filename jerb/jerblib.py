@@ -55,8 +55,6 @@ def load_jerb_from_file(filepath):
 def make_single_pack():
     """ Makes a shallow clone of this repository's last master commit only,
     then pack all it's git object files into a single .pack file """
-    # Attach the metadata to the present commit
-    md = get_repo_metadata()
     mref = get_master_ref()
     temp_repo_path = os.path.join(TMP_DIR, str(uuid.uuid4()))
     subprocess.call(['git', 'clone',
@@ -66,22 +64,14 @@ def make_single_pack():
                      '--branch', 'master',
                      '.', temp_repo_path])
     # Add metadata to the last commit before packing it
-    # Refactor: This is very similar to write_metadata
+    md = get_repo_metadata()
     js = json.dumps(md)
-    # TODO: This is insufficient; the notes are lost anyway! 
     subprocess.call(['git', 'notes', 'add', '-f', '-m',
                      js, mref],
                     cwd=temp_repo_path)
 
-    # This works, but assumes that we have already added notes to the latest commit, which often is not what we want. 
-    # subprocess.call(['git', 'fetch',
-    #                  '--quiet',
-    #                  '--depth', '1',
-    #                  'origin', 'refs/notes/*:refs/notes/*'],
-    #                 cwd=temp_repo_path)
-
-    # Now repack the clone into a single .pack, read out the .pack
-    # then delete the cloned repo
+    # Repack the clone into a single .pack, read out the .pack
+    # then delete the cloned repo:
     subprocess.call(['git', 'repack', '-a', '-d', '--quiet'],
                     cwd=temp_repo_path)
     tmppck_dir = os.path.join(temp_repo_path, PACK_DIR)
@@ -89,7 +79,7 @@ def make_single_pack():
 
     with open(os.path.join(tmppck_dir, packs[0]), 'rb') as f:
         pack = f.read()
-    shutil.rmtree(temp_repo_path)
+    # shutil.rmtree(temp_repo_path)
 
     # Quit if there were more than one pack files, because we screwed up!
     if 1 != len(packs):
@@ -182,13 +172,73 @@ def add_parent_metadata(jid):
     write_metadata(d)
 
 
+def recreate_git_notes(jid):
+    """ Tries to rediscover buried notes whos refs were lost when packing. """
+    cmts = subprocess.check_output(['git', 'rev-list', '--all'])
+    print(cmts)
+
+
+def find_only_note_object_in_index(gitdir, indexfile):
+    indexpath = os.path.join(gitdir, indexfile)
+    with open(indexpath, 'rb') as idxfile:
+        contents = idxfile.read()
+    hashes = subprocess.check_output(['git', 'show-index'],
+                                     input=contents)
+
+    commits = []
+    for l in hashes.decode().splitlines():
+        fields = l.split(" ")
+        h = fields[1]
+        t = subprocess.check_output(['git', 'cat-file', '-t', h],
+                                    cwd=gitdir)
+        t = t.decode().rstrip()
+        commits.append(h)
+
+    note_commit = None
+    for h in commits:
+        v = subprocess.check_output(['git', 'cat-file', '-p', h],
+                                    cwd=gitdir)
+        v = v.decode().rstrip()
+        if "Notes added by 'git notes add'" in v:
+            if note_commit:
+                ragequit('Two note objects were found, which is impossible!')
+            else:
+                note_commit = h
+
+    return note_commit
+
+
 def unpack_jerb(jerb):
-    """ Unpacks the jerb into the current git repo as files (without adding
-    them to the repo's next commit). Also, adds the git commit hash of this
-    jerb to the 'parents' metadata."""
+    """ Unpacks the jerb into the current git repo. """
+
+    temp_repo_path = os.path.join(TMP_DIR, str(uuid.uuid4()))
+    init_jerb_repo(temp_repo_path)
+
+    # Unpack the pack file
+    with open('/dev/null', 'w') as devnull:
+        subprocess.run(['git', 'index-pack', '--stdin', '--keep'],
+                       input=jerb.pack, stdout=devnull,
+                       cwd=temp_repo_path)
+
+    # List the hashes of all the indexed files
+    tmppck_dir = os.path.join(temp_repo_path, PACK_DIR)
+    idxs = [file for file in os.listdir(tmppck_dir) if file.endswith(".idx")]
+    if 1 != len(idxs):
+        ragequit('Error: More than one .idx file found:\n')
+    note_commit = find_only_note_object_in_index(tmppck_dir, idxs[0])
+    print('Note commit is:', note_commit)
+
+    # Destroy our temporary directory
+    shutil.rmtree(temp_repo_path)
+
+    # Finally, do the 'real thing'
     with open('/dev/null', 'w') as devnull:
         subprocess.run(['git', 'index-pack', '--stdin', '--keep'],
                        input=jerb.pack, stdout=devnull)
+
     subprocess.call(['git', 'merge', jerb.jid, '--quiet', '--no-edit'])
-    # TODO: add refs for the notes from the parents so we see them in the log
+    # Carefully update the refs for notes and metadata
+    subprocess.call(['git', 'update-ref',
+                     'refs/notes/temp_jerb_metadata', note_commit])
     add_parent_metadata(jerb.jid)
+    subprocess.call(['git', 'notes', 'merge', 'temp_jerb_metadata'])
