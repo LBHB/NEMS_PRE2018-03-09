@@ -2,76 +2,331 @@
 
 * What are JERBs? What problems do they solve?
 
-  A JERB (JSON Executable Resource Blob; a.k.a. Jerb) is an immutable object that contains an arbitrary function stored in an easily-interchanged format. Jerbs are intended to help data scientists manage and share their data and code they use for modeling. They are named "Jerbs" as a pun on the word "jobs", because they usually contain a small amount of work you would like to have done. 
+  A JERB (JSON Executable Resource Blob; a.k.a. jerb) is an immutable object that contains an arbitrary function stored in an easily-interchanged format. Jerbs are intended to help data scientists manage and share their data and code they use for modeling. They are named "jerbs" as a pun on the word "jobs", because they usually contain a small amount of work you would like to have done, such as fitting a model to some data. 
 
-  Jerbs are in the JSON format so that you may store your Jerbs in flat files, a database or in the cloud. The Jerb can store source code, it can store experimental data, a resulting prediction of a models, or anything you want really. It's just a simple format, with a little compression thrown in by default. 
+  Jerbs are in the JSON format so that you may store your jerbs in flat files, a database or in the cloud. The jerb can store source code, it can store experimental data, a prediction from a model, or anything you want really. It's just a simple format, with a little compression thrown in by default. 
 
-  Jerbs are organized like a GIT commit tree in that each Jerb is part of an acyclic directed graph. In the same way that each git commit is based on a small modification of the previous commit(s), each Jerb is based on a small modification of the output of previous Jerbs (its "parents"). 
+  Jerbs are organized like a GIT commit tree in that each jerb is part of an acyclic directed graph. In the same way that each git commit is based on a small modification of the previous commit(s), each jerb is based on a small modification of the output of previous jerbs (its "parents").
 
   Jerbs are immutable, meaning that they cannot be modified or mutated in place. This is for several reasons:
 
-  1. It prevents problems in which two Jerbs have the same name or ID number but different versions of the same source code. By being immutable, it essentially provides version control for code and data.
-  2. If a Jerb will never change, it may be safely cached anywhere, anytime, automatically.
-  3. Immutablity allows for massively parallel operations because multiple processes may use a Jerb simultaneously and not need to coordinate their operations.
+  1. It prevents problems in which two jerbs have the same name or ID number but different versions of the same source code. By being immutable, it essentially provides version control for code and data.
+  2. If a jerb cannot change, it may be safely cached anywhere, anytime, automatically.
+  3. Immutablity allows for massively parallel operations because multiple processes may use a jerb simultaneously and not need to coordinate their operations.
   4. Immutable objects allows "mistakes" to be recorded as dead branches in a computational tree, without impacting the saving of correct computations.
-  5. It reduces the number of operations that Jerb indexing systems need to support.
+  5. It reduces the number of operations that jerb indexing systems need to support.
   6. It provides an audit trail of every computation.
 
-  It is intended that Jerbs be usable by developers using any language, and that you may even wish to have have multiple languages participating in some large computation. Although this implementation is written in Python, it is also possible that it would be useful for people to write Jerbs in the language of their choice. (Footnote: if you see a design decision that locks you into Python, please let me know.)
+  It is intended that jerbs be usable by developers using any language, and that you may even wish to have have multiple languages participating in some large computation. Although this implementation is written in Python, it is also possible that it would be useful for people to write jerbs in the language of their choice. (Footnote: if you see a design decision that locks you into Python, please let me know.)
 
-  It is also intended that Jerbs be used in a variety of execution contexts: locally, on your machine during software development; simultaneously across multiple machines or computers in a clustered environment; in a lambda function in the cloud; or even spread across the internet in very large shared computations.
+  It is also intended that jerbs be used in a variety of execution contexts: locally, on your machine during software development; simultaneously across multiple machines or computers in a clustered environment; in a lambda function in the cloud; or even spread across the internet in very large shared computations.
 
-  Finally, because there are security risks associated with sharing data and code, cryptographically-signed Jerbs provide a simple way of restricting the sharing of data and execution to collaborating users.
+  Finally, because there are security risks associated with sharing data and code, cryptographically-signed jerbs provide a simple way of restricting the sharing of data and execution to collaborating users.
+* Introduction to Jerbs
+** What is a jerb?
+   A jerb is essentially a packed git repository containing only a single commit. It is perfect for storing a data set in various states of preprocessing, or the code for a mathematical model of that data.
 
-* Technical Overview 
-** The Object
-   A Jerb object is only allowed to have these six fields:
-   | FIELD   | TYPE   | DESCRIPTION                                              |
-   |---------+--------+----------------------------------------------------------|
-   | jid     | SHA256 | A unique identifier (and anti-tampering hash)            |
-   | deps    | set    | Execution dependencies used to answer: "Can I run this?" |
-   | parents | tuple  | Parent Jerbs whose data is used in this function.        |
-   | props   | map    | Any metadata you want to attach to this                  |
-   | fn      | *      | The code to be execute; a base64 zlib'd fileobj          |
-   | val     | *      | The result payload; a base64 zlib'd fileobj              |
+   Unlike a git repository, a jerb contains no commit history -- it is just a snapshot of the present state. In this sense, it is not unlike a 'docker file', github's 'git fork', or perhaps a 'git package manager' that lets you recreate the state of the code or data that the original author saw at a certain moment. 
 
-** FAQ / HOWTO
-*** How do I update the Jerb if it is immutable?
-    You cannot update a Jerb because they represent moments in time, and you can't change the past. If you want a different but similar Jerb, create a new Jerb that is a modified copy.
+   Finally, our mantra is:
 
-*** If all Jerbs are given SHA256 IDs, how do I organize my Jerbs?
-    Organization is basically a problem of indexing, which is well-solved by most databases. Jerbs don't have any mechanism for doing this beyond adding metadata to the "props". Some ideas to get you started:
-    | jerb.prop('bucket')   | Set a 'virtual filepath' to an object |
-    | jerb.prop('filename') | Set the filename                      |
-    | jerb.prop('cellid')   | Associate with a cell id              |
+             "Jerbs are immutable and uniquely identifiable"
+
+   It is /not possible/ to edit a jerb once created, although it is trivial to create a new jerb that shares many of the same characteristics. As with real life, you cannot rewrite history, but you may reference it freely.
+
+** Why would I want jerbs?
+   Jerbs are for people who want...
+ 
+   1. ... to collaborate and share with other programmers without the danger of anyone else ever making a change that will break your code.
+   2. ... to share different versions of their data, preprocessed in different ways.
+   3. ... to publish one version of their code that will be self-contained and work forever, while still allowing development of later versions of that code.
+   4. ... to mix and match code from multiple repositories without having to download the history of every repository.
+   5. ... to find and index different 'experiments' of code in a way that helps researchers discover the best way to mathematically model some data set.
+   6. ... to transfer small pieces of a repository but not its whole history.
+   7. ... to coordinate computational work across a cluster of computers in a way that will allow data to be stored in multiple ways.
+
+** What are the parts of a Jerb?
+   A Jerb has just three parts:
+
+   1. JID (Jerb ID Number), which is a git commit hash.
+   2. Metadata, which is a non-editable JSON (and must be a dictionary of sequences)
+   3. Pack, which is a base-64 encoded .git pack object file containing the payload of the Jerb.
+
+** Pack
+   The payload of a Jerb is the 'pack', which is a tiny git repo that holds some code or data. 
+  
+   A git repo is an advantageous storage format because:
+   1. 'git add' and 'git commit' are familiar commands to developers
+   2. git can group multiple files together in any directory structure
+   3. git already hashes files so they may are uniquely identifiable
+   4. git compresses files in packages to reduce disk use
+   5. built-in git tools can help resolve merge conflicts, if any occur
+
+** Jerbs are flat files
+   Jerbs themselves can be stored anywhere: on the local file system, on a server, or in the cloud, as they are self-contained. They are just a safe, 'over-the-wire' interchange format.
+
+** Composable
+   Jerbs are designed to be composed, much as you can merge two git repositories together to share code. It is very common to combine a half-dozen Jerbs together, containing code and data, execute the code, and produce a new Jerb from the result. There are tools to help do this (TODO).
+
+** Indexable
+   You may index jerbs by any property found in the "metadata" field of a jerb. The jerb_index (i.e. "tracking") server is in fact designed to help you find specific Jerbs quickly, but it does not actually store them. 
+
+** Shareable
+   If you want to share jerbs with other researchers, you have two options:
+   1) Send them the jerb directly via file transfer methods
+   2) Upload your jerb to the centralized repo, and send them the JID (or URL) for the jerb. 
+
+   Jerbs are private for each user by default; you would have to guess a hash to discover somebody else's data, which is very difficult. Also, attempts to discover hashes are easily detected and throttled.
+
+** Restrictions
+   There are no restrictions on Jerbs that you use privately, however Jerbs committed to the public repo have the following restrictions:
+
+   1. They must be <10kB in size. If you want to add large files, you are encouraged to put them somewhere web-accessible, and then download them inside your execution script.
+
+   2. They must have <1kB of metadata. 
+
+   These restrictions are because we don't have the money to store everybody's data yet, and the central git server is a potential bottleneck if not properly managed as a shared resource.
+
+** How do I create a new Jerb that holds experimental data?
+   The easy way is to use the [[http://jerbserve/add-files][web interface]]! It mostly exists to help you check that you did not accidentally name your data the same as something else that already exists in your user namespace.
     
-    (TODO: Provide link to indexing service API module)
+   If you do this manually, you will need to ensure that you don't name the jerb the same as another, existing keyword. (TODO: Why?)
 
-*** What does the HTTP protocol for Jerbs look like?
-    |-------------+-----------------------------------------------------------|
-    | PUT(jid)    | Upload and INDEX Jerb                                     |
-    | HEAD(jid)   | Return a 'preview' jerb? Or how many bytes it is? TODO    |
-    | GET(jid)    | Get the full Jerb                                         |
-    | DELETE(jid) | Remove and UNINDEX Jerb (TODO: iff there are no children) |
-    |-------------+-----------------------------------------------------------|
+   #+BEGIN_EXAMPLE
+   # Create a repo named anything
+   git init temprepo
+   cd temprepo
+   cp ~/file1.txt ~/file2.txt ./
+   git add file1.txt file2.txt
+   git commit -m "This commit message describes what I'm working on."
+ 
+   # Optionally, edit the metadata:
+   jerb meta   
+   
+   # Create the jerb
+   jerb jerb >> myjerb.jerb
 
-*** How do I find the Jerb I am looking for?
-    In terms of a search API, the following endpoints are useful:
-    | match(deps, props) | Lists Jerbs whose deps & props match |             |
+   # Send the jerb to the server
+   cat myjerb.jerb | curl -H 'Content-Type: application/json' -X PUT --data - http://jerbserve/add-jerb
+   #+END_EXAMPLE
+
+** What happens to my commit messages when I make a Jerb?
+   They are lost, except the very last one. Jerbs squash all the commits together into the last one, because a jerb can only contain a single commit. This is intentional: you still have the freedom to explore changes to your code locally and let git manage your code. When the code works and is in a good state, you may then squash your changes together into a single commit (a jerb) that may be committed to the central repository, shared with others, or archived.
+
+** How do I update the Jerb if it is immutable?
+   You cannot update a Jerb because they represent moments in time, and you can't change the past. If you want a different but similar Jerb, create a new Jerb that is a modified copy.
+
+
+* Metadata
+** What is metadata?
+   The jerb "metadata" system lets each user attach their own single (editable, change-tracked) JSON to a jerb repo. Metadata provides a way to annotate the repo to describe what its dependencies are, to tag it with searchable keywords, describe what project it is for, and record other information about the jerb.  
+   
+   Metadata _must_ be formatted as a JSON. If the data is somehow /not/ a JSON, you will be unable to create any Jerbs using 'jerb jerb' and you will receive an error message asking you to fix the problem. (e.g. use 'git notes edit jerb_metadata' in such a case). The rationale for storing metadata as a JSON is because we want to always be able to serialize the metadata as a JSON, and if we stored it in another form this might not be possible.
+
+   Metadata is version controlled like everything else. If you want to look through the history of metadata, run "git log -p notes/metadata jerb_metadata".
+   
+   Aside: Internally, metadata uses the =git notes= system, so it has many of the same limitations that =git notes= has. Specifically, metadata is not pulled/fetched by default, and each user may only have one metadata for each commit. 
+
+** Why are my jerbs different every time I generate a new one?
+   Because the commit for =git notes= contains a timestamp of when the jerb was generated. 
+
+   Our mantra is "jerbs are immutable and unique." It could be very confusing if two jerbs had the same JIDs but different metadata.
+
+** What is the default metadata?
+   By default, several fields are automatically populated by the =jerb= script:
+   
+   - user.name, the git user name
+   - user.emal, the git user email
+   - branch, the git branch
+   - parents, a list of parent commit hashes this pulls from
+
+   It is highly encouraged to also fill in details for:
+   - tags, a list of search tags which you would like this jerb indexed under
+   - description, a string describing what this jerb is for
+
+   You may also add your own metadata as desired:
+    - Who prepared this jerb, when, on what PC, with what environment
+    - Where to start execution of this jerb, if it is executable
+    - Keywords or tags so that you may search for this jerb later
+
+** How do I update the metadata of an existing jerb?
+   You cannot update the metadata "in place", but you can create a new Jerb with the same data and different metadata. 
+
+   Use the standard tools:
+   #+BEGIN_EXAMPLE
+   jerb init myjerb
+   cd myjerb
+   jerb merge ../myjerb.jerb
+   jerb meta
+   jerb jerb >> ../mynewjerb.jerb
+   #+END_EXAMPLE
+
+   TODO: Make this a single command because it is so stereotyped.
+
+** How do I update the metadata on jerbs.org?
+   Just send your new, updated jerb to jerbs.org and it will figure out what to do.
+
+** I edited the metadata in the JSON and jerbs.org won't accept my jerb. Why?
+   The =metadata= field of the jerb is purely a cache so that people can identify the jerb without actually unpacking it. It should not be edited by hand, because the integrity of a jerb is checked by ensuring that the JSON metadata matches what is actually checked in to the jerbs packed git repository. 
+
+   If you received an error, it probably means you edited the jerb's JSON without actually editing the git repo. Try again by starting with =jerb meta= and then generating a new jerb with =jerb jerb=. 
+
+** How do the gory internal details of jerb metadata work?
+   First and foremost, using the commands in this section is not recommended unless something has gone horribly wrong. 
+
+   Really, you should probably look elsewhere first.
+   
+   Still reading? Ok, fine. For those of you trying to debug something that has gone horribly wrong, let's review how jerbs and git repos interact. Normally, a "git note" is used to store metadata on a git object, which is usually either a 'blob', a 'tree', or a 'commit'. Because a jerb is semantically similar to a commit and also to a repo, a design decision was to make the entire repo have the same metadata, rather than connecting our metadata to specific 'hidden' commits that will be discarded when a jerb is generated. 
+
+   For this reason, internally, the jerb script creates a stupid blob object named "jerb_metadata" with the contents "jerb_metadata" in it, and uses the git notes system to annotate that object with notes. 
+
+   Why don't we just use "git notes" at all instead of an alternative solution like a flat "metadata.json" file in the root directory? It is mostly to avoid problems with merging two repositories together with =jerb merge=.  Because git notes are not merged by default, by not using the standard commit strategy, we keep cruft from accumulating in the metadata, and the details of metadata largely invisible from users. Finally, if you screw up the metadata, you can revert the metadata commits just like any other git ref, without affecting the commit itself. And each user may edit their own metadata without interfering with other users.
+
+   Some examples follow:
+   #+BEGIN_EXAMPLE
+   git notes edit ... TODO
+   git notes merge ...
+   #+END_EXAMPLE
+
+** What sorts of operations will people do on metadata?
+   1. Tag their data at time of submission or execution
+   2. Query for jerbs matching a pattern
+   3. add, modify, or delete tags
+
+   Note that ALL versions of metadata are stored; once history is written, it cannot be unwritten. Yes, this implies that queries may return multiple results for the same data, and that it is up to the client/viewer to present this information in a way palatable to the user. 
+
+** If I change the metadata on the Jerb, wouldn't that affect other people's queries as well?
+   Yes, which is why that changing metadata requires making a new Jerb.
+  
+** How do you detect spoofed metadata?
+   You can't guarantee it. Accomplish this at a different level of security, like HTTPS. TODO
+
+** Does this mean that you will make a lot of redundant Jerbs?
+   If you update the metadata, this implies you must create a new Jerb. Yes, if you are storing all your data in the cloud as flat jerb files, some data will be replicated multiple times. If, however, you use a centralized server from which to generate your jerbs, all existing files can simply be referenced instead of copied.
+
+** How do I tag somebody else's code so I can give a more friendly name to it?
+   TODO
+
+* Jerbs as Jobs
+
+** Introduction
+   The original name for a jerb was JERB ("JSON Executable Resource Blob"), to express that it is a JSON that contains some executable code/data (i.e. work) that you would like done. The fact that JERB is a pun on "job" was intentional, because the goal is to allow versioned execution of code in multiple environments, and if different results are obtained, to store all of them.
+
+** How do I prepare a commit for execution?
+   An executable jerb or "prepared" jerb is just an ordinary jerb with an extra convention: a 'exec_main' field should be to the metadata to indicate which file to start executing. For example,
+
+#+BEGIN_EXAMPLE
+   {"jid": a8302b..., 
+    "exec_main": "myfile.sh", 
+    ...}
+#+END_EXAMPLE
+
+   Clients who wish to execute the code may then unpack the jerb and immediately know where to start. But as I mentioned, this is purely a convention -- certain clients may wish to execute a fuction rather than a shell script, and so you may use whatever convention is most appropriate for your code. 
+
+   TODO: exec_fn, exec_py, exec_lib, etc?
     
-    I don't recommend adding a "children" search API that is publically facing, because then finding a single JID is the same as finding the entire computational tree, via the capability to find parents and children of a Jerb.
+   The easy way helps create the JERB data dependencies for you, so that you don't have to find the JIDs or jerbs manually.
+   http://jerbserve/add-fn
 
-*** How do I know if a Jerb is not yet executed?
-    It is intended that all information regarding execution context be stored in the .deps set. One convention I suggest is that, if you want to know whether a Jerb needs to be executed, use:
-    | jerb.deps('unexecuted') == True  |
+   Creating a computation JERB manually basically requires that you merge or rebase several other JERBs' git repos together.
+
+    #+BEGIN_EXAMPLE
+    # TODO
+    jerb fetch <user> <branch> <tag>
+    #+END_EXAMPLE
+
+** How do I execute a prepared computation?   
+   In Python, something like this should work:
+
+#+BEGIN_EXAMPLE
+   import subprocess
+   import jerblib
+   myjerb = ... #TODO
+   subprocess.run([myjerb.metadata['exec_main']])
+#+END_EXAMPLE
+
+   Optionally, you may want to send the result of the computation back to jerbs.org.
+
+#+BEGIN_EXAMPLE
+   # TODO: pack up jerb and send it back
+#+END_EXAMPLE
+
+** How can I time the execution of the jerb?
+   This is left up to you. There are many options:
+   1. Use the =time= command line utility
+   2. Use git to make a commit at the moment execution starts, and another when execution finishes, and then take the difference.
+   3. Do it in the language of choice.
+
+   The names of the keys in the jerb metadata under which you store information about execution is left up to you, but the following are suggested as conventions:
+   1. TODO
+   2. TODO
+
+* Infrequently Asked Questions
+** How do I back up the jerbs repo?
+   git clone therepo
+   git fetch --retherepo
+   
+** Is there a way to cryptographically sign commits?
+   Yes, you may use GPG to cryptographically sign git commits as usual. 
+   TODO: Test this.
+
+** If I delete my Jerb, will other people lose access to it as well?
+   No. Once it has been uploaded to the central repository it is part of history.
+
+** How do I get my code to use the latest version other people's code?
+   Make a new jerb. 
+  
+** How do I use this to preprocess data files?
+   TODO. Example.
+
+** How do people discover jerbs? 
+   TODO. Example
+
+** How do you handle merge conflicts?
+   TODO. Git does it. 
+
+* UNSORTED QUESTIONS  
+** How does Git store objects naturally?
+  'Notes' objects point to a single tree T, and say "Notes added by ...". T itself points to the note contents, and to the commit you are annotating.
+  'commit' objects also just point to 1 tree, (and 0 or more other parent commits)
+  'tree' objects are lists of hash->file mappings or hash->hash mappings
+  'blobs' just store the contents of files
+** What do notes commits look like?
+git cat-file -p fff17520c8a8b4272a1d8c7164b9cee8dbc35704
+tree 432884db64a487ed91635980f5e9c249a6b052a9
+author Ivar Thorson <thorsoni@ohsu.edu> 1509571353 -0700
+committer Ivar Thorson <thorsoni@ohsu.edu> 1509571353 -0700
+
+Notes added by 'git notes add'
+
+** How do you connect a notes commit to a ref?
+   Refs are not tracked well by the system. 
+   You will need to "git notes merge --ref=myusername" to merge one namespace into this one???
+    
+** What does the HTTP protocol for Jerbs look like?
+   |-------------+-----------------------------------------------------------|
+   | PUT(jid)    | Upload and INDEX Jerb                                     |
+   | HEAD(jid)   | Return a 'preview' jerb? Or how many bytes it is? TODO    |
+   | GET(jid)    | Get the full Jerb                                         |
+   | DELETE(jid) | Remove and UNINDEX Jerb (TODO: iff there are no children) |
+   |-------------+-----------------------------------------------------------|
+
+** How do I find the Jerb I am looking for?
+   In terms of a search API, the following endpoints are useful:
+   | match(deps, props) | Lists Jerbs whose deps & props match |             |
+   
+   I don't recommend adding a "children" search API that is publically facing, because then finding a single JID is the same as finding the entire computational tree, via the capability to find parents and children of a Jerb.
+
+** How do I know if a Jerb is not yet executed?
+   It is intended that all information regarding execution context be stored in the .deps . One convention I suggest is that, if you want to know whether a Jerb needs to be executed, use:
+   | jerb.deps('unexecuted') == True  |
 
 *** How do I restrict execution to myself?
     | jerb.deps('user=MyUserName') == 'MyUsername' |
 
 *** How do we know who ran it, when?
-    Properties are purely convention; you may create your own metadata properties about each Jerb as you see fit. However, in the interests of 
+    Metadata is purely convention; you may create your own metadata properties about each Jerb as you see fit. However, in the interests of cooperation, I suggest these properties might be useful for introspection:
 
-    I suggest these properties might be useful for introspection:
     |------------------+-------------------------------------------|
     | queued_host      | The host that queued the data             |
     | queued_ip        | The IP address that queued the data       |
@@ -85,19 +340,23 @@
     | exec_user        | The user who executed the src payload     |
     |------------------+-------------------------------------------|
 
-    But of course, there may be other properties that you come up with, like the AWS execution context, the type of EC2 instance running the Jerb, and so on
+    But of course, there may be other properties that you come up with, like the AWS execution context, the type of EC2 instance running the Jerb, and so on.
 
-*** How does my code and data stay secret?
-    If you are using the HTTPS connection, nobody will be able to eavesdrop the URLs that you are visiting, which means that they cannot learn your JIDs. Mining hashes is easily detected on the server side and can result in blocking of clients trying to guess JIDs at random.
+** How does my code and data stay secret?
+   If you are using the HTTPS connection, nobody will be able to eavesdrop the URLs that you are visiting, which means that they cannot learn your JIDs. Mining hashes is easily detected on the server side and can result in blocking of clients trying to guess JIDs at random.
 
-*** How can I share my code and data?
-    Give another person your JIDs and they can find your computations and data.
-    (TODO: Can this be restricted to children only? Or parents only?)
-    
-*** How do attach documentation to the Jerb?
-    The following prop might be a good convention:
-    | docs | Documentation for this JERB, what its intent was. |
-    
-* Unhelpful Jerbs Quotes
+** How can I share my code and data?
+   Give another person your JIDs and they can find your computations and data.
+   (TODO: Can this be restricted to children only? Or parents only?)
+   
+** How do attach documentation to the Jerb?
+   The following prop might be a good convention:
+   | docs | Documentation for this JERB, what its intent was. |
 
- "Dey Terk Er Jerbs!" -- Southpark, Season 8, Episode 7
+** If all Jerbs are given JIDs, how do I organize my Jerbs?
+   Organization is basically a problem of indexing, which is well-solved by most databases. Jerbs don't have any mechanism for doing this beyond adding metadata, but that should be enough when combined with an indexing system. Some ideas to get you started:
+   | jerb.prop('bucket')   | Set a 'virtual filepath' to an object |
+   | jerb.prop('filename') | Set the filename                      |
+   | jerb.prop('cellid')   | Associate with a cell id              |
+   
+   (TODO: Provide link to indexing service API module)
