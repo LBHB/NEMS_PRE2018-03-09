@@ -36,7 +36,7 @@ def env50e(stack):
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=True)
-    stack.append(nm.est_val.crossval,valfrac=0.05)
+    stack.append(nm.est_val.crossval,valfrac=0.00)
     stack.append(nm.aux.onset_edges)
     
 def env100e(stack):
