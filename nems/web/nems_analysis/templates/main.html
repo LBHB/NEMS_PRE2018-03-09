@@ -487,10 +487,25 @@
                 </a>
             </h4>
             -->
+            <h4>
+                <a href="{{ url_for('site_map') }}" id="sitemap">
+                    Print Site Map
+                    <script>
+                        var sitemap = document.getElementById('sitemap');
+                        sitemap.style.display = 'none'
+                    {% if username %}
+                        sitemap.style.display = 'block';
+                    {% endif %}
+                    </script>
+                </a>
+            </h4>
+
             <!-- buttons for manually testing saved user selections -->
+            <!--
             <button type="button" id="testSave"> Test Save </button>
             <button type="button" id="testGet"> Test Get </button>
             <button type="button" id="testPrint"> Test Print </button>
+            -->
         </div>
     </div><!-- selections row -->
 

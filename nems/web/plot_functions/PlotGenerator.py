@@ -13,6 +13,7 @@ an html document.
 """
 import io
 import math
+import statistics
 import itertools
 
 from bokeh.io import gridplot
@@ -721,6 +722,37 @@ class Significance_Plot(PlotGenerator):
         else:
             delta = f[1] - f[0]
         return [f[0] - delta/2, f[-1] + delta/2]
+    
+    def wilcoxon(self, first, second):
+        # make a list of pairs of items from each list
+        # TODO: should lists be randomized first? as-is would compare models
+        #       on matching cells
+        
+        # make list of absolute differences between pairs
+        abs_diff = [abs(f-second[i]) for i, f in enumerate(first)]
+        print(abs_diff)
+        # and list of signs
+        signs = [np.sign(f-second[i]) for i, f in enumerate(first)]
+        print(signs)
+        # multiply signs by abs_diffs to get signed ranks
+        signed_ranks = [i*signs[i] for i, n in enumerate(abs_diff) if n != 0]
+        print("signed ranks: {0}".format(signed_ranks))
+        # calculate W from sum of the signed ranks, and standard deviation
+        # of W's sample distribution using number of entries
+        w = sum(signed_ranks)
+        print("w: {0}".format(w))
+        n = len(signed_ranks)
+        print("n: {0}".format(n))
+        stdev_w = math.sqrt((n*(n+1)*((2*n)+1))/6)
+        print("stdev of w: {0}".format(stdev_w))
+        # compute z-score
+        z = (w-0.5)/stdev_w
+        print("z-score: {0}".format(z))
+        # return p-value that corresponds to z-score (two-tailed)
+        p = 2*(1 - st.norm.cdf(z))
+        print("p-value: {0}".format(p))
+        return p
+        
             
     def generate_plot(self):
         modelnames = self.data.index.levels[0].tolist()
@@ -747,7 +779,10 @@ class Significance_Plot(PlotGenerator):
                 else:
                     # if j is smaller, above diagonal so run t-test and
                     # get p-value
-                    array[i][j] = st.ttest_rel(series_one, series_two)[1]
+                    # array[i][j] = st.ttest_rel(series_one, series_two)[1]
+                    first = series_one.tolist()
+                    second = series_two.tolist()
+                    array[i][j] = self.wilcoxon(first, second)
         
         xticks = range(len(modelnames))
         yticks = xticks

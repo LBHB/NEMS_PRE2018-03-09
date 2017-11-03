@@ -2,7 +2,7 @@ import sys
 from io import StringIO
 import threading
 
-from flask import Flask
+from flask import Flask, url_for
 from flask_socketio import SocketIO
 from flask_assets import Environment, Bundle
 
@@ -110,3 +110,4 @@ import nems.web.account_management.views
 import nems.web.upload.views
 import nems.web.table_details.views
 import nems.web.run_custom.views
+import nems.web.admin.views
