@@ -3,6 +3,7 @@ import sys
 import binascii
 import json
 import re
+import requests
 import shutil
 import uuid
 import subprocess
@@ -258,3 +259,21 @@ def unpack_jerb(jerb):
                      'refs/notes/temp_jerb_metadata', note_commit])
     add_parent_metadata(jerb.jid)
     subprocess.call(['git', 'notes', 'merge', 'temp_jerb_metadata'])
+
+
+def upload_jerbfile_to_jerbstore(jerbfile):
+    """ Sends the file to jerbstore. Defaults to localhost. """
+    # TODO: Fix source
+    j = load_jerb_from_file(jerbfile)
+    url = 'http://localhost:3000/jid/' + str(j.jid)
+    headers = {"Content-Type": "application/json"}
+    with open(jerbfile, 'rb') as f:
+        data = f.read()
+    result = requests.put(url, data=data, headers=headers)
+    if (result.status_code == 200):
+        code = "SKIPPED "
+    elif (result.status_code == 201):
+        code = "CREATED "
+    else:
+        code = "ERROR   "
+    print(code + j.jid + " " + jerbfile)

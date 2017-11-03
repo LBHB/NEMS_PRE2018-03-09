@@ -26,8 +26,8 @@ def print_usage():
     # 5. Pack up the git repo into a new jerbfile
     jerb jerb > newjerb.jerb
 
-    # 6. Optional: Upload your jerb to jerbcentral.org to index it
-    curl -t PUT --payload newjerb.jerb https://jerbs.org/upload
+    # 6. Optional: Upload your jerb to jerbs.org to share it with others
+    jerb share newjerb.jerb
     """)
 
 
@@ -62,15 +62,27 @@ def handle_command_line():
         print(js) # TODO: Should I save to a default JID filename?
         exit(0)
 
+    elif op == 'share':
+        if len(sys.argv) < 3:
+            ragequit('Usage: jerb share <file1.jerb> [<file2.jerb> ...]')
+        jerbfiles = []
+        for f in sys.argv[2:]:
+            if not os.path.exists(f):
+                jb.ragequit('Not a file: ' + f + "\n")
+            jerbfiles.append(f)
+        for j in jerbfiles:
+            jb.upload_jerbfile_to_jerbstore(j)
+        exit(0)
+
     elif op == 'merge':    
         jb.ensure_in_git_dir()
         if len(sys.argv) < 3:
             ragequit('Usage: jerb merge <file1.jerb> [<file2.jerb> ...]')
         jerbs = []
-        for j in sys.argv[2:]:
-            if not os.path.exists(j):
-                jb.ragequit('Not a file: ' + j + "\n")
-            jerbs.append(jb.load_jerb_from_file(j))
+        for f in sys.argv[2:]:
+            if not os.path.exists(f):
+                jb.ragequit('Not a file: ' + f + "\n")
+            jerbs.append(jb.load_jerb_from_file(f))
         for j in jerbs:
             jb.unpack_jerb(j)
 
