@@ -1,0 +1,103 @@
+#+Title: JERB Spec V0.1
+
+* What are JERBs? What problems do they solve?
+
+  A JERB (JSON Executable Resource Blob; a.k.a. Jerb) is an immutable object that contains an arbitrary function stored in an easily-interchanged format. Jerbs are intended to help data scientists manage and share their data and code they use for modeling. They are named "Jerbs" as a pun on the word "jobs", because they usually contain a small amount of work you would like to have done. 
+
+  Jerbs are in the JSON format so that you may store your Jerbs in flat files, a database or in the cloud. The Jerb can store source code, it can store experimental data, a resulting prediction of a models, or anything you want really. It's just a simple format, with a little compression thrown in by default. 
+
+  Jerbs are organized like a GIT commit tree in that each Jerb is part of an acyclic directed graph. In the same way that each git commit is based on a small modification of the previous commit(s), each Jerb is based on a small modification of the output of previous Jerbs (its "parents"). 
+
+  Jerbs are immutable, meaning that they cannot be modified or mutated in place. This is for several reasons:
+
+  1. It prevents problems in which two Jerbs have the same name or ID number but different versions of the same source code. By being immutable, it essentially provides version control for code and data.
+  2. If a Jerb will never change, it may be safely cached anywhere, anytime, automatically.
+  3. Immutablity allows for massively parallel operations because multiple processes may use a Jerb simultaneously and not need to coordinate their operations.
+  4. Immutable objects allows "mistakes" to be recorded as dead branches in a computational tree, without impacting the saving of correct computations.
+  5. It reduces the number of operations that Jerb indexing systems need to support.
+  6. It provides an audit trail of every computation.
+
+  It is intended that Jerbs be usable by developers using any language, and that you may even wish to have have multiple languages participating in some large computation. Although this implementation is written in Python, it is also possible that it would be useful for people to write Jerbs in the language of their choice. (Footnote: if you see a design decision that locks you into Python, please let me know.)
+
+  It is also intended that Jerbs be used in a variety of execution contexts: locally, on your machine during software development; simultaneously across multiple machines or computers in a clustered environment; in a lambda function in the cloud; or even spread across the internet in very large shared computations.
+
+  Finally, because there are security risks associated with sharing data and code, cryptographically-signed Jerbs provide a simple way of restricting the sharing of data and execution to collaborating users.
+
+* Technical Overview 
+** The Object
+   A Jerb object is only allowed to have these six fields:
+   | FIELD   | TYPE   | DESCRIPTION                                              |
+   |---------+--------+----------------------------------------------------------|
+   | jid     | SHA256 | A unique identifier (and anti-tampering hash)            |
+   | deps    | set    | Execution dependencies used to answer: "Can I run this?" |
+   | parents | tuple  | Parent Jerbs whose data is used in this function.        |
+   | props   | map    | Any metadata you want to attach to this                  |
+   | fn      | *      | The code to be execute; a base64 zlib'd fileobj          |
+   | val     | *      | The result payload; a base64 zlib'd fileobj              |
+
+** FAQ / HOWTO
+*** How do I update the Jerb if it is immutable?
+    You cannot update a Jerb because they represent moments in time, and you can't change the past. If you want a different but similar Jerb, create a new Jerb that is a modified copy.
+
+*** If all Jerbs are given SHA256 IDs, how do I organize my Jerbs?
+    Organization is basically a problem of indexing, which is well-solved by most databases. Jerbs don't have any mechanism for doing this beyond adding metadata to the "props". Some ideas to get you started:
+    | jerb.prop('bucket')   | Set a 'virtual filepath' to an object |
+    | jerb.prop('filename') | Set the filename                      |
+    | jerb.prop('cellid')   | Associate with a cell id              |
+    
+    (TODO: Provide link to indexing service API module)
+
+*** What does the HTTP protocol for Jerbs look like?
+    |-------------+-----------------------------------------------------------|
+    | PUT(jid)    | Upload and INDEX Jerb                                     |
+    | HEAD(jid)   | Return a 'preview' jerb? Or how many bytes it is? TODO    |
+    | GET(jid)    | Get the full Jerb                                         |
+    | DELETE(jid) | Remove and UNINDEX Jerb (TODO: iff there are no children) |
+    |-------------+-----------------------------------------------------------|
+
+*** How do I find the Jerb I am looking for?
+    In terms of a search API, the following endpoints are useful:
+    | match(deps, props) | Lists Jerbs whose deps & props match |             |
+    
+    I don't recommend adding a "children" search API that is publically facing, because then finding a single JID is the same as finding the entire computational tree, via the capability to find parents and children of a Jerb.
+
+*** How do I know if a Jerb is not yet executed?
+    It is intended that all information regarding execution context be stored in the .deps set. One convention I suggest is that, if you want to know whether a Jerb needs to be executed, use:
+    | jerb.deps('unexecuted') == True  |
+
+*** How do I restrict execution to myself?
+    | jerb.deps('user=MyUserName') == 'MyUsername' |
+
+*** How do we know who ran it, when?
+    Properties are purely convention; you may create your own metadata properties about each Jerb as you see fit. However, in the interests of 
+
+    I suggest these properties might be useful for introspection:
+    |------------------+-------------------------------------------|
+    | queued_host      | The host that queued the data             |
+    | queued_ip        | The IP address that queued the data       |
+    | queued_time      | The timestamp when the thing was queued   |
+    | queued_user      | The user that queued it up                |
+    |------------------+-------------------------------------------|
+    | exec_host        | The host that executed the data           |
+    | exec_ip          | The IP of the host that executed the JERB |
+    | exec_time_start  | Execution start time                      |
+    | exec_time_finish | Execution                                 |
+    | exec_user        | The user who executed the src payload     |
+    |------------------+-------------------------------------------|
+
+    But of course, there may be other properties that you come up with, like the AWS execution context, the type of EC2 instance running the Jerb, and so on
+
+*** How does my code and data stay secret?
+    If you are using the HTTPS connection, nobody will be able to eavesdrop the URLs that you are visiting, which means that they cannot learn your JIDs. Mining hashes is easily detected on the server side and can result in blocking of clients trying to guess JIDs at random.
+
+*** How can I share my code and data?
+    Give another person your JIDs and they can find your computations and data.
+    (TODO: Can this be restricted to children only? Or parents only?)
+    
+*** How do attach documentation to the Jerb?
+    The following prop might be a good convention:
+    | docs | Documentation for this JERB, what its intent was. |
+    
+* Unhelpful Jerbs Quotes
+
+ "Dey Terk Er Jerbs!" -- Southpark, Season 8, Episode 7

@@ -40,15 +40,17 @@ class standard(nems_module):
         del self.d_out[:]
          # for each data file:
         for i, d in enumerate(self.d_in):
-            #self.d_out.append(d)
-            try:
+            
+            if 'est' in d:
+                # old format. Is this used any more?
                 if d['est']:
                     # flagged as est data
                     self.d_out.append(d)
                 elif self.parent_stack.valmode:
+                    # only keep if in validation mode
                     self.d_out.append(d)
                     
-            except:
+            else:
                 # est/val not flagged, need to figure out
                 
                 #--made a new est/val specifically for pupil --njs, June 28 2017
@@ -133,7 +135,7 @@ class crossval(nems_module):
     estidx_sets=[]
     validx_sets=[]
     
-    def my_init(self,valfrac=0,interleave_valtrials=True,val_mult_repeats=True):
+    def my_init(self,valfrac=-1,interleave_valtrials=True,val_mult_repeats=True):
         #self.field_dict=locals()
         #self.field_dict.pop('self',None)
         nests=self.parent_stack.meta['nests']
@@ -142,9 +144,9 @@ class crossval(nems_module):
         #    self.parent_stack.nests=1
         if nests>1:
             valfrac=1/nests
-        elif valfrac==0:
+        elif valfrac<0:
             valfrac=0.05
-            
+        print("valfrac={0}".format(valfrac))
         self.valfrac=valfrac
         self.validx_sets=[]
         self.nests=nests
@@ -156,13 +158,22 @@ class crossval(nems_module):
 
         del self.d_out[:]
 
+        valfrac = self.valfrac
+        if valfrac == 0:
+            for i, d in enumerate(self.d_in):
+                # special case, no validation data, this should just be a pass-through
+                d_est=d.copy()
+                d_est['est']=True
+                d_est['pred'] = d_est['stim']
+                self.d_out.append(d_est)
+            return
+
         for i, d in enumerate(self.d_in):
-            valfrac=self.valfrac
             try:
                 count=self.parent_stack.meta['cv_counter']
             except:
                 count=self.cv_counter
-                
+
             nests=int(1/valfrac)
             n_trials=d['resp'].shape[0]
             
@@ -192,8 +203,13 @@ class crossval(nems_module):
             d_val['pred']=d_val['stim']
 
             try:
-                d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
-                d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                if len(d['pupil'].shape)==2:
+                    d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                else:
+                    print(d['pupil'].shape)
+                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:,eidx])
+                    d_val['pupil']=copy.deepcopy(d['pupil'][:,:,vidx])
             except:
                 #print('No pupil data')
                 d_est['pupil']=[]

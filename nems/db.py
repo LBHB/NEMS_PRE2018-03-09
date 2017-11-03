@@ -17,6 +17,7 @@ import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
+import pandas as pd
 
 import nems_config.defaults
 from nems.utilities.print import web_print
@@ -536,3 +537,16 @@ def _fetch_attr_value(stack,k,default=0.0):
     return v
         
     
+def get_batch_cells(batch=None, cellid=None):
+    # eg, sql="SELECT * from NarfBatches WHERE batch=301"
+
+    sql="SELECT * FROM NarfBatches WHERE 1"
+    if not batch is None:
+        sql+=" AND batch={}".format(batch)
+        
+    if not cellid is None:
+       sql+=" AND cellid like '{}'".format(cellid)
+    
+    d=pd.read_sql(sql=sql,con=engine)
+    
+    return d

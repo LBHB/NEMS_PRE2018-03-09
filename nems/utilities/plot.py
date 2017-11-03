@@ -14,7 +14,7 @@ import numpy as np
 import numpy.ma as npma
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-
+import itertools as itt
 import nems.utilities.utils
 
 # set default figsize for pyplots (so we don't have to change each function)
@@ -129,6 +129,10 @@ def scatter_smooth(m,idx=None,x_name=None,y_name=None,size=FIGSIZE):
         
     s=m.unpack_data(x_name,use_dout=True)
     r=m.unpack_data(y_name,use_dout=True)
+    keepidx=np.isfinite(s[:,0]) * np.isfinite(r[:,0])
+    s=s[keepidx,:]
+    r=r[keepidx,:]
+    
     s2=np.append(s.transpose(),r.transpose(),0)
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
@@ -528,7 +532,31 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
     # sets the y axis so they are shared
     axes[1].set_ylim(axes[0].get_ylim())
 
-    
+def plot_ssa_timing(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=False):
+
+    '''
+    specific plotting function for the ssa_index module, plots each response size against the preceding time interval
+
+    '''
+    if idx:
+        figure = plt.figure(num=idx, figsize=size)
+
+    if isinstance(outer, gridspec.SubplotSpec):
+        inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer) #,wspace=0.1, hspace=0.1)
+    elif figure == None:
+        figure = plt.figure(num=idx, figsize=size)
+        inner = gridspec.GridSpec(1,2)
+    else:
+        raise ('"outer" has to be an instance of gridspec.GridSpecFromSubplotSpec or None (default)')
+
+    has_pred = m.has_pred
+
+    resp = m.resp_tone_act [m.parent_stack.plot_stimidx]
+    intervals = m.intervals[m.parent_stack.plot_stimidx]
+
+    if has_pred:
+        pred = m.pred_tone_act[m.parent_stack.plot_stimidx]
+
 
 #
 # Other support functions
