@@ -73,9 +73,11 @@ if 0:
     #modelname="perfectpupil50_pupgain_fit01"
 if 1:
     """ TORC-TONE """
-    cellid="bbl074g-a1"
-    batch=303 #A1
-    modelname="parm100pt_wcg02_fir15_fit01"
+    #cellid="bbl074g-a1"
+    #batch=303 #PTD IC pupil
+    cellid="TAR010c-24-1"
+    batch=301 #PTD A1 pupil
+    modelname="parm100pt_wcg02_fir15_pupgain_fit01"
 
 if 0:
     """ BVT """
