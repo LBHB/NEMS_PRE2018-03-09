@@ -31,6 +31,7 @@ import pandas as pd
 import numpy as np
 import scipy.stats as st
 import matplotlib.pyplot as plt, mpld3
+import matplotlib.patches as mpatch
 
 #NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
 #      list for use with web interface
@@ -587,7 +588,7 @@ class Pareto_Plot(PlotGenerator):
                 )
             
         self.script,self.div = components(p)
-            
+
             
 class Tabular_Plot(PlotGenerator):
     # TODO: implement this from NARF
@@ -730,27 +731,19 @@ class Significance_Plot(PlotGenerator):
         
         # make list of absolute differences between pairs
         abs_diff = [abs(f-second[i]) for i, f in enumerate(first)]
-        print(abs_diff)
         # and list of signs
         signs = [np.sign(f-second[i]) for i, f in enumerate(first)]
-        print(signs)
         # multiply signs by abs_diffs to get signed ranks
         signed_ranks = [i*signs[i] for i, n in enumerate(abs_diff) if n != 0]
-        print("signed ranks: {0}".format(signed_ranks))
         # calculate W from sum of the signed ranks, and standard deviation
         # of W's sample distribution using number of entries
         w = sum(signed_ranks)
-        print("w: {0}".format(w))
         n = len(signed_ranks)
-        print("n: {0}".format(n))
         stdev_w = math.sqrt((n*(n+1)*((2*n)+1))/6)
-        print("stdev of w: {0}".format(stdev_w))
         # compute z-score
         z = (w-0.5)/stdev_w
-        print("z-score: {0}".format(z))
         # return p-value that corresponds to z-score (two-tailed)
         p = 2*(1 - st.norm.cdf(z))
-        print("p-value: {0}".format(p))
         return p
         
             
@@ -827,6 +820,25 @@ class Significance_Plot(PlotGenerator):
         ax.set_xticks(minor_xticks, minor=True)
         ax.grid(b=False)
         ax.grid(which='minor', color='b', linestyle='-', linewidth=0.75)
+        red_patch = mpatch.Patch(
+                color='red', label='No Comparison', edgecolor='black'
+                )
+        blue_patch = mpatch.Patch(
+                color='blue', label='Mean Difference', edgecolor='black'
+                )
+        green_patch = mpatch.Patch(
+                color='green', label='P < 0.001', edgecolor='black'
+                )
+        white_patch = mpatch.Patch(
+                color='white', label='P-Value', edgecolor='black',
+                )
+        
+        plt.legend(
+                bbox_to_anchor=(0., 1.02, 1., .102), ncol=2,
+                loc=3, handles=[
+                        white_patch, green_patch, red_patch, blue_patch,
+                        ]
+                )
 
         img = io.BytesIO()
         plt.savefig(img, bbox_inches='tight')
