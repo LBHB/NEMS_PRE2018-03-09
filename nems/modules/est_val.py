@@ -132,8 +132,8 @@ class crossval(nems_module):
     val_mult_repeats=True
     cv_counter=0
     nests=0
-    estidx_sets=[]
-    validx_sets=[]
+    estidx_sets=[[]]
+    validx_sets=[[]]
     
     def my_init(self,valfrac=-1,interleave_valtrials=True,val_mult_repeats=True):
         #self.field_dict=locals()
@@ -148,7 +148,8 @@ class crossval(nems_module):
             valfrac=0.05
         print("valfrac={0}".format(valfrac))
         self.valfrac=valfrac
-        self.validx_sets=[]
+        self.estidx_sets=[[]]
+        self.validx_sets=[[]]
         self.nests=nests
         self.interleave_valtrials=interleave_valtrials
         self.val_mult_repeats=val_mult_repeats
@@ -168,6 +169,8 @@ class crossval(nems_module):
                 self.d_out.append(d_est)
             return
 
+        self.estidx_sets=[]
+        self.validx_sets=[]
         for i, d in enumerate(self.d_in):
             try:
                 count=self.parent_stack.meta['cv_counter']
@@ -177,11 +180,13 @@ class crossval(nems_module):
             nests=int(1/valfrac)
             n_trials=d['resp'].shape[0]
             
-            self.estidx_sets,self.validx_sets=nems.utilities.utils.crossval_set(
+            self.estidx_sets.append([])
+            self.validx_sets.append([])
+            self.estidx_sets[i],self.validx_sets[i]=nems.utilities.utils.crossval_set(
                     n_trials,cv_count=nests,cv_idx=None,
                     interleave_valtrials=self.interleave_valtrials)
-            eidx=self.estidx_sets[count]
-            vidx=self.validx_sets[count]
+            eidx=self.estidx_sets[i][count]
+            vidx=self.validx_sets[i][count]
             
             print("Nest {0}/{1}, File {2} validx:".format(count,nests,i))
             print(vidx)
