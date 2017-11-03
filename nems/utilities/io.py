@@ -41,20 +41,23 @@ example:
     stack.quick_plot()
     
 """
-def load_single_model(cellid, batch, modelname):
+def load_single_model(cellid, batch, modelname, evaluate=True):
     
     filename = get_file_name(cellid, batch, modelname)
     stack = load_model(filename)
     
-    try:
-        stack.valmode = True
-        stack.evaluate()
-    except Exception as e:
-        print("Error evaluating stack")
-        print(e)
-        # TODO: What to do here? Is there a special case to handle, or
-        #       did something just go wrong?
-    #stack.quick_plot()
+    if evaluate:
+        try:
+            stack.valmode = True
+            stack.evaluate()
+            
+        except Exception as e:
+            print("Error evaluating stack")
+            print(e)
+            
+            # TODO: What to do here? Is there a special case to handle, or
+            #       did something just go wrong?
+    
     return stack
 
 def load_from_dict(batch,cellid,modelname):

@@ -143,6 +143,31 @@ class fir(nems_module):
         Y=np.reshape(X,s[1:])
         return Y
     
+    def get_strf(self):
+        h=self.coefs
+        
+        # if weight channels exist and dimensionality matches, generate a full STRF
+        try:
+            wcidx=nems.utilities.utils.find_modules(self.parent_stack,"filters.weight_channels")
+            if len(wcidx)>0 and self.parent_stack.modules[wcidx[0]].output_name==self.output_name:
+                wcidx=wcidx[0]
+            elif len(wcidx)>1 and self.parent_stack.modules[wcidx[1]].output_name==self.output_name:
+                wcidx=wcidx[1]
+            else:
+                wcidx=-1
+        except:
+            wcidx=-1
+            
+        if self.name=="filters.fir" and wcidx>=0:
+            #print(m.name)
+            w=self.parent_stack.modules[wcidx].coefs
+            if w.shape[0]==h.shape[0]:
+                h=np.matmul(w.transpose(), h)
+        
+        return h
+    
+        
+    
 class stp(nems_module):
     """
     stp - simulate short-term plasticity with the Tsodyks and Markram model

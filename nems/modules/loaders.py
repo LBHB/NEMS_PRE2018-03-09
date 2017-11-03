@@ -78,10 +78,34 @@ class load_mat(nems_module):
             
             # go through each entry in structure array 'data'
             for s in matdata['data'][0]:
-                try:
-                    data={}
-                    data['resp']=s['resp_raster']
+                
+                data={}
+                if 'stimids' in s.dtype.names:
+                    # new format: stimulus events logged in stimids and 
+                    # pulled from stim matrix or from a separate file
+                    tstim=s['stim']
+                    stimids=s['stimids']
+                    stimtrials=s['stimtrials']
+                    stimtimes=np.double(s['stimtimes'])
+                    stimshape=tstim.shape
+                    respshape=s['resp_raster'].shape
+                    chancount=stimshape[0]
+                    stimbins=np.round(stimtimes*np.double(s['stimfs']))
+                    stim=np.zeros([chancount,respshape[0],respshape[2]])
+                    eventcount=len(stimtimes)
+                    for ii in range(0,eventcount):
+                        startbin=np.int(stimbins[ii])
+                        stopbin=startbin+stimshape[1]
+                        if stimids[ii]<stimshape[2] and stopbin<=respshape[0]:
+                            stim[:,startbin:stopbin,stimtrials[ii]-1]=tstim[:,:,stimids[ii]-1]
+                    data['stim']=stim
+                    
+                else:
+                    # old format, stimulus saved as raster aligned with spikes
                     data['stim']=s['stim']
+                    
+                try:       
+                    data['resp']=s['resp_raster']
                     data['respFs']=s['respfs'][0][0]
                     data['stimFs']=s['stimfs'][0][0]
                     data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
@@ -104,7 +128,8 @@ class load_mat(nems_module):
                     else:
                         data['est']=False
                 except ValueError:
-                    print("Est/val conditions not flagged in datafile")
+                    pass
+                    #print("Est/val conditions not flagged in datafile")
                 try:
                     data['filestate']=s['filestate'][0][0]
                 except:
@@ -142,7 +167,12 @@ class load_mat(nems_module):
                 # average across trials
                 # TODO - why does this execute(and produce a warning?)
                 print(data['resp'].shape)
-                data['avgresp']=np.nanmean(data['resp'],axis=1)
+                if data['resp'].shape[1]>1:
+                    data['avgresp']=np.nanmean(data['resp'],axis=1)
+                else:
+                    data['avgresp']=np.squeeze(data['resp'],axis=1)
+                    
+                    
                 data['avgresp']=np.transpose(data['avgresp'],(1,0))
                 
                 if self.avg_resp is True:
@@ -151,7 +181,7 @@ class load_mat(nems_module):
                 else:
                     data['stim'],data['resp'],data['pupil'],data['replist']=nems.utilities.utils.stretch_trials(data)
                     data['resp_raw']=data['resp']
-                print("saved resp_raw")
+                
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 #print('load_mat: appending {0} to d_out stack'.format(f))

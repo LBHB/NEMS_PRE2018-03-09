@@ -129,6 +129,10 @@ def scatter_smooth(m,idx=None,x_name=None,y_name=None,size=FIGSIZE):
         
     s=m.unpack_data(x_name,use_dout=True)
     r=m.unpack_data(y_name,use_dout=True)
+    keepidx=np.isfinite(s[:,0]) * np.isfinite(r[:,0])
+    s=s[keepidx,:]
+    r=r[keepidx,:]
+    
     s2=np.append(s.transpose(),r.transpose(),0)
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])

@@ -203,7 +203,7 @@ class crossval(nems_module):
             d_val['pred']=d_val['stim']
 
             try:
-                if len(d['pupil'])==2:
+                if len(d['pupil'].shape)==2:
                     d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
                     d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
                 else:
