@@ -550,7 +550,7 @@ def get_batch_cells(batch=None, cellid=None):
         sql+=" AND batch={}".format(batch)
         
     if not cellid is None:
-       sql+=" AND cellid='{}'".format(cellid)
+       sql+=" AND cellid like '{}'".format(cellid)
     
     d=pd.read_sql(sql=sql,con=engine)
     
