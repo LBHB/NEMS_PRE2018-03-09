@@ -32,6 +32,7 @@ import numpy as np
 import scipy.stats as st
 import matplotlib.pyplot as plt, mpld3
 import matplotlib.patches as mpatch
+from matplotlib.transforms import Bbox
 
 #NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
 #      list for use with web interface
@@ -775,7 +776,12 @@ class Significance_Plot(PlotGenerator):
                     # array[i][j] = st.ttest_rel(series_one, series_two)[1]
                     first = series_one.tolist()
                     second = series_two.tolist()
-                    array[i][j] = self.wilcoxon(first, second)
+                    # use custom-defined wilcoxon in this class
+                    # (wasn't getting the same values, but code
+                    #  may be useful later if customization is desired)
+                    #array[i][j] = self.wilcoxon(first, second)
+                    # use scipy version
+                    array[i][j] = st.wilcoxon(first, second)[1]
         
         xticks = range(len(modelnames))
         yticks = xticks
@@ -797,46 +803,66 @@ class Significance_Plot(PlotGenerator):
         # at positions i,j (model x model)  with text z (value of array at i, j)
         for (i, j), z in np.ndenumerate(array):
             if j == i:
-                color="red"
+                color="#EBEBEB"
             elif j > i:
-                color="blue"
+                color="#368DFF"
             else:
                 if array[i][j] < 0.001:
-                    color="green"
+                    color="#00FF36"
+                elif array[i][j] < 0.01:
+                    color="#00CC2B"
+                elif array[i][j] < 0.05:
+                    color="#00A21B"
                 else:
-                    color="white"
+                    color="#ABABAB"
+            ax.add_patch(mpatch.Rectangle(
+                    xy=(j-0.5, i-0.5), width=1.0, height=1.0, angle=0.0,
+                    facecolor=color, edgecolor='black',
+                    ))
+            if j == i:
+                # don't draw text for diagonal
+                continue
             ax.text(
                     j, i, '{:.2E}'.format(z), ha='center', va='center',
-                    bbox=dict(boxstyle="round", facecolor=color, edgecolor='0.3'),
                     )
 
         ax.set_ylabel('')
         ax.set_xlabel('')
         ax.set_yticks(yticks)
-        ax.set_yticklabels(modelnames, fontsize=8)
+        ax.set_yticklabels(modelnames, fontsize=10)
         ax.set_xticks(xticks)
-        ax.set_xticklabels(modelnames, fontsize=8, rotation="vertical")
+        ax.set_xticklabels(modelnames, fontsize=10, rotation="vertical")
         ax.set_yticks(minor_yticks, minor=True)
         ax.set_xticks(minor_xticks, minor=True)
         ax.grid(b=False)
         ax.grid(which='minor', color='b', linestyle='-', linewidth=0.75)
-        red_patch = mpatch.Patch(
-                color='red', label='No Comparison', edgecolor='black'
+        ax.set_title(
+                "Wilcoxon Signed Test per Model on %s"%self.measure[0],
+                loc='right', fontdict={
+                        'fontsize': 18,
+                        }
                 )
         blue_patch = mpatch.Patch(
-                color='blue', label='Mean Difference', edgecolor='black'
+                color='#368DFF', label='Mean Difference', edgecolor='black'
                 )
-        green_patch = mpatch.Patch(
-                color='green', label='P < 0.001', edgecolor='black'
+        p001_patch = mpatch.Patch(
+                color='#00FF36', label='P < 0.001', edgecolor='black'
                 )
-        white_patch = mpatch.Patch(
-                color='white', label='P-Value', edgecolor='black',
+        p01_patch = mpatch.Patch(
+                color='#00CC2B', label='P < 0.01', edgecolor='black'
+                )
+        p05_patch = mpatch.Patch(
+                color='#00A21B', label='P < 0.05', edgecolor='black'
+                )
+        nonsig_patch = mpatch.Patch(
+                color='#ABABAB', label='Not Significant', edgecolor='black',
                 )
         
         plt.legend(
                 bbox_to_anchor=(0., 1.02, 1., .102), ncol=2,
                 loc=3, handles=[
-                        white_patch, green_patch, red_patch, blue_patch,
+                        p05_patch, p01_patch, p001_patch,
+                        nonsig_patch, blue_patch,
                         ]
                 )
 
