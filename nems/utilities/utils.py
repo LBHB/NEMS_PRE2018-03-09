@@ -88,8 +88,10 @@ def thresh_resamp(data, resamp_factor, thresh=0, ax=0):
     useful to reduce the ringing caused by FIR downsampling.
     """
     resamp = sps.decimate(data, resamp_factor, ftype='fir', axis=ax, zero_phase=True)
-    s_indices = resamp < thresh
-    resamp[s_indices] = 0
+    mask=np.isfinite(resamp)
+    s_indices = resamp[mask] < thresh
+    mask[mask]=s_indices
+    resamp[mask] = 0
     return resamp
 
 

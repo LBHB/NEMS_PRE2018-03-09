@@ -73,9 +73,15 @@ if 0:
     #modelname="perfectpupil50_pupgain_fit01"
 if 1:
     """ TORC-TONE """
-    cellid="TAR010c-06-1"
-    batch=301 #A1
-    modelname="fb18ch100x_wcg02_fir15_fit01_nested5"
+    cellid="bbl074g-a1"
+    batch=303 #A1
+    modelname="parm100pt_wcg02_fir15_fit01"
+
+if 0:
+    """ BVT """
+    cellid="gus030b-b1"
+    batch=298 #A1
+    modelname="parm50pt_wcg02_fir15_pupgainctl_fit01"
 
 if 0:
     cellid='gus019d-b2'
