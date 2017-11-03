@@ -2,7 +2,7 @@
 
 import os
 import sys
-import jerb.jerblib as jb
+import jerb.lib as jb
 
 
 def print_usage():

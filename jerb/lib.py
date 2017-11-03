@@ -2,6 +2,7 @@ import os
 import sys
 import binascii
 import json
+import re
 import shutil
 import uuid
 import subprocess
@@ -35,6 +36,16 @@ def ensure_not_in_git_dir():
         ragequit('Error: It is bad practice to nest git repos.\n')
 
 
+def is_SHA1_string(sha):
+    """ Predicate. True when S is a valid SHA1 string."""
+    r = re.compile('^([a-f0-9]{40})$')
+    m = re.search(r, sha)
+    if m:
+        return True
+    else:
+        return False
+
+
 def init_jerb_repo(dirname):
     """ Initializes a new jerb repo DIRNAME in the current working dir."""
     subprocess.run(['git', 'init', dirname])
@@ -50,6 +61,11 @@ def load_jerb_from_file(filepath):
             return j
     else:
         raise ValueError("File not found: "+filepath)
+
+
+def save_jerb_to_file(jerb, filepath):
+    with open(filepath, 'wb') as f:
+        f.write(str(jerb))
 
 
 def make_single_pack():
@@ -226,7 +242,7 @@ def unpack_jerb(jerb):
     if 1 != len(idxs):
         ragequit('Error: More than one .idx file found:\n')
     note_commit = find_only_note_object_in_index(tmppck_dir, idxs[0])
-    print('Note commit is:', note_commit)
+    # print('Note commit is:', note_commit)
 
     # Destroy our temporary directory
     shutil.rmtree(temp_repo_path)
