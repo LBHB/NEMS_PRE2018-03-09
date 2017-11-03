@@ -137,7 +137,7 @@ def init_metadata():
 def write_metadata(mydict):
     ensure_metadata_exists()
     js = json.dumps(mydict)
-    ref ='jerb_metadata'
+    ref = 'jerb_metadata'
     subprocess.call(['git', 'notes', 'add', '-f', '-m', js, ref])
 
 
