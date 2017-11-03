@@ -39,37 +39,388 @@
     <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
     
     <!-- Custom styles for this template -->
-    <link href="{{ url_for('static', filename='css/starter-template.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    {#
+    {% assets "css_all" %}
+        <link href="{{ ASSET_URL }}" rel="stylesheet">
+    {% endassets %}
+    #}
     
   </head>
 
   <body>
+    <!-- outer containers -->
+    <div class="container-fluid">
+    <div class="starter-template">
+    <div class="row" id="outerRow">
+    <div class="col-xs-12" id="outerCol">
 
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" 
-              data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{{ url_for('main_view') }}">NEMS Analysis</a>
-        </div>
-        <div id="navbar" class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li><a href="https://bitbucket.org/lbhb/nems" target="_blank">
-            Source & Info</a></li>
-            <li><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
-            CellDB</a></li>
-            <li><a href="https://bitbucket.org/lbhb/nems/issues?status=new&status=open"
+    <div class="row" id="selectionsRow">
+        <div class="col-xs-3" id="analysisBatchCol">
+            <div class="row" id="analysisRow"><div class="col-xs-12">
+                <div class="form-group" id="analysisGroup">
+                    <label for="analysisSelector">
+                        Select Analysis
+                    </label>
+                    <select class="form-control plot-form"
+                            id="analysisSelector">
+                        {% for analysis in analysislist %}
+                        <option value="{{ analysis }}">
+                            {{ analysis }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div><!--form-group-->
+
+                <div class="input-group-btn">
+                    <button type="button"
+                            class="btn btn-default btn-xs"
+                            data-toggle="popover"
+                            id="analysisDetails"          
+                            data-placement="bottom"
+                            data-content="No Selection"
+                            data-html="true">
+                                Details
+                    </button>
+                </div>
+                <div class="input-group-btn">
+                    <button type="button"
+                            class="btn btn-default btn-xs"
+                            id="fitReport"
+                            tabindex="-1">
+                                Report
+                    </button>
+                </div>
+                <div class="input-group-btn editorGroup">
+                    <button type="button"
+                            class="btn btn-default btn-xs"
+                            data-toggle="modal"
+                            id="editAnalysis"
+                            data-target="#analysisEditorModal">
+                                Edit
+                    </button>
+                </div>
+                <div class="input-group-btn editorGroup">
+                    <button type="button"
+                            class="btn btn-default btn-xs"
+                            data-toggle="modal"
+                            id="newAnalysis"
+                            data-target="#analysisEditorModal">
+                                New
+                    </button>
+                </div>
+                
+
+                        <!-- modal div is at bottom of document -->
+                
+                <div class="input-group-btn editorGroup">
+                    <button type="button"
+                            class="btn btn-default btn-xs"
+                            id="deleteAnalysis"> 
+                                Delete
+                    </button>
+                </div>
+
+                <div class="row" id="statTagRow" style="margin-top: 10px;">
+                    <div class="col-xs-6" id="statCol" style="padding-right: 5px;">
+                        <button type="button" data-toggle="modal" data-target="#statusModal"
+                                id="statusModalButton" class="btn btn-default btn-xs"
+                                style="width: 100%; white-space: normal;">
+                                Status
+                        </button>
+                        <!--<input type='text' id='statusText' style="width: 100%; margin-top: 5px;">-->
+                    </div><!-- stat column -->
+
+                    <div class="col-xs-6" id="tagCol" style="padding-left: 5px;">
+                        <button type="button" data-toggle="modal" data-target="#tagModal"
+                                id="tagModalButton" class="btn btn-default btn-xs"
+                                style="width: 100%; white-space: normal;">
+                                Tags
+                        </button>
+                        <!--<input type='text' id='tagText' style="width: 100%; margin-top: 5px;">-->
+                    </div><!-- tag column -->
+                </div><!-- status and tag row -->
+            </div></div><!-- analysis row and dummy col-->
+
+            <div class="row" id="batchRow">
+                <div class="col-xs-12">
+                    <div class="form-group" id="batchDiv">
+                        <label for="batchSelector">
+                            Batch
+                        </label>
+                        <select class="form-control plot-form"
+                                id="batchSelector"
+                                name="batch">
+                            {% for batch in batchlist %}
+                            <option value="{{ batch }}">
+                                {{ batch }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button"
+                                class="btn btn-default btn-xs"
+                                id="batchPerformance">
+                                Batch Performance
+                        </button>
+                            All
+                        <input type="checkbox"
+                                id="findAll"
+                                value="1">
+                    </div><!-- form-group -->
+                </div><!-- batch dummy col -->
+            </div><!-- batch row -->
+        </div> <!-- analysis + batch col -->
+
+        <div class="col-xs-4" id="cellModelCol">
+
+            <div class="row" id="cellModelRow">
+                <div class="col-xs-4" id="cellCol">
+                    <div class="form-group" id="cellDiv">
+                        <label>
+                            Cell(s)
+                        </label>
+                        <input  type="checkbox"
+                                id="selectAllCells"
+                                checked>
+                                    All
+                        <select multiple="multiple"
+                                class="form-control plot-form" 
+                                name="celllist"
+                                size="10"
+                                id="cellSelector">
+                            <option disabled value="">
+                                Select a batch to populate cells.
+                            </option>
+                        </select>
+                    </div><!-- form-group-->
+                </div><!-- cell column -->
+
+                <div class='col-xs-8' id="modelCol">
+                    <div class="form-group" id="modelDiv">
+                        <label for="modelSelector">
+                            Model(s)
+                        </label>
+                        <input type="checkbox"
+                               id="selectAllModels"
+                               checked>
+                                    All
+                        <select multiple="multiple"
+                                class="form-control plot-form" 
+                                name="modelnames"
+                                size="10"
+                                id="modelSelector">
+                            <option disabled value="">
+                                Select an analysis to populate models.
+                            </option>
+                        </select>
+                    </div><!-- form-group -->
+                </div><!-- model column -->
+            </div><!-- model and cell row -->
+
+            <div class="row" id="modelButtonsRow"><div class='col-xs-12'>
+
+                <div class="input-group form-inline"
+                     id="modelButtons">
+                    <div class="input-group-btn">
+                        <button tabindex="-1"
+                                class="btn btn-default btn-xs"
+                                type="button"
+                                id="fitSingle">
+                                    Fit Single Now
+                        </button>
+                    </div>
+                    <div class="input-group-btn">
+                        <button tabindex="-1"
+                                class="btn btn-default btn-xs"
+                                type="button"
+                                id="enqueue">
+                                    Enqueue Models
+                        </button>
+                    </div>
+                
+                    <div class="input-group-btn">
+                        <button tabindex="-1"
+                                type="button"
+                                class="btn btn-default btn-xs"
+                                id="toggleFitOp">
+                                    Fit Options
+                        </button>
+                    </div>
+                </div>
+                <div class="input-group form-inline"
+                     id="fitOpDiv">
+                        Force Rerun
+                        <input type="checkbox"
+                               id="forceRerun"
+                               value="1">
+                        Code Hash
+                        <input type="text"
+                               id="codeHash"
+                               style="width: 85px;">
+                </div>
+            </div></div><!-- model buttons row and dummy col-->
+        </div><!-- cell and model column -->
+
+        <div class="col-xs-3" id="plotCol">
+        <div class="row"> <!-- nested row and col for 1.5 width -->
+        <div class="col-xs-7 text-left">
+            <div class="row" id="measureSelectorRow"><div class="col-xs-12">
+                <div class="form-group">
+                    <label for="measureSelector">
+                        Measure
+                    </label>
+                    <select class="form-control plot-form"
+                            id="measureSelector" 
+                            name="measure">
+                        {% for measure in measurelist %}
+                            <option value="{{ measure }}"
+                            {% if loop.index == 0 %}
+                                checked
+                            {% endif %}
+                            >
+                                {{ measure }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <!--
+                    <div class="input-group-btn">
+                        <button type="button"
+                                class="btn btn-default btn-xs"
+                                tabindex="-1"
+                                id="togglePlotOp">
+                                    Plot Options
+                        </button>
+                    </div>
+                    -->
+                </div>
+            </div></div><!-- measure selector row and dummy col -->
+            <div class="row" id="plotSelectorRow">
+                <div class="col-xs-12">
+                    <div class="form-group">
+                        <label for="plotTypeSelector">
+                            Plot Type
+                        </label>
+                        <select class="form-control plot-form" 
+                                id="plotTypeSelector">
+                            {% for type in plotTypeList %}
+                                <option value="{{ type }}">
+                                    {{ type | replace('_',' ') }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="input-group-btn">
+                            <button class="btn btn-default btn-xs"
+                                    type="button"
+                                    id="submitPlot">
+                                        Submit Plot
+                            </button>
+                        </div>
+                    </div><!-- form-group -->
+            </div></div><!-- plot selector row and dummy col -->
+
+            <div class="row" id="customScriptRow" style="text-align: center;">
+            <div class='col-xs-12' id="customScriptCol">
+                <div class="input-group">
+                    <label for="customSelector">
+                        Custom Scripts
+                    </label>
+                </div>
+                <div class="input-group">
+                    <button type="button"
+                            id="reloadScripts">
+                        <span class="glyphicon glyphicon-refresh">
+                        </span>
+                    </button>
+                    <button type="button"
+                            class="btn btn-default btn-xs"
+                            id="submitCustom">
+                                Run Script
+                    </button>
+                </div>
+                <div class='form-group'>
+                    <select class="form-control"
+                            id="customSelector">
+                        {% for script in scripts %}
+                            <option value="{{ script }}">
+                                {{ script }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div></div> <!-- custom col -->
+        </div><!-- plot col -->
+        <div class="col-xs-4">
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="onlyFairGroup">
+                <label for="onlyFair">
+                    Fair?
+                </label>
+                <input type="checkbox"
+                       id="onlyFair"
+                       name="onlyFair" 
+                       checked value="1">
+            </div>
+            </div></div>
+
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="includeOutliersGroup">
+                <label for="includeOutliers">
+                    Outliers?
+                </label>
+                <input type="checkbox"
+                       id="includeOutliers"
+                       name="includeOutliers"
+                       value="1">
+            </div>
+            </div></div>
+
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="useGroup">
+                <select class="form-control"
+                        id="plotOpSelect">
+                    <option value="snri">
+                        SNRi
+                    </option>
+                    <option value="iso">
+                        Iso
+                    </option>
+                    <option value="snr">
+                        SNR
+                    </option>
+                </select>
+            </div>
+            </div></div>
+
+            <div class="row plotOps"><div class="col">
+            <div class="input-group pull-right" id="plotOpValGroup">
+                <label for="plotOpVal">
+                    &gt;
+                </label>
+                <input type="text"
+                       id="plotOpVal"
+                       name="plotOpVal"
+                       value="0"
+                       style="width: 50px;">
+            </div>
+            </div></div>
+
+        </div></div><!-- nested row and col for 1.5 width -->
+
+        </div><!-- plot col -->
+        <div class='col-xs-2' id="linksCol" style="text-align: right !important;">
+            <h4><a href="https://bitbucket.org/lbhb/nems" target="_blank">
+            Source & Info</a></h4>
+            <h4><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
+            CellDB</a></h4>
+            <h4><a href="https://bitbucket.org/lbhb/nems/issues?status=new&status=open"
                    target="_blank">
                        Issue Tracker
-            </a></li>
-            <li><a href="#" id="enableDraggable">Enable Draggable</a></li>
-            <li><a href="#" id="disableDraggable">Disable Draggable</a></li>
-            <li>
+            </a></h4>
+            <!-- <h4><a href="#" id="enableDraggable">Enable Draggable</a></h4>
+            <h4><a href="#" id="disableDraggable">Disable Draggable</a></h4> -->
+            <br><br><br>
+            <h4><a href="#">{{ username }}</a></h4>
+            <h4>
                 <a href="{{ url_for('login') }}" id="login">
                     {% if username %}
                         <script>
@@ -84,8 +435,8 @@
                         Log In
                     {% endif %}
                 </a>
-            </li>
-            <li>
+            </h4>
+            <h4>
                 <a href="{{ url_for('logout') }}" id="logout">
                     {% if username %}
                         <script>
@@ -100,8 +451,8 @@
                         </script>
                     {% endif %}
                 </a>
-            </li>
-            <li>
+            </h4>
+            <h4>
                 <a href="{{ url_for('register') }}" id="register">
                     {% if username %}
                         <script>
@@ -116,16 +467,17 @@
                         Register
                     {% endif %}
                 </a>
-            </li>
-            <li><a href="#">{{ username }}</a></li>
-            <li>
+            </h4>
+            <!-- unused right now - can add back in later for uploading data -->
+            <!--
+            <h4>
                 <a href="{{ url_for('upload') }}" id="upload">
                     {% if username %}
                         <script>
                             var upload = document.getElementById('upload');
                             upload.style.display = 'block';
                         </script>
-                        Upload
+                        Upload Data
                     {% else %}
                         <script>
                             var upload = document.getElementById('upload');
@@ -133,552 +485,82 @@
                         </script>
                     {% endif %}
                 </a>
-            </li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
+            </h4>
+            -->
+            <h4>
+                <a href="{{ url_for('site_map') }}" id="sitemap" target="_blank">
+                    Print Site Map
+                    <script>
+                        var sitemap = document.getElementById('sitemap');
+                        sitemap.style.display = 'none'
+                    {% if username %}
+                        sitemap.style.display = 'block';
+                    {% endif %}
+                    </script>
+                </a>
+            </h4>
 
-    <div class="container-fluid">
-    <div class="starter-template">
-    
-        <div class="row">
-        
+            <!-- buttons for manually testing saved user selections -->
+            <!--
+            <button type="button" id="testSave"> Test Save </button>
+            <button type="button" id="testGet"> Test Get </button>
+            <button type="button" id="testPrint"> Test Print </button>
+            -->
+        </div>
+    </div><!-- selections row -->
 
+    <div class="row" id="mainRow">
+        <div class="col-xs-8" id="leftCol">
 
+            <div class="row" id="tableRow">
+                <div class="col-xs-12" id="tableCol">
 
-<!--            Left-hand-side, form selections       -->
+                    <div class="row" id="tableButtons">
 
-
-
-
-            <div class="col-md-3 col-xs-12 dragToggle ui-widget-content"
-                 id="selectArea">
-                <div class="row" id="analysisRow">
-                    <div class="col-xs-12" id="analysisCol">
-                        <div class="form-group" id="analysisGroup">
-                            <label for="analysisSelector">
-                                Select Analysis
-                            </label>
-                            <select class="form-control plot-form"
-                                    id="analysisSelector">
-                            {% for analysis in analysislist %}
-                                <option value="{{ analysis }}">
-                                    {{ analysis }}
-                                </option>
-                            {% endfor %}
-                            </select>
-                        </div><!--form-group-->
-                    </div><!-- analysis col-->
-
-                    <div class="col-xs-12" id="analysisButtonsCol">
-                        <div class="form-group" id="analysisButtons">
-
-                            <div class="btn-group">
-                                <button type="button"
-                                        class="btn btn-default btn-xs"
-                                        data-toggle="popover"
-                                        id="analysisDetails"
-                                        data-placement="bottom"
-                                        data-content="No Selection"
-                                        data-html="true">
-                                            Details
+                        <div class="col-xs-4" style="margin-right: 0px; padding-right: 0px;">
+                            <div class="row" name="dummyRow">
+                            <div class="col-xs-6" style="margin-right: 0px; padding-right: 0px;">
+                                <button class='btn btn-default btn-sm' type="button" id="colsModalButton"
+                                        data-toggle="modal" data-target="#colsModal" style="white-space: normal;">
+                                    Columns
                                 </button>
                             </div>
-                
-                            <div class="btn-group editorGroup">
-                                <button type="button"
-                                        class="btn btn-default btn-xs"
-                                        data-toggle="modal"
-                                        id="newAnalysis"
-                                        data-target="#analysisEditorModal">
-                                            New
-                                </button>
-                            </div>
-                
-                            <div class="btn-group editorGroup">
-                                <button type="button"
-                                        class="btn btn-default btn-xs"
-                                        data-toggle="modal"
-                                        id="editAnalysis"
-                                        data-target="#analysisEditorModal">
-                                            Edit
-                                </button>
-                            </div>
-                            <!-- modal div is at bottom of document -->
-                
-                            <div class="btn-group editorGroup">
-                                <button type="button"
-                                        class="btn btn-default btn-xs"
-                                        id="deleteAnalysis"> 
-                                            Delete
-                                </button>
-                            </div>
-                
-                            <div class="dropdown">
-                                <button type="button"
-                                        tabindex="-1"
-                                        class="btn btn-default btn-xs
-                                               dropdown-toggle"
-                                        data-toggle="dropdown"
-                                        id="filerStatus">
-                                            Status
-                                </button>
-                                <div id="statusFilters"
-                                     class="dropdown-menu">
-                                    <li>
-                                        <input class="statusOption"
-                                               name="statusOption[]"
-                                               type="radio"
-                                               value="__any" 
-                                               checked>
-                                        <span class="lbl">
-                                            Any
-                                        </span>
-                                    </li>
-                                    {% for status in statuslist %}
-                                    <li>
-                                        <input class="statusOption"
-                                               name="statusOption[]" 
-                                               type="radio"
-                                               value="{{ status }}">
-                                        <span class="lbl">
-                                            {{ status }}
-                                        </span>
-                                    </li>
-                                    {% endfor %}
-                                </div><!-- status filters -->
-                            </div><!-- dropdown outer div -->
-                
-                            <div class="dropdown">
-                                <button type="button"
-                                        tabindex="-1"
-                                        class="btn btn-default btn-xs
-                                               dropdown-toggle" 
-                                        id="filterTags"
-                                        data-toggle="dropdown">
-                                            Tags
-                                </button>
-                                <div id="tagFilters"
-                                     class="dropdown-menu">
-                    <!-- if 3 columns (or more) become necessary later, will have
-                    to change sm-6 to sm-(12/number of columns needed) and change
-                    width of .dropdown-menu in CSS appropriately -->
-                                    <ul class="list-unstyled col-sm-6">
-                                        <li>
-                                            <input class="tagOption"
-                                                   name="tagOption[]"
-                                                   type="radio"
-                                                   value="__any"
-                                                   checked>
-                                            <span class="lbl">
-                                                Any
-                                            </span>
-                                        </li>
-                                        {% for tag in taglist %}
-                                        <li>
-                                            <input class="tagOption"
-                                                   name="tagOption[]"
-                                                   type="radio"
-                                                   value="{{ tag }}">
-                                                <span class="lbl">
-                                                    {{ tag }}
-                                                </span>
-                                        </li>
-                        <!-- slit options to new column at every n options -->
-                                            {% if loop.index is divisibleby 13 %}
-                                    </ul>
-                                    <ul class="list-unstyled col-sm-6">
-                                            {% endif %}
+
+                            <div class="col-xs-6" style="margin-left: 0px; padding-left: 0px;">
+
+                                <div class="row">
+                                    <div class="col-xs-4" style="padding-right: 0px; margin-right: 0px;">
+                                        <label for="sortSelector">
+                                            Sort
+                                        </label>
+                                    </div>
+                                    <div class="col-xs-8" style="margin-left: 0px; padding-left: 5px;">
+                                        <select class="form-control" 
+                                                name="tablecolumns"
+                                                id="tableSortSelector">
+                                        {% for sort in sortlist %}
+                                            <option name="order-option[]"
+                                                    value="{{ sort }}"
+                                                {% if sort == defaultsort %}
+                                                    selected
+                                                {% endif %}
+                                                    >
+                                                    {{ sort }}
+                                            </option>
                                         {% endfor %}
-                                    </ul>
-                                </div><!-- tag filters -->
-                            </div><!-- dropdown outer -->
-                            
-                            <div class="btn-group editorGroup">
-                                 <button type="button"
-                                         class="btn btn-default btn-xs"
-                                         id="fitReport"
-                                         tabindex="-1">
-                                             Fit Report
-                                 </button>
-                            </div>
-                                 
-                        </div><!-- button form-group end -->
-                    </div><!-- button col end -->
-                </div><!-- analysis row end -->
-                
-                <div class="row" id="batchRow">
-                    <div class="col-xs-12" id="batchCol">
-                        <div class="form-group" id="batchDiv">
-                            <label for="batchSelector">
-                                Batch
-                            </label>
-                            <select class="form-control plot-form"
-                                    id="batchSelector"
-                                    name="batch">
-                            {% for batch in batchlist %}
-                                <option value="{{ batch }}">
-                                    {{ batch }}
-                                </option>
-                            {% endfor %}
-                            </select>
-                            <button type="button"
-                                    class="btn btn-default btn-xs"
-                                    id="batchPerformance">
-                                    Batch Performance
-                            </button>
-                                Find All Models
-                            <input type="checkbox"
-                                   id="findAll"
-                                   value="1">
-                        </div><!-- form-group -->
-                    </div><!-- batch col -->
-                </div><!-- batch row -->
-
-                <div class="row" id="cellRow">
-                    <div class="col-xs-12"
-                         id="cellCol">
-                        <div class="form-group"
-                             id="cellDiv">
-                            <label for="cellSelector">
-                                Cell(s)
-                            </label>
-                            <select multiple="multiple"
-                                    class="form-control plot-form" 
-                                    name="celllist"
-                                    size="7"
-                                    id="cellSelector">
-                                <option disabled value="">
-                                    Select a batch to populate cells.
-                                </option>
-                            </select>
-                            <input type="checkbox"
-                                   id="selectAllCells"
-                                   checked>
-                                       Select All
-                        </div><!-- form-group-->
-                    </div><!-- cell col -->
-                </div><!-- cell row -->
-
-                <div class="row" id="modelRow">
-                    <div class="col-xs-12"
-                         id="modelCol">
-                        <div class="form-group"
-                             id="modelDiv">
-                            <label for="modelSelector">
-                                Model(s)
-                            </label>
-                            <select multiple="multiple"
-                                    class="form-control plot-form" 
-                                    name="modelnames"
-                                    size="7"
-                                    id="modelSelector">
-                                <option disabled value="">
-                                    Select an analysis to populate models.
-                                </option>
-                            </select>
-                            <input type="checkbox"
-                                   id="selectAllModels"
-                                   checked>
-                                        Select All
-                        </div><!-- form-group -->
-                    </div><!-- model col -->
-                
-                    <div class="col-xs-12"
-                         id="modelButtonsCol">
-                        <div class="input-group form-inline"
-                             id="modelButtons">
-                            <div class="input-group-btn">
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-xs"
-                                        type="button"
-                                        id="fitSingle">
-                                            Fit Single Now
-                                </button>
-                            </div>
-
-                            <div class="input-group-btn">
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-xs"
-                                        type="button"
-                                        id="enqueue">
-                                            Enqueue Models
-                                </button>
-                            </div>
-                
-                            <div class="input-group-btn">
-                                <button tabindex="-1"
-                                        type="button"
-                                        class="btn btn-default btn-xs"
-                                        id="toggleFitOp">
-                                            Fit Options
-                                </button>
-                            </div>
-                        </div><!-- model buttons input-group -->
-                
-                        <div class="input-group form-inline"
-                             id="fitOpDiv">
-                                Force Rerun
-                            <input type="checkbox"
-                                   id="forceRerun"
-                                   value="1">
-                        </div>
-                    </div><!-- model buttons col -->
-                </div><!-- model row -->
-                
-                <div class="row"
-                     id="plotRow">
-                    <div class="col-xs-12"
-                         id="plotCol">
-                        <div class="row"
-                             id="plotRowInner">
-                            <div class="col-xs-6">
-                                <div class="form-group">
-                                    <label for="measureSelector">
-                                        Measure
-                                    </label>
-                                    <select class="form-control plot-form"
-                                            id="measureSelector"
-                                            name="measure">
-                                    {% for measure in measurelist %}
-                                        <option value="{{ measure }}"
-                                        {% if loop.index == 0 %}
-                                                checked
-                                        {% endif %}
-                                        >
-                                            {{ measure }}
-                                        </option>
-                                    {% endfor %}
-                                    </select>
-                                    <div class="input-group-btn">
-                                        <button type="button"
-                                                class="btn btn-default btn-xs"
-                                                tabindex="-1"
-                                                id="togglePlotOp">
-                                                    Plot Options
-                                        </button>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xs-6">
-                                <div class="form-group">
-                                    <label for="plotTypeSelector">
-                                        Plot Type
-                                    </label>
-                                    <select class="form-control plot-form" 
-                                            id="plotTypeSelector">
-                                    {% for type in plotTypeList %}
-                                        <option value="{{ type }}">
-                                            {{ type | replace('_',' ') }}
-                                        </option>
-                                    {% endfor %}
-                                    </select>
-                                    <div class="input-group-btn">
-                                        <button class="btn btn-default btn-xs"
-                                                type="button"
-                                                id="submitPlot">
-                                                    Submit Plot
-                                        </button>
-                                    </div>
-                                </div><!-- form-group -->
                             </div>
-                        </div><!-- plot row inner -->
-
-                        <div class="row" id="plotOpWrapper">
-                            <div class="form-group form-inline"
-                                 id="plotOpLabels">
-                                <label for="onlyFair">
-                                    Fair?
-                                </label>
-                                <label for="includeOutliers">
-                                    Outliers?
-                                </label>
-                                <label for="plotOpSelect">
-                                    Use
-                                </label>
-                                <label for="plotOpVal">
-                                    &gt;
-                                </label>
-                            </div><!-- label form-group -->
-                
-                            <div class="form-group form-inline"
-                                 id="plotOpGroup">
-                                <input type="checkbox"
-                                       id="onlyFair"
-                                       name="onlyFair" 
-                                       checked value="1">
-                                <input type="checkbox"
-                                       id="includeOutliers"
-                                       name="includeOutliers"
-                                       value="1">
-                                <select class="form-control"
-                                        id="plotOpSelect">
-                                    <option value="snri">
-                                        SNRi
-                                    </option>
-                                    <option value="iso">
-                                        Iso
-                                    </option>
-                                    <option value="snr">
-                                        SNR
-                                    </option>
-                                </select>
-                                <input type="text"
-                                       id="plotOpVal"
-                                       name="plotOpVal"
-                                       value="0">
-                            </div><!-- form-group -->
-                            
-                            <div class="form-group form-inline"
-                                 id="plotOpLabelsTwo">
-                                 <label for="plotNewWindow">
-                                     New Window
-                                 </label>
-                            </div>
-                            
-                            <div class="form-group form-inline"
-                                 id="plotOpGroupTwo">
-                                 <input type="checkbox"
-                                        id="plotNewWindow"
-                                        name="plotNewWindow"
-                                        value="1">
-                            </div>
-                        </div><!-- plotOpWrapper -->
-                    </div><!-- plot col -->
-                    <div class="col-xs-12"
-                         id="customCol">
-                         <div class="form-group form-inline"
-                              id="customGroup">
-                              <button type="button"
-                                      id="reloadScripts">
-                                  <span class="glyphicon glyphicon-refresh">
-                                  </span>
-                              </button>
-                              <select class="form-control"
-                                      id="customSelector">
-                              {% for script in scripts %}
-                                  <option value="{{ script }}">
-                                      {{ script }}
-                                  </option>
-                              {% endfor %}
-                              </select>
-                              <button type="button"
-                                      class="btn btn-default btn-xs"
-                                      id="submitCustom">
-                                          Run Script
-                              </button>
-                        </div> <!-- customGroup -->
-                    </div> <!-- custom col -->
-                </div><!-- plot row -->
-            </div><!-- select area col -->
-            
-
-
-
-<!--     Right-hand-side, table display and options        -->
-
-
-
-
-            <div class="col-md-4 col-xs-12 dragToggle ui-widget-content"
-                 id="resultsArea">
-                <div class="row"
-                     id="tableRow">
-                    <div class="col-xs-12"
-                         id="tableButtonsColTop">
-                        <div class="input-group form-inline"
-                             id="tableButtonsTop">
-                            <div class="input-group-btn">
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-sm"
-                                        type="button">
-                                            Show
-                                </button>
-                                <button tabindex="-1"
-                                        data-toggle="dropdown"
-                                        class="btn btn-default btn-sm
-                                               dropdown-toggle" 
-                                        type="button">
-                                    <span class="caret">
-                                    </span>
-                                </button>
-                                <div id="tableColumns"
-                                     class="dropdown-menu">
-                                {% for col in collist %}
-                                    <li>
-                                        <input class="result-option"
-                                               type="checkbox"
-                                               value="{{ col }}"
-                                               name="result-option[]"
-                                        {% if col in defaultcols %}
-                                               checked
-                                        {% endif %}
-                                        >
-                                        <span class="lbl">
-                                            {{ col }}
-                                        </span>
-                                    </li>
-                                {% endfor %}
-                                </div><!-- table columns drop down -->
-                            </div><!-- button group -->
-                
-                            <div class="input-group-btn">
-                            </div>
-                
-                            <div class="input-group-btn">       
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-sm"
-                                        type="button">
-                                            Sort
-                                </button>
-                                <button tabindex="-1"
-                                        data-toggle="dropdown"
-                                        class="btn btn-default btn-sm
-                                               dropdown-toggle"
-                                        type="button">
-                                    <span class="caret">
-                                    </span>
-                                </button>
-                                <div id="tableSort"
-                                     class="dropdown-menu">
-                                    <li>
-                                        <input class="order-option"
-                                               type="radio"
-                                               value="asc"
-                                               name="order-option[]">
-                                        <span class="lbl">
-                                            Ascending
-                                        </span>
-                                    </li>
-                                    <li>
-                                        <input class="order-option"
-                                               type="radio"
-                                               value="desc"
-                                               name="order-option[]"
-                                               checked>
-                                        <span class="lbl">
-                                            Descending
-                                        </span>
-                                    </li>
-                                {% for col in sortlist %}
-                                    <li>
-                                        <input class="sort-option"
-                                               type="radio"
-                                               value="{{ col }}"
-                                               name="sort-option[]"
-                                        {% if col == defaultsort %}
-                                               checked
-                                        {% endif %}
-                                        >
-                                        <span class="lbl">
-                                            {{ col }}
-                                        </span>
-                                    </li>
-                                {% endfor %}
-                                </div><!-- table sort drop down -->
-                            </div><!-- input-group-btn -->
-
+                        </div>
+                        <div class='col-xs-1' style="margin-left: 0px;">
+                            <label for="descending">
+                                <span class="glyphicon glyphicon-chevron-down"></span>
+                            </label>
+                            <input type="checkbox" id="descending">
+                        </div>
+                        <div class="col-xs-2">
                             <div class="input-group" id="rowLimitDiv">
                                 <span class="input-group-addon input-sm"
                                       id="row-limit-label"
@@ -688,9 +570,12 @@
                                 <input type="text"
                                        id="rowLimit"
                                        value="{{ defaultrowlimit }}"
-                                       class="form-control input-sm">
+                                       class="form-control input-sm"
+                                       style="width: 65px;">
                             </div>
+                        </div>
 
+                        <div class='col-xs-2'>
                             <div class="input-group">
                                 <label for="autoPreview"
                                        id="autoPreviewLabel">
@@ -699,19 +584,10 @@
                                        id="autoPreview"
                                        value="1">
                             </div>
-                        </div><!-- outer form group -->
-                    </div><!-- top table buttons col -->
-                
-                    <div class="col-xs-12"
-                         id="tableWrapperCol">
-                        <div id="tableWrapper">
+                        </label>
                         </div>
-                    </div>
 
-                    <div class="col-xs-12"
-                         id="tableButtonsBottomCol">
-                        <div class="input-group"
-                             id="tableButtonsBottom">
+                        <div class="col-xs-3">
                 <!-- open modelpane view for result(s) selected on table -->
                             <div class="input-group-btn">
                                 <button tabindex="-1"
@@ -720,9 +596,6 @@
                                         id="inspect">
                                             Inspect
                                 </button>
-                            </div>
-                
-                            <div class="input-group-btn">
                             </div>
                 <!-- open preview file for result(s) selected on table -->
                             <div class="input-group-btn">
@@ -733,21 +606,6 @@
                                             Preview
                                 </button>
                             </div>
-                
-                            <div class="input-group-btn">
-                            </div>
-                <!-- open STRF file for result(s) selected on table -->
-                            <div class="input-group-btn">
-                                <button tabindex="-1"
-                                        class="btn btn-default btn-sm"
-                                        type="button"
-                                        id="strf">
-                                            STRF
-                                </button>
-                            </div>
-                
-                            <div class="input-group-btn">
-                            </div>
                 <!-- clear selected rows -->
                             <div class="input-group-btn">
                                 <button tabindex="-1"
@@ -757,44 +615,44 @@
                                             Clear
                                 </button>
                             </div>
-                        </div><!-- outer input group -->
-                    </div><!-- table buttons bottom col -->
-                </div><!-- table row -->
-
-                <div class="row"
-                     id="pyConRow">
-                    <div class="col-xs-12"
-                         id="pyConCol">
-                        <div class="jumbotron ui-widget-content"
-                             id="py_console">
                         </div>
+
                     </div>
-                </div><!-- py console row -->
 
-            </div><!-- resultsArea  col -->
+                    <div class="row" id="tableRowInner"><div class='col-xs-12' style="height: 100%; padding-bottom: 2vh;">
+                        <div id="tableWrapper">
+                        </div>
+                    </div></div>
 
+                </div><!-- table col -->
+            </div><!-- table row -->
 
+        </div><!-- left col -->
 
-<!--       Display Area               -->
-
-
-
-            <div class="col-md-4 col-xs-12 ui-widget-content dragToggle"
-                 id="displayOuter">
-                <!--<label for="displayWrapper"> Plot Display </label>-->
+        <div class="col-xs-4" id="rightCol">
+            <div class="row" id="displayRow"><div class='col-xs-12'>
                 <div id="displayWrapper">
                 </div>
                 <div id="statusReportWrapper">
                 </div>
-            </div><!-- preview/plot area col -->
-            
+            </div></div>
+        </div>
+
+    </div><!-- main row -->
+
+    <div class="row" id="pyConRow"><div class="col-xs-12" style="height: 100%;">
+        <div class="jumbotron ui-widget-content"
+             id="py_console">
+        </div>   
+    </div></div>
+
+    <!-- close outer containers -->
+    </div>
+    </div>
+    </div>
+    </div>
 
 
-        </div><!-- outer row -->
-
-    </div><!-- starter template-->
-    </div><!-- container -->
-    
     <div class="modal" id="analysisEditorModal" tabindex="-1" role="dialog"
     aria-labelledby="analysisEditorModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
@@ -890,6 +748,90 @@
             </div><!--content -->
         </div><!--dialog-->
     </div><!--modal-->
+
+    <div class="modal" id="statusModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title"> Status Filters
+                    <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </h3>
+                </div><!-- header -->
+                <div class="modal-body">
+                    <select multiple id="statusFilters" class="form-control" size="7">
+                            <option name="statusOption[]" value="__any" selected>
+                                Any
+                            </option>
+                        {% for status in statuslist %}
+                            <option name="statusOption[]" value='{{ status }}'>
+                                {{ status }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div><!-- body -->
+            </div><!--content -->
+        </div><!--dialog-->
+    </div><!--modal-->
+
+    <div class="modal" id="tagModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title"> Tag Filters
+                    <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </h3>
+                </div><!-- header -->
+                <div class="modal-body">
+                    <select multiple id="tagFilters" class="form-control" size="7">
+                            <option name="tagOption[]" value="__any" selected>
+                                Any
+                            </option>
+                        {% for tag in taglist %}
+                            <option name="tagOption[]" value='{{ tag }}'>
+                                {{ tag }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div><!-- body -->
+            </div><!--content -->
+        </div><!--dialog-->
+    </div><!--modal-->
+
+    <div class="modal" id="colsModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title"> Table Columns
+                    <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </h3>
+                </div><!-- header -->
+                <div class="modal-body">
+                    <select multiple="multiple"
+                            class="form-control" 
+                            name="tablecolumns"
+                            size="7"
+                            id="tableColSelector"
+                            autocomplete="off">
+                    {% for col in collist %}
+                        <option name="result-option[]"
+                                value="{{ col }}">
+                                {{ col }}
+                        </option>
+                    {% endfor %}
+                    </select>
+                </div><!-- body -->
+            </div><!--content -->
+        </div><!--dialog-->
+    </div><!--modal-->
     
     <div id="loadingPopup">
         <div id="loadingMessage">
@@ -932,10 +874,22 @@
         <input type="hidden" id="default_snr" value="{{ snr }}">
         <input type="hidden" id="default_snri" value="{{ snri }}">
     </div>
+
+    <div style="display:none;" id="defaultColsDiv">
+        {% for col in defaultcols %}
+            <input type="hidden" name="{{ col }}" value="{{ col }}">
+        {% endfor %}
+    </div>
     
     <!-- load jquery -->
+    <!--
     <script type=text/javascript src=
-        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+        "{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>-->
+    <!-- non-minified version. easier debugging? -->
+    <script
+              src="https://code.jquery.com/jquery-3.2.1.js"
+              integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
+              crossorigin="anonymous"></script>
         
     <!-- load jquery ui -->
     <script src=
@@ -951,14 +905,18 @@
     crossorigin="anonymous"></script>
     
     <!-- socketio source -->
-    <script type="text/javascript" src=
-    "//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.1/socket.io.js"></script>
     
     <!-- ajax javascript -->
     <script type="text/javascript">
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
+
+    <!--
     <script type="text/javascript" src=
-    "{{ url_for('static', filename='js/analysis_select.js') }}"></script>
+    "{{ url_for('static', filename='js/analysis_select.js') }}"></script> -->
+    {% assets "js_all" %}
+        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
 
   </body>
 </html>

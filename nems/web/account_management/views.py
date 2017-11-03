@@ -15,7 +15,7 @@ from flask_bcrypt import Bcrypt
 
 from nems.web.nems_analysis import app
 from nems.db import Session, NarfUsers
-from account_management.forms import LoginForm, RegistrationForm
+from nems.web.account_management.forms import LoginForm, RegistrationForm
 
 login_manager = LoginManager()
 login_manager.init_app(app)

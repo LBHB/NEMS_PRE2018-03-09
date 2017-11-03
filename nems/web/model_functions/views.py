@@ -40,12 +40,13 @@ def fit_single_model_view():
     if (len(cSelected) > 1) or (len(mSelected) > 1):
         return jsonify(r_est='error',r_val='more than 1 cell and/or model')
     
-    try:
-        keyword_test_routine(mSelected[0])
-    except Exception as e:
-        web_print(e)
-        web_print('Fit failed.')
-        raise e
+    # turn off keyword rules tests for now
+    #try:
+    #    keyword_test_routine(mSelected[0])
+    #except Exception as e:
+    #    web_print(e)
+    #    web_print('Fit failed.')
+    #    raise e
     
     web_print(
             "Beginning model fit -- this may take several minutes."
@@ -87,11 +88,15 @@ def enqueue_models_view():
     bSelected = request.args.get('bSelected')[:3]
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
+    codeHash = request.args.get('codeHash')
+    if not codeHash:
+        codeHash = "master"
     force_rerun = request.args.get('forceRerun', type=int)
     
     enqueue_models(
             cSelected, bSelected, mSelected,
             force_rerun=bool(force_rerun), user=user.username,
+            codeHash=codeHash,
             )
     return jsonify(data=True)
     
