@@ -45,7 +45,7 @@ class LocalJerbStore(Resource):
         return Response(d, status=200, mimetype='application/json')
 
     def put(self, jid):
-        """ Idemtpotent. Returns 201 if the jerb was created, or
+        """ Idempotent. Returns 201 if the jerb was created, or
         return 200 if it exists already in this jerbstore."""
         ensure_valid_jid(jid)
         # TODO: Ensure request is within limits

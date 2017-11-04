@@ -277,3 +277,16 @@ def upload_jerbfile_to_jerbstore(jerbfile):
     else:
         code = "ERROR   "
     print(code + j.jid + " " + jerbfile)
+
+
+def upload_jerbfile_to_jerb_index(jerbfile):
+    """ Sends the file to jerbstore. Defaults to localhost. """
+    # TODO: Fix source
+    j = load_jerb_from_file(jerbfile)
+    url = 'http://localhost:3001/jid/' + str(j.jid)
+    headers = {"Content-Type": "application/json"}
+    with open(jerbfile, 'rb') as f:
+        data = f.read()
+    result = requests.put(url, data=data, headers=headers)
+    print("INDEXED " + j.jid)
+    print(result)

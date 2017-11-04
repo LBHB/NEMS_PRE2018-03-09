@@ -72,6 +72,7 @@ def handle_command_line():
             jerbfiles.append(f)
         for j in jerbfiles:
             jb.upload_jerbfile_to_jerbstore(j)
+            jb.upload_jerbfile_to_jerb_index(j)
         exit(0)
 
     elif op == 'merge':    
