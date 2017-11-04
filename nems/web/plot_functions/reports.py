@@ -7,7 +7,6 @@ been separated here.
 
 import io
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt, mpld3
 import seaborn as sns
 import numpy as np

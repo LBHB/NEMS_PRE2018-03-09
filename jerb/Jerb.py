@@ -7,17 +7,20 @@ import json
 
 
 class Jerb ():
-    def __init__(self, init_json_string):
-        """ Inits Jerb object from the provided JSON string or filepath. """
+    def __init__(self, init_json_string, already_json=False):
+        """ Inits Jerb object from the provided JSON string (or JSON, if
+        already_json=TRUE). """
 
-        j = json.loads(init_json_string)
+        if not already_json:
+            j = json.loads(init_json_string)
+        else:
+            j = init_json_string
+
+        # TODO: Check that jid, meta, are well defined
 
         self.jid = j['jid']
         self.meta = j['meta']
         self.pack = binascii.a2b_base64(j['pack']) if 'pack' in j else None
-
-        # Internal storage
-        self.__init_json_string__ = init_json_string
 
         # Internal flags: If there is no payload, we'll need to fetch it
         self.__nopayload__ = True if not (self.pack) else False

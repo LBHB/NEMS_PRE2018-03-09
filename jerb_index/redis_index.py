@@ -1,3 +1,4 @@
+import json
 import redis
 
 
@@ -18,7 +19,7 @@ def redis_connect(credentials):
                       'REDIS_PASS']
     if not all(c in credentials for c in required_creds):
         raise ValueError('Required Redis credentials not all provided: '
-                         + required_creds)
+                         + str(required_creds))
     else:
         r = redis.Redis(host=credentials['REDIS_HOST'],
                         port=credentials['REDIS_PORT'],
@@ -32,7 +33,7 @@ def index_jerb(r, jerb):
     # TODO : Only index the jerb if it is not already indexed
     # TODO : start transaction
     forward_index(r, jerb)
-    reverse_index(r, jerb)
+    # reverse_index(r, jerb)
 
 
 def deindex_jerb(r, jerb):
@@ -44,7 +45,7 @@ def deindex_jerb(r, jerb):
 def forward_index(r, jerb):
     """ Create forward index from a JID to a Jerb JSON."""
     k = "jid:" + jerb.jid
-    v = jerb.as_json()
+    v = json.dumps(jerb.meta)
     r.set(k, v)
 
 
@@ -83,9 +84,9 @@ def delete_reverse_index(r, jerb):
 
 
 def lookup_jid(r, jid):
-    """ Forward lookup. Returns the JSON stored at JID. """
-    jrb = r.get("jid:", jid)
-    return jrb
+    """ Forward lookup. Returns a string of what was stored at JID. """
+    jrb = r.get("jid:" + jid)
+    return jrb.decode()
 
 
 def lookup_prop(r, prop, val, startat=0, limit=100):

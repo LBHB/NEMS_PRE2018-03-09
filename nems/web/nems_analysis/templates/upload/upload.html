@@ -30,34 +30,6 @@
 
   <body style="padding-top: 45px; background: #CDD6D8;">
 
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" 
-              data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{{ url_for('main_view') }}">NEMS Analysis</a>
-        </div>
-        <div id="navbar" class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li><a href="https://bitbucket.org/lbhb/nems" target="_blank">
-            Source & Info</a></li>
-            <li><a href="http://hyrax.ohsu.edu/celldb/celllist.php" target="_blank">
-            CellDB</a></li>
-            <li><a href="https://bitbucket.org/lbhb/nems/issues?status=new&status=open"
-                   target="_blank">
-                       Issue Tracker
-            </a></li>
-            <li><a href="{{ url_for('logout') }}" id="register">Log Out</a></li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
-
     <div class="container-fluid">
         <div class="row justify-content-center" style="padding-top: 45px;">
             <div class="col-xs-4"></div>
@@ -85,6 +57,22 @@
                     {% endfor %}
                 {% endif %}
             </form>
+            </div>
+            <div class="col-xs-4"></div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-xs-4"></div>
+            <div class="col-xs-4"
+                 style="text-align: center;">
+                <br>
+                <a href="{{ url_for('main_view') }}">
+                    <button type="button" class="btn btn-default btn-lg"
+                            style="box-shadow: -7px 7px 5px #888888;
+                                   background: #FFFFFF; padding: 15px;
+                                   border-radius: 10px;">
+                                        Home
+                    </button>
+                </a>
             </div>
             <div class="col-xs-4"></div>
         </div>

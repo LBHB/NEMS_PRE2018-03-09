@@ -1,66 +1,70 @@
-import requests
+from flask import abort, request, Response
+from flask_restful import Resource
 import json
-from flask import Flask
-from flask_restful import Api, Resource, reqparse
 
-import jerb
-from jerb_index import redis_index
-
-app = Flask(__name__)
-api = Api(app)
-
-creds = jerb.util.environment_credentials()
-r = redis_index.redis_connect(creds)
+import jerb.lib
+import jerb_index.redis_index as red
+from jerb.Jerb import Jerb
 
 
-class Docs(Resource):
-    def get(self):
-        return {"routes":
-                {"GET /jid/*": "Returns the metadata for a given JID. ",
-                 "POST /jid/*": "Indexes the Jerb payload, if not yet indexed",
-                 "DELETE /jid/*": "Unindexes the Jerb payload, if indexed",
-                 "GET /find?prop=_&val=_": "Returns JIDs matching prop=val"}}
+# TODO: These two are cut and pasted. Consolidate!
+def ensure_valid_jid(jid):
+    if not jerb.lib.is_SHA1_string(jid):
+        abort(400, 'invalid SHA1 string:' + jid)
 
 
-class JID(Resource):
+def jerb_not_found():
+    # TODO: Southpark reference
+    abort(404, "jerb not found")
+
+
+class JerbIndex(Resource):
+    def __init__(self, **kwargs):
+        self.rdb = kwargs['redisdb']
+
     def get(self, jid):
-        # TODO: Sanitize JID
-        j = redis_index.lookup_jid(jid)
-        return j
-
-    def post(self, jid):
-        # TODO: Sanitize JID
-        js = json.loads(requests.body.read())
-        # TODO: Sanitize JS
-        j = jerb.Jerb(js)
-        errs = j.errors()
-        if any(errs) or not (jid == j.jid):
-            raise errs
+        """ Returns the metadata for the jerb found at JID, if it exists."""
+        ensure_valid_jid(jid)
+        metadata = red.lookup_jid(self.rdb, jid)
+        if metadata:
+            return Response(metadata, status=200, mimetype='application/json')
         else:
-            return redis_index.index_jerb(r, j)
+            return Response("Not found", status=404)
+
+    def put(self, jid):
+        """ Idempotent. Indexes the jerb."""
+        ensure_valid_jid(jid)
+        # TODO: Ensure request is within limits
+        js = request.get_json()
+        j = Jerb(js, already_json=True)
+        # TODO: This is boilerplate and same as jerbserve. Consolidate.
+        if not jid == j.jid:
+            abort(400, 'JID does not match argument')
+        if any(j.errors()):
+            abort(400, 'jerb contains errors')
+        red.index_jerb(self.rdb, j)
+        return Response(status=200)
 
     def delete(self, jid):
-        # TODO: Sanitize JID
-        j = redis_index.lookup_jid(jid)
+        ensure_valid_jid(jid)
+        j = red.lookup_jid(jid)
         if j:
-            j = redis_index.deindex_jerb(jid)
+            j = red.deindex_jerb(jid)
             return "Successfully deindexed."
         else:
-            return "JID not found."
+            jerb_not_found()
 
 
-class Lookups(Resource):
+class JerbQuery(Resource):
 
-    def __init__(self):
-        self.pp = reqparse.RequestParser()
-        self.pp.add_argument('prop', type=str)
-        self.pp.add_argument('val', type=str)
+#    def __init__(self):
+#        self.pp = reqparse.RequestParser()
+#        self.pp.add_argument('prop', type=str)
+#        self.pp.add_argument('val', type=str)
 
     def get(self, prop, val):
-        args = self.pp.parse_args(self)
-        redis_index.lookup_prop(r, args['prop'], args['val'])
+        return Response('Nothing to see here', 200)
+    #args = self.pp.parse_args(self)
+    #    red.lookup_prop(r, args['prop'], args['val'])
 
 
-api.add_resource(Docs, '/')
-api.add_resource(JID, '/jid', '/jid/<string:jid>')
-api.add_resource(Lookups, '/find')
