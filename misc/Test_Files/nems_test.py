@@ -71,7 +71,7 @@ if 0:
     #cellid="eno052d-a1"
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
-if 1:
+if 0:
     """ TORC-TONE """
     #cellid="bbl074g-a1"
     #batch=303 #PTD IC pupil
@@ -79,11 +79,11 @@ if 1:
     batch=301 #PTD A1 pupil
     modelname="parm100pt_wcg02_fir15_dexp_fit01"
 
-if 0:
+if 1:
     """ BVT """
-    cellid="gus030b-b1"
-    batch=298 #A1
-    modelname="parm50pt_wcg02_fir15_pupgainctl_fit01"
+    cellid="gus006b-a2"
+    batch=302 #A1
+    modelname="parm50pt_wcg02_fir15_pupgain_fit01"
 
 if 0:
     cellid='gus019d-b2'

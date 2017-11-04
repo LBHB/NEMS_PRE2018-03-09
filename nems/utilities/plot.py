@@ -171,11 +171,13 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     out1=m.d_out[m.parent_stack.plot_dataidx]
     s=out1[m.output_name][m.parent_stack.plot_stimidx,:]
     r=out1['resp'][m.parent_stack.plot_stimidx,:]
-    pred, =plt.plot(s,label='Predicted')
-    act, =plt.plot(r,'r',label='Actual')
+    fs=out1['respFs']
+    tt=np.arange(0,len(r))/fs
+    pred, =plt.plot(tt,s,label='Predicted')
+    act, =plt.plot(tt,r,'r',label='Actual')
     plt.legend(handles=[pred,act])
     #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
-    plt.xlabel('Time Step')
+    plt.xlabel('Time (s)')
     plt.ylabel('Firing rate (unitless)')
 
 def pred_act_psth_smooth(m,size=FIGSIZE,idx=None):

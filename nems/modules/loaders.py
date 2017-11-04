@@ -11,6 +11,7 @@ Created on Fri Aug  4 13:14:24 2017
 from nems.modules.base import nems_module
 import numpy as np
 import scipy.io
+import matplotlib.pyplot as plt
 
 import nems.utilities.utils
 import nems.utilities.plot
@@ -146,14 +147,28 @@ class load_mat(nems_module):
                 
                 # reshape stimulus to be channel X time
                 data['stim']=np.transpose(data['stim'],(0,2,1))
-                if stim_resamp_factor != 1:
+                
+                
+                if stim_resamp_factor in np.arange(0,10):
+                    print("stim bin resamp factor {0}".format(stim_resamp_factor))
+                    data['stim']=nems.utilities.utils.bin_resamp(data['stim'],stim_resamp_factor,ax=2)
+                   
+                elif stim_resamp_factor != 1:
                     data['stim']=nems.utilities.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
-                if resp_resamp_factor != 1:
+                if resp_resamp_factor in np.arange(0,10):
+                    print("resp bin resamp factor {0}".format(resp_resamp_factor))
+                    data['resp']=nems.utilities.utils.bin_resamp(data['resp'],resp_resamp_factor,ax=0)
+                    if data['pupil'] is not None:
+                        data['pupil']=nems.utilities.utils.bin_resamp(data['pupil'],resp_resamp_factor,ax=0)
+                        # save raw pupil-- may be somehow transposed differently than resp_raw
+                        data['pupil_raw']=data['pupil'].copy()
+                    
+                elif resp_resamp_factor != 1:
                     data['resp']=nems.utilities.utils.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
                     if data['pupil'] is not None:
                         data['pupil']=nems.utilities.utils.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
