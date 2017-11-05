@@ -682,16 +682,21 @@ def check_analysis_exists():
     session = Session()
     
     nameEntered = request.args.get('nameEntered')
+    analysisId = request.args.get('analysisId')
     
+    exists = False
     result = (
             session.query(NarfAnalysis)
             .filter(NarfAnalysis.name == nameEntered)
             .first()
             )
              
-    if result is None:
-        exists = False
-    else:
+    # only set to True if id is different, so that
+    # overwriting own analysis doesn't cause flag
+    if result and (
+            analysisId == '__none' or
+            (int(result.id) != int(analysisId))
+            ):
         exists = True
         
     session.close()

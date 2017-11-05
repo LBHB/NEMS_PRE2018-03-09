@@ -715,10 +715,11 @@ $(document).ready(function(){
     
     function verifySubmit(){
         var nameEntered = $("[name='editName']").val();
+        var analysisId = $("[name='editId']").val();
         
         $.ajax({
            url: $SCRIPT_ROOT + '/check_analysis_exists',
-           data: { nameEntered:nameEntered },
+           data: { nameEntered:nameEntered, analysisId:analysisId },
            type: 'GET',
            success: function(data){
                 if (data.exists){
