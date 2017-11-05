@@ -49,8 +49,15 @@ class mean_square_error(nems_module):
             bounds=np.round(np.linspace(0,len(X1)+1,11)).astype(int)
             E=np.zeros([10,1])
             #P=np.mean(np.square(X2))
+            
             for ii in range(0,10):
-                E[ii]=np.mean(np.square(X1[bounds[ii]:bounds[ii+1]]-X2[bounds[ii]:bounds[ii+1]]))/np.mean(np.square(X2[bounds[ii]:bounds[ii+1]]))
+                if bounds[ii]==bounds[ii+1]:
+                    print('no data in range?')
+                P=np.mean(np.square(X2[bounds[ii]:bounds[ii+1]]))
+                if P>0:
+                    E[ii]=np.mean(np.square(X1[bounds[ii]:bounds[ii+1]]-X2[bounds[ii]:bounds[ii+1]]))/P
+                else:
+                    E[ii]=1
             #E=E/P
             
             mE=E.mean()
