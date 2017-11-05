@@ -19,19 +19,25 @@ from bokeh.models import (
         )
 from bokeh.charts import HeatMap
 
+import nems.utilities.pruffix as prx
 
 class Performance_Report():
-    def __init__(self, data, batch):
+    def __init__(self, data, batch, models):
         self.data = data
         self.batch = batch
-    
+        self.abbr, self.pre, self.suf = prx.find_common(models)
+        data.replace(models, self.abbr, inplace=True)
+        
     def generate_plot(self):
         tools = [
                 PanTool(), ResizeTool(), SaveTool(), WheelZoomTool(),
                 ResetTool(), HoverTool()
                 ]
         p = HeatMap(self.data, x='cellid', y='modelname', values='r_test',
-                    stat=None, title=str(self.batch), hover_text='r_test',
+                    stat=None, title=(
+                            "batch {0}, model prefix: {1}, suffix: {2}"
+                            .format(self.batch, self.pre, self.suf)
+                            ), hover_text='r_test',
                     tools=tools, responsive=True,
                     )
         p.yaxis.major_label_orientation='horizontal'
@@ -65,12 +71,15 @@ class Fit_Report():
                 )
         img.set_clim(0, 0.6)
         ax = plt.gca()
+
+        abbr, pre, suf = prx.find_common(cols)
+        
         ax.set_ylabel('')
-        ax.set_xlabel('Model')
+        ax.set_xlabel('Model, prefix: {0}, suffix: {1}'.format(pre, suf))
         ax.set_yticks(yticks)
         ax.set_yticklabels(rows, fontsize=8)
         ax.set_xticks(xticks)
-        ax.set_xticklabels(xticks, fontsize=8)
+        ax.set_xticklabels(abbr, fontsize=8, rotation='vertical')
         ax.set_yticks(minor_yticks, minor=True)
         ax.set_xticks(minor_xticks, minor=True)
         ax.grid(b=False)

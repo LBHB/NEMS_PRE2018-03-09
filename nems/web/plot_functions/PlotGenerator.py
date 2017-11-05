@@ -34,6 +34,8 @@ import matplotlib.pyplot as plt, mpld3
 import matplotlib.patches as mpatch
 from matplotlib.transforms import Bbox
 
+import nems.utilities.pruffix as prx
+
 #NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
 #      list for use with web interface
 PLOT_TYPES = [
@@ -72,7 +74,8 @@ class PlotGenerator():
     """Base class for plot generators."""
     
     def __init__(
-            self, data, measure, fair=True, outliers=False, extra_cols=[],
+            self, data, measure, models, fair=True, outliers=False,
+            extra_cols=[],
             ):
         # Force measure to be interpreted as a list for
         # forward-compatibility with specifying multiple measures.
@@ -82,7 +85,9 @@ class PlotGenerator():
             self.measure = [measure] + extra_cols
         self.fair = fair
         self.outliers = outliers
-        print("Re-formatting data array...")
+        self.abbr, self.pre, self.suf = prx.find_common(models)
+        data.replace(models, self.abbr, inplace=True)
+        self.models = self.abbr
         self.data = self.form_data_array(data)
         
         # Use this inside views function to check whether generate_plot
@@ -91,7 +96,6 @@ class PlotGenerator():
             self.emptycheck = True
         else:
             self.emptycheck = False
-            
         print("Building plot...")
             
 
@@ -159,10 +163,7 @@ class PlotGenerator():
                 cell for cell in
                 list(set(data['cellid'].values.tolist()))
                 ]
-        modellist = [
-                model for model in
-                list(set(data['modelname'].values.tolist()))
-                ]
+        modellist = self.models
         # Use lists of unique cell and model names to form a multiindex.
         multiIndex = pd.MultiIndex.from_product(
                 [celllist,modellist], names=['cellid','modelname'],
@@ -296,9 +297,8 @@ class PlotGenerator():
 class Scatter_Plot(PlotGenerator):
     """Defines the class used to generate a model-comparison scatter plot."""
     
-    def __init__(self, data, measure, fair=True, outliers=False):
-        PlotGenerator.__init__(self, data, measure, fair, outliers)
-        
+    def __init__(self, data, measure, models, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, models, fair, outliers)
     def create_hover(self):
         hover_html = """
             <div>
@@ -363,6 +363,7 @@ class Scatter_Plot(PlotGenerator):
             x_median = np.median(dataX[self.measure[0]])
             y_mean = np.mean(dataY[self.measure[0]])
             y_median = np.median(dataY[self.measure[0]])
+
             x_label = (
                     "{0}, mean: {1:5.4f}, median: {2:5.4f}"
                     .format(modelX, x_mean, x_median)
@@ -382,7 +383,9 @@ class Scatter_Plot(PlotGenerator):
             p = figure(
                     x_range=[0,1], y_range=[0,1],
                     x_axis_label=x_label, y_axis_label=y_label,
-                    title=self.measure[0], tools=tools, responsive=True,
+                    title=("{0}, prefix: {1}, suffix: {2}"
+                           .format(self.measure[0], self.pre, self.suf)),
+                    tools=tools, responsive=True,
                     toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
                     output_backend="svg"
                     )
@@ -397,16 +400,16 @@ class Scatter_Plot(PlotGenerator):
         # If more than one plot was made (i.e. 2 or more models were selected),
         # put them in a grid.
 
-        if len(plots) == 1:
-            singleplot = plots[0]
-            self.script,self.div = components(singleplot)
-            return
-        elif len(plots) > 1:            
-            grid = gridplot(
-                    plots, ncols=GRID_COLS, responsive=True,
-                    )
-            self.script,self.div = components(grid)
-        else:
+        #if len(plots) == 1:
+        #    singleplot = plots[0]
+        #    self.script,self.div = components(singleplot)
+        #    return
+        #elif len(plots) > 1:            
+        grid = gridplot(
+                plots, ncols=GRID_COLS, responsive=True,
+                )
+        self.script,self.div = components(grid)
+        if not plots:
             self.script, self.div = (
                     'Error, no plots to display.',
                     'Make sure you selected two models.'
@@ -419,8 +422,8 @@ class Bar_Plot(PlotGenerator):
     
     """
     
-    def __init__(self, data, measure, fair=True, outliers=False):
-        PlotGenerator.__init__(self, data, measure, fair, outliers)
+    def __init__(self, data, measure, models, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, models, fair, outliers)
             
     def create_hover(self):
         hover_html = """
@@ -516,7 +519,10 @@ class Bar_Plot(PlotGenerator):
                 end=(max(newData['mean'])*1.5)
                 )
         p = figure(
-                x_range=xrange, x_axis_label='Model',
+                x_range=xrange, x_axis_label=(
+                        "Modelname, prefix: {0}, suffix: {1}"
+                        .format(self.pre, self.suf)
+                        ),
                 y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
                 title="Mean %s Performance By Model"%self.measure[0],
                 tools=tools, responsive=True, toolbar_location=TOOL_LOC,
@@ -529,8 +535,12 @@ class Bar_Plot(PlotGenerator):
                 fill_color=VBAR_FILL, line_color='black'
                 )
         p.add_glyph(dat_source,glyph)
-            
-        self.script,self.div = components(p)
+
+        # workaround to prevent title and toolbar from overlapping
+        grid = gridplot(
+            [p], ncols=GRID_COLS, responsive=True,
+            )
+        self.script, self.div = components(grid)
             
             
 class Pareto_Plot(PlotGenerator):
@@ -542,10 +552,12 @@ class Pareto_Plot(PlotGenerator):
     # Always include 'n_parms' as an extra column, since it's required
     # for this plot type.
     def __init__(
-            self, data, measure, fair=True, outliers=False,
+            self, data, measure, models, fair=True, outliers=False,
             extra_cols=['n_parms']
             ):
-        PlotGenerator.__init__(self, data, measure, fair, outliers, extra_cols)
+        PlotGenerator.__init__(
+                self, data, measure, models, fair, outliers, extra_cols,
+                )
             
     def create_hover(self):
         hover_html = """
@@ -588,12 +600,19 @@ class Pareto_Plot(PlotGenerator):
                 toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
                 )
             
-        self.script,self.div = components(p)
+        # workaround to prevent title and toolbar from overlapping
+        grid = gridplot(
+            [p], ncols=GRID_COLS, responsive=True,
+            )
+        self.script, self.div = components(grid)
 
             
 class Tabular_Plot(PlotGenerator):
     # TODO: implement this from NARF
-    def __init__(self, data, measure, fair=True, outliers=False, extra_cols=[]):
+    def __init__(
+            self, data, measure, models, fair=True, outliers=False,
+            extra_cols=[]
+                 ):
         # Use blank measure since tabular has a fixed set of columns
         _measure=[]
         _extra_cols=[
@@ -601,8 +620,8 @@ class Tabular_Plot(PlotGenerator):
                 'mi_test', 'cohere_test',
                 ]
         PlotGenerator.__init__(
-                self, data=data, measure=_measure, fair=fair,
-                outliers=outliers, extra_cols=_extra_cols
+                self, data=data, measure=_measure, models=models, fair=fair,
+                outliers=outliers, extra_cols=_extra_cols,
                 )
         
     def generate_plot(self):
@@ -686,8 +705,9 @@ class Tabular_Plot(PlotGenerator):
                    .highlight_min(
                         subset=negatives, axis=0, color='darkorange'
                         )\
+                   .set_caption('Prefix: {0}, Suffix: {1}'
+                                .format(self.pre, self.suf))\
                    .format("{: 3.4f}")
-        
         self.html = t.render()
         #self.html = table.to_html(
         #    index=True, classes="table-hover table-condensed",
@@ -712,8 +732,8 @@ class Tabular_Plot(PlotGenerator):
 
 
 class Significance_Plot(PlotGenerator):
-    def __init__(self, data, measure, fair=True, outliers=False):
-        PlotGenerator.__init__(self, data, measure, fair, outliers)
+    def __init__(self, data, measure, models, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, models, fair, outliers)
         
     def extents(self, f):
         # reference:
@@ -822,10 +842,13 @@ class Significance_Plot(PlotGenerator):
             if j == i:
                 # don't draw text for diagonal
                 continue
+            formatting = '{:.04f}'
+            if z <= 0.0001:
+                formatting = '{:.2E}'
             ax.text(
-                    j, i, '{:.2E}'.format(z), ha='center', va='center',
+                    j, i, formatting.format(z), ha='center', va='center',
                     )
-
+        
         ax.set_ylabel('')
         ax.set_xlabel('')
         ax.set_yticks(yticks)
@@ -837,10 +860,9 @@ class Significance_Plot(PlotGenerator):
         ax.grid(b=False)
         ax.grid(which='minor', color='b', linestyle='-', linewidth=0.75)
         ax.set_title(
-                "Wilcoxon Signed Test per Model on %s"%self.measure[0],
-                loc='right', fontdict={
-                        'fontsize': 18,
-                        }
+                ("Wilcoxon Signed Test on {0}\nprefix: {1}, suffix: {2}"
+                 .format(self.measure[0], self.pre, self.suf)),
+                ha='center', fontsize = 14,
                 )
         blue_patch = mpatch.Patch(
                 color='#368DFF', label='Mean Difference', edgecolor='black'
@@ -859,8 +881,9 @@ class Significance_Plot(PlotGenerator):
                 )
         
         plt.legend(
-                bbox_to_anchor=(0., 1.02, 1., .102), ncol=2,
-                loc=3, handles=[
+                #bbox_to_anchor=(0., 1.02, 1., .102), ncol=2,
+                bbox_to_anchor=(1.05, 1), ncol=1,
+                loc=2, handles=[
                         p05_patch, p01_patch, p001_patch,
                         nonsig_patch, blue_patch,
                         ]
