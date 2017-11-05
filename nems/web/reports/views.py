@@ -53,9 +53,19 @@ def batch_performance():
                 .statement,
                 session.bind
                 )
-                
+    # get back list of models that matched other query criteria
+    results_models = [
+            m for m in
+            list(set(results['modelname'].values.tolist()))
+            ]
+    # filter mSelected to match results models so that list is in the
+    # same order as on web UI
+    ordered_models = [
+            m for m in mSelected
+            if m in results_models
+            ]
     
-    report = Performance_Report(results, bSelected)
+    report = Performance_Report(results, bSelected, ordered_models)
     report.generate_plot()
         
     session.close()
