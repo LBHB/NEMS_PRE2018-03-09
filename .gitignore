@@ -116,3 +116,5 @@ saved_models/
 !**/nems_config/default_db.db
 
 **/nems_analysis/static/gen/*
+nems.log*
+

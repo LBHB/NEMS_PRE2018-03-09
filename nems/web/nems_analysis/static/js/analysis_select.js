@@ -4,22 +4,21 @@ $(document).ready(function(){
     // could group by functionality at this point.    
 
     namespace = '/py_console'
-    /*
+
     var socket = io.connect(
             location.protocol + '//'
             + document.domain + ':' 
             + location.port + namespace,
             {'timeout':0}
             );
-    */
-
+    /*
     var socket = io.connect(
             null,
             {   port: location.port,
                 rememberTransport: false
             }
             )
-            
+    */
     socket.on('connect', function() {
        console.log('socket connected');
     });
@@ -265,12 +264,12 @@ $(document).ready(function(){
     }
     // also save selections every 60 seconds just to be safe
     // TODO: 60 seconds okay, or would shorter/longer be better?
-    setInterval(function(){
-        set_saved_selections();
-        console.log("Selections saved.");
-        },
-        60000
-    );
+    //setInterval(function(){
+    //    set_saved_selections();
+    //    console.log("Selections saved.");
+    //    },
+    //    60000
+    //);
 
     $("#testSave").click(set_saved_selections);
     $("#testGet").click(get_saved_selections);
@@ -526,6 +525,7 @@ $(document).ready(function(){
                 $.each(data.analysislist, function(analysis) {
                     analyses.append($("<option></option>")
                         .attr("value", data.analysislist[analysis])
+                        .attr("name", data.analysis_ids[analysis])
                         .text(data.analysislist[analysis]));
                 });
                 
@@ -670,6 +670,7 @@ $(document).ready(function(){
     
     function newAnalysis(){
         $("[name='editName']").val('');
+        $("[name='editId']").val('__none');
         $("[name='editStatus']").val('');
         $("[name='editTags']").val('');
         $("[name='editQuestion']").html('');
@@ -684,7 +685,7 @@ $(document).ready(function(){
         // ajax call to get back name, tags, question, etc
         // fill in content of editor modal with response
         
-        var aSelected = $("#analysisSelector").val();
+        var aSelected = $("#analysisSelector option:selected").attr('name');
         
         $.ajax({
             url: $SCRIPT_ROOT + '/get_current_analysis',
@@ -692,6 +693,7 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data){
                 $("[name='editName']").val(data.name);
+                $("[name='editId']").val(data.id);
                 $("[name='editStatus']").val(data.status);
                 $("[name='editTags']").val(data.tags);
                 $("[name='editQuestion']").html(data.question);
@@ -720,9 +722,9 @@ $(document).ready(function(){
            type: 'GET',
            success: function(data){
                 if (data.exists){
-                    alert("WARNING: An analysis by the same name already exists.\n" +
-                          "Submitting this form without changing the name will\n" +
-                          "overwrite the existing analysis entry!");
+                    alert("An analysis by the same name already exists.\n" +
+                          "Please choose a different name.");
+                    return false;
                 }
                 
                 if(confirm("ATTENTION: This will save the entered information to the\n" +
@@ -742,6 +744,7 @@ $(document).ready(function(){
                 
     function submitAnalysis(){
         var name = $("[name='editName']").val();
+        var id = $("[name='editId']").val();
         var status = $("[name='editStatus']").val();
         var tags = $("[name='editTags']").val();
         var question = $("[name='editQuestion']").val();
@@ -750,7 +753,7 @@ $(document).ready(function(){
         
         $.ajax({
            url: $SCRIPT_ROOT + '/edit_analysis',
-           data: { name:name, status:status, tags:tags,
+           data: { name:name, id:id, status:status, tags:tags,
                   question:question, answer:answer, tree:tree },
            type: 'GET',
            success: function(data){
@@ -768,11 +771,12 @@ $(document).ready(function(){
     
     function deleteAnalysis(){
             
-        var aSelected = $("#analysisSelector").val();
+        var aSelected = $("#analysisSelector option:selected").attr('name');
+        var aName = $("#analysisSelector").val();
         reply = confirm("WARNING: This will delete the database entry for the selected " +
                 "analysis. \n\n!!   THIS CANNOT BE UNDONE   !!\n\n" +
                 "Are you sure you wish to delete this analysis:\n" +
-                aSelected);
+                aName);
         
         if (reply){
             $.ajax({

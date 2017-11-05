@@ -65,7 +65,7 @@
                     <select class="form-control plot-form"
                             id="analysisSelector">
                         {% for analysis in analysislist %}
-                        <option value="{{ analysis }}">
+                        <option value="{{ analysis }}" name="{{ analysis_ids[loop.index-1] }}">
                             {{ analysis }}
                         </option>
                         {% endfor %}
@@ -81,14 +81,6 @@
                             data-content="No Selection"
                             data-html="true">
                                 Details
-                    </button>
-                </div>
-                <div class="input-group-btn">
-                    <button type="button"
-                            class="btn btn-default btn-xs"
-                            id="fitReport"
-                            tabindex="-1">
-                                Report
                     </button>
                 </div>
                 <div class="input-group-btn editorGroup">
@@ -237,7 +229,14 @@
                                     Enqueue Models
                         </button>
                     </div>
-                
+                    <div class="input-group-btn">
+                        <button type="button"
+                                class="btn btn-default btn-xs"
+                                id="fitReport"
+                                tabindex="-1">
+                                    Fit Report
+                        </button>
+                    </div>
                     <div class="input-group-btn">
                         <button tabindex="-1"
                                 type="button"
@@ -493,12 +492,14 @@
                     <script>
                         var sitemap = document.getElementById('sitemap');
                         sitemap.style.display = 'none'
-                    {% if username %}
+                    {% if seclvl is greaterthan 8 %}
                         sitemap.style.display = 'block';
                     {% endif %}
                     </script>
                 </a>
             </h4>
+            <button type="button" id="testGet"> Load Selections </button>
+            <button type="button" id="testSave"> Save Selections </button>
 
             <!-- buttons for manually testing saved user selections -->
             <!--
@@ -676,6 +677,7 @@
                                     Name </span>
                             <input type="text" name="editName" placeholder="Name of Analysis"
                             class="form-control">
+                            <input type="hidden" name="editId" value="__none">
                             </div>
                             </div>
                             
@@ -717,7 +719,7 @@
                             <span class="input-group-addon" id="editAnswerLabel">
                                         Answer </span>
                             <textarea form="analysisEditor" name="editAnswer" placeholder=
-                            "Answer(s) Found, If Any" class="form-control"></textarea>
+                            "Answer(s) Found, If Any" class="form-control" rows="4"></textarea>
                             </div>
                             </div>
                         </div>
@@ -727,8 +729,8 @@
                             <div class="input-group">
                             <span class="input-group-addon" id="editTreeLabel">
                                         Model Tree </span>
-                            <input type="text" name="editTree" id="editTree" placeholder=
-                            "{'model','tree',{'specification'}}" class="form-control">
+                            <textarea form="analysisEditor" name="editTree" placeholder=
+                            "{'model','tree',{'specification'}}" class="form-control" height="2"></textarea>
                             </div>
                             </div>
                         </div>
