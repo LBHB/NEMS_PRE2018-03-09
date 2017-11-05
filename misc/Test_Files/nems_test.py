@@ -83,12 +83,12 @@ if 1:
     """ BVT """
     cellid="gus006b-a2"
     batch=302 #A1
-    modelname="parm50pt_wcg02_fir15_pupgain_fit01"
+    modelname="parm50ptp_wcg02_fir15_pupgain_fit01"
 
 if 0:
     cellid='gus019d-b2'
     batch=289 #A1
-    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03_nested5"
+    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03"
 
 # ecog test
 if 0:
