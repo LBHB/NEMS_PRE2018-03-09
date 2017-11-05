@@ -134,8 +134,9 @@ class crossval(nems_module):
     nests=0
     estidx_sets=[[]]
     validx_sets=[[]]
+    keep_filestate=[]
     
-    def my_init(self,valfrac=-1,interleave_valtrials=True,val_mult_repeats=True):
+    def my_init(self,valfrac=-1,interleave_valtrials=True,val_mult_repeats=True,keep_filestate=[]):
         #self.field_dict=locals()
         #self.field_dict.pop('self',None)
         nests=self.parent_stack.meta['nests']
@@ -154,6 +155,7 @@ class crossval(nems_module):
         self.interleave_valtrials=interleave_valtrials
         self.val_mult_repeats=val_mult_repeats
         self.cv_counter=0
+        self.keep_filestate=keep_filestate # by default keep all files
         
     def evaluate(self,nest=0):
 
@@ -171,75 +173,78 @@ class crossval(nems_module):
 
         self.estidx_sets=[]
         self.validx_sets=[]
+        fcount=-1
         for i, d in enumerate(self.d_in):
-            try:
-                count=self.parent_stack.meta['cv_counter']
-            except:
-                count=self.cv_counter
-
-            nests=int(1/valfrac)
-            n_trials=d['resp'].shape[0]
-            
-            self.estidx_sets.append([])
-            self.validx_sets.append([])
-            self.estidx_sets[i],self.validx_sets[i]=nems.utilities.utils.crossval_set(
-                    n_trials,cv_count=nests,cv_idx=None,
-                    interleave_valtrials=self.interleave_valtrials)
-            eidx=self.estidx_sets[i][count]
-            vidx=self.validx_sets[i][count]
-            
-            print("Nest {0}/{1}, File {2} validx:".format(count,nests,i))
-            print(vidx)
-            
-            d_est=d.copy()
-            d_val=d.copy()               
-
-            d_est['est']=True
-            d_val['est']=False
-            
-            d_est['resp']=copy.deepcopy(d['resp'][eidx,:])
-            d_val['resp']=copy.deepcopy(d['resp'][vidx,:])
-            
-            d_est['stim']=copy.deepcopy(d['stim'][:,eidx,:])
-            d_val['stim']=copy.deepcopy(d['stim'][:,vidx,:])
-            
-            # just copy pointers as placeholders for prediction trace
-            d_est['pred']=d_est['stim']
-            d_val['pred']=d_val['stim']
-
-            try:
-                if len(d['pupil'].shape)==2:
-                    d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
-                else:
-                    print(d['pupil'].shape)
-                    d_est['pupil']=copy.deepcopy(d['pupil'][:,:,eidx])
-                    d_val['pupil']=copy.deepcopy(d['pupil'][:,:,vidx])
-            except:
-                #print('No pupil data')
-                d_est['pupil']=[]
-                d_val['pupil']=[]
-            
-            try:
-                d_est['repcount']=copy.deepcopy(d['repcount'][eidx])
-                d_val['repcount']=copy.deepcopy(d['repcount'][vidx])
-            except:
-                d_est['repcount']=None
-                d_val['repcount']=None
+            if self.keep_filestate==[] or d['filestate'] in self.keep_filestate:
+                try:
+                    count=self.parent_stack.meta['cv_counter']
+                except:
+                    count=self.cv_counter
+    
+                nests=int(1/valfrac)
+                n_trials=d['resp'].shape[0]
                 
-            try:
-                d_est['replist']=copy.deepcopy(d['replist'][eidx])
-                d_val['replist']=copy.deepcopy(d['replist'][vidx])
-            except:
-                d_est['replist']=None
-                d_val['replist']=None
+                self.estidx_sets.append([])
+                self.validx_sets.append([])
+                fcount+=1
+                self.estidx_sets[fcount],self.validx_sets[fcount]=nems.utilities.utils.crossval_set(
+                        n_trials,cv_count=nests,cv_idx=None,
+                        interleave_valtrials=self.interleave_valtrials)
+                eidx=self.estidx_sets[fcount][count]
+                vidx=self.validx_sets[fcount][count]
                 
-            self.d_out.append(d_est)
-            if self.parent_stack.valmode is True:
-                self.d_out.append(d_val)
-                        
-            #if self.cv_counter==self.nests-1:
-            #    self.parent_stack.cond=True
+                print("Nest {0}/{1}, File {2} validx:".format(count,nests,i))
+                print(vidx)
+                
+                d_est=d.copy()
+                d_val=d.copy()               
+    
+                d_est['est']=True
+                d_val['est']=False
+                
+                d_est['resp']=copy.deepcopy(d['resp'][eidx,:])
+                d_val['resp']=copy.deepcopy(d['resp'][vidx,:])
+                
+                d_est['stim']=copy.deepcopy(d['stim'][:,eidx,:])
+                d_val['stim']=copy.deepcopy(d['stim'][:,vidx,:])
+                
+                # just copy pointers as placeholders for prediction trace
+                d_est['pred']=d_est['stim']
+                d_val['pred']=d_val['stim']
+    
+                try:
+                    if len(d['pupil'].shape)==2:
+                        d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
+                        d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                    else:
+                        print(d['pupil'].shape)
+                        d_est['pupil']=copy.deepcopy(d['pupil'][:,:,eidx])
+                        d_val['pupil']=copy.deepcopy(d['pupil'][:,:,vidx])
+                except:
+                    #print('No pupil data')
+                    d_est['pupil']=[]
+                    d_val['pupil']=[]
+                
+                try:
+                    d_est['repcount']=copy.deepcopy(d['repcount'][eidx])
+                    d_val['repcount']=copy.deepcopy(d['repcount'][vidx])
+                except:
+                    d_est['repcount']=None
+                    d_val['repcount']=None
+                    
+                try:
+                    d_est['replist']=copy.deepcopy(d['replist'][eidx])
+                    d_val['replist']=copy.deepcopy(d['replist'][vidx])
+                except:
+                    d_est['replist']=None
+                    d_val['replist']=None
+                    
+                self.d_out.append(d_est)
+                if self.parent_stack.valmode is True:
+                    self.d_out.append(d_val)
+                            
+                #if self.cv_counter==self.nests-1:
+                #    self.parent_stack.cond=True
                     
 
 class crossval_old(nems_module):
