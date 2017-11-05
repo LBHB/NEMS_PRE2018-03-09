@@ -32,11 +32,11 @@
     
     <!-- Bokeh dependencies -->
     <link rel="stylesheet" type="text/css"
-        href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.css">
+        href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.10.min.css">
     <link rel="stylesheet" type="text/css"
-        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.css">
-    <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.js"></script>
-    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
+        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.10.min.css">
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.10.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.10.min.js"></script>
     
     <!-- Custom styles for this template -->
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
@@ -65,7 +65,7 @@
                     <select class="form-control plot-form"
                             id="analysisSelector">
                         {% for analysis in analysislist %}
-                        <option value="{{ analysis }}">
+                        <option value="{{ analysis }}" name="{{ analysis_ids[loop.index-1] }}">
                             {{ analysis }}
                         </option>
                         {% endfor %}
@@ -81,14 +81,6 @@
                             data-content="No Selection"
                             data-html="true">
                                 Details
-                    </button>
-                </div>
-                <div class="input-group-btn">
-                    <button type="button"
-                            class="btn btn-default btn-xs"
-                            id="fitReport"
-                            tabindex="-1">
-                                Report
                     </button>
                 </div>
                 <div class="input-group-btn editorGroup">
@@ -237,7 +229,14 @@
                                     Enqueue Models
                         </button>
                     </div>
-                
+                    <div class="input-group-btn">
+                        <button type="button"
+                                class="btn btn-default btn-xs"
+                                id="fitReport"
+                                tabindex="-1">
+                                    Fit Report
+                        </button>
+                    </div>
                     <div class="input-group-btn">
                         <button tabindex="-1"
                                 type="button"
@@ -488,17 +487,19 @@
             </h4>
             -->
             <h4>
-                <a href="{{ url_for('site_map') }}" id="sitemap">
+                <a href="{{ url_for('site_map') }}" id="sitemap" target="_blank">
                     Print Site Map
                     <script>
                         var sitemap = document.getElementById('sitemap');
                         sitemap.style.display = 'none'
-                    {% if username %}
+                    {% if seclvl is greaterthan 8 %}
                         sitemap.style.display = 'block';
                     {% endif %}
                     </script>
                 </a>
             </h4>
+            <button type="button" id="testGet"> Load Selections </button>
+            <button type="button" id="testSave"> Save Selections </button>
 
             <!-- buttons for manually testing saved user selections -->
             <!--
@@ -676,6 +677,7 @@
                                     Name </span>
                             <input type="text" name="editName" placeholder="Name of Analysis"
                             class="form-control">
+                            <input type="hidden" name="editId" value="__none">
                             </div>
                             </div>
                             

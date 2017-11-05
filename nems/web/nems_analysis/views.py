@@ -98,9 +98,8 @@ def main_view():
     
     # .all() returns a list of tuples, so it's necessary to pull the
     # name elements out into a list by themselves.
-    analysislist = [
-            i[0] for i in
-            session.query(NarfAnalysis.name)
+    analyses = (
+            session.query(NarfAnalysis)
             .filter(or_(
                     int(user.sec_lvl) == 9,
                     NarfAnalysis.public == '1',
@@ -109,6 +108,12 @@ def main_view():
                     ))
             .order_by(asc(NarfAnalysis.id))
             .all()
+            )
+    analysislist = [
+            a.name for a in analyses
+            ]
+    analysis_ids = [
+            a.id for a in analyses
             ]
     
     batchids = [
@@ -190,12 +195,13 @@ def main_view():
     session.close()
     
     return render_template(
-            'main.html', analysislist=analysislist, batchlist=batchlist,
-            collist=collist, defaultcols=defaultcols, measurelist=measurelist,
-            defaultrowlimit=defaultrowlimit,sortlist=sortlist,
-            defaultsort=defaultsort,statuslist=statuslist, taglist=taglist,
-            plotTypeList=plotTypeList, username=user.username,
-            iso=n_ui.iso, snr=n_ui.snr, snri=n_ui.snri, scripts=scriptList
+            'main.html', analysislist=analysislist, analysis_ids=analysis_ids,
+            batchlist=batchlist, collist=collist, defaultcols=defaultcols,
+            measurelist=measurelist, defaultrowlimit=defaultrowlimit, 
+            sortlist=sortlist, defaultsort=defaultsort,statuslist=statuslist,
+            taglist=taglist, plotTypeList=plotTypeList, username=user.username,
+            seclvl = int(user.sec_lvl), iso=n_ui.iso, snr=n_ui.snr,
+            snri=n_ui.snri, scripts=scriptList,
             )
 
 
@@ -392,10 +398,8 @@ def update_analysis():
                 NarfAnalysis.status.ilike('%{0}%'.format(stat))
                 for stat in statSelected
                 ]
-
-    analysislist = [
-            i[0] for i in 
-            session.query(NarfAnalysis.name)
+    analyses = (
+            session.query(NarfAnalysis)
             .filter(or_(*tagStrings))
             .filter(or_(*statStrings))
             .filter(or_(
@@ -406,11 +410,17 @@ def update_analysis():
                     ))
             .order_by(asc(NarfAnalysis.id))
             .all()
+            )
+    analysislist = [
+            a.name for a in analyses
+            ]
+    analysis_ids = [
+            a.id for a in analyses
             ]
     
     session.close()
     
-    return jsonify(analysislist=analysislist)
+    return jsonify(analysislist=analysislist, analysis_ids=analysis_ids)
 
 
 @app.route('/update_analysis_details')
@@ -539,6 +549,7 @@ def edit_analysis():
     modTime = datetime.datetime.now().replace(microsecond=0)
     
     eName = request.args.get('name')
+    eId = request.args.get('id')
     eStatus = request.args.get('status')
     eTags = request.args.get('tags')
     eQuestion = request.args.get('question')
@@ -546,10 +557,7 @@ def edit_analysis():
     eTree = request.args.get('tree')
     #TODO: add checks to require input inside form fields
     #      or allow blank so that people can erase stuff?
-    
-    #TODO: this requires that all analyses have to have a unique name.
-    #       better way to do this or just enforce the rule?
-    
+
     # Turned this off for now -- can re-enable when rule needs are more stable
     # Make sure the keyword combination is valid using nems.keyword_rules
     #try:
@@ -559,15 +567,14 @@ def edit_analysis():
     #except Exception as e:
     #    return jsonify(success='Analysis not saved: \n' + str(e))
     
-    # Find out if an analysis with same name already exists.
-    # If it does, grab its sql alchemy object and update it with new values,
-    # so that the analysis with the same id is overwritten instead of
-    # adding a new one.
-    checkExists = (
-            session.query(NarfAnalysis)
-            .filter(NarfAnalysis.name == eName)
-            .first()
-            )
+    if eId == '__none':
+        checkExists = False
+    else:
+        checkExists = (
+                session.query(NarfAnalysis)
+                .filter(NarfAnalysis.id == eId)
+                .first()
+                )
     
     if checkExists:
         a = checkExists
@@ -587,11 +594,9 @@ def edit_analysis():
                 a.lastmod = str(modTime)
             a.modeltree = eTree
         else:
+            web_print("You do not have permission to modify this analysis.")
             return jsonify(
-                    success=(
-                            "You do not have permission "
-                            "to modify this analysis."
-                            )
+                    success=("failed")
                     )
     # If it doesn't exist, add new sql alchemy object with the
     # appropriate attributes, which should get assigned to a new id
@@ -655,14 +660,14 @@ def get_current_analysis():
         
     a = (
         session.query(NarfAnalysis)
-        .filter(NarfAnalysis.name == aSelected)
+        .filter(NarfAnalysis.id == aSelected)
         .first()
         )
     
     session.close()
     
     return jsonify(
-            name=a.name, status=a.status, tags=a.tags,
+            id=a.id, name=a.name, status=a.status, tags=a.tags,
             question=a.question, answer=a.answer, tree=a.modeltree,
             )
         
@@ -677,16 +682,21 @@ def check_analysis_exists():
     session = Session()
     
     nameEntered = request.args.get('nameEntered')
+    analysisId = request.args.get('analysisId')
     
+    exists = False
     result = (
             session.query(NarfAnalysis)
             .filter(NarfAnalysis.name == nameEntered)
             .first()
             )
              
-    if result is None:
-        exists = False
-    else:
+    # only set to True if id is different, so that
+    # overwriting own analysis doesn't cause flag
+    if result and (
+            analysisId == '__none' or
+            (int(result.id) != int(analysisId))
+            ):
         exists = True
         
     session.close()
@@ -709,7 +719,7 @@ def delete_analysis():
     
     result = (
             session.query(NarfAnalysis)
-            .filter(NarfAnalysis.name == aSelected)
+            .filter(NarfAnalysis.id == aSelected)
             .first()
             )
     if result is None:
@@ -737,6 +747,7 @@ def delete_analysis():
         session.delete(result)
         session.commit()
     else:
+        web_print("You do not have permission to delete this analysis.")
         return jsonify(success=success)
     
     session.close()
