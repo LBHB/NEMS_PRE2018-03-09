@@ -105,7 +105,11 @@ class pupgain(nems_module):
             prng = np.random.RandomState(1234567890)
             
             # shuffle state vector across trials (time)
-            prng.shuffle(Xp)
+            fxp=np.isfinite(Xp)
+            txp=Xp[fxp]
+            prng.shuffle(txp)
+            Xp[fxp]=txp
+            #prng.shuffle(Xp)
             
             # restore saved random state
             prng.set_state(save_state)
@@ -161,8 +165,10 @@ class pupgain(nems_module):
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
-            for i,val in enumerate(self.d_in):
-                self.d_out.append(copy.deepcopy(val))
+            for i,d in enumerate(self.d_in):
+                #self.d_out.append(copy.deepcopy(val))
+                self.d_out.append(copy.copy(d))
+                
         for f_in,f_out in zip(self.d_in,self.d_out):
             if self.parent_stack.nests>0 and f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
@@ -240,8 +246,9 @@ class state_weight(nems_module):
     def evaluate(self,nest=0):
         if nest==0:
             del self.d_out[:]
-            for i,val in enumerate(self.d_in):
-                self.d_out.append(copy.deepcopy(val))
+            for i,d in enumerate(self.d_in):
+                self.d_out.append(copy.copy(d))
+
         for f_in,f_out in zip(self.d_in,self.d_out):
             if self.parent_stack.nests>0 and f_in['est'] is False:
                 X1=copy.deepcopy(f_in[self.input_name][nest])
