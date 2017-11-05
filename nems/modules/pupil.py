@@ -229,7 +229,11 @@ class state_weight(nems_module):
         prng = np.random.RandomState(1234567890)
         
         # shuffle state vector across trials (time)
-        prng.shuffle(Xp)
+        fxp=np.isfinite(Xp)
+        txp=Xp[fxp]
+        prng.shuffle(txp)
+        Xp[fxp]=txp
+        #prng.shuffle(Xp)
         
         # restore saved random state
         prng.set_state(save_state)
