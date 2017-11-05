@@ -197,6 +197,17 @@ class load_mat(nems_module):
                     data['stim'],data['resp'],data['pupil'],data['replist']=nems.utilities.utils.stretch_trials(data)
                     data['resp_raw']=data['resp']
                 
+                # new: add extra first dimension to resp/pupil (and eventually pred)
+                # resp,pupil,state,pred now channel X stim/trial X time
+                data['resp']=data['resp'][np.newaxis,:,:]
+                if data['pupil'] is not None:
+                    data['pupil']=data['pupil'][np.newaxis,:,:]
+                    data['state']=np.concatenate((data['pupil'],
+                        np.ones(data['resp'].shape)*(data['filestate']>0)),axis=0)
+                else:
+                    # add file state as second dimension to pupil
+                    data['state']=np.zeros(data['resp'].shape)*(data['filestate']>0)
+                    
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 #print('load_mat: appending {0} to d_out stack'.format(f))

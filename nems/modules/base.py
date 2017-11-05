@@ -124,7 +124,7 @@ class nems_module:
             D=m.d_in
             
         if D[0][name].ndim==2:
-            X=np.empty([0,1])
+            X=np.empty([1,0])
             s=m.d_in[0][name].shape
         else:
             s=D[0][name].shape
@@ -133,17 +133,17 @@ class nems_module:
         for i, d in enumerate(D):
             if not 'est' in d.keys():
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
+                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
                 else:
                     X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
             elif (est and d['est']):
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
+                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
                 else:
                     X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
             elif not est and not d['est']:
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
+                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
                 else:
                     X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
                 

@@ -62,9 +62,9 @@ if 0:
     
     #cellid="bbl031f-a1"
     #batch=271 #A1
-    #modelname="fb18ch100_wcg01_fir15_fit01"
+    modelname="fb18ch100_wcg01_fir15_dexp_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
-    modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
+    #modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
     #modelname="fb18ch100_wc01_fir15_fit01"
     #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
     #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
@@ -79,11 +79,11 @@ if 0:
     batch=301 #PTD A1 pupil
     modelname="parm100pt_wcg02_fir15_dexp_fit01"
 
-if 0:
+if 1:
     """ BVT """
     cellid="gus006b-a2"
     batch=302 #A1
-    modelname="parm50ptp_wcg02_fir15_pupgainctl_fit01"
+    modelname="parm50pt_wcg02_fir15_stategain_fit01"
 
 if 0:
     cellid='gus019d-b2'
@@ -101,7 +101,7 @@ if 0:
     
     
 """ pupil gain test -- PPS data """
-if 1:
+if 0:
     #cellid='gus021d-a2'
     #cellid='gus021d-b1'
     #cellid="BOL006b-11-1"
@@ -110,7 +110,7 @@ if 1:
     #cellid="eno054c-b2"
     batch=293
      
-    modelname="parm50_wcg01_fir10_pupwgt_dexp_fit01_nested5"
+    modelname="parm50_wcg01_fir10_pupgainctl_fit01"
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
     #modelname="parm50_wcg01_fir10_pupwgtctl_fit01_nested2"
     #modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"

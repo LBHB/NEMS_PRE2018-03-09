@@ -105,10 +105,12 @@ class pupgain(nems_module):
             prng = np.random.RandomState(1234567890)
             
             # shuffle state vector across trials (time)
-            fxp=np.isfinite(Xp)
-            txp=Xp[fxp]
-            prng.shuffle(txp)
-            Xp[fxp]=txp
+            for ii in range(0,Xp.shape[0]):
+                fxp=np.isfinite(Xp[ii,:])
+                txp=Xp[ii,fxp]
+                prng.shuffle(txp)
+                Xp[ii,fxp]=txp
+            
             #prng.shuffle(Xp)
             
             # restore saved random state
@@ -118,7 +120,10 @@ class pupgain(nems_module):
         return Y,Xp
         
     def linpupgain_fn(self,X,Xp):
-        Y=self.theta[0,0]+(self.theta[0,2]*Xp)+(self.theta[0,1]*X)+self.theta[0,3]*np.multiply(Xp,X)
+        # expect theta = [b0 g0 b1 p1 b2 p2...] where 1, 2 are first dimension of Xp (pupil, behavior state, etc)
+        Y=self.theta[0,0]+(self.theta[0,1]*X)
+        for ii in range(0,Xp.shape[0]):
+            Y+=(self.theta[0,2+ii*2]*Xp[ii,:,:])+self.theta[0,3+ii*2]*np.multiply(Xp[ii,:,:],X)
         return Y,Xp
         
     def exppupgain_fn(self,X,Xp):

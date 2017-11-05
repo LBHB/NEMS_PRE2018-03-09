@@ -71,7 +71,7 @@ class standard(nems_module):
                 #d_val=d.copy()
                 
                 d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
-                d_est['resp']=copy.deepcopy(d['resp'][estidx,:])
+                d_est['resp']=copy.deepcopy(d['resp'][:,estidx,:])
                 d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
                 d_est['pred']=d_est['stim']
                 #d_val['repcount']=copy.deepcopy(d['repcount'][validx])
@@ -79,7 +79,13 @@ class standard(nems_module):
                 #d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
                 try:
                     if d['pupil'].size:
-                        d_est['pupil']=copy.deepcopy(d['pupil'][estidx,:])
+                        d_est['pupil']=copy.deepcopy(d['pupil'][:,estidx,:])
+                except:
+                    pass
+                    #print('No pupil data')
+                try:
+                    if d['state'].size:
+                        d_est['state']=copy.deepcopy(d['state'][:,estidx,:])
                 except:
                     pass
                     #print('No pupil data')
@@ -92,16 +98,22 @@ class standard(nems_module):
                     
                     d_val=d.copy()
                     d_val['repcount']=copy.deepcopy(d['repcount'][validx])
-                    d_val['resp']=copy.deepcopy(d['resp'][validx,:])
+                    d_val['resp']=copy.deepcopy(d['resp'][:,validx,:])
                     d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
                     d_val['pred']=d_val['stim']
                     try:
                         if d['pupil'].size:
-                            d_val['pupil']=copy.deepcopy(d['pupil'][validx,:])
+                            d_val['pupil']=copy.deepcopy(d['pupil'][:,validx,:])
                     except:
                         pass
                         #print('No pupil data')
                         
+                    try:
+                        if d['state'].size:
+                            d_val['state']=copy.deepcopy(d['state'][:,validx,:])
+                    except:
+                        pass
+ 
                     d_val['est']=False
                     self.d_out.append(d_val)
 
@@ -182,7 +194,7 @@ class crossval(nems_module):
                     count=self.cv_counter
     
                 nests=int(1/valfrac)
-                n_trials=d['resp'].shape[0]
+                n_trials=d['resp'].shape[1]
                 
                 self.estidx_sets.append([])
                 self.validx_sets.append([])
@@ -202,8 +214,8 @@ class crossval(nems_module):
                 d_est['est']=True
                 d_val['est']=False
                 
-                d_est['resp']=copy.deepcopy(d['resp'][eidx,:])
-                d_val['resp']=copy.deepcopy(d['resp'][vidx,:])
+                d_est['resp']=copy.deepcopy(d['resp'][:,eidx,:])
+                d_val['resp']=copy.deepcopy(d['resp'][:,vidx,:])
                 
                 d_est['stim']=copy.deepcopy(d['stim'][:,eidx,:])
                 d_val['stim']=copy.deepcopy(d['stim'][:,vidx,:])
@@ -213,9 +225,9 @@ class crossval(nems_module):
                 d_val['pred']=d_val['stim']
     
                 try:
-                    if len(d['pupil'].shape)==2:
-                        d_est['pupil']=copy.deepcopy(d['pupil'][eidx,:])
-                        d_val['pupil']=copy.deepcopy(d['pupil'][vidx,:])
+                    if d['pupil'].shape[1]==n_trials:
+                        d_est['pupil']=copy.deepcopy(d['pupil'][:,eidx,:])
+                        d_val['pupil']=copy.deepcopy(d['pupil'][:,vidx,:])
                     else:
                         print(d['pupil'].shape)
                         d_est['pupil']=copy.deepcopy(d['pupil'][:,:,eidx])
@@ -224,6 +236,19 @@ class crossval(nems_module):
                     #print('No pupil data')
                     d_est['pupil']=[]
                     d_val['pupil']=[]
+                    
+                try:
+                    if d['state'].shape[1]==n_trials:
+                        d_est['state']=copy.deepcopy(d['state'][:,eidx,:])
+                        d_val['state']=copy.deepcopy(d['state'][:,vidx,:])
+                    else:
+                        print(d['state'].shape)
+                        d_est['state']=copy.deepcopy(d['state'][:,:,eidx])
+                        d_val['state']=copy.deepcopy(d['state'][:,:,vidx])
+                except:
+                    #print('No state data')
+                    d_est['state']=[]
+                    d_val['state']=[]
                 
                 try:
                     d_est['repcount']=copy.deepcopy(d['repcount'][eidx])

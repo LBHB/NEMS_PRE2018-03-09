@@ -9,7 +9,17 @@ Created on Fri Jun 16 05:20:07 2017
 import scipy as sp
 import numpy as np
 #import sys
-import nems.db as nd
+
+try:
+    import nems.db as nd
+    db_exists = True
+except Exception as e:
+    # If there's an error import nems.db, probably missing database
+    # dependencies. So keep going but don't do any database stuff.
+    print("Problem importing nems.db, can't update tQueue")
+    print(e)
+    db_exists = False
+
 import os
 
 #sys.path.append('/auto/users/shofer/scikit-optimize')
