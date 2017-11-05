@@ -208,7 +208,7 @@ class nems_stack:
                             for k in include_keys[ii]:
                                 if d[k] is None or d[k]==[]:
                                     pass
-                                elif k=='pupil' and d[k].ndim==3:
+                                elif k=='pupil' and d[k].ndim==3 and d['resp'].shape[1]!=d[k].shape[1]:
                                     d2[k]=np.append(d2[k],d[k],axis=2)
                                 elif d[k].ndim==3:
                                     d2[k]=np.append(d2[k],d[k],axis=1)
@@ -228,7 +228,7 @@ class nems_stack:
                         for k in include_keys[ii]:
                             if d2[k] is None or d[k]==[]:
                                 d[k]=d2[k]
-                            elif k=='pupil' and d[k].ndim==3 and d['resp'].shape[1]!=d[k].shape[1]:
+                            elif k=='pupil' and d[k].ndim==3 and d2['resp'].shape[1]!=d2[k].shape[1]:
                                 d[k]=d2[k][:,:,mapidx]
                             elif d[k].ndim==3:
                                 d[k]=d2[k][:,mapidx,:]
