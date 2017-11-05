@@ -79,7 +79,7 @@ def parm50(stack):
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
-                                     fs=200,stimfmt='parm',chancount=16)
+                                     fs=200,stimfmt='parm')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2)
