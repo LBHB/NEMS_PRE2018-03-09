@@ -56,14 +56,11 @@ class JerbIndex(Resource):
 
 
 class JerbQuery(Resource):
+    def __init__(self, **kwargs):
+        self.rdb = kwargs['redisdb']
 
-#    def __init__(self):
-#        self.pp = reqparse.RequestParser()
-#        self.pp.add_argument('prop', type=str)
-#        self.pp.add_argument('val', type=str)
-
-    def get(self, prop, val):
-        return Response('Nothing to see here', 200)
-    #args = self.pp.parse_args(self)
-    #    red.lookup_prop(r, args['prop'], args['val'])
-
+    def post(self):
+        js = json.loads(request.get_json())
+        # TODO: Validate request format
+        jids = red.select_jids_where(self.rdb, js)
+        return Response(json.dumps({"jids": jids}), 200)

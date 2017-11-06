@@ -1,5 +1,6 @@
 import json
 import redis
+import uuid
 
 
 # Redis Schema Cheat Sheet:
@@ -118,4 +119,45 @@ def browse_prop_with_counts(r, prop):
         v = v.decode()
         ret[v] = r.scard('idx:'+prop+'='+v)
         # TODO: If you ever got back a count of 0, do r.srem('prop:'+k, v)
+    return ret
+
+
+##############################################################################
+# For finding JIDs
+
+
+def select_jids_where(r, query):
+    """ Query is a dict that maps strings to values or lists.
+    Dicts define "AND" expressions: {k1=D,k2=E } means "k1=D and k2=E"
+    Lists define "OR" expressions: {k=[A,B,C]} means "k=A or k=B or k=C"
+
+    Example translation of SQL to this type of query object:
+    # SELECT jid WHERE key1='this' OR key1='that' AND key2='bar'
+    {'key1': ['this', 'that'], 'key2': 'bar'}
+
+    Sorry, you cannot presently query using OR statements at the top level:
+    # SELECT jid WHERE key1='this' OR key2='bar'
+    ( Not yet implemented )
+    """
+    tmpid = uuid.uuid4()
+    first_time = True
+    for k, v in query.items():
+        if type(v) is list:
+            # List values indicate OR
+            for w in v:
+                r.sunionstore(tmpid, tmpid, 'idx:'+k+'='+w)
+        elif type(v) is str:
+            # String values indicate AND
+            if first_time:
+                r.sunionstore(tmpid, tmpid, 'idx:'+k+'='+v)
+            else:
+                r.sinterstore(tmpid, tmpid, 'idx:'+k+'='+v)
+        else:
+            # Anything else is unacceptable
+            print("The query spec was violated. Returning None.")
+            return None
+        first_time = False
+
+    ret = [v.decode() for v in r.smembers(tmpid)]
+    r.delete(tmpid)
     return ret

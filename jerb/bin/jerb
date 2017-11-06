@@ -76,16 +76,12 @@ def handle_command_line():
         exit(0)
 
     elif op == 'find':
-        if len(sys.argv) < 3:
-            ragequit("Usage: jerb find 'user.name'='' AND OR")
-        jerbfiles = []
-        for f in sys.argv[2:]:
-            if not os.path.exists(f):
-                jb.ragequit('Not a file: ' + f + "\n")
-            jerbfiles.append(f)
-        for j in jerbfiles:
-            (c1, c2, jid) = jb.share_jerbfile(j)
-            print(c1 + c2 + jid + " " + j)
+        if len(sys.argv) != 3:
+            ragequit("""Usage: jerb find '{"user.name"="Ivar Thorson"}'""")
+        query = sys.argv[2]
+        jids = jb.find_jerbs(query)
+        for j in jids:
+            print(j)
         exit(0)
 
     elif op == 'merge':    

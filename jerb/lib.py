@@ -284,6 +284,14 @@ def share_jerbfile(jerbfile,
     return (storecode, indexcode, str(j.jid))
 
 
-def find_jerb():
-    """ Returns a list of JIDs where something is true. """
-    
+def find_jerbs(query,
+               jerb_index_url='http://localhost:3001/find'):
+    """ TODO. Returns a list of JIDs matching the query. """
+    # TODO: Validate the query
+    data = json.dumps(query)
+    headers = {"Content-Type": "application/json"}
+    result = requests.post(jerb_index_url, data=data, headers=headers)
+    if result.status_code == 200:
+        return result.json()['jids']
+    else:
+        ragequit('Invalid return code!')
