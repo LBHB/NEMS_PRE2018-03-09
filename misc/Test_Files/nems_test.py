@@ -83,7 +83,7 @@ if 1:
     """ BVT """
     cellid="gus006b-a2"
     batch=302 #A1
-    modelname="parm50pt_wcg01_fir15_stategainctl_fit01_nested5"
+    modelname="parm50pt_wcg01_fir15_stategain_fit01"
 
 if 0:
     cellid='gus019d-b2'

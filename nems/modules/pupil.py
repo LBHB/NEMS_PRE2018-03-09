@@ -123,7 +123,7 @@ class pupgain(nems_module):
         # expect theta = [b0 g0 b1 p1 b2 p2...] where 1, 2 are first dimension of Xp (pupil, behavior state, etc)
         Y=self.theta[0,0]+(self.theta[0,1]*X)
         for ii in range(0,Xp.shape[0]):
-            Y+=(self.theta[0,2+ii*2]*Xp[ii,:,:])+self.theta[0,3+ii*2]*np.multiply(Xp[ii,:,:],X)
+            Y+=(self.theta[0,2+ii*2]*Xp[ii,:])+self.theta[0,3+ii*2]*np.multiply(Xp[ii,:],X)
         return Y,Xp
         
     def exppupgain_fn(self,X,Xp):
@@ -168,12 +168,26 @@ class pupgain(nems_module):
         return(Y)
         
     def evaluate(self,nest=0):
+        m=self
         if nest==0:
-            del self.d_out[:]
-            for i,d in enumerate(self.d_in):
+            del m.d_out[:]
+            for i,d in enumerate(m.d_in):
                 #self.d_out.append(copy.deepcopy(val))
-                self.d_out.append(copy.copy(d))
-                
+                m.d_out.append(copy.copy(d))
+        
+        X=m.unpack_data(name=m.input_name,est=True)
+        Xp=m.unpack_data(name=m.state_var,est=True)
+        Z,Zp=getattr(m,m.gain_type+'_fn')(X,Xp)
+        m.pack_data(Z,name=m.input_name,est=True)
+        m.pack_data(Zp,name=m.state_var,est=True)
+
+        if m.parent_stack.valmode:
+            X=m.unpack_data(name=m.input_name,est=False)
+            Xp=m.unpack_data(name=m.state_var,est=False)
+            Z,Zp=getattr(m,m.gain_type+'_fn')(X,Xp)
+            m.pack_data(Z,name=m.input_name,est=False)
+            m.pack_data(Zp,name=m.state_var,est=False)
+        """
         for f_in,f_out in zip(self.d_in,self.d_out):
             if self.parent_stack.nests>0 and f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
@@ -187,7 +201,7 @@ class pupgain(nems_module):
                 Z,Xp=getattr(self,self.gain_type+'_fn')(X,Xp)
                 f_out[self.output_name]=Z
                 f_out[self.state_var]=Xp
-                
+        """        
                 
 class state_weight(nems_module): 
     """
