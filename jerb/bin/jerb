@@ -71,8 +71,21 @@ def handle_command_line():
                 jb.ragequit('Not a file: ' + f + "\n")
             jerbfiles.append(f)
         for j in jerbfiles:
-            jb.upload_jerbfile_to_jerbstore(j)
-            jb.upload_jerbfile_to_jerb_index(j)
+            (c1, c2, jid) = jb.share_jerbfile(j)
+            print(c1 + c2 + jid + " " + j)
+        exit(0)
+
+    elif op == 'find':
+        if len(sys.argv) < 3:
+            ragequit("Usage: jerb find 'user.name'='' AND OR")
+        jerbfiles = []
+        for f in sys.argv[2:]:
+            if not os.path.exists(f):
+                jb.ragequit('Not a file: ' + f + "\n")
+            jerbfiles.append(f)
+        for j in jerbfiles:
+            (c1, c2, jid) = jb.share_jerbfile(j)
+            print(c1 + c2 + jid + " " + j)
         exit(0)
 
     elif op == 'merge':    

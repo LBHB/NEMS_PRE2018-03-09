@@ -67,4 +67,3 @@ class JerbQuery(Resource):
     #args = self.pp.parse_args(self)
     #    red.lookup_prop(r, args['prop'], args['val'])
 
-

@@ -4,12 +4,11 @@ import redis
 
 # Redis Schema Cheat Sheet:
 
-# THIS KEY STRING (mapsto)  THESE OBJECTS
+# THIS KEY STRING (->mapsto->)  THESE OBJECTS
 # ---------------------------------------------
-#  jid:JID          -> JSON string            (Forward index)
-#  idx:prop=value   -> List of SHA256s        (Reverse index)
-#  prop:prop        -> Set of values seen so far for that prop
-#  prop:value:cnt   -> Count of times that value was seen
+#  jid:JID           -> JSON string           (Forward index)
+#  idx:field=value   -> Set of SHA256s        (Reverse indices)
+#  prop:field        -> Set of values seen so far for that prop
 
 
 def redis_connect(credentials):
@@ -33,7 +32,7 @@ def index_jerb(r, jerb):
     # TODO : Only index the jerb if it is not already indexed
     # TODO : start transaction
     forward_index(r, jerb)
-    # reverse_index(r, jerb)
+    reverse_index(r, jerb)
 
 
 def deindex_jerb(r, jerb):
@@ -42,18 +41,31 @@ def deindex_jerb(r, jerb):
     delete_reverse_index(r, jerb)
 
 
+###############################################################################
+# Forward lookups
+
+
 def forward_index(r, jerb):
     """ Create forward index from a JID to a Jerb JSON."""
-    k = "jid:" + jerb.jid
+    k = 'jid:' + jerb.jid
     v = json.dumps(jerb.meta)
     r.set(k, v)
 
 
 def delete_forward_index(r, jerb):
-    """ Create forward index from a JID to a Jerb JSON."""
-    k = jerb.jid
-    v = jerb.as_json()
-    r.set(k, v)
+    """ Inverse operation of forward_index."""
+    k = 'jid:' + jerb.jid
+    r.delete(k)
+
+
+def lookup_jid(r, jid):
+    """ Forward lookup. Returns a string of what was stored at JID. """
+    jrb = r.get('jid:' + jid)
+    return jrb.decode()
+
+
+###############################################################################
+# Reverse Lookups
 
 
 def reverse_index(r, jerb):
@@ -64,40 +76,46 @@ def reverse_index(r, jerb):
     # sanitizing it. Strings with ":" in them could break something?
     # TODO: Write sanitizing function? Or use redis to treat it as
     # just an uninterpretable bytestring?
-    jid = jerb.jid
-    for k, v in jerb.props:
-        r.lpush("idx:"+k+"="+v, jid)
-        r.sadd("prop:"+k, v)
-        r.incr("prop:"+k+"="+v+":cnt", 1)  # Keep track of occurrence count
+    for k, v in jerb.meta.items():
+        if (k and v):
+            r.sadd('idx:'+k+'='+v, jerb.jid)
+            r.sadd('prop:'+k, v)
 
 
 def delete_reverse_index(r, jerb):
     """ Inverse operation of reverse_index. """
-    jid = jerb.jid
-    # TODO: This is potentially O(N) because you have to traverse list
-    # TODO: Should we switch to ZLISTs?
-    for k, v in jerb.index_props():
-        r.lrem("idx:"+k+"="+v, jid)
-        cnt = r.decr("prop:"+k+"="+v+":cnt")
-        if 0 <= cnt:
-            r.srem("prop:"+k, v)
+    # TODO: This is potentially O(N) because you have to traverse set?
+    # TODO: Use transactions here
+    for k, v in jerb.meta.items():
+        r.srem('idx:'+k+'='+v, jerb.jid)
+        cnt = r.scard('idx:'+k+'='+v)
+        if 0 >= cnt:
+            r.srem('prop:'+k, v)
 
 
-def lookup_jid(r, jid):
-    """ Forward lookup. Returns a string of what was stored at JID. """
-    jrb = r.get("jid:" + jid)
-    return jrb.decode()
+def lookup_prop(r, prop, val):
+    """ Reverse lookup. Returns list of all JIDs that have the given metadata
+    prop and val defined. """
+    jids = r.smembers('idx:'+prop+'='+val)
+    return [j.decode() for j in jids]
 
 
-def lookup_prop(r, prop, val, startat=0, limit=100):
-    """ Reverse lookup. Returns list of up to 1000 the JIDs which have
-    the given prop and val defined. Optional arguments STARTAT and LIMIT are
-    for paging if you expect to get a very long list of JIDS back. """
-    jids = r.lget("idx:" + prop + "=" + val, startat, limit)
-    return jids
+##############################################################################
+# For browsing the tree
 
 
-def browse_prop(r, prop, startat=0, limit=100):
-    """ Return a list of all the values found for a given property. """
-    vals = r.smembers("prop:" + prop)
-    return vals
+def browse_prop(r, prop):
+    """ Return a list of all the values found for a given metadata property."""
+    vals = r.smembers('prop:'+prop)
+    return [v.decode() for v in vals]
+
+
+def browse_prop_with_counts(r, prop):
+    """ Return a dict of values and counts found for a given metadata prop."""
+    vals = r.smembers('prop:'+prop)
+    ret = {}
+    for v in vals:
+        v = v.decode()
+        ret[v] = r.scard('idx:'+prop+'='+v)
+        # TODO: If you ever got back a count of 0, do r.srem('prop:'+k, v)
+    return ret

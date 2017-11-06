@@ -189,12 +189,6 @@ def add_parent_metadata(jid):
     write_metadata(d)
 
 
-def recreate_git_notes(jid):
-    """ Tries to rediscover buried notes whos refs were lost when packing. """
-    cmts = subprocess.check_output(['git', 'rev-list', '--all'])
-    print(cmts)
-
-
 def find_only_note_object_in_index(gitdir, indexfile):
     indexpath = os.path.join(gitdir, indexfile)
     with open(indexpath, 'rb') as idxfile:
@@ -243,7 +237,6 @@ def unpack_jerb(jerb):
     if 1 != len(idxs):
         ragequit('Error: More than one .idx file found:\n')
     note_commit = find_only_note_object_in_index(tmppck_dir, idxs[0])
-    # print('Note commit is:', note_commit)
 
     # Destroy our temporary directory
     shutil.rmtree(temp_repo_path)
@@ -261,32 +254,36 @@ def unpack_jerb(jerb):
     subprocess.call(['git', 'notes', 'merge', 'temp_jerb_metadata'])
 
 
-def upload_jerbfile_to_jerbstore(jerbfile):
-    """ Sends the file to jerbstore. Defaults to localhost. """
-    # TODO: Fix source
+def share_jerbfile(jerbfile,
+                   jerbstore_url='http://localhost:3000/jid/',
+                   jerb_index_url='http://localhost:3001/jid/'):
+    """ Uploads the file and shares it by default. """
     j = load_jerb_from_file(jerbfile)
-    url = 'http://localhost:3000/jid/' + str(j.jid)
     headers = {"Content-Type": "application/json"}
     with open(jerbfile, 'rb') as f:
         data = f.read()
-    result = requests.put(url, data=data, headers=headers)
-    if (result.status_code == 200):
-        code = "SKIPPED "
-    elif (result.status_code == 201):
-        code = "CREATED "
-    else:
-        code = "ERROR   "
-    print(code + j.jid + " " + jerbfile)
+
+    if jerbstore_url:
+        url = jerbstore_url + str(j.jid)
+        result = requests.put(url, data=data, headers=headers)
+        if (result.status_code == 200):
+            storecode = "EXISTS  "
+        elif (result.status_code == 201):
+            storecode = "ADDED   "
+        else:
+            storecode = "ERROR   "
+
+    if jerb_index_url:
+        url = jerb_index_url + str(j.jid)
+        result = requests.put(url, data=data, headers=headers)
+        if result.status_code == 200:
+            indexcode = "INDEXED "
+        else:
+            indexcode = "ERROR   "
+
+    return (storecode, indexcode, str(j.jid))
 
 
-def upload_jerbfile_to_jerb_index(jerbfile):
-    """ Sends the file to jerbstore. Defaults to localhost. """
-    # TODO: Fix source
-    j = load_jerb_from_file(jerbfile)
-    url = 'http://localhost:3001/jid/' + str(j.jid)
-    headers = {"Content-Type": "application/json"}
-    with open(jerbfile, 'rb') as f:
-        data = f.read()
-    result = requests.put(url, data=data, headers=headers)
-    print("INDEXED " + j.jid)
-    print(result)
+def find_jerb():
+    """ Returns a list of JIDs where something is true. """
+    
