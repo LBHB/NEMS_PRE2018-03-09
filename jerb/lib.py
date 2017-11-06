@@ -135,6 +135,20 @@ def default_metadata():
     return md
 
 
+def metadata_valid(metadata):
+    """ Predicate. True when metadata is the correct format. """
+    if type(metadata) is not dict:
+        return False
+    for k, v in metadata.items():
+        if not k or not v:
+            return False
+        if type(k) is not str:
+            return False
+        if (type(v) is not str) and (type(v) is not list):
+            return False
+    return True
+
+
 def ensure_metadata_exists():
     """ Ensure the orphan 'jerb_metadata' object exists in .git """
     # Get the existing metadata as a dictionary d
@@ -288,10 +302,12 @@ def find_jerbs(query,
                jerb_index_url='http://localhost:3001/find'):
     """ TODO. Returns a list of JIDs matching the query. """
     # TODO: Validate the query
-    data = json.dumps(query)
+    if not metadata_valid(json.loads(query)):
+        ragequit('Query is not a valid JSON metadata format.')
     headers = {"Content-Type": "application/json"}
-    result = requests.post(jerb_index_url, data=data, headers=headers)
+    result = requests.post(jerb_index_url, data=query, headers=headers)
     if result.status_code == 200:
         return result.json()['jids']
     else:
+        print(result.json())
         ragequit('Invalid return code!')

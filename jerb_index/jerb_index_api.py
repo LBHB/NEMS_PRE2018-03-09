@@ -60,7 +60,8 @@ class JerbQuery(Resource):
         self.rdb = kwargs['redisdb']
 
     def post(self):
-        js = json.loads(request.get_json())
-        # TODO: Validate request format
+        js = request.get_json()
+        if not jerb.lib.metadata_valid(js):
+            abort(400, 'Invalid query format')
         jids = red.select_jids_where(self.rdb, js)
         return Response(json.dumps({"jids": jids}), 200)
