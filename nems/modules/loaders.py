@@ -199,23 +199,27 @@ class load_mat(nems_module):
                 # new: add extra first dimension to resp/pupil (and eventually pred)
                 # resp,pupil,state,pred now channel X stim/trial X time
                 data['resp']=data['resp'][np.newaxis,:,:]
+                
+                data['behavior_condition']=np.ones(data['resp'].shape)*(data['filestate']>0)
+                data['behavior_condition'][np.isnan(data['resp'])]=np.nan
+                
                 if data['pupil'] is not None:
                     if data['pupil'].ndim == 3:
                         data['pupil'] = np.transpose(data['pupil'], (1, 2, 0))
                         if self.avg_resp is True:
                             data['state']=np.concatenate((np.mean(data['pupil'],0)[np.newaxis, :,:], 
-                                np.zeros(data['resp'].shape)*(data['filestate']>0)),0)
+                                data['behavior_condition']),0)
                         else:
-                            data['state']=np.zeros(data['resp'].shape)*(data['filestate']>0)
+                            data['state']=data['behavior_condition']
                             
                     elif data['pupil'].ndim==2:
                         data['pupil']=data['pupil'][np.newaxis,:,:]
+                        # add file state as second dimension to pupil
                         data['state']=np.concatenate((data['pupil'],
-                            np.ones(data['pupil'].shape)*(data['filestate']>0)),axis=0)
+                            data['behavior_condition']),axis=0)
                     
                 else:
-                    # add file state as second dimension to pupil
-                    data['state']=np.zeros(data['resp'].shape)*(data['filestate']>0)
+                    data['state']=data['behavior_condition']
                     
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...

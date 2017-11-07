@@ -18,6 +18,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 import pandas as pd
+import pandas.io.sql as psql
 
 import nems_config.defaults
 from nems.utilities.print import web_print
@@ -555,3 +556,28 @@ def get_batch_cells(batch=None, cellid=None):
     d=pd.read_sql(sql=sql,con=engine)
     
     return d
+
+
+def batch_comp(batch,modelnames=[],cellids=['%']):
+    
+    modelnames=['parm100pt_wcg02_fir15_pupgainctl_fit01_nested5',
+               'parm100pt_wcg02_fir15_pupgain_fit01_nested5',
+               'parm100pt_wcg02_fir15_stategain_fit01_nested5'
+               ]
+    batch=301
+    cellids=['%']
+    
+    session = Session()
+
+    #     .filter(NarfResults.cellid.in_(cellids))
+    results = psql.read_sql_query(
+        session.query(NarfResults)
+        .filter(NarfResults.batch == batch)
+        .filter(NarfResults.modelname.in_(modelnames))
+        .statement,
+        session.bind
+        )
+    
+    session.close()
+
+    return results
