@@ -1,87 +1,84 @@
-""" JERB: JSON Executable Resource Blob Package.
-See: README.org for more details.
-"""
+""" jerb/Jerb.py: The Jerb class: a git repo packed into an immutable JSON. """
 
-import binascii
+import os
+import re
 import json
 
 
 class Jerb ():
-    def __init__(self, init_json_string, already_json=False):
-        """ Inits Jerb object from the provided JSON string (or JSON, if
-        already_json=TRUE). """
+    def __init__(self, init_json_string):
+        """Creates Jerb object from the provided JSON string. Jerbs
+        are immutable, so any attempts to modify this object will cause
+        errors. """
 
-        if not already_json:
-            j = json.loads(init_json_string)
-        else:
-            j = init_json_string
+        j = json.loads(init_json_string)
 
-        # TODO: Check that jid, meta, are well defined
-
+        self.init_json_string = init_json_string
         self.jid = j['jid']
         self.meta = j['meta']
-        self.pack = binascii.a2b_base64(j['pack']) if 'pack' in j else None
-
-        # Internal flags: If there is no payload, we'll need to fetch it
-        self.__nopayload__ = True if not (self.pack) else False
+        self.pack = j['pack'] if 'pack' in j else None
 
         # Check for any internal consistency errors
         err = any(self.errors())
         if err:
             raise ValueError(err)
 
-    def as_dict(self):
-        d = {'jid': self.jid,
-             'meta': self.meta,
-             'pack': self.pack}
-        return d
-
     def __str__(self):
         """ Returns a string that is the serialized Jerb.
         Warning: ordering of key/values is not guaranteed to be consistent """
-        s = json.dumps(self.as_dict())
-        return s
+        # TODO: Check that nobody modified this jerb.
+        return self.init_json_string
 
     def errors(self):
         """ Returns an iterable of errors found when validating this JERB for
         self-consistency. """
+        # TODO: Unpack it, and check that metadata is in the pack
+        # TODO: Unpack it, and check that there is only 1 note object
+        # TODO: Check that the JID hash matches the true commit
+        # TODO: Function that checks a date is ISO8601 compatible/strptime?
         return [None]
 
+    def save_to_file(self, filepath):
+        """ Saves this jerb to filepath, overwriting whatever was there. """
+        with open(filepath, 'wb') as f:
+            f.write(str(self).encode())
 
-# TODO: Check that the JID hash matches the data
-#     -
 
-# TODO: Function to compare two jerbs, and see if one is the "unexecuted"
-#       version of the other "executed" JERB.  Why? Well, we'll want to know
-#       that we get the same, bit-for-bit result from two different workers?
+##############################################################################
+# Helper functions since Python does not allow multiple constructors
 
-# TODO: Function to load a JID from a string
+def load_jerb_from_file(filepath):
+    """ Loads a .jerb file and returns a Jerb object. """
+    if os.path.exists(filepath):
+        with open(filepath, "rb") as f:
+            init_json_string = f.read()
+            s = init_json_string.decode()
+            j = Jerb(s)
+            return j
+    else:
+        raise ValueError("File not found: " + filepath)
 
-# TODO: Function to load a JID from a file
 
-# TODO: Function to load a JID from a HTTP(s) URI
+def valid_metadata_structure(metadata):
+    """ Predicate. True when metadata is the correct format: a
+    dict of strings or lists of strings."""
+    if type(metadata) is not dict:
+        return False
+    for k, v in metadata.items():
+        if not k or not v:
+            return False
+        if type(k) is not str:
+            return False
+        if (type(v) is not str) and (type(v) is not list):
+            return False
+    return True
 
-# TODO: Function to return a dictionary of properties you would like indexed
 
-# TODO: Function to return a JSON of properties you would like indexed
-
-# TODO: Function that adds timestamp, user information when saving a JERB
-
-# TODO: Function that checks a date is ISO8601 compatible (strptime?)
-#       parse_iso8601 may be useful
-
-# TODO: Function that double-checks timestamps are logically correct
-    # def timestamp_errors(self):
-    #     """ Returns the first error found regarding timestamps. """
-    #     if ((self.time_queued and self.time_started and
-    #          self.time_queued > self.time_started)):
-    #         return ValueError("time_started not after time_queued")
-
-    #     if ((self.time_started and self.time_finished and
-    #          self.time_started > self.time_finished)):
-    #         return ValueError("time_finished not after time_started")
-
-    #     return False
-
-# TODO: Functions to add, get, update, or delete properties?
-#       Or is it easier to just leave it as a dictionary?
+def valid_SHA1_string(sha):
+    """ Predicate. True when S is a valid SHA1 string."""
+    r = re.compile('^([a-f0-9]{40})$')
+    m = re.search(r, sha)
+    if m:
+        return True
+    else:
+        return False

@@ -5,6 +5,7 @@ from functools import reduce
 import hashlib
 import json
 import os
+import re
 import zlib
 
 

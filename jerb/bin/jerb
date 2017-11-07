@@ -2,32 +2,44 @@
 
 import os
 import sys
-import jerb.lib as jb
+import jerb.shell as sh
+import jerb.net as net
+from jerb.Jerb import Jerb 
+from jerb.JerbRepo import JerbRepo
 
 
 def print_usage():
     """ Prints usage information to the user. """
     print("""Example jerb workflow:
 
-    # 1. Create a new, empty jerb/git repository 
+    # 1. Find some Jerbs stored in the cloud:
+    jerb find '{"user.name": "Ivar Thorson"}'
+
+    # 2. Download the jerbs you want
+    jerb fetch b01736e3d0d53d36387af67bc5cdbef78d1b7381 > hello.jerb
+    jerb fetch 90d94d3479e40fd001ab4e4c91e3d5b5c7955d43 > world.jerb
+
+    # 3. Unpack the jerbs and double check they are what you want
+    jerb unpack hello.jerb world.jerb
+
+    # 4. Merge those jerbs into a repo and start working
     jerb init <my_new_repo_name>
-
-    # 2. Download and merge one or more .jerb files into this repository
     cd <my_new_repo_name>
-    curl https://jerbs.org/jid/9832476701987984398342 -o jerbfile1.jerb
-    jerb merge <jerbfile1.jerb> [jerbfile2.jerb ...]
+    jerb merge hello.jerb
+    jerb merge world.jerb
+    
+    # 5. A) Hack away in this repo with your editor
+    #    B) git add, git commit, repeat
 
-    # 3. A) Hack away in this repo with your editor
-    #    B) git add, git commit, then go back to A) if desired
-
-    # 4. Optional: update the repo's metadata to tag it with more information
+    # 6. Optional: update the repo's metadata to tag it with more information
     jerb meta
 
-    # 5. Pack up the git repo into a new jerbfile
+    # 7. Pack up the git repo into a new jerbfile
     jerb jerb > newjerb.jerb
 
-    # 6. Optional: Upload your jerb to jerbs.org to share it with others
+    # 8. Optional: Upload your jerb to jerbs.org to share it with others
     jerb share newjerb.jerb
+    
     """)
 
 
@@ -41,8 +53,8 @@ def handle_command_line():
     op = sys.argv[1]
 
     if op == 'init':
-        jb.ensure_not_in_git_dir()
-        jb.init_jerb_repo(sys.argv[2])        
+        sh.ensure_not_in_git_dir()
+        JerbRepo(sys.argv[2], create=True)
         exit(0)
 
     elif op == 'help':
@@ -50,54 +62,77 @@ def handle_command_line():
         exit(0)
 
     elif op == 'meta':
-        jb.ensure_in_git_dir()
-        jb.edit_metadata()
+        sh.ensure_in_git_dir()
+        jr = JerbRepo('./')
+        jr.edit_metadata()
         exit(0)
 
     elif op == 'jerb':
-        jb.ensure_in_git_dir()
-        pk = jb.make_single_pack()
-        ref = jb.get_master_ref()
-        js = jb.make_jerbstring(pk, ref)
-        print(js) # TODO: Should I save to a default JID filename?
+        sh.ensure_in_git_dir()
+        jr = JerbRepo('./')
+        js = jr.as_json()
+        print(js)
         exit(0)
 
     elif op == 'share':
         if len(sys.argv) < 3:
-            ragequit('Usage: jerb share <file1.jerb> [<file2.jerb> ...]')
+            sh.ragequit('Usage: jerb share <file1.jerb> [<file2.jerb> ...]')
         jerbfiles = []
         for f in sys.argv[2:]:
             if not os.path.exists(f):
-                jb.ragequit('Not a file: ' + f + "\n")
+                sh.ragequit('Not a file: ' + f + "\n")
             jerbfiles.append(f)
         for j in jerbfiles:
-            (c1, c2, jid) = jb.share_jerbfile(j)
-            print(c1 + c2 + jid + " " + j)
+            (r1, r2) = net.share_jerbfile(j)
+
+            if (r1.status_code == 200):
+                storecode = "EXISTS  "
+            elif (r1.status_code == 201):
+                storecode = "ADDED   "
+            else:
+                storecode = "ERROR   "
+
+            if r2.status_code == 200:
+                indexcode = "INDEXED "
+            else:
+                indexcode = "ERROR   "                    
+
+            print(storecode + indexcode + " " + j)
+
         exit(0)
 
     elif op == 'find':
         if len(sys.argv) != 3:
-            ragequit("""Usage: jerb find '{"user.name"="Ivar Thorson"}'""")
+            sh.ragequit("""Usage: jerb find '{"user.name"="Ivar Thorson"}'""")
         query = sys.argv[2]
-        jids = jb.find_jerbs(query)
+        jids = net.find_jerbs(query)
         for j in jids:
             print(j)
         exit(0)
 
+    elif op == 'fetch':
+        if len(sys.argv) != 3:
+            sh.ragequit("Usage: jerb fetch <jid>")
+        for jid in sys.argv[2:]:
+            j = net.fetch_jerb(jid)
+            print(j)
+        exit(0)
+
     elif op == 'merge':    
-        jb.ensure_in_git_dir()
+        sh.ensure_in_git_dir()
         if len(sys.argv) < 3:
-            ragequit('Usage: jerb merge <file1.jerb> [<file2.jerb> ...]')
+            sh.ragequit('Usage: jerb merge <file1.jerb> [<file2.jerb> ...]')
+        jr = JerbRepo('./')
         jerbs = []
         for f in sys.argv[2:]:
             if not os.path.exists(f):
-                jb.ragequit('Not a file: ' + f + "\n")
-            jerbs.append(jb.load_jerb_from_file(f))
+                sh.ragequit('Not a file: ' + f + "\n")
+            jerbs.append(load_jerb_from_file(f))
         for j in jerbs:
-            jb.unpack_jerb(j)
+            jr.merge_in_jerb(j)
 
     else:
-        jb.ragequit("Unknown command: " + op + "\n")
+        sh.ragequit("Unknown command: " + op + "\n")
 
 
 handle_command_line()
