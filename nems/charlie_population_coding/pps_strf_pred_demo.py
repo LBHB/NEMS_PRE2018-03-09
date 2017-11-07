@@ -34,8 +34,6 @@ imp.reload(nk)
 imp.reload(ut)
 imp.reload(ns)
 
-sys.path.append('/auto/users/hellerc/nems/charlie_population_coding')
-from baphy_charlie import load_baphy_file2
 
 user = 'david'
 passwd = 'nine1997'
@@ -46,7 +44,7 @@ db_uri = 'mysql+pymysql://{0}:{1}@{2}/{3}'.format(user, passwd, host, database)
 engine = create_engine(db_uri)
 f = '/auto/data/code/nems_in_cache/batch299/BOL005c-04-1_b299_none_fs100.mat'
 #f = '/auto/data/code/nems_in_cache/batch299/BOL006b-02-1_b299_none_fs100.mat'
-data = load_baphy_file2(f)
+data = load_baphy_file(f)
 cid = data['cellids'][0]
 respfile = os.path.basename(data['resp_fn'][0])
 rid = engine.execute('SELECT rawid FROM sCellFile WHERE respfile = "'+respfile+'" and cellid = %s', (cid,))
@@ -73,6 +71,7 @@ rvals = []
 for i, cellid in enumerate(cellids):
     #cellid='BOL005c-18-1'
     cellid = cellid[0]
+    sys.exit()
     batch=293
     modelname= "parm50_wcg02_fir10_dexp_fit01_nested5" #"parm50_wcg02_fir10_pupgainctl_fit01_nested5"
     
@@ -102,8 +101,8 @@ for i, cellid in enumerate(cellids):
     pup = pup.T
     
     if i == 0:
-        pred = np.empty((r.shape[-1], r.shape[-2], len(cellids)))
-        resp = np.empty((r.shape[-1], r.shape[-2], len(cellids)))
+        pred = np.empty((r.shape[1], r.shape[0], len(cellids)))
+        resp = np.empty((r.shape[1], r.shape[0], len(cellids)))
         
     #pup=m.d_out[val_file_idx]['pupil'].copy().T
     #fir_coefs=m.coefs
@@ -111,8 +110,8 @@ for i, cellid in enumerate(cellids):
     
     #strf_coefs=np.matmul(wgt_coefs.T,fir_coefs)  # h1 in Taylor series
     
-    pred[:,:,i] = np.squeeze(p).T
-    resp[:,:,i] = np.squeeze(r).T
+    pred[:,:,i] = p.T
+    resp[:,:,i] = r.T
     
     r_val=stack.meta['r_val']  # test set prediction accuracy
     rvals.append(r_val)
@@ -135,7 +134,7 @@ plt.plot(np.nanmean(cc_r0,1), '-o', color='b')
 plt.ylabel('pearsons corr coef')
 plt.xlabel('pip trial')
 plt.legend(['rN', 'r0 (strf)'])
-pup_m = np.squeeze(np.mean(pup,0)/2)
+pup_m = np.mean(pup,0)/2
 plt.title('rN vs. pupil: %s, r0 vs. pupil: %s' 
           %(np.corrcoef(np.nanmean(cc_rN,1), pup_m)[0][1], np.corrcoef(np.nanmean(cc_r0,1), pup_m)[0][1]))
 
