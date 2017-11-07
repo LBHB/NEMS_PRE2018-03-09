@@ -3,7 +3,7 @@ from flask_restful import Api
 
 import jerb.util
 from jerb_index import redis_index
-from jerb_index.jerb_index_api import JerbIndex
+from jerb_index.jerb_index_api import JerbIndex, JerbQuery
 
 creds = jerb.util.environment_credentials()
 r = redis_index.redis_connect(creds)
@@ -16,6 +16,8 @@ api.add_resource(JerbIndex,
                  '/jid/<string:jid>',
                  resource_class_kwargs={'redisdb': r})
 
-# api.add_resource(JerbQuery, '/find')
+api.add_resource(JerbQuery,
+                 '/find',
+                 resource_class_kwargs={'redisdb': r})
 
 app.run(port=3001, host='127.0.0.1')
