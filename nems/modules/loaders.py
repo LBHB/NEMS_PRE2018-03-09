@@ -201,9 +201,12 @@ class load_mat(nems_module):
                 # resp,pupil,state,pred now channel X stim/trial X time
                 data['resp']=data['resp'][np.newaxis,:,:]
                 if data['pupil'] is not None:
-                    data['pupil']=data['pupil'][np.newaxis,:,:]
-                    data['state']=np.concatenate((data['pupil'],
-                        np.ones(data['resp'].shape)*(data['filestate']>0)),axis=0)
+                    if data['pupil'].ndim == 3:
+                        pass
+                    else:
+                        data['pupil']=data['pupil'][np.newaxis,:,:]
+                        data['state']=np.concatenate((data['pupil'],
+                            np.ones(data['pupil'].shape)*(data['filestate']>0)),axis=0)
                 else:
                     # add file state as second dimension to pupil
                     data['state']=np.zeros(data['resp'].shape)*(data['filestate']>0)
