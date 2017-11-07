@@ -181,7 +181,6 @@ class load_mat(nems_module):
                 
                 # average across trials
                 # TODO - why does this execute(and produce a warning?)
-                print(data['resp'].shape)
                 if data['resp'].shape[1]>1:
                     data['avgresp']=np.nanmean(data['resp'],axis=1)
                 else:
@@ -202,11 +201,18 @@ class load_mat(nems_module):
                 data['resp']=data['resp'][np.newaxis,:,:]
                 if data['pupil'] is not None:
                     if data['pupil'].ndim == 3:
-                        pass
-                    else:
+                        data['pupil'] = np.transpose(data['pupil'], (1, 2, 0))
+                        if self.avg_resp is True:
+                            data['state']=np.concatenate((np.mean(data['pupil'],0)[np.newaxis, :,:], 
+                                np.zeros(data['resp'].shape)*(data['filestate']>0)),0)
+                        else:
+                            data['state']=np.zeros(data['resp'].shape)*(data['filestate']>0)
+                            
+                    elif data['pupil'].ndim==2:
                         data['pupil']=data['pupil'][np.newaxis,:,:]
                         data['state']=np.concatenate((data['pupil'],
                             np.ones(data['pupil'].shape)*(data['filestate']>0)),axis=0)
+                    
                 else:
                     # add file state as second dimension to pupil
                     data['state']=np.zeros(data['resp'].shape)*(data['filestate']>0)

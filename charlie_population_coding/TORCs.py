@@ -56,8 +56,8 @@ for j in np.arange(1, 8,2):
         
         p = stacks[i].data[-1][j]['pred'].copy()
         r = stacks[i].data[-1][j]['resp_raw'].copy()
-        p = np.tile(p[:,np.newaxis,:], (1,r.shape[1],1)).T
-        pup = stacks[i].data[-1][j]['pupil'].copy()
+        p = np.transpose(np.tile(p, (r.shape[1],1,1)).T, (0,2,1))
+        pup = np.transpose(stacks[i].data[-1][j]['pupil'].copy(), (-1, 0, 1))
         
         if i == 0:
             if stack.data[-1][j]['stimparam'][0].find('_a_') > 0:
