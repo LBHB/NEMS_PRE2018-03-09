@@ -140,7 +140,9 @@ class fir(nems_module):
             y=np.convolve(X[i,:],self.coefs[i,:])
             X[i,:]=y[0:X.shape[1]]
         X=X.sum(0)+self.baseline
-        Y=np.reshape(X,s[1:])
+        s=list(s)
+        s[0]=1
+        Y=np.reshape(X,s)
         return Y
     
     def get_strf(self):

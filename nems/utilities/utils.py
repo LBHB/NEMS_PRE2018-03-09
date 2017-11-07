@@ -94,6 +94,19 @@ def thresh_resamp(data, resamp_factor, thresh=0, ax=0):
     resamp[mask] = 0
     return resamp
 
+def bin_resamp(data,resamp_factor,ax=0):
+    """
+    Integer downsampling-- just average values occuring in each group of 
+    resp_factor bins along axis ax. Gets rid of edge effects and ringing. Plus
+    it makes more sense for rebinning single-trial spike rates.
+    """
+    s=np.array(data.shape)
+    snew=np.concatenate((s[0:ax],[resamp_factor],[s[ax]/resamp_factor],s[(ax+1):]))
+    #print(s)
+    #print(snew)
+    d=np.reshape(data,snew.astype(int),order='F')
+    d=np.mean(d,ax)
+    return d
 
 def stretch_trials(data):
     """

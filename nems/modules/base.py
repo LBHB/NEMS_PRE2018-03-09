@@ -124,7 +124,7 @@ class nems_module:
             D=m.d_in
             
         if D[0][name].ndim==2:
-            X=np.empty([0,1])
+            X=np.empty([1,0])
             s=m.d_in[0][name].shape
         else:
             s=D[0][name].shape
@@ -133,23 +133,43 @@ class nems_module:
         for i, d in enumerate(D):
             if not 'est' in d.keys():
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
+                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
                 else:
                     X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
             elif (est and d['est']):
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
+                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
                 else:
                     X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
             elif not est and not d['est']:
                 if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([-1,1],order='C')))
+                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
                 else:
                     X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
                 
         return X
     
+    def pack_data(self,X,name='stim',est=True,use_dout=True):
+        """
+        unpack_data - extract a data variable from all files into a single
+        matrix (concatenated across files)
+        """
+        m=self
+        if use_dout:
+            D=m.d_out
+        else:
+            D=m.d_in
             
+        s=X.shape
+        for i, d in enumerate(D):
+            if not 'est' in d.keys() or (est and d['est']) or (not est and not d['est']):
+                s2=list(d[name].shape)
+                s2[0]=s[0]
+                n=np.prod(s2[1:])
+                d[name]=np.reshape(X[:,0:n],s2)
+                X=X[:,n:]
+                
+    
     def evaluate(self,nest=0):
         """
         General evaluate function, for both nested and non-nested crossval. Creates
