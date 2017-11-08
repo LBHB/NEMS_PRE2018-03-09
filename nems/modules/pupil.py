@@ -187,21 +187,6 @@ class pupgain(nems_module):
             Z,Zp=getattr(m,m.gain_type+'_fn')(X,Xp)
             m.pack_data(Z,name=m.input_name,est=False)
             m.pack_data(Zp,name=m.state_var,est=False)
-        """
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            if self.parent_stack.nests>0 and f_in['est'] is False:
-                X=copy.deepcopy(f_in[self.input_name][nest])
-                Xp=copy.deepcopy(f_in[self.state_var][nest])
-                Z,Xp=getattr(self,self.gain_type+'_fn')(X,Xp)
-                f_out[self.output_name][nest]=Z
-                f_out[self.state_var][nest]=Xp
-            else:
-                X=copy.deepcopy(f_in[self.input_name])
-                Xp=copy.deepcopy(f_in[self.state_var])
-                Z,Xp=getattr(self,self.gain_type+'_fn')(X,Xp)
-                f_out[self.output_name]=Z
-                f_out[self.state_var]=Xp
-        """        
                 
 class state_weight(nems_module): 
     """
@@ -248,47 +233,42 @@ class state_weight(nems_module):
         prng = np.random.RandomState(1234567890)
         
         # shuffle state vector across trials (time)
-        fxp=np.isfinite(Xp)
-        txp=Xp[fxp]
-        prng.shuffle(txp)
-        Xp[fxp]=txp
-        #prng.shuffle(Xp)
+        for ii in range(0,Xp.shape[0]):
+            fxp=np.isfinite(Xp[ii,:])
+            txp=Xp[ii,fxp]
+            prng.shuffle(txp)
+            Xp[ii,fxp]=txp
         
         # restore saved random state
         prng.set_state(save_state)
         
-        #s=Xp.shape
-        #n=np.int(np.ceil(s[0]/2))
-        #Xp=np.roll(Xp,n,0)
-        
         Y,Xp=self.linear_fn(X1,X2,Xp)
-        
         
         return(Y,Xp)
               
     def evaluate(self,nest=0):
-        if nest==0:
-            del self.d_out[:]
-            for i,d in enumerate(self.d_in):
-                self.d_out.append(copy.copy(d))
+        m=self
+        del m.d_out[:]
+        for i,d in enumerate(m.d_in):
+            #self.d_out.append(copy.deepcopy(val))
+            m.d_out.append(copy.copy(d))
+        
+        X1=m.unpack_data(name=m.input_name,est=True)
+        X2=m.unpack_data(name=m.input_name2,est=True)
+        Xp=m.unpack_data(name=m.state_var,est=True)
+        Y,Xp=self.my_eval(X1,X2,Xp)
+        m.pack_data(Y,name=m.output_name,est=True)
+        m.pack_data(Xp,name=m.state_var,est=True)
 
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            if self.parent_stack.nests>0 and f_in['est'] is False:
-                X1=copy.deepcopy(f_in[self.input_name][nest])
-                X2=copy.deepcopy(f_in[self.input_name2][nest])
-                Xp=copy.deepcopy(f_in[self.state_var][nest])
-                Y,Xp=self.my_eval(X1,X2,Xp)
-                f_out[self.output_name][nest]=Y
-                f_out[self.state_var][nest]=Xp
-            else:
-                X1=copy.deepcopy(f_in[self.input_name])
-                X2=copy.deepcopy(f_in[self.input_name2])
-                Xp=copy.deepcopy(f_in[self.state_var])
-                Y,Xp=self.my_eval(X1,X2,Xp)
-                f_out[self.output_name]=Y
-                f_out[self.state_var]=Xp
-                
-                
+        if m.parent_stack.valmode:
+            X1=m.unpack_data(name=m.input_name,est=False)
+            X2=m.unpack_data(name=m.input_name2,est=False)
+            Xp=m.unpack_data(name=m.state_var,est=False)
+            Y,Xp=self.my_eval(X1,X2,Xp)
+            m.pack_data(Y,name=m.output_name,est=False)
+            m.pack_data(Xp,name=m.state_var,est=False)
+            
+            
 class state_filter(nems_module): 
     """
     apply some sort of transformation to state variable

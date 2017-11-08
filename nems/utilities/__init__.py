@@ -14,5 +14,5 @@ Created on Thu Aug  3 17:05:14 2017
 #import nems.utilities.print
 #import nems.utilities.utils
 
-__all__=['baphy','io','plot','print','utils']
+__all__=['baphy','io','plot','print','pruffix','utils']
 
