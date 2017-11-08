@@ -7,6 +7,7 @@ import sys
 def ragequit(mesg):
     """ Quit immediatley with an error message and a bad status code. """
     sys.stderr.write(mesg)
+    sys.stderr.write('\n')
     sys.stderr.flush()
     sys.exit(-1)
 
