@@ -12,34 +12,30 @@ def print_usage():
     """ Prints usage information to the user. """
     print("""Example jerb workflow:
 
-    # 1. Find some Jerbs stored in the cloud:
-    jerb find '{"user.name": "Ivar Thorson"}'
+    # 1. Find some Jerbs shared in the cloud:
+    jerb find '{"user": "ivar"}'
 
     # 2. Download the jerbs you want
     jerb fetch b01736e3d0d53d36387af67bc5cdbef78d1b7381 > hello.jerb
     jerb fetch 90d94d3479e40fd001ab4e4c91e3d5b5c7955d43 > world.jerb
+    jerb find '{"user": "ivar", "batch": "301"}' | jerb fetch
 
-    # 3. Unpack the jerbs and double check they are what you want
-    jerb unpack hello.jerb world.jerb
-
-    # 4. Merge those jerbs into a repo and start working
-    jerb init <my_new_repo_name>
-    cd <my_new_repo_name>
-    jerb merge hello.jerb
-    jerb merge world.jerb
+    # 3. Merge those jerbs into a repo and start working
+    jerb init my_new_repo
+    cd my_new_repo
+    jerb merge ../hello.jerb ../world.jerb
     
-    # 5. A) Hack away in this repo with your editor
+    # 4. A) Hack away in this repo with your editor
     #    B) git add, git commit, repeat
 
-    # 6. Optional: update the repo's metadata to tag it with more information
+    # 5. Optional: update the repo's metadata to tag it with more information
     jerb meta
 
-    # 7. Pack up the git repo into a new jerbfile
+    # 6. Pack up the git repo into a new jerbfile
     jerb jerb > newjerb.jerb
 
-    # 8. Optional: Upload your jerb to jerbs.org to share it with others
-    jerb share newjerb.jerb
-    
+    # 7. Optional: Upload your jerb to jerbs.org to share it with others
+    jerb share newjerb.jerb    
     """)
 
 
