@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
 
+from classify_cell_types import getCellTypes
 
 reload(ut)
 
@@ -40,6 +41,8 @@ database = 'cell'
 cellids = d['cellid'][0:]
 rvals=[]
 stacks=[]
+
+celltypes = getCellTypes(fn = 'TAR010c_9_10_11_12_96clusts_V2', animal='Tartufo')
 
 batch=301
 modelname= "fb18ch100x_wcg02_fir15_dexp_fit01_nested5"
