@@ -28,6 +28,7 @@ Classify all sorted units as fast-spiking inhibitory and regular-spiking excitat
 import numpy as np
 from sklearn.cluster import KMeans
 import pandas as pd
+import scipy.io as io
 
 def getCellTypes(fn = None, animal=None, automerged=True):
     '''
@@ -84,6 +85,8 @@ def getCellTypes(fn = None, animal=None, automerged=True):
         
     classifiers = pd.DataFrame(mlist)
     classifiers = classifiers.sort_values(by = 'best_channel')
+    isolation = io.loadmat(resultPath+'isolation.mat')['isolations']
+    classifiers['isolation'] = isolation
     return classifiers
 
         
