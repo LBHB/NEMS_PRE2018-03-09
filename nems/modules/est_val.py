@@ -251,6 +251,19 @@ class crossval(nems_module):
                     d_val['state']=[]
                 
                 try:
+                    if d['behavior_condition'].shape[1]==n_trials:
+                        d_est['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,eidx,:])
+                        d_val['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,vidx,:])
+                    else:
+                        print(d['behavior_condition'].shape)
+                        d_est['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,:,eidx])
+                        d_val['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,:,vidx])
+                except:
+                    #print('No state data')
+                    d_est['behavior_condition']=[]
+                    d_val['behavior_condition']=[]
+                
+                try:
                     d_est['repcount']=copy.deepcopy(d['repcount'][eidx])
                     d_val['repcount']=copy.deepcopy(d['repcount'][vidx])
                 except:

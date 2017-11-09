@@ -79,8 +79,13 @@ def reverse_index(r, jerb):
     # just an uninterpretable bytestring?
     for k, v in jerb.meta.items():
         if (k and v):
-            r.sadd('idx:'+k+'='+v, jerb.jid)
-            r.sadd('prop:'+k, v)
+            if type(v) is str:
+                r.sadd('idx:'+k+'='+v, jerb.jid)
+                r.sadd('prop:'+k, v)
+            elif type(v) is list:
+                for vv in v:
+                    r.sadd('idx:'+k+'='+vv, jerb.jid)
+                    r.sadd('prop:'+k, vv)
 
 
 def delete_reverse_index(r, jerb):

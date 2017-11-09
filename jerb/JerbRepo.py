@@ -1,12 +1,11 @@
 import os
 import binascii
+import datetime
 import json
 import shutil
 import uuid
 import subprocess as sub
 from jerb.Jerb import Jerb
-
-# TODO: Put git config "JERB.USER.NAME" variable somewhere?
 
 # Constants
 TMP_DIR = '/tmp/'
@@ -24,7 +23,7 @@ class JerbRepo():
         self.gitdirpath = os.path.join(self.repopath, '.git/')
         self.packdirpath = os.path.join(self.repopath, PACK_DIR)
 
-        if create and self.git_dir_exists():
+        if create and self._git_dir_exists():
             raise ValueError("Refusing to create/overwrite existing JerbRepo")
         # Ensure that the directory has the necessary hidden files:
         if not self._git_dir_exists():
@@ -43,7 +42,9 @@ class JerbRepo():
 
     def init_git(self):
         """ Initializes the underlying git repo at the base of a JerbRepo """
-        sub.run(['git', 'init', self.reponame])
+        os.mkdir(self.repopath)
+        sub.run(['git', 'init', '.'],
+                cwd=self.repopath)
 
     def init_metadata(self):
         """ Creates the jerb_metadata object blob and ref. """
@@ -60,17 +61,16 @@ class JerbRepo():
 
     def default_metadata(self):
         """ Try to create automatic metadata from the current git dir. """
-        name = sub.check_output(['git', 'config', '--get', 'user.name'],
+        name = sub.check_output(['git', 'config', '--get', 'jerb.user'],
                                 cwd=self.repopath)
-        email = sub.check_output(['git', 'config', '--get', 'user.email'],
-                                 cwd=self.repopath)
-
+        if not name:
+            raise ValueError('Please set the jerb.user variable with:',
+                             'git config --global jerb.user "myusernamehere"')
         branch = self.reponame
-        md = {'user.name': name.strip().decode(),
-              'user.email': email.strip().decode(),
+        md = {'user': name.strip().lower().decode(),
               'branch': branch,
-              'parents': '',
-              'tags': '',
+              'parents': [],
+              'tags': [],
               'description': ''}
         return md
 
@@ -90,6 +90,12 @@ class JerbRepo():
         sub.call(['git', 'notes', 'add', '-f', '-m', js, ref],
                  cwd=self.repopath)
 
+    def set_metadata_item(self, key, value):
+        """ Sets the key-value pair for the metadata """
+        md = self.get_metadata()
+        md[key] = value
+        self.set_metadata(md)
+
     def edit_metadata_interactively(self):
         """ Interactively edit the metadata for this JerbRepo. """
         sub.run(['git', 'notes', 'edit',
@@ -101,14 +107,14 @@ class JerbRepo():
         d = self.get_metadata()
         # Add the JID to the "parents" list
         if 'parents' in d:
-            parents = set([x.strip() for x in d['parents'].split(',')])
+            parents = set(d['parents'])
             parents.add(jid)
-            d['parents'] = ', '.join(parents)
+            d['parents'] = [p for p in parents]
         else:
-            d['parents'] = jid
+            d['parents'] = [jid]
         self.set_metadata(d)
 
-    def get_master_ref(self):
+    def _get_master_ref(self):
         """ Returns the commit hash of the master ref. """
         mrefpath = os.path.join(self.repopath, MASTER_REF_PATH)
         with open(mrefpath, 'rb') as f:
@@ -118,7 +124,7 @@ class JerbRepo():
     def packed_contents(self):
         """ Returns contents of .pack file containing a shallow clone
         of this repository's last master commit + the metadata note."""
-        mref = self.get_master_ref()
+        mref = self._get_master_ref()
         # TODO: Use temporary dir instead of doing this manually
         temp_repo_path = os.path.join(TMP_DIR, str(uuid.uuid4()))
         sub.call(['git', 'clone',
@@ -128,7 +134,8 @@ class JerbRepo():
                          '--branch', 'master',
                          '.', temp_repo_path])
         # Add metadata to the last commit before packing it
-        # TODO: Function that adds timestamp to metadata too
+        now = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+        self.set_metadata_item('date', now)
         md = self.get_metadata()
         js = json.dumps(md)
         sub.call(['git', 'notes', 'add', '-f', '-m', js, mref],
@@ -149,7 +156,7 @@ class JerbRepo():
     def as_json(self):
         """ Pack and returns this repo in a JSON (string) form. """
         packfile = self.packed_contents()
-        od = {'jid': self.get_master_ref,
+        od = {'jid': self._get_master_ref(),
               'meta': self.get_metadata(),
               'pack': binascii.b2a_base64(packfile).decode()}
         js = json.dumps(od, sort_keys=True)
@@ -163,22 +170,33 @@ class JerbRepo():
 
     def merge_in_jerb(self, jerb_to_merge):
         """ Unpack jerb_to_merge jerb and merges it into this JerbRepo """
+        # First do the 'temporary' run to find the note commit
         temp_repo_path = os.path.join(TMP_DIR, str(uuid.uuid4()))
-        new_jr = unpack_jerb(jerb_to_merge, temp_repo_path)
+        new_jr = JerbRepo(temp_repo_path)
+        new_jr.unpack_jerb(jerb_to_merge)
         note_commit = new_jr._find_note_object()
-        # Merge the unpacked main commit  of the main commit
-        sub.call(['git', 'merge', jerb_to_merge.jid, '--quiet', '--no-edit'])
+        shutil.rmtree(temp_repo_path)
+        if not note_commit:
+            raise ValueError("Could not find note_commit.")
+        # TODO: can I fetch from the temporary dir somehow,
+        # instead of re-unpacking this thing?
+
+        # Now actually do the merge
+        self.unpack_jerb(jerb_to_merge)
+        sub.call(['git', 'merge', jerb_to_merge.jid, '--quiet', '--no-edit'],
+                 cwd=self.repopath)
         sub.call(['git', 'update-ref', 'refs/notes/temp_jerb_metadata',
-                  note_commit])
+                  note_commit],
+                 cwd=self.repopath)
         self.add_parent(jerb_to_merge.jid)
-        sub.call(['git', 'notes', 'merge', 'temp_jerb_metadata'])
-        # TODO: delete temp_jerb_metadata ref??
+        sub.call(['git', 'notes', 'merge', 'temp_jerb_metadata'],
+                 cwd=self.repopath)
 
     def _find_note_object(self):
         """ WARNING: This function will probably throw an exception
         unless you run it on a freshly unpacked jerb. It is not intended
-        to be used on anything but fresh JerbRepos, because non-fresh
-        JerbRepos may have more than 1 note object. It is SLooow, also."""
+        to be used on anything but JerbRepos just made from a Jerb, because
+        in general JerbRepos may have >1 note objects. It is SLooow, too!"""
         # List the hashes of all the indexed files
         objectfiles = os.listdir(self.packdirpath)
         idxs = [f for f in objectfiles if f.endswith(".idx")]
@@ -214,21 +232,13 @@ class JerbRepo():
                     raise ValueError('2 note objects found; invalid jerb!')
                 else:
                     note_commit = h
+        return note_commit
 
-
-# Helper function because python doesn't have multiple constructors
-def unpack_jerb(jerb_to_unpack, new_jerbrepo_path):
-    """ Unpacks the jerb_to_unpack Jerb object into a newly-created
-    new_jerbrepo_path, and return the tuple:
-    (new_jerbrepo, note_commit_hash)  """
-    newrepo = JerbRepo(new_jerbrepo_path, create=True)
-
-    # Unpack the pack file into the new repo
-    binpack = binascii.a2b_base64(jerb_to_unpack.pack)
-    with open('/dev/null', 'w') as devnull:
-        sub.run(['git', 'index-pack', '--stdin', '--keep'],
-                input=binpack,
-                stdout=devnull,
-                cwd=newrepo.repopath)
-
-    return newrepo
+    def unpack_jerb(self, jerb_to_unpack):
+        """ Unpacks the jerb_to_unpack Jerb object into this repo."""
+        binpack = binascii.a2b_base64(jerb_to_unpack.pack)
+        with open('/dev/null', 'w') as devnull:
+            sub.run(['git', 'index-pack', '--stdin', '--keep'],
+                    input=binpack,
+                    stdout=devnull,
+                    cwd=self.repopath)

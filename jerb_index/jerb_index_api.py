@@ -2,14 +2,13 @@ from flask import abort, request, Response
 from flask_restful import Resource
 import json
 
-import jerb.lib
 import jerb_index.redis_index as red
-from jerb.Jerb import Jerb
+from jerb.Jerb import Jerb, valid_SHA1_string, valid_metadata_structure
 
 
 # TODO: These two are cut and pasted. Consolidate!
 def ensure_valid_jid(jid):
-    if not jerb.lib.is_SHA1_string(jid):
+    if not valid_SHA1_string(jid):
         abort(400, 'invalid SHA1 string:' + jid)
 
 
@@ -35,8 +34,7 @@ class JerbIndex(Resource):
         """ Idempotent. Indexes the jerb."""
         ensure_valid_jid(jid)
         # TODO: Ensure request is within limits
-        js = request.get_json()
-        j = Jerb(js, already_json=True)
+        j = Jerb(request.data.decode())
         # TODO: This is boilerplate and same as jerbserve. Consolidate.
         if not jid == j.jid:
             abort(400, 'JID does not match argument')
@@ -61,7 +59,7 @@ class JerbQuery(Resource):
 
     def post(self):
         js = request.get_json()
-        if not jerb.lib.metadata_valid(js):
+        if not valid_metadata_structure(js):
             abort(400, 'Invalid query format')
         jids = red.select_jids_where(self.rdb, js)
         return Response(json.dumps({"jids": jids}), 200)

@@ -13,20 +13,20 @@ from jerb.Jerb import valid_SHA1_string
 def store_jerb(jerb, route='http://localhost:3000/jid/'):
     """ Stores the jerb in the jerbstore at endpoint."""
     url = route + str(jerb.jid)
-    send_jerb(jerb, url)
+    return send_jerb(jerb, url)
 
 
 def index_jerb(jerb, route='http://localhost:3001/jid/'):
     """ Indexes the jerb for search at jerb_index at route. """
     url = route + str(jerb.jid)
-    send_jerb(jerb, url)
+    return send_jerb(jerb, url)
 
 
 def send_jerb(jerb, url, method='PUT'):
     """ Transmits JERB to URL as a JSON. Method defaults to 'PUT', but
     you may also use 'POST'. Returns the result. """
     headers = {"Content-Type": "application/json"}
-    result = requests.put(url, data=jerb.as_json(), headers=headers)
+    result = requests.put(url, data=str(jerb), headers=headers)
     return result
 
 
@@ -51,18 +51,16 @@ def share_jerbfile(jerbpath):
 def valid_query_structure(query):
     """ Predicate. True when query is in the correct data format."""
     # TODO: Upgrade me later to be full-featured
-    valid_metadata_structure(query)
+    return valid_metadata_structure(query)
 
 
 def find_jerbs(query, query_route='http://localhost:3001/find'):
     """ TODO. Returns a list of JIDs matching the query. """
-
-    if not valid_query_structure(json.loads(query)):
+    s = json.loads(query)
+    if not valid_query_structure(s):
         raise ValueError('find_jerbs received invalid JSON query format.')
-
     headers = {"Content-Type": "application/json"}
     result = requests.post(query_route, data=query, headers=headers)
-
     if result.status_code == 200:
         return result.json()['jids']
     else:
@@ -74,14 +72,24 @@ def fetch_jerb(jid, jerbstore_route='http://localhost:3000/jid/'):
     """ Fetches the jerb and returns the newly loaded object. """
     if not valid_SHA1_string(jid):
         raise ValueError('fetch_jerb received an invalid SHA1')
-
     url = jerbstore_route + jid
-
     result = requests.get(url)
-
     if result.status_code == 200:
         j = Jerb(result.content.decode())
         return j
     else:
         print(result.raw)
         raise ValueError("Bad HTTP Status code from fetch_jerb")
+
+
+def fetch_metadata(jid, jerb_index_route='http://localhost:3001/jid/'):
+    """ Fetches the metadata for the jerb at JID. """
+    if not valid_SHA1_string(jid):
+        raise ValueError('fetch_metadata received an invalid SHA1')
+    url = jerb_index_route + jid
+    result = requests.get(url)
+    if result.status_code == 200:
+        return json.loads(result.content.decode())
+    else:
+        print(result.raw)
+        raise ValueError("Bad HTTP Status code from fetch_metadata")

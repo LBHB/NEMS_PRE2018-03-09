@@ -5,12 +5,11 @@ import os
 from flask import abort, request, Response
 from flask_restful import Resource
 
-from jerb.Jerb import Jerb
-import jerb.lib
+from jerb.Jerb import Jerb, valid_SHA1_string
 
 
 def ensure_valid_jid(jid):
-    if not jerb.lib.is_SHA1_string(jid):
+    if not valid_SHA1_string(jid):
         abort(400, 'invalid SHA1 string:' + jid)
 
 
@@ -48,11 +47,8 @@ class LocalJerbStore(Resource):
         """ Idempotent. Returns 201 if the jerb was created, or
         return 200 if it exists already in this jerbstore."""
         ensure_valid_jid(jid)
-        # TODO: Ensure request is within limits
-        # TODO: Ensure JSON is using single quotes(?)
-        js = request.get_json()
-        # js = json.loads(s)
-        j = Jerb(js, already_json=True)
+        # TODO: Ensure request size is within limits
+        j = Jerb(request.data.decode())
         if not jid == j.jid:
             abort(400, 'JID does not match argument')
         if any(j.errors()):
@@ -66,6 +62,8 @@ class LocalJerbStore(Resource):
                 f.write(request.data)
             return Response(status=201)
         else:
+            # TODO: CHeck if it identical or not, and possibly update it.
+            # The metedata may have changed without anything else having changed.
             return Response(status=200)
 
     def delete(self, jid):
