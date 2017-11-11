@@ -44,7 +44,7 @@ from nems.web.account_management.views import get_current_user
 #from nems.keyword_rules import keyword_test_routine
 from nems.web.run_custom.script_utils import scan_for_scripts
 from nems.utilities.print import web_print
-from nems_config.defaults import UI_OPTIONS
+from nems_config.defaults import UI_OPTIONS, DEMO_MODE
 n_ui = UI_OPTIONS
 
 try:
@@ -776,6 +776,18 @@ def get_preview():
     cSelected = request.args.getlist('cSelected[]')
     mSelected = request.args.getlist('mSelected[]')
 
+    # if using demo database, get preview image from aws public bucket
+    if DEMO_MODE:
+        s3_client = boto3.client('s3')
+        key = (
+                'nems_saved_images/batch291/{0}/{1}.png'
+                .format(cSelected[0], mSelected[0])
+                )
+        print("Inside get_preview, passed DEMO_MODE check. Key is: {0}".format(key))
+        fileobj = s3_client.get_object(Bucket='nemspublic', Key=key)
+        image=str(b64encode(fileobj['Body'].read()))[2:-1]
+        return jsonify(image=image)
+    
     figurefile = None
     # only need this to be backwards compatible with NARF preview images?
     path = (
@@ -793,7 +805,7 @@ def get_preview():
         figurefile = str(path.figurefile)
         session.close()
     
-    # TODO: Make this not ugly.
+    # TODO: Make this not ugly, and incorporate check for sample images
     
     if AWS:
         s3_client = boto3.client('s3')

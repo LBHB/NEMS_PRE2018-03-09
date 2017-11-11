@@ -17,6 +17,7 @@ import pprint
 import h5py
 
 import nems.utilities as ut
+from nems_config.defaults import DEMO_MODE
 
 try:
     import boto3
@@ -228,11 +229,25 @@ def get_mat_file(filename, chars_as_strings=True):
         TODO: generic support of s3 URI, not NEMS-specific
            check for local version (where, cached? before loading from s3)
     """
+    
+    if DEMO_MODE:
+        s3_client = boto3.client('s3')
+        i = filename.find('batch')
+        key = 'sample_data/{0}'.format(filename[i:])
+        fileobj = s3_client.get_object(Bucket='nemspublic', Key=key)
+        data = scipy.io.loadmat(
+                io.BytesIO(fileobj['Body'].read()),
+                chars_as_strings=chars_as_strings,
+                )
+        return data
     if AWS:
         s3_client = boto3.client('s3')
         key = filename[len(sc.DIRECTORY_ROOT):]
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-        data = scipy.io.loadmat(io.BytesIO(fileobj['Body'].read()), chars_as_strings=chars_as_strings)
+        data = scipy.io.loadmat(
+                io.BytesIO(fileobj['Body'].read()),
+                chars_as_strings=chars_as_strings,
+                )
         return data
     else:
         data = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
