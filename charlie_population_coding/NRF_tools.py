@@ -242,4 +242,141 @@ def sort_bytrial_voc(r, p, data):
     return pbystim, rbystim
     
     
+def plt_perf_by_trial(r, r1, r2, combine_stim=False, a_p=None, r1name='Network', r2name='Null', cellname=None, **kwargs):
+    '''
+    Function to visualize the performance of two models over trials. "Trials has
+    a flexible meaning. This function assumes you input data in which the first 
+    dimension is time and the last dimension is cells. It will simply collapse 
+    over whatever is in between these two dims and call this trials. 
+    
+    THEREFORE, IF FOR EXAMPLE YOU'D LIKE TO SEE THE PLOT FOR A SINGLE CELL, 
+    YOU MUST MAKE SURE THE LAST DIM OF RESPONSE MATRIX IS A SINGLETON
+    
+    Input:
+        r: numpy array (4-D or 3-D), true response matrix (required) - will assume time is first dimension, cells are last dim
+        r1: numpy array (4-D or 3-D), predicted response matrix (required) - will assume time is first dimension, cells are last dim
+        r2: numpy array (4-D or 3-D), predicted response matrix (required) - will assume time is first dimension, cells are last dim
+        pupil: numpy array, pupil matrix (optional)
+        combine_stim: bool (whether or not to average over all stims)
+        a_p: boolean specifying trial type (size: Middle dimensions collapses of response matrix) (optional - must specify if behavior)
+        r1name: string (optional, default "Network)
+        r2name: string (optional, default "Null")
+        cellname: string (optional, will be title of graph if included)
+        
+    Output - none
+        <matplotlib fig>
+    
+        Note - if you want the correlation coefficients for model prediciton, use
+        function "NRF_tools.eval_fit"
+    '''
+    if combine_stim and combine_stim==True:
+        r1_perf = np.nanmean(np.nanmean(eval_fit(r, r1)['bytrial'],1),-1)
+        r2_perf = np.nanmean(np.nanmean(eval_fit(r, r2)['bytrial'],1),-1)
+    
+    elif len(r1_perf.shape)==3 and combine_stim==False:
+        r1_perf = np.nanmean(r1_perf.reshape(r1_perf.shape[0]*r1_perf.shape[1], r1_perf.shape[2]),-1)
+        r2_perf = np.nanmean(r2_perf.reshape(r2_perf.shape[0]*r2_perf.shape[1], r2_perf.shape[2]),-1)
+
+    else:
+        r1_perf = np.nanmean(eval_fit(r, r1)['bytrial'],-1)
+        r2_perf = np.nanmean(eval_fit(r, r2)['bytrial'],-1)
+    
+ 
+        
+    if 'pupil' in kwargs.keys():
+        pupil = kwargs['pupil']
+        if len(pupil.shape)==3 and combine_stim==True:
+            pupil = np.mean(np.mean(pupil,-1),0)/2
+        elif len(pupil.shape)==3 and combine_stim==False:
+            pupil = np.mean(pupil,0).reshape(pupil.shape[1]*pupil.shape[2])/2
+        else:
+            pupil=np.mean(pupil,0)/2
+     
+    
+    fig = plt.figure()   
+    # If behavior
+    if a_p is not None:
+        if 'pupil' in kwargs:
+            plt.subplot(211)
+            plt.plot(r1_perf, '.-', color='red', alpha=0.7)
+            plt.plot(r2_perf, '.-', color='blue', alpha=0.7)
+            plt.legend([r1name,r2name])
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+            
+            plt.subplot(212)
+            plt.plot(pupil-np.mean(pupil)+np.mean(r1_perf-r2_perf), '.-',color='k',alpha=0.7)
+            plt.plot(r1_perf-r2_perf, '.-',color='green')
+            plt.legend(['Model diff', 'Pupil'])
+            plt.title('Model vs. pupil: %s' %(round(np.corrcoef(pupil,r1_perf-r2_perf)[0][1],2)))
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+        else:
+            plt.subplot(211)
+            plt.plot(r1_perf, '.-', color='red', alpha=0.7)
+            plt.plot(r2_perf, '.-', color='blue', alpha=0.7)
+            plt.legend([r1name,r2name])
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+            
+            plt.subplot(212)
+            plt.plot(r1_perf-r2_perf, '.-',color='green',alpha=0.7)
+            plt.legend(['Model diff'])
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+            
+        starts = np.argwhere(np.diff(a_p)==1)
+        ends = np.argwhere(np.diff(a_p)==-1)
+        if len(starts)>len(ends):
+            ends=np.append(ends,len(a_p)-1)
+        elif len(ends)>len(starts):
+            starts=np.insert(starts,0,0)
+        for i in range(0, len(starts)):
+            plt.subplot(211)
+            plt.axvspan(starts[i],ends[i],color='k',alpha=0.2)
+            plt.subplot(212)
+            plt.axvspan(starts[i],ends[i],color='k',alpha=0.2)
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+    else:
+         if 'pupil' in kwargs:
+            plt.subplot(211)
+            plt.plot(r1_perf, '.-', color='red', alpha=0.7)
+            plt.plot(r2_perf, '.-', color='blue', alpha=0.7)
+            plt.legend([r1name,r2name])
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+            
+            plt.subplot(212)
+            plt.plot(pupil-np.mean(pupil)+np.mean(r1_perf-r2_perf), '.-',color='k',alpha=0.7)
+            plt.plot(r1_perf-r2_perf, '.-',color='green')
+            plt.legend(['Model diff', 'Pupil'])
+            plt.title('Model vs. pupil: %s' %(round(np.corrcoef(pupil,r1_perf-r2_perf)[0][1],2)))
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+         else:
+            plt.subplot(211)
+            plt.plot(r1_perf, '.-', color='red', alpha=0.7)
+            plt.plot(r2_perf, '.-', color='blue', alpha=0.7)
+            plt.legend([r1name,r2name])
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+            
+            plt.subplot(212)
+            plt.plot(r1_perf-r2_perf, '.-',color='green',alpha=0.7)
+            plt.legend(['Model diff'])
+            plt.xlabel('Trials')
+            plt.ylabel('Model Performance - correlation coefficient')
+    
+    if cellname is not None:
+        plt.suptitle(cellname)
+
+    return fig
+    
+    
+    
+    
+    
+    
+    
     

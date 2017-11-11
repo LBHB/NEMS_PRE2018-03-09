@@ -10,7 +10,7 @@ Created on Wed Nov  8 13:59:22 2017
 Classify all units exported by phy as fast spiking or regular spiking.
 
 In order to run this file, will have to run cell_type.py snippet in .phy beforehand
-in order to export the relevant files into the results folder for your recording
+to export the relevant files into the results folder for your recording
 and will have had to save phy sorting to db
 
 cell_type.py is located in LBHB/phy-contrib. Look there for instructions on running
@@ -37,7 +37,7 @@ def getCellTypes(fn = None, animal=None, automerged=True):
         animal (string) = animal's name
         automerged (boolean): if automerged results. Default = True
     Output:
-        classifiers (dict):
+        classifiers (pd data frame):
             
         
     '''
