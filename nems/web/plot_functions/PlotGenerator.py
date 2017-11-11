@@ -25,7 +25,7 @@ from bokeh.models import (
         PanTool, ResetTool, Range1d, FactorRange, Title
         )
 #from bokeh.charts import BoxPlot   #bokeh.charts deprecated by Bokeh
-from bokeh.models.glyphs import VBar, Circle
+from bokeh.models.glyphs import VBar, Circle, Glyph
 #from bokeh.models.widgets import DataTable, TableColumn
 import pandas as pd
 import numpy as np
@@ -582,7 +582,7 @@ class Pareto_Plot(PlotGenerator):
         
         tools = [
                 PanTool(), SaveTool(), WheelZoomTool(),
-                ResetTool(), self.create_hover()
+                ResetTool(),
                 ]
         
         x_values = []
@@ -627,7 +627,10 @@ class Pareto_Plot(PlotGenerator):
                 x='n_parms', y='mean', size=6, fill_color="navy",
                 fill_alpha=0.7,
                 )
-        p.add_glyph(dat_source, circles)
+        circle_renderer = p.add_glyph(dat_source, circles)
+        hover = self.create_hover()
+        hover.renderers = [circle_renderer]
+        p.add_tools(hover)
         #p.circle(x_values, y_values, size=6, color="navy", alpha=0.7)
         error_bars_x = []
         error_bars_y = []
