@@ -59,7 +59,7 @@ def load_baphy_file(filepath,level=0):
         print("Est/val conditions not flagged in datafile")
     return(data)
     
-def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
+def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18,pertrial=False):
     """
     Given a stim/resp preprocessing parameters, figure out relevant cache filename.
     TODO: if cache file doesn't exist, have Matlab generate it
@@ -68,11 +68,16 @@ def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18):
     """
     
     rootpath=sc.DIRECTORY_ROOT + "nems_in_cache"
+    if pertrial:
+        ptstring="_pertrial"
+    else:
+        ptstring=""
+        
     if stimfmt in ['none','parm','envelope']:
         
-        fn="{0}/batch{1}/{2}_b{1}_{3}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
+        fn="{0}/batch{1}/{2}_b{1}{6}_{3}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs,ptstring)
     else:
-        fn="{0}/batch{1}/{2}_b{1}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs)
+        fn="{0}/batch{1}/{2}_b{1}{6}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs,ptstring)
       
     # placeholder. Need to check if file exists in nems_in_cache.
     # If not, call baphy function in Matlab to regenerate it:

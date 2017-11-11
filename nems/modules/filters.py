@@ -44,8 +44,8 @@ class weight_channels(nems_module):
             if parm_type=='gauss':
                 self.parm_fun=self.gauss_fn
                 m=np.matrix(np.linspace(1,self.num_dims,self.num_chans+2))
-                m=m[:,1:-1]/10
-                s=np.ones([self.num_chans,1])*4/10
+                m=m[:,1:-1]/self.num_dims
+                s=np.ones([self.num_chans,1])/4
                 phi=np.concatenate([m.transpose(),s],1)
             self.coefs=self.parm_fun(phi)
             if not fit_fields:
@@ -61,8 +61,15 @@ class weight_channels(nems_module):
     def gauss_fn(self,phi):
         coefs=np.zeros([self.num_chans,self.num_dims])
         for i in range(0,self.num_chans):
-            m=phi[i,0]*10
-            s=phi[i,1]*10
+            m=phi[i,0]*self.num_dims
+            s=phi[i,1]*self.num_dims
+            if s<0.05:
+                s=0.05
+            if (m<0 and m<s):
+                s=-m
+            elif (m>self.num_dims and m>self.num_dims+s):
+                s=m-self.num_dims
+                
             x=np.arange(0,self.num_dims)
             coefs[i,:]=np.exp(-np.square((x-m)/s))
             coefs[i,:]=coefs[i,:]/np.sum(coefs[i,:])
@@ -73,9 +80,13 @@ class weight_channels(nems_module):
         #    # only allocate memory once, the first time evaling. rish is that output_name could change
         if self.parm_fun:
             self.coefs=self.parm_fun(self.phi)
+            coefs=self.coefs
+        else:
+            coefs=self.coefs
+            
         s=X.shape
         X=np.reshape(X,[s[0],-1])
-        X=np.matmul(self.coefs,X)
+        X=np.matmul(coefs,X)
         s=list(s)
         s[0]=self.num_chans
         Y=np.reshape(X,s)
@@ -132,9 +143,35 @@ class fir(nems_module):
         Y=np.reshape(X,s[1:])
         return Y
     
+    def get_strf(self):
+        h=self.coefs
+        
+        # if weight channels exist and dimensionality matches, generate a full STRF
+        try:
+            wcidx=nems.utilities.utils.find_modules(self.parent_stack,"filters.weight_channels")
+            if len(wcidx)>0 and self.parent_stack.modules[wcidx[0]].output_name==self.output_name:
+                wcidx=wcidx[0]
+            elif len(wcidx)>1 and self.parent_stack.modules[wcidx[1]].output_name==self.output_name:
+                wcidx=wcidx[1]
+            else:
+                wcidx=-1
+        except:
+            wcidx=-1
+            
+        if self.name=="filters.fir" and wcidx>=0:
+            #print(m.name)
+            w=self.parent_stack.modules[wcidx].coefs
+            if w.shape[0]==h.shape[0]:
+                h=np.matmul(w.transpose(), h)
+        
+        return h
+    
+        
+    
 class stp(nems_module):
     """
     stp - simulate short-term plasticity with the Tsodyks and Markram model
+    
     m.editable_fields = {'num_channels', 'strength', 'tau', 'strength2', 'tau2',...
                     'per_channel', 'offset_in', 'facil_on', 'crosstalk',...
                     'input', 'input_mod','time', 'output' };
@@ -194,24 +231,26 @@ class stp(nems_module):
         Y=np.zeros([0,s[1],s[2]])
         di=np.ones(s)
         for j in range(0,self.num_channels):
-            ui=np.absolute(self.u[:,j])
+            ui=np.absolute(self.u[:,j])  # force only depression, no facilitation
             #ui=self.u[:,j]
-            taui=np.absolute(self.tau[:,j])*self.d_in[0]['respFs']  # norm by sampling rate so that tau is in units of sec
+
+            # convert tau units from sec to bins
+            taui=np.absolute(self.tau[:,j])*self.d_in[0]['fs']  
+
             
             # go through each stimulus channel
             for i in range(0,s[0]):
                 
-                # limits:
+                # limits, assumes input (X) range is approximately -1 to +1
                 if ui[i]>0.5:
                     ui[i]=0.5
                 elif ui[i]<-0.5:
-                    ui[i]=-0.5
-                    
-                if taui[i]<1:
-                    taui[i]=1
+                    ui[i]=-0.5                    
+                if taui[i]<0.5:
+                    taui[i]=0.5
                     
                 for tt in range(1,s[2]):
-                    td=di[i,:,tt-1]
+                    td=di[i,:,tt-1]  # previous time bin depression
                     if ui[i]>0:
                         delta=(1-td)/taui[i] - ui[i]*td*tstim[i,:,tt-1]
                         td=td+delta

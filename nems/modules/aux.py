@@ -45,50 +45,37 @@ class normalize(nems_module):
         self.field_dict.pop('self',None)
         self.force_positive=force_positive
         self.auto_plot=False
-        if self.parent_stack.cv_counter==0:
-            print('norm lists created')
-            self.parent_stack.d=[0]*self.parent_stack.nests
-            self.parent_stack.g=[1]*self.parent_stack.nests
             
     def evaluate(self,nest=0):
-        c=self.parent_stack.cv_counter
-        X=self.unpack_data()
-        name=self.input_name
-        if self.parent_stack.valmode is False:
-            if self.d_in[0][name].ndim==2:
-                if self.force_positive:
-                    self.parent_stack.d[c]=X.min()
-                    self.parent_stack.g[c]=1/(X-self.parent_stack.d[c]).max()
-                else:
-                    self.parent_stack.d[c]=X.mean()
-                    self.parent_stack.g[c]=X.std()
-            else:
-                s=self.d_in[0][name].shape
-                if self.force_positive:
-                    self.parent_stack.d[c]=X[:,:].min(axis=1).reshape([s[0],1,1])
-                    self.parent_stack.g[c]=1/(X[:,:]-
-                                       self.parent_stack.d[c].reshape([s[0],1])).max(axis=1).reshape([s[0],1,1])
-                else:
-                    self.parent_stack.d[c]=X[:,:].mean(axis=1).reshape([s[0],1,1])
-                    self.parent_stack.g[c]=X[:,:].std(axis=1).reshape([s[0],1,1])
-                    self.parent_stack.g[c][np.isinf(self.parent_stack.g[c])]=0
-            # apply the normalization
-            
-        if nest==0:
-            del self.d_out[:]
-            for i, d in enumerate(self.d_in):
-                self.d_out.append(copy.deepcopy(d))
-                    
+        del self.d_out[:]
+        for i,d in enumerate(self.d_in):
+            # create a copy of each input variable
+            self.d_out.append(copy.copy(d))
+        
+        X=self.unpack_data(name=self.input_name,est=True,use_dout=False)
+        if self.force_positive:
+            self.d=X.min(axis=-1)
+            m=(X.max(axis=-1).T - self.d.T).T
+            m[m==0]=1
+            self.g=1/m
+        else:
+            self.d=X.mean(axis=-1)
+            self.g=X.std(axis=-1)
+        
         for f_in,f_out in zip(self.d_in,self.d_out):
-            #X=copy.deepcopy(f_in[self.input_name])
-            #f_out[self.output_name]=np.multiply(X-self.parent_stack.d[c],self.parent_stack.g[c])    
-            if self.parent_stack.nests>0 and f_in['est'] is False:
-                X=copy.deepcopy(f_in[self.input_name][nest])
-                f_out[self.output_name][nest]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
-            else:
-                X=copy.deepcopy(f_in[self.input_name])
-                f_out[self.output_name]=np.multiply(X-self.parent_stack.d[nest],self.parent_stack.g[nest])
+            # don't need to eval the est data for each nest, just the first one
+            X=copy.deepcopy(f_in[self.input_name])
+            f_out[self.output_name]=((X.T-self.d) * self.g).T
             
+        if hasattr(self,'state_mask'):
+            del_idx=[]
+            for i in range(0,len(self.d_out)):
+                if not self.d_out[i]['filestate'] in self.state_mask:
+                    del_idx.append(i)
+            for i in sorted(del_idx, reverse=True):
+               del self.d_out[i]
+               
+             
         
 class add_scalar(nems_module):
     """ 

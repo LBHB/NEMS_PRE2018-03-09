@@ -66,16 +66,16 @@ def fit02(stack):
 def fit03(stack):
     """
     Fits the model parameters using a srinkage-mean squared error loss function with 
-    the L-BFGS-B algorithm, to a cost function tolerance of 10^-8.
+    the L-BFGS-B algorithm, to a cost function tolerance of 10^-9.
     
     Should be appended last in a modelname (excepting "nested" keywords)
     """
-    stack.append(nm.metrics.mean_square_error,shrink=0.05)
+    stack.append(nm.metrics.mean_square_error,shrink=0.1)
     stack.error=stack.modules[-1].error
     stack.evaluate(2)
 
     stack.fitter=nems.fitters.fitters.basic_min(stack)
-    stack.fitter.tolerance=0.00000001
+    stack.fitter.tolerance=0.000000001
     stack.fitter.do_fit()
     create_parmlist(stack)
     
