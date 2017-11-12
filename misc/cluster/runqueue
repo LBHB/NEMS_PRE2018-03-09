@@ -69,9 +69,10 @@ shift
 #   #**could just use the one created at top, or is that used for other stuff?
 #   TMPDIR = '/nemstemp/$QUEUEID'
 #   mkdir -p $TMPDIR
-#   cd /nemstemp/$QUEUEID
-#   git clone https://bitbucket.org/lbhb/nems.git
+#   git clone https://bitbucket.org/lbhb/nems.git into $TMPDIR
 #   git checkout $CODEHASH
+#   #need some check here for if checkout fails. should default to master?
+#   # or maybe just not run the job at all
 #   #install so that program runs using this rep instead of main one
 #   #does this mean we'll need to re-install the main dir afterward?
 #   pip install -e nems [web]
