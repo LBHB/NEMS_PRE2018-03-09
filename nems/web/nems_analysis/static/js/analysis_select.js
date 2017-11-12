@@ -1419,7 +1419,6 @@ $(document).ready(function(){
                 console.log("reload call succeeded");
             },
             error: function(error){
-                console.log("reload call failed");
                 console.log(error);
             }
         });

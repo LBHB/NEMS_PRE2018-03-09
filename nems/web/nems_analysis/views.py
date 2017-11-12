@@ -894,3 +894,88 @@ def set_saved_selections():
     session.close()
     
     return jsonify(response='selections saved', null=False)
+
+
+############ jerb test #################
+    
+@app.route('/jerb_viewer')
+def jerb_viewer():
+    json = make_jerb_json()
+    return render_template('jerb_test.html', json=json)
+
+
+def make_jerb_json():
+    
+    user = get_current_user()
+    
+    session = Session()
+    
+    # .all() returns a list of tuples, so it's necessary to pull the
+    # name elements out into a list by themselves.
+    analyses = (
+            session.query(NarfAnalysis)
+            .filter(or_(
+                    int(user.sec_lvl) == 9,
+                    NarfAnalysis.public == '1',
+                    NarfAnalysis.labgroup.ilike('%{0}%'.format(user.labgroup)),
+                    NarfAnalysis.username == user.username,
+                    ))
+            .order_by(asc(NarfAnalysis.id))
+            .all()
+            )
+    analysislist = [
+            a.name for a in analyses
+            ]
+
+    batchids = [
+            i[0] for i in
+            session.query(NarfBatches.batch)
+            .distinct()
+            #.filter(or_(
+            #        int(user.sec_lvl) == 9,
+            #        NarfBatches.public == '1',
+            #        NarfBatches.labgroup.ilike('%{0}%'.format(user.labgroup)),
+            #        NarfBatches.username == user.username,
+            #        ))
+            .all()
+            ]
+    batchnames = []
+    for i in batchids:
+        name = (
+                session.query(sBatch.name)
+                .filter(sBatch.id == i)
+                .first()
+                )
+        if not name:
+            batchnames.append('')
+        else:
+            batchnames.append(name.name)
+    batchlist = [
+            (batch + ': ' + batchnames[i])
+            for i, batch in enumerate(batchids)
+            ]
+    batchlist.sort()
+    
+    session.close()
+    
+    json = {'name':'Analysis',
+            'children':[],
+            }
+    for i, analysis in enumerate(analysislist):
+        json['children'].append({'name':analysis, 'children':[]})
+        json['children'][i]['children'].extend([
+                {'name':'batch', 'children':[
+                        {'name':batch, 'leaf':1}
+                        for batch in batchlist
+                        ]
+                }, {'name':'models', 'children':[
+                        {'name':model, 'leaf':1}
+                        for model in ['fake','model','list']
+                        ]
+                }
+                ])
+        
+    return json
+    
+    
+    
