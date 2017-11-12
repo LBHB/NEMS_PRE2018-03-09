@@ -417,7 +417,7 @@
             </a></h4>
             <!-- <h4><a href="#" id="enableDraggable">Enable Draggable</a></h4>
             <h4><a href="#" id="disableDraggable">Disable Draggable</a></h4> -->
-            <br><br><br>
+            <br>
             <h4><a href="#">{{ username }}</a></h4>
             <h4>
                 <a href="{{ url_for('login') }}" id="login">
@@ -486,21 +486,49 @@
                 </a>
             </h4>
             -->
-            <h4>
-                <a href="{{ url_for('site_map') }}" id="sitemap" target="_blank">
-                    Print Site Map
-                    <script>
-                        var sitemap = document.getElementById('sitemap');
-                        sitemap.style.display = 'none'
-                    {% if seclvl is greaterthan 8 %}
-                        sitemap.style.display = 'block';
-                    {% endif %}
-                    </script>
-                </a>
-            </h4>
-            <button type="button" id="testGet"> Load Selections </button>
-            <button type="button" id="testSave"> Save Selections </button>
 
+            <button type="button" class="btn-xs" id="sitemap" target="_blank"
+                style="float: right;">
+                Site Map
+            </button>
+                <script>
+                    var sitemap = document.getElementById('sitemap');
+                    sitemap.style.display = 'none'
+                {% if seclvl is greaterthan 8 %}
+                    sitemap.style.display = 'block';
+                {% endif %}
+                </script>
+
+            <button type="button" class="btn-xs" id="reload" style="float: right;">
+                Reload Modules
+            </button>
+                <script>
+                    var reload = document.getElementById('reload');
+                    reload.style.display = 'none'
+                {% if seclvl is greaterthan 8 %}
+                    reload.style.display = 'block';
+                {% endif %}
+                </script>
+            <button type="button" class="btn-xs" id="testGet" style="float: right;">
+                Load Selections
+            </button>
+                <script>
+                    var getselect = document.getElementById('getselect');
+                    getselect.style.display = 'none'
+                {% if username %}
+                    getselect.style.display = 'block'
+                {% endif %}
+                </script>
+            <button type="button" class="btn-xs" id="testSave" style="float: right;">
+                Save Selections
+            </button>
+                <script>
+                    var saveselect = document.getElementById('saveselect');
+                    saveselect.style.display = 'none'
+                {% if username %}
+                    saveselect.style.display = 'block'
+                {% endif %}
+                </script>
             <!-- buttons for manually testing saved user selections -->
             <!--
             <button type="button" id="testSave"> Test Save </button>

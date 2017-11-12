@@ -1410,4 +1410,23 @@ $(document).ready(function(){
         toggleVisibility($("#statusFilters"));
     });
 
+    $("#reload").click(function(){
+        $.ajax({
+            url: $SCRIPT_ROOT + '/reload_modules',
+            data: {},
+            type: 'GET',
+            success: function(data){
+                console.log("reload call succeeded");
+            },
+            error: function(error){
+                console.log("reload call failed");
+                console.log(error);
+            }
+        });
+    });
+
+    $("#sitemap").click(function(){
+        window.open($SCRIPT_ROOT + '/site_map', '_blank');
+    });
+
 });
