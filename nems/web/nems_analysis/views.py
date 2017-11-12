@@ -900,8 +900,8 @@ def set_saved_selections():
     
 @app.route('/jerb_viewer')
 def jerb_viewer():
-    json = make_jerb_json()
-    return render_template('jerb_test.html', json=json)
+    jerb_json = make_jerb_json()
+    return render_template('jerb_test.html', json=jerb_json)
 
 
 def make_jerb_json():
@@ -961,13 +961,13 @@ def make_jerb_json():
     s3 = boto3.resource('s3')
     bucket = s3.Bucket('nemsdata')
     
-    json = {'name':'Analysis',
+    jerb_json = {'name':'Analysis',
             'children':[],
             }
     
     for i, analysis in enumerate(analysislist):
-        json['children'].append({'name':analysis, 'children':[]})
-        json['children'][i]['children'].extend([
+        jerb_json['children'].append({'name':analysis, 'children':[]})
+        jerb_json['children'][i]['children'].extend([
                 {'name':'batch', 'children':[
                         {'name':batch, 'leaf':1}
                         for batch in batchlist
@@ -986,7 +986,7 @@ def make_jerb_json():
                 }
                 ])
         
-    return json
+    return jerb_json
     
     
     
