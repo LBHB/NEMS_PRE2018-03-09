@@ -958,9 +958,13 @@ def make_jerb_json():
     
     session.close()
     
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('nemsdata')
+    
     json = {'name':'Analysis',
             'children':[],
             }
+    
     for i, analysis in enumerate(analysislist):
         json['children'].append({'name':analysis, 'children':[]})
         json['children'][i]['children'].extend([
@@ -971,6 +975,13 @@ def make_jerb_json():
                 }, {'name':'models', 'children':[
                         {'name':model, 'leaf':1}
                         for model in ['fake','model','list']
+                        ]
+                }, {'name':'data', 'children':[
+                        {'name':obj.key.strip('nems_in_cache/batch291/'), 'leaf':1}
+                        for i, obj in enumerate(bucket.objects.filter(
+                                Prefix='nems_in_cache/batch291/'
+                                ))
+                        if i < 20
                         ]
                 }
                 ])
