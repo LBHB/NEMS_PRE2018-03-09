@@ -550,3 +550,19 @@ def get_batch_cells(batch=None, cellid=None):
     d=pd.read_sql(sql=sql,con=engine)
     
     return d
+
+def get_data_parms(rawid=None,parmfile=None):
+    # get parameters stored in gData associated with a rawfile
+
+    if rawid is not None:
+        sql="SELECT gData.* FROM gData INNER JOIN gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.id={0}".format(rawid)
+        #sql="SELECT * FROM gData WHERE rawid={0}".format(rawid)
+    elif parmfile is not None:
+        sql="SELECT gData.* FROM gData INNER JOIN gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.parmfile = '{0}'".format(parmfile)
+        print(sql)
+    else:
+        pass
+
+    d=pd.read_sql(sql=sql,con=cluster_engine)
+
+    return d
