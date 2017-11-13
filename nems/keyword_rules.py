@@ -20,12 +20,17 @@
     
 """
 
+### Note: Disconnected calls to this module from the web interface since the
+### rules are causing issues as the stack/modules/etc change around.
+### If used in the future, will need to re-think which rules are appropritate
+### (or if it would be better to just enforce behavior through the modules)
+
 import sys
 import inspect
 import pkgutil as pk
 
 import nems.keyword as nk
-import nems.nested as nn
+import nems.keyword.keyhelpers as nn
 
 def keyword_test_routine(modelname):
     """ Runs the check_keywords() method of each test class defined in this

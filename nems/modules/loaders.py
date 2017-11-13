@@ -11,6 +11,7 @@ Created on Fri Aug  4 13:14:24 2017
 from nems.modules.base import nems_module
 import numpy as np
 import scipy.io
+import matplotlib.pyplot as plt
 
 import nems.utilities.utils
 import nems.utilities.plot
@@ -78,10 +79,34 @@ class load_mat(nems_module):
             
             # go through each entry in structure array 'data'
             for s in matdata['data'][0]:
-                try:
-                    data={}
-                    data['resp']=s['resp_raster']
+                
+                data={}
+                if 'stimids' in s.dtype.names:
+                    # new format: stimulus events logged in stimids and 
+                    # pulled from stim matrix or from a separate file
+                    tstim=s['stim']
+                    stimids=s['stimids']
+                    stimtrials=s['stimtrials']
+                    stimtimes=np.double(s['stimtimes'])
+                    stimshape=tstim.shape
+                    respshape=s['resp_raster'].shape
+                    chancount=stimshape[0]
+                    stimbins=np.round(stimtimes*np.double(s['stimfs']))
+                    stim=np.zeros([chancount,respshape[0],respshape[2]])
+                    eventcount=len(stimtimes)
+                    for ii in range(0,eventcount):
+                        startbin=np.int(stimbins[ii])
+                        stopbin=startbin+stimshape[1]
+                        if stimids[ii]<stimshape[2] and stopbin<=respshape[0]:
+                            stim[:,startbin:stopbin,stimtrials[ii]-1]=tstim[:,:,stimids[ii]-1]
+                    data['stim']=stim
+                    
+                else:
+                    # old format, stimulus saved as raster aligned with spikes
                     data['stim']=s['stim']
+                    
+                try:       
+                    data['resp']=s['resp_raster']
                     data['respFs']=s['respfs'][0][0]
                     data['stimFs']=s['stimfs'][0][0]
                     data['stimparam']=[str(''.join(letter)) for letter in s['fn_param']]
@@ -104,7 +129,8 @@ class load_mat(nems_module):
                     else:
                         data['est']=False
                 except ValueError:
-                    print("Est/val conditions not flagged in datafile")
+                    pass
+                    #print("Est/val conditions not flagged in datafile")
                 try:
                     data['filestate']=s['filestate'][0][0]
                 except:
@@ -121,14 +147,28 @@ class load_mat(nems_module):
                 
                 # reshape stimulus to be channel X time
                 data['stim']=np.transpose(data['stim'],(0,2,1))
-                if stim_resamp_factor != 1:
+                
+                
+                if stim_resamp_factor in np.arange(0,10):
+                    print("stim bin resamp factor {0}".format(stim_resamp_factor))
+                    data['stim']=nems.utilities.utils.bin_resamp(data['stim'],stim_resamp_factor,ax=2)
+                   
+                elif stim_resamp_factor != 1:
                     data['stim']=nems.utilities.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 
                 #Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
-                if resp_resamp_factor != 1:
+                if resp_resamp_factor in np.arange(0,10):
+                    print("resp bin resamp factor {0}".format(resp_resamp_factor))
+                    data['resp']=nems.utilities.utils.bin_resamp(data['resp'],resp_resamp_factor,ax=0)
+                    if data['pupil'] is not None:
+                        data['pupil']=nems.utilities.utils.bin_resamp(data['pupil'],resp_resamp_factor,ax=0)
+                        # save raw pupil-- may be somehow transposed differently than resp_raw
+                        data['pupil_raw']=data['pupil'].copy()
+                    
+                elif resp_resamp_factor != 1:
                     data['resp']=nems.utilities.utils.thresh_resamp(data['resp'],resp_resamp_factor,thresh=noise_thresh)
                     if data['pupil'] is not None:
                         data['pupil']=nems.utilities.utils.thresh_resamp(data['pupil'],resp_resamp_factor,thresh=noise_thresh)
@@ -141,8 +181,12 @@ class load_mat(nems_module):
                 
                 # average across trials
                 # TODO - why does this execute(and produce a warning?)
-                print(data['resp'].shape)
-                data['avgresp']=np.nanmean(data['resp'],axis=1)
+                if data['resp'].shape[1]>1:
+                    data['avgresp']=np.nanmean(data['resp'],axis=1)
+                else:
+                    data['avgresp']=np.squeeze(data['resp'],axis=1)
+                    
+                    
                 data['avgresp']=np.transpose(data['avgresp'],(1,0))
                 
                 if self.avg_resp is True:
@@ -151,7 +195,32 @@ class load_mat(nems_module):
                 else:
                     data['stim'],data['resp'],data['pupil'],data['replist']=nems.utilities.utils.stretch_trials(data)
                     data['resp_raw']=data['resp']
-                print("saved resp_raw")
+                
+                # new: add extra first dimension to resp/pupil (and eventually pred)
+                # resp,pupil,state,pred now channel X stim/trial X time
+                data['resp']=data['resp'][np.newaxis,:,:]
+                
+                data['behavior_condition']=np.ones(data['resp'].shape)*(data['filestate']>0)
+                data['behavior_condition'][np.isnan(data['resp'])]=np.nan
+                
+                if data['pupil'] is not None:
+                    if data['pupil'].ndim == 3:
+                        data['pupil'] = np.transpose(data['pupil'], (1, 2, 0))
+                        if self.avg_resp is True:
+                            data['state']=np.concatenate((np.mean(data['pupil'],0)[np.newaxis, :,:], 
+                                data['behavior_condition']),0)
+                        else:
+                            data['state']=data['behavior_condition']
+                            
+                    elif data['pupil'].ndim==2:
+                        data['pupil']=data['pupil'][np.newaxis,:,:]
+                        # add file state as second dimension to pupil
+                        data['state']=np.concatenate((data['pupil'],
+                            data['behavior_condition']),axis=0)
+                    
+                else:
+                    data['state']=data['behavior_condition']
+                    
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 #print('load_mat: appending {0} to d_out stack'.format(f))

@@ -10,6 +10,7 @@ components to pass back to the JS ajax function, which will insert them into
 the display area in the browser.
 
 """
+from base64 import b64encode
 
 import pandas.io.sql as psql
 
@@ -120,10 +121,21 @@ def generate_plot_html():
             session.bind
             )
     
+    # get back list of models that matched other query criteria
+    results_models = [
+            m for m in
+            list(set(results['modelname'].values.tolist()))
+            ]
+    # filter mSelected to match results models so that list is in the
+    # same order as on web UI
+    ordered_models = [
+            m for m in mSelected
+            if m in results_models
+            ]
     Plot_Class = getattr(pg, plotType)
     plot = Plot_Class(
-            data=results, measure=measure, fair=onlyFair, 
-            outliers=includeOutliers,
+            data=results, measure=measure, models=ordered_models, 
+            fair=onlyFair, outliers=includeOutliers,
             )
     if plot.emptycheck:
         print('Plot checked empty after forming data array')
@@ -137,6 +149,9 @@ def generate_plot_html():
         return jsonify(script=plot.script, div=plot.div)
     elif hasattr(plot, 'html'):
         return jsonify(html=plot.html)
+    elif hasattr(plot, 'img_str'):
+        image = str(b64encode(plot.img_str))[2:-1]
+        return jsonify(image=image)
     else:
         return jsonify(script="Couldn't find anything ", div="to return")
     
@@ -147,95 +162,7 @@ def plot_window():
 
 
 
-######      DEPRECATED BELOW        ######
-
-@app.route('/scatter_plot', methods=['GET','POST'])
-def scatter_plot():
-    """Pass user selections to a Scatter_Plot object, then display the results
-    of generate_plot.
-    
-    """
-    
-    session = Session()
-    # Call script to get Plot Generator arguments from user selections.
-    args = load_plot_args(request, session)
-    if args['data'].size == 0:
-        return Response("empty plot")
-    
-    plot = Scatter_Plot(**args)
-    # Check plot data to see if everything got filtered out by data formatter.
-    if plot.emptycheck:
-        return Response("empty plot")
-    else:
-        plot.generate_plot()
-    
-    session.close()
-    
-    return render_template("/plot/plot.html", script=plot.script, div=plot.div)
-
-
-@app.route('/bar_plot',methods=['GET','POST'])
-def bar_plot():
-    """Pass user selections to a Bar_Plot object, then display the results
-    of generate_plot.
-    
-    """
-    
-    session = Session()
-    # Call script to get Plot Generator arguments from user selections.
-    args = load_plot_args(request,session)
-    if args['data'].size == 0:
-        return Response("empty plot")
-    
-    plot = Bar_Plot(**args)
-    # Check plot data to see if everything got filtered out by data formatter.
-    if plot.emptycheck:
-        return Response("empty plot")
-    else:
-        plot.generate_plot()
-    
-    session.close()
-    
-    return render_template("/plot/plot.html",script=plot.script,div=plot.div)
-
-
-@app.route('/pareto_plot',methods=['GET','POST'])
-def pareto_plot():
-    """Pass user selections to a Pareto_Plot object, then display the
-    results of generate_plot.
-    
-    """
-    
-    session = Session()
-    
-    # Call script to get Plot Generator arguments from user selections.
-    args = load_plot_args(request,session)
-    if args['data'].size == 0:
-        return Response("empty plot")
-    
-    plot = Pareto_Plot(**args)
-    # Check plot data to see if everything was filtered out by data formatter.
-    if plot.emptycheck:
-        return Response("empty plot")
-    else:
-        plot.generate_plot()
-    
-    session.close()
-    
-    return render_template("/plot/plot.html",script=plot.script,div=plot.div)
-
-
-@app.route('/plot_strf')
-def plot_strf():
-    """Not yet implemented."""
-    
-    session = Session()
-    # will need to get selections from results table using ajax, instead of
-    # using a form submission like the above plots.
-    session.close()
-    return Response('STRF view function placeholder')
-
-
+### DEPRECATED ###
 def load_plot_args(request, session):
     """Combines user selections and database entries into a dict of arguments.
     

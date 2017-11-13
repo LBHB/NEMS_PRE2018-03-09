@@ -1,0 +1,23 @@
+* Jerb Store Tests
+
+  Put this in hello.jerb:
+  #+BEGIN_EXAMPLE
+  {"jid": "b01736e3d0d53d36387af67bc5cdbef78d1b7381", "meta": {"branch": "hello", "description": "", "parents": "", "tags": "", "user.email": "thorsoni@ohsu.edu", "user.name": "Ivar Thorson"}, "pack": "UEFDSwAAAAIAAAAGkwx4nJ3LsQrCMBCA4T1PcVsn5ZImaQpFXF2cfIEzd7Ed2kB7FXx7BfEF3D5++HUVAU+cOucxBSxINhcXeyGfKFJb+rZQ9JltZkO7jnWFy5NWuH201QUG/WI613Hbj8L7CWzAPnTWpQQH7BBNrvM8qco/r7lWlQ2IWRjuL2gek8Lya415A25ZPQiQC3icncxBCsMgEEDRvaeYC7SMik6EUrJs973ARCckkFQwY8/fQm7Q3dv8r00EmDnFLMWVxDYPQi6HOLngGcXNQoNPfpaJDHddaoPnhxu8fjrqG256Yh3rcvSrlH4HGzAFsi4GuCAhmlz3fVWVf1rzkG2r58F8AWs4N4w2eJzLSM3JyecCAAhLAh+lAnicMzQwMDMxUchIzcnJ1yupKGE4x2imysy94vZKtu9h0+rnzVk8xc0LAN90Db+kBHicMzQwMDMxUUgyMDQ3Nks1TjFIMTVOMTYztjBPTDMzT0o2TU5JSk0zt0gxTDI3tjBkeHlXSfzy05mFnlrOr+WmXbzx+++5bgCWSRiFsgh4nD2MMQ6AIAxFd09BOhsO4OTq7gUqNkKCYFpwMd5dq8bxvZf/D6hCbBOuBJ2BYUc2o88sOUFrYEOmVEST4kziOGwl3PVTE2NyXslTjFlVweVfPO+0Yohqyvsc+uylWpornM0FYZQooPmRRxYtSzjKtuZcSCN+5hdlQf4k\n"}
+  #+END_EXAMPLE
+
+  Start up the server
+  #+BEGIN_EXAMPLE
+  cd ~/git/nems
+  python -m jerbstore
+  #+END_EXAMPLE
+
+  In another terminal, send hello.jerb to localhost:
+  #+BEGIN_EXAMPLE
+  curl -H 'Content-Type: application/json' -X PUT --data @hello.jerb http://localhost:3000/jid/b01736e3d0d53d36387af67bc5cdbef78d1b7381
+  #+END_EXAMPLE
+  
+  Finally, you should be able to query that jerb you just uploaded:
+  #+BEGIN_EXAMPLE
+  curl http://localhost:3000/jid/b01736e3d0d53d36387af67bc5cdbef78d1b7381
+  #+END_EXAMPLE
+  

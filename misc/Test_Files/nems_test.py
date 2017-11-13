@@ -62,25 +62,34 @@ if 0:
     
     #cellid="bbl031f-a1"
     #batch=271 #A1
-    #modelname="fb18ch100_wcg01_fir15_fit01"
+    modelname="fb18ch100_wcg01_fir15_dexp_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
-    modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
+    #modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
     #modelname="fb18ch100_wc01_fir15_fit01"
     #modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
     #modelname="fb18ch100x_wc01_stp2pc_fir15_dexp_fit01"
     #cellid="eno052d-a1"
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
-if 1:
+if 0:
     """ TORC-TONE """
-    cellid="TAR010c-06-1"
-    batch=301 #A1
-    modelname="fb18ch100x_wcg02_fir15_fit01_nested5"
+    #cellid="bbl074g-a1"
+    #batch=303 #PTD IC pupil
+    cellid="TAR010c-24-1"
+    batch=301 #PTD A1 pupil
+    modelname="parm100pt_wcg02_fir15_behgain_fit01"
+    modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
+
+if 0:
+    """ BVT """
+    cellid="gus006b-a2"
+    batch=302 #A1
+    modelname="parm50pt_wcg01_fir15_stategain_fit01"
 
 if 0:
     cellid='gus019d-b2'
     batch=289 #A1
-    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03_nested5"
+    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03"
 
 # ecog test
 if 0:
@@ -93,20 +102,18 @@ if 0:
     
     
 """ pupil gain test -- PPS data """
-if 0:
+if 1:
     #cellid='gus021d-a2'
     #cellid='gus021d-b1'
     #cellid="BOL006b-11-1"
-    cellid="eno053d-c1"
+    cellid="BOL006b-07-1"
     #cellid="eno048g-b1"
     #cellid="eno054c-b2"
     batch=293
-    # "OLD" noah cross val
-    #modelname="parm50x_wcg01_fir10_pupgain_fit01_nested5"
-    # "IMPROVED" svd cross val
-    #modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
+    
+    #modelname="parm50_wcg01_fir10_pupgainctl_fit01"
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
-    modelname="parm50_wcg01_fir10_pupwgtctl_fit01_nested2"
+    modelname="parm50_wcg01_fir10_pupwgtctl_fit01"
     #modelname="parm50_wcg01_fir10_pupgain_fit01_nested5"
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 

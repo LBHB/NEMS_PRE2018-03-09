@@ -91,6 +91,50 @@ def pupgain(stack):
     mini_fit(stack,mods=['pupil.pupgain'])
     print(stack.modules[-1].theta)
     
+def stategainctl(stack):
+    """
+    Applies a DC gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + <randomly shuffled pupil dc-gain>
+    where x is the input matrix and v1,v2 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    """
+    stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',state_var='state',fit_fields=['theta'],theta=[0,1,0,0,0,0])
+    mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
+    
+def stategain(stack):
+    """
+    Applies a linear pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*p + v4*x*p
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2 
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
+    stack.append(nm.pupil.pupgain,gain_type='linpupgain',state_var='state',fit_fields=['theta'],theta=[0,1,0,0,0,0])
+    mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
+
+def behgainctl(stack):
+    """
+    Applies a DC gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + <randomly shuffled pupil dc-gain>
+    where x is the input matrix and v1,v2 are fitted parameters applied to 
+    each matrix entry (the same across all entries)
+    """
+    stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',state_var='behavior_condition',fit_fields=['theta'],theta=[0,1,0,0])
+    mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
+    
+def behgain(stack):
+    """
+    Applies a linear pupil gain function entry-by-entry to the datastream:
+        y = v1 + v2*x + v3*p + v4*x*p
+    where x is the input matrix, p is the matrix of pupil diameters, and v1,v2 
+    are fitted parameters applied to each matrix entry (the same across all entries)
+    """
+    stack.append(nm.pupil.pupgain,gain_type='linpupgain',state_var='behavior_condition',fit_fields=['theta'],theta=[0,1,0,0])
+    mini_fit(stack,mods=['pupil.pupgain'])
+    print(stack.modules[-1].theta)
+
 def polypupgain04(stack):#4th degree polynomial gain fn
     """
     Applies a poynomial pupil gain function entry-by-entry to the datastream:

@@ -54,10 +54,14 @@ def dexp(stack):
     """
     resp=stack.modules[-1].unpack_data('resp',use_dout=True)
     pred=stack.modules[-1].unpack_data('pred',use_dout=True)
+    keepidx=np.isfinite(resp) * np.isfinite(pred)
+    resp=resp[keepidx]
+    pred=pred[keepidx]
+        
     #choose phi s.t. dexp starts as almost a straight line 
     # phi=[max_out min_out slope mean_in]
-    meanr=np.mean(resp)
-    stdr=np.std(resp)
+    meanr=np.nanmean(resp)
+    stdr=np.nanstd(resp)
     phi=[meanr+stdr*4, stdr*8, np.std(pred)/10, np.mean(pred)]
     print(phi)
     stack.append(nm.nonlin.gain,nltype='dexp',fit_fields=['phi'],phi=phi) 

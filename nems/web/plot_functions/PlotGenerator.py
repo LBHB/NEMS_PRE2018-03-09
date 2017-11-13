@@ -11,8 +11,9 @@ representations of the bokeh plot for the data, which can then be embedded in
 an html document.
 
 """
-
+import io
 import math
+import statistics
 import itertools
 
 from bokeh.io import gridplot
@@ -21,18 +22,25 @@ from bokeh.plotting import figure
 from bokeh.embed import components
 from bokeh.models import (
         ColumnDataSource, HoverTool, ResizeTool ,SaveTool, WheelZoomTool,
-        PanTool, ResetTool, Range1d, FactorRange,
+        PanTool, ResetTool, Range1d, FactorRange, Title
         )
 from bokeh.charts import BoxPlot
 from bokeh.models.glyphs import VBar,Circle
 #from bokeh.models.widgets import DataTable, TableColumn
 import pandas as pd
 import numpy as np
+import scipy.stats as st
+import matplotlib.pyplot as plt, mpld3
+import matplotlib.patches as mpatch
+from matplotlib.transforms import Bbox
+
+import nems.utilities.pruffix as prx
 
 #NOTE: All subclasses of PlotGenerator should be added to the PLOT_TYPES
 #      list for use with web interface
 PLOT_TYPES = [
-        'Scatter_Plot', 'Bar_Plot', 'Pareto_Plot', 'Tabular_Plot'
+        'Scatter_Plot', 'Bar_Plot', 'Pareto_Plot', 'Tabular_Plot',
+        'Significance_Plot',
         ]
 
 # Setting default tools as global variable was causing issues with scatter
@@ -66,7 +74,8 @@ class PlotGenerator():
     """Base class for plot generators."""
     
     def __init__(
-            self, data, measure, fair=True, outliers=False, extra_cols=[],
+            self, data, measure, models, fair=True, outliers=False,
+            extra_cols=[],
             ):
         # Force measure to be interpreted as a list for
         # forward-compatibility with specifying multiple measures.
@@ -76,7 +85,9 @@ class PlotGenerator():
             self.measure = [measure] + extra_cols
         self.fair = fair
         self.outliers = outliers
-        print("Re-formatting data array...")
+        self.abbr, self.pre, self.suf = prx.find_common(models)
+        data.replace(models, self.abbr, inplace=True)
+        self.models = self.abbr
         self.data = self.form_data_array(data)
         
         # Use this inside views function to check whether generate_plot
@@ -85,7 +96,6 @@ class PlotGenerator():
             self.emptycheck = True
         else:
             self.emptycheck = False
-            
         print("Building plot...")
             
 
@@ -153,10 +163,7 @@ class PlotGenerator():
                 cell for cell in
                 list(set(data['cellid'].values.tolist()))
                 ]
-        modellist = [
-                model for model in
-                list(set(data['modelname'].values.tolist()))
-                ]
+        modellist = self.models
         # Use lists of unique cell and model names to form a multiindex.
         multiIndex = pd.MultiIndex.from_product(
                 [celllist,modellist], names=['cellid','modelname'],
@@ -290,9 +297,8 @@ class PlotGenerator():
 class Scatter_Plot(PlotGenerator):
     """Defines the class used to generate a model-comparison scatter plot."""
     
-    def __init__(self, data, measure, fair=True, outliers=False):
-        PlotGenerator.__init__(self, data, measure, fair, outliers)
-        
+    def __init__(self, data, measure, models, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, models, fair, outliers)
     def create_hover(self):
         hover_html = """
             <div>
@@ -353,6 +359,20 @@ class Scatter_Plot(PlotGenerator):
                 else:
                     cells = cellsY
             
+            x_mean = np.mean(dataX[self.measure[0]])
+            x_median = np.median(dataX[self.measure[0]])
+            y_mean = np.mean(dataY[self.measure[0]])
+            y_median = np.median(dataY[self.measure[0]])
+
+            x_label = (
+                    "{0}, mean: {1:5.4f}, median: {2:5.4f}"
+                    .format(modelX, x_mean, x_median)
+                    )
+            y_label = (
+                    "{0}, mean: {1:5.4f}, median: {2:5.4f}"
+                    .format(modelY, y_mean, y_median)
+                    )
+            
             data = pd.DataFrame({
                     'x_values':dataX[self.measure[0]],
                     'y_values':dataY[self.measure[0]],
@@ -362,8 +382,10 @@ class Scatter_Plot(PlotGenerator):
                 
             p = figure(
                     x_range=[0,1], y_range=[0,1],
-                    x_axis_label=modelX, y_axis_label=modelY,
-                    title=self.measure[0], tools=tools, responsive=True,
+                    x_axis_label=x_label, y_axis_label=y_label,
+                    title=("{0}, prefix: {1}, suffix: {2}"
+                           .format(self.measure[0], self.pre, self.suf)),
+                    tools=tools, responsive=True,
                     toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
                     output_backend="svg"
                     )
@@ -378,16 +400,16 @@ class Scatter_Plot(PlotGenerator):
         # If more than one plot was made (i.e. 2 or more models were selected),
         # put them in a grid.
 
-        if len(plots) == 1:
-            singleplot = plots[0]
-            self.script,self.div = components(singleplot)
-            return
-        elif len(plots) > 1:            
-            grid = gridplot(
-                    plots, ncols=GRID_COLS, responsive=True,
-                    )
-            self.script,self.div = components(grid)
-        else:
+        #if len(plots) == 1:
+        #    singleplot = plots[0]
+        #    self.script,self.div = components(singleplot)
+        #    return
+        #elif len(plots) > 1:            
+        grid = gridplot(
+                plots, ncols=GRID_COLS, responsive=True,
+                )
+        self.script,self.div = components(grid)
+        if not plots:
             self.script, self.div = (
                     'Error, no plots to display.',
                     'Make sure you selected two models.'
@@ -400,8 +422,8 @@ class Bar_Plot(PlotGenerator):
     
     """
     
-    def __init__(self, data, measure, fair=True, outliers=False):
-        PlotGenerator.__init__(self, data, measure, fair, outliers)
+    def __init__(self, data, measure, models, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, models, fair, outliers)
             
     def create_hover(self):
         hover_html = """
@@ -497,7 +519,10 @@ class Bar_Plot(PlotGenerator):
                 end=(max(newData['mean'])*1.5)
                 )
         p = figure(
-                x_range=xrange, x_axis_label='Model',
+                x_range=xrange, x_axis_label=(
+                        "Modelname, prefix: {0}, suffix: {1}"
+                        .format(self.pre, self.suf)
+                        ),
                 y_range=yrange, y_axis_label='Mean %s'%self.measure[0],
                 title="Mean %s Performance By Model"%self.measure[0],
                 tools=tools, responsive=True, toolbar_location=TOOL_LOC,
@@ -510,8 +535,12 @@ class Bar_Plot(PlotGenerator):
                 fill_color=VBAR_FILL, line_color='black'
                 )
         p.add_glyph(dat_source,glyph)
-            
-        self.script,self.div = components(p)
+
+        # workaround to prevent title and toolbar from overlapping
+        grid = gridplot(
+            [p], ncols=GRID_COLS, responsive=True,
+            )
+        self.script, self.div = components(grid)
             
             
 class Pareto_Plot(PlotGenerator):
@@ -523,10 +552,12 @@ class Pareto_Plot(PlotGenerator):
     # Always include 'n_parms' as an extra column, since it's required
     # for this plot type.
     def __init__(
-            self, data, measure, fair=True, outliers=False,
+            self, data, measure, models, fair=True, outliers=False,
             extra_cols=['n_parms']
             ):
-        PlotGenerator.__init__(self, data, measure, fair, outliers, extra_cols)
+        PlotGenerator.__init__(
+                self, data, measure, models, fair, outliers, extra_cols,
+                )
             
     def create_hover(self):
         hover_html = """
@@ -569,12 +600,19 @@ class Pareto_Plot(PlotGenerator):
                 toolbar_location=TOOL_LOC, toolbar_sticky=TOOL_STICK,
                 )
             
-        self.script,self.div = components(p)
-            
+        # workaround to prevent title and toolbar from overlapping
+        grid = gridplot(
+            [p], ncols=GRID_COLS, responsive=True,
+            )
+        self.script, self.div = components(grid)
+
             
 class Tabular_Plot(PlotGenerator):
     # TODO: implement this from NARF
-    def __init__(self, data, measure, fair=True, outliers=False, extra_cols=[]):
+    def __init__(
+            self, data, measure, models, fair=True, outliers=False,
+            extra_cols=[]
+                 ):
         # Use blank measure since tabular has a fixed set of columns
         _measure=[]
         _extra_cols=[
@@ -582,8 +620,8 @@ class Tabular_Plot(PlotGenerator):
                 'mi_test', 'cohere_test',
                 ]
         PlotGenerator.__init__(
-                self, data=data, measure=_measure, fair=fair,
-                outliers=outliers, extra_cols=_extra_cols
+                self, data=data, measure=_measure, models=models, fair=fair,
+                outliers=outliers, extra_cols=_extra_cols,
                 )
         
     def generate_plot(self):
@@ -667,8 +705,9 @@ class Tabular_Plot(PlotGenerator):
                    .highlight_min(
                         subset=negatives, axis=0, color='darkorange'
                         )\
+                   .set_caption('Prefix: {0}, Suffix: {1}'
+                                .format(self.pre, self.suf))\
                    .format("{: 3.4f}")
-        
         self.html = t.render()
         #self.html = table.to_html(
         #    index=True, classes="table-hover table-condensed",
@@ -692,11 +731,174 @@ class Tabular_Plot(PlotGenerator):
         #self.script, self.div = components(data_table)
 
 
+class Significance_Plot(PlotGenerator):
+    def __init__(self, data, measure, models, fair=True, outliers=False):
+        PlotGenerator.__init__(self, data, measure, models, fair, outliers)
+        
+    def extents(self, f):
+        # reference:
+        # https://bl.ocks.org/fasiha/eff0763ca25777ec849ffead370dc907
+        # (calculates the data coordinates of the corners for array chunks)
+        if len(f) == 1:
+            delta = 1
+        else:
+            delta = f[1] - f[0]
+        return [f[0] - delta/2, f[-1] + delta/2]
+    
+    def wilcoxon(self, first, second):
+        # make a list of pairs of items from each list
+        # TODO: should lists be randomized first? as-is would compare models
+        #       on matching cells
+        
+        # make list of absolute differences between pairs
+        abs_diff = [abs(f-second[i]) for i, f in enumerate(first)]
+        # and list of signs
+        signs = [np.sign(f-second[i]) for i, f in enumerate(first)]
+        # multiply signs by abs_diffs to get signed ranks
+        signed_ranks = [i*signs[i] for i, n in enumerate(abs_diff) if n != 0]
+        # calculate W from sum of the signed ranks, and standard deviation
+        # of W's sample distribution using number of entries
+        w = sum(signed_ranks)
+        n = len(signed_ranks)
+        stdev_w = math.sqrt((n*(n+1)*((2*n)+1))/6)
+        # compute z-score
+        z = (w-0.5)/stdev_w
+        # return p-value that corresponds to z-score (two-tailed)
+        p = 2*(1 - st.norm.cdf(z))
+        return p
+        
+            
+    def generate_plot(self):
+        modelnames = self.data.index.levels[0].tolist()
+        
+        array = np.ndarray(
+                shape=(len(modelnames), len(modelnames)),
+                dtype=float,
+                )
+        
+        for i, m_one in enumerate(modelnames):
+            for j, m_two in enumerate(modelnames):
+                # get series of values corresponding to selected measure
+                # for each model
+                series_one = self.data.loc[m_one][self.measure[0]]
+                series_two = self.data.loc[m_two][self.measure[0]]
+                if j == i:
+                    # if indices equal, on diagonal so no comparison
+                    array[i][j] = 0.00
+                elif j > i:
+                    # if j is larger, below diagonal so get mean difference
+                    mean_one = np.mean(series_one)
+                    mean_two = np.mean(series_two)
+                    array[i][j] = abs(mean_one - mean_two)
+                else:
+                    # if j is smaller, above diagonal so run t-test and
+                    # get p-value
+                    # array[i][j] = st.ttest_rel(series_one, series_two)[1]
+                    first = series_one.tolist()
+                    second = series_two.tolist()
+                    # use custom-defined wilcoxon in this class
+                    # (wasn't getting the same values, but code
+                    #  may be useful later if customization is desired)
+                    #array[i][j] = self.wilcoxon(first, second)
+                    # use scipy version
+                    array[i][j] = st.wilcoxon(first, second)[1]
+        
+        xticks = range(len(modelnames))
+        yticks = xticks
+        minor_xticks = np.arange(-0.5, len(modelnames), 1)
+        minor_yticks = np.arange(-0.5, len(modelnames), 1)
+
+        p = plt.figure(figsize=(len(modelnames),len(modelnames)))
+
+        #extent = self.extents(xticks) + self.extents(yticks)
+        #img = plt.imshow(
+        #        array, aspect='auto', origin='lower', 
+        #        cmap=plt.get_cmap('RdBu'), interpolation='none',
+        #        extent=extent,
+        #        )
+        
+        ax = plt.gca()
+        
+        # ripped from stackoverflow. adds text labels to the grid
+        # at positions i,j (model x model)  with text z (value of array at i, j)
+        for (i, j), z in np.ndenumerate(array):
+            if j == i:
+                color="#EBEBEB"
+            elif j > i:
+                color="#368DFF"
+            else:
+                if array[i][j] < 0.001:
+                    color="#00FF36"
+                elif array[i][j] < 0.01:
+                    color="#00CC2B"
+                elif array[i][j] < 0.05:
+                    color="#00A21B"
+                else:
+                    color="#ABABAB"
+            ax.add_patch(mpatch.Rectangle(
+                    xy=(j-0.5, i-0.5), width=1.0, height=1.0, angle=0.0,
+                    facecolor=color, edgecolor='black',
+                    ))
+            if j == i:
+                # don't draw text for diagonal
+                continue
+            formatting = '{:.04f}'
+            if z <= 0.0001:
+                formatting = '{:.2E}'
+            ax.text(
+                    j, i, formatting.format(z), ha='center', va='center',
+                    )
+        
+        ax.set_ylabel('')
+        ax.set_xlabel('')
+        ax.set_yticks(yticks)
+        ax.set_yticklabels(modelnames, fontsize=10)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(modelnames, fontsize=10, rotation="vertical")
+        ax.set_yticks(minor_yticks, minor=True)
+        ax.set_xticks(minor_xticks, minor=True)
+        ax.grid(b=False)
+        ax.grid(which='minor', color='b', linestyle='-', linewidth=0.75)
+        ax.set_title(
+                ("Wilcoxon Signed Test on {0}\nprefix: {1}, suffix: {2}"
+                 .format(self.measure[0], self.pre, self.suf)),
+                ha='center', fontsize = 14,
+                )
+        blue_patch = mpatch.Patch(
+                color='#368DFF', label='Mean Difference', edgecolor='black'
+                )
+        p001_patch = mpatch.Patch(
+                color='#00FF36', label='P < 0.001', edgecolor='black'
+                )
+        p01_patch = mpatch.Patch(
+                color='#00CC2B', label='P < 0.01', edgecolor='black'
+                )
+        p05_patch = mpatch.Patch(
+                color='#00A21B', label='P < 0.05', edgecolor='black'
+                )
+        nonsig_patch = mpatch.Patch(
+                color='#ABABAB', label='Not Significant', edgecolor='black',
+                )
+        
+        plt.legend(
+                #bbox_to_anchor=(0., 1.02, 1., .102), ncol=2,
+                bbox_to_anchor=(1.05, 1), ncol=1,
+                loc=2, handles=[
+                        p05_patch, p01_patch, p001_patch,
+                        nonsig_patch, blue_patch,
+                        ]
+                )
+
+        img = io.BytesIO()
+        plt.savefig(img, bbox_inches='tight')
+        #html = mpld3.fig_to_html(p)
+        plt.close(p)
+        img.seek(0)
+        self.img_str = img.read()
             
             
             
-            
-            
+
             
             
             

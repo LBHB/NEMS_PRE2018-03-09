@@ -103,8 +103,8 @@ def io_scatter_smooth(m,idx=None,size=FIGSIZE):
     s=m.unpack_data(m.input_name,use_dout=False)
     r=m.unpack_data(m.output_name,use_dout=True)
     r2=m.unpack_data("resp",use_dout=True)
-    s2=np.append(s.transpose(),r.transpose(),0)
-    s2=np.append(s2,r2.transpose(),0)
+    s2=np.append(s,r,0)
+    s2=np.append(s2,r2,0)
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
     T=np.int(np.floor(s2.shape[1]/bincount))
@@ -129,7 +129,11 @@ def scatter_smooth(m,idx=None,x_name=None,y_name=None,size=FIGSIZE):
         
     s=m.unpack_data(x_name,use_dout=True)
     r=m.unpack_data(y_name,use_dout=True)
-    s2=np.append(s.transpose(),r.transpose(),0)
+    keepidx=np.isfinite(s[0,:]) * np.isfinite(r[0,:])
+    s=s[0:1,keepidx]
+    r=r[0:1,keepidx]
+    
+    s2=np.append(s,r,0)
     s2=s2[:,s2[0,:].argsort()]
     bincount=np.min([100,s2.shape[1]])
     T=np.int(np.floor(s2.shape[1]/bincount))
@@ -165,21 +169,23 @@ def pred_act_psth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
-    s=out1[m.output_name][m.parent_stack.plot_stimidx,:]
-    r=out1['resp'][m.parent_stack.plot_stimidx,:]
-    pred, =plt.plot(s,label='Predicted')
-    act, =plt.plot(r,'r',label='Actual')
+    s=out1[m.output_name][0,m.parent_stack.plot_stimidx,:]
+    r=out1['resp'][0,m.parent_stack.plot_stimidx,:]
+    fs=out1['respFs']
+    tt=np.arange(0,len(r))/fs
+    pred, =plt.plot(tt,s,label='Predicted')
+    act, =plt.plot(tt,r,'r',label='Actual')
     plt.legend(handles=[pred,act])
     #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
-    plt.xlabel('Time Step')
+    plt.xlabel('Time (s)')
     plt.ylabel('Firing rate (unitless)')
 
 def pred_act_psth_smooth(m,size=FIGSIZE,idx=None):
     if idx:
         plt.figure(num=idx,figsize=size)
     out1=m.d_out[m.parent_stack.plot_dataidx]
-    s=out1[m.output_name][m.parent_stack.plot_stimidx,:]
-    r=out1['resp'][m.parent_stack.plot_stimidx,:]
+    s=out1[m.output_name][0,m.parent_stack.plot_stimidx,:]
+    r=out1['resp'][0,m.parent_stack.plot_stimidx,:]
         
     box_pts=20
     box = np.ones(box_pts)/box_pts

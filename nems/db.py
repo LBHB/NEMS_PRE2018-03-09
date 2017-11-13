@@ -18,6 +18,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 import pandas as pd
+import pandas.io.sql as psql
 
 import nems_config.defaults
 from nems.utilities.print import web_print
@@ -117,7 +118,10 @@ cluster_tComputer = cluster_Base.classes.tComputer
 cluster_Session = sessionmaker(bind=cluster_engine)
 
 
-def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
+def enqueue_models(
+        celllist, batch, modellist, force_rerun=False,
+        user=None, codeHash="master",
+        ):
     """Call enqueue_single_model for every combination of cellid and modelname
     contained in the user's selections.
     
@@ -150,9 +154,9 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
     pass_fail = []
     for model in modellist:
         for cell in celllist:
-            queueid, message = enqueue_single_model(
+            queueid, message = _enqueue_single_model(
                         cell, batch, model, force_rerun, user,
-                        session, cluster_session,
+                        session, cluster_session, codeHash,
                         )
             if queueid:
                 pass_fail.append(
@@ -174,9 +178,9 @@ def enqueue_models(celllist, batch, modellist, force_rerun=False, user=None):
     return
 
 
-def enqueue_single_model(
+def _enqueue_single_model(
         cellid, batch, modelname, force_rerun, user,
-        session, cluster_session,
+        session, cluster_session, codeHash,
         ):
     
     """Adds a particular model to the queue to be fitted.
@@ -259,7 +263,7 @@ def enqueue_single_model(
         #result must not have existed, or status value was greater than 2
         # add new entry
         message = "Adding job to queue for: %s\n"%note
-        job = add_model_to_queue(commandPrompt, note, user)
+        job = _add_model_to_queue(commandPrompt, note, user, codeHash)
         cluster_session.add(job)
         
     cluster_session.commit()
@@ -275,9 +279,10 @@ def enqueue_single_model(
 
     return queueid, message
     
-def add_model_to_queue(commandPrompt, note, user, priority=1, rundataid=0):
-    """Not yet developed, likely to change a lot.
-    
+def _add_model_to_queue(
+        commandPrompt, note, user, codeHash, priority=1, rundataid=0,
+        ):
+    """
     Returns:
     --------
     job : tQueue object instance
@@ -320,6 +325,7 @@ def add_model_to_queue(commandPrompt, note, user, priority=1, rundataid=0):
     job.linux_user = linux_user
     job.note = note
     job.waitid = waitid
+    job.codeHash = codeHash
     
     return job
 
@@ -545,7 +551,7 @@ def get_batch_cells(batch=None, cellid=None):
         sql+=" AND batch={}".format(batch)
         
     if not cellid is None:
-       sql+=" AND cellid='{}'".format(cellid)
+       sql+=" AND cellid like '{}'".format(cellid)
     
     d=pd.read_sql(sql=sql,con=engine)
     
@@ -566,3 +572,27 @@ def get_data_parms(rawid=None,parmfile=None):
     d=pd.read_sql(sql=sql,con=cluster_engine)
 
     return d
+
+def batch_comp(batch,modelnames=[],cellids=['%']):
+    
+    modelnames=['parm100pt_wcg02_fir15_pupgainctl_fit01_nested5',
+               'parm100pt_wcg02_fir15_pupgain_fit01_nested5',
+               'parm100pt_wcg02_fir15_stategain_fit01_nested5'
+               ]
+    batch=301
+    cellids=['%']
+    
+    session = Session()
+
+    #     .filter(NarfResults.cellid.in_(cellids))
+    results = psql.read_sql_query(
+        session.query(NarfResults)
+        .filter(NarfResults.batch == batch)
+        .filter(NarfResults.modelname.in_(modelnames))
+        .statement,
+        session.bind
+        )
+    
+    session.close()
+
+    return results

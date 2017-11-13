@@ -4,13 +4,21 @@ $(document).ready(function(){
     // could group by functionality at this point.    
 
     namespace = '/py_console'
+
     var socket = io.connect(
             location.protocol + '//'
             + document.domain + ':' 
             + location.port + namespace,
             {'timeout':0}
             );
-            
+    /*
+    var socket = io.connect(
+            null,
+            {   port: location.port,
+                rememberTransport: false
+            }
+            )
+    */
     socket.on('connect', function() {
        console.log('socket connected');
     });
@@ -43,33 +51,23 @@ $(document).ready(function(){
         trigger: 'click',
     });
      
-    function sizeDragDisplay(){
-        display = $("#displayOuter");
-        display.resizable({
-            handles: "n, w, e, s"
-        });
-        display.draggable();
-    }
-        
-    function sizeDragTable(){
-        table = $("#resultsArea");
-        table.resizable({
-            handles: "n, w, e, s"     
-        });
-        table.draggable();
-    }
-
-    $("#selectArea").resizable({
-        handles: "n, w, e, s"        
+    $("#displayRow").resizable({
+        handles: "w, e"
     });
-    $("#py_console").resizable({
-        handles: "n, s"        
-    });
-    //$("#py_console").draggable();
-    $("#selectArea").draggable();
 
-    sizeDragDisplay();
-    sizeDragTable();
+    $("#tableRow").resizable({
+        handles: "w, e"
+    })
+
+    //$("#selectionsRow").resizable({
+    //    handles: "n, w, e, s"        
+    //});
+
+    //$("#pyConRow").resizable({
+    //    handles: "n, s"        
+    //});
+
+    /*
     //drags start out disabld until alt is pressed
     $(".dragToggle").draggable('disable');
     
@@ -81,6 +79,7 @@ $(document).ready(function(){
         $(".dragToggle").draggable('disable');
         return false;
     });
+    */
                  
     function initTable(table){
         // turned off DataTable for now since it wasn't being used for much.
@@ -97,83 +96,196 @@ $(document).ready(function(){
         });
     }
 
-    /*
-    var saved_selections = new Object()
+    var cols_array = []
+    function get_default_cols(){
+        $("#defaultColsDiv").children().each(function(){
+            cols_array.push($(this).val());
+        });
+        $("#tableColSelector").val(cols_array);
+    }
+    get_default_cols();
+
+    class Saved_Selections {
+        constructor(){
+            this.tags = '__any';
+            this.status = '__any';
+            this.analysis = 'nems testing';
+            this.plot_measure = 'r_test';
+            this.plot_type = 'Scatter_Plot';
+            this.script = 'demo_script';
+            this.onlyFair = 1;
+            this.includeOutliers = 0;
+            this.snri = $("#default_snri").val();
+            this.snr = $("#default_snr").val();
+            this.iso = $("#default_iso").val();
+            this.cols = cols_array;
+            this.sort = 'cellid';
+            this.row_limit = 500;
+            this.code_hash = '';
+        }
+    }
+
+    var saved_selections = new Saved_Selections();
+    // call on page load
+    get_saved_selections();
+
     function get_saved_selections(){
         $.ajax({
-            url: $SCRIPT_ROOT + '/get_saved_selections'
+            url: $SCRIPT_ROOT + '/get_saved_selections',
             data: {},
             type: 'GET',
             success: function(data){
-                saved_selections = data.selections;
-            }
+                // will be false if user is not logged in
+                // or if other issue happens in flask route function
+                if (data.null === false){
+                    console.log("retrieved selections");
+                    saved = JSON.parse(data.selections);
+                    keys = Object.keys(saved);
+                    //console.log("retrieved selections: " + keys);
+                    for (i=0; i<keys.length; i++){
+                        //console.log("key: " + keys[i] + ", value: " + saved[keys[i]])
+                        saved_selections[keys[i]] = saved[keys[i]];
+                    }
+                } else {
+                    console.log("no selections to load");
+                }
+                assign_selections();
+            },
             error: function(error){
                 console.log(error);
+                assign_selections();
             }
         });
     }
 
-    function update_selections(){
-        get_saved_selections();
-
-        if (saved_selections.hasOwnProperty('tag')){
-            // iterate through tag options and select the one that matches,
-            // set others to unchecked
-        }
-        if (saved_selections.hasOwnProperty('status')){
-            // iterate through status options and select the one that matches,
-            // set others to unchecked
-        }
-        if (saved_selections.hasOwnProperty('analysis')){
-            $("#analysisSelector").val(saved_selections['analysis']);
-        }
-        if (saved_selections.hasOwnProperty('plot_measure')){
-            $("#measureSelector").val(saved_selections['plot_measure']);
-        }
-        if (saved_selections.hasOwnProperty('plot_type')){
-            $("#plotTypeSelector").val(saved_selections['plot_type']);
-        }
-        if (saved_selections.hasOwnProperty('onlyFair')){
-            if ((int)saved_selections['onlyFair'] === 1){
-                document.getElementById('onlyFair').checked = true;
-            } else{
-                document.getElementById('onlyFair').checked = false;
+    function set_saved_selections(){
+        $.ajax({
+            url: $SCRIPT_ROOT + '/set_saved_selections',
+            data: {stringed_selections:JSON.stringify(saved_selections)},
+            type: 'GET',
+            success: function(data){
+                if (data.null === false){
+                    console.log('user selections saved successfully');
+                } else {
+                    console.log("Couldn't save selections -- make sure you are logged in.")
+                }
+            },
+            error: function(error){
+                console.log('error when saving user selections');
             }
-        }
-        if (saved_selections.hasOwnProperty('includeOutliers')){
-            if ((int)saved_selections['includeOutliers'] === 1){
-                document.getElementById('includeOutliers').checked = true;
-            } else{
-                document.getElementById('includeOutliers').checked = false;
-            }
-        }
-        if (saved_selections.hasOwnProperty('snr')){
-            snr = saved_selections['snr'];
-        }
-        if (saved_selections.hasOwnProperty('snri')){
-            snri = saved_selections['snri'];
-        }
-        if (saved_selections.hasOwnProperty('iso')){
-            iso = saved_selections['iso'];
-        }
-        if (saved_selectoins.hasOwnProperty('table_cols')){
-            // iterate through dropdown div -- check matching options
-        }
-        if (saved_selections.hasOwnProperty('sort_options')){
-            // check either ascending or descending
-            // iterate through other options, check matches.
-        }
-        if (saved_selections.hasOwnProperty('row_limit')){
-            $("#rowLimit").val(saved_selections['row_limit']);
-        }
+        });
     }
-    */
-    
+
+    function assign_selections(){
+        $("#tagFilters").val(saved_selections.tags).change();
+        $("#statusFilters").val(saved_selections.status).change();
+
+        $("#codeHash").val(saved_selections.code_hash);
+
+        $("#rowLimit").val(saved_selections.row_limit);
+        $("#tableSortSelector").val(saved_selections.sort);
+        $("#tableColSelector").val(saved_selections.cols).change();
+
+        if (saved_selections.onlyFair === 1){
+            document.getElementById('onlyFair').checked = true;
+        } else{
+            document.getElementById('onlyFair').checked = false;
+        }
+
+        if (saved_selections.includeOutliers === 1){
+            document.getElementById('includeOutliers').checked = true;
+        } else{
+            document.getElementById('includeOutliers').checked = false;
+        }
+
+        $("#plotTypeSelector").val(saved_selections.plot_type);
+        $("#measureSelector").val(saved_selections.plot_measure);
+        $("#customSelector").val(saved_selections.script);
+
+        snr = saved_selections.snr;
+        snri = saved_selections.snri;
+        iso = saved_selections.iso;
+
+        updatePlotOpVal();
+
+        // temporary solution but not great since time to finish ajax calls might
+        // be longer in some cases.
+        //setTimeout(function(){ wait_on_analysis = false; }, 3000);
+        $("#analysisSelector").val(saved_selections.analysis).change();
+    }
+
+
+
+    // saved_selections updater functions
+    $("#analysisSelector").change(function(){
+        saved_selections.analysis = $(this).val();
+    });
+    $("#rowLimit").change(function(){
+        saved_selections.row_limit = $(this).val();
+    });
+    $("#tagFilters").change(function(){
+        saved_selections.tags = $(this).val();
+    });
+    $("#statusFilters").change(function(){
+        saved_selections.status = $(this).val();
+    });
+    $("#tableColSelector").change(function(){
+        saved_selections.cols = $(this).val();
+    });
+    $("#tableSortSelector").change(function(){
+        saved_selections.sort = $(this).val();
+    });
+    $("#onlyFair").change(function(){
+        if (document.getElementById("onlyFair").checked){
+            saved_selections.onlyFair = 1;
+        } else {
+            saved_selections.onlyFair = 0;
+        }
+    });
+    $("#includeOutliers").change(function(){
+        if (document.getElementById("includeOutliers").checked){
+            saved_selections.includeOutliers = 1;
+        } else {
+            saved_selections.includeOutliers = 0;
+        }
+    });
+    $("#plotTypeSelector").change(function(){
+        saved_selections.plot_type = $(this).val();
+    });
+    $("#measureSelector").change(function(){
+        saved_selections.plot_measure = $(this).val();
+    });
+    // snri, snr and iso handled in their own section since they aren't DOM elements
+
+    // save user selections on refresh, window close or navigate away
+    window.onbeforeunload = save_before_close;
+    function save_before_close(){
+        set_saved_selections();
+    }
+    // also save selections every 60 seconds just to be safe
+    // TODO: 60 seconds okay, or would shorter/longer be better?
+    //setInterval(function(){
+    //    set_saved_selections();
+    //    console.log("Selections saved.");
+    //    },
+    //    60000
+    //);
+
+    $("#testSave").click(set_saved_selections);
+    $("#testGet").click(get_saved_selections);
+    $("#testPrint").click(function(){
+        py_console_log(saved_selections.analysis + " " + saved_selections.tags);
+    });
+
+
+    // is this needed anymore? loading saved selections should preclude this
+    /*
     var analysisCheck = document.getElementById("analysisSelector").value;
     if ((analysisCheck !== "") && (analysisCheck !== undefined) && (analysisCheck !== null)){
         updateBatchModel();
         updateAnalysisDetails();
     }
+    */
     
     
     $("#selectAllCells").on('click', selectCellsCheck);
@@ -209,9 +321,6 @@ $(document).ready(function(){
         // if analysis selection changes, get the value selected
         var aSelected = $("#analysisSelector").val();
 
-        //saved_selections.analysis = aselected
-
-
         // pass the value to '/update_batch' in nemsweb.py
         // get back associated batchnum and change batch selector to match
         $.ajax({
@@ -219,31 +328,41 @@ $(document).ready(function(){
             data: { aSelected:aSelected }, 
             type: 'GET',
             success: function(data) {
-                $("#batchSelector").val(data.batch).change();
+                if ((data.blank === 1) || (data.blank === "1")){
+                    $("#batchSelector").val($("#batchSelector option:first").val()).change();
+                } else {
+                    $("#batchSelector").val(data.batch).change();
+                }
             },
             error: function(error) {
                 console.log(error);
             }
         });
+
         // also pass analysis value to 'update_models' in nemsweb.py
         $.ajax({
             url: $SCRIPT_ROOT + '/update_models',
             data: { aSelected:aSelected }, 
             type: 'GET',
-            success: function(data) {
+            success: function(data){
+                if (data.modellist.length === 0){
+                    console.log('No model list returned.');
+                    py_console_log('No model list returned.');
+                    return false;
+                }
                 var models = $("#modelSelector");
                 models.empty();
                              
-                $.each(data.modellist, function(modelname) {
+                $.each(data.modellist, function(i, modelname){
                     models.append($("<option></option>")
-                        .attr("value", data.modellist[modelname])
+                        .attr("value", modelname)
                         .attr("name","modelOption[]")
-                        .text(data.modellist[modelname]));
+                        .text(modelname));
                 });
                     
                 selectModelsCheck();
             },
-            error: function(error) {
+            error: function(error){
                 console.log(error);
             }     
         });
@@ -280,47 +399,6 @@ $(document).ready(function(){
             }    
         });
     };
-     
-    // initialize display option variables
-    var colSelected = [];
-    var ordSelected;
-    var sortSelected;
-    
-    // update function for each variable
-    function updatecols(){
-        var checks = document.getElementsByName('result-option[]');
-        colSelected.length = 0; //empty out the options, then push the new ones
-        for (var i=0; i < checks.length; i++) {
-            if (checks[i].checked) {
-                colSelected.push(checks[i].value);
-            }
-        }
-    }
-    
-    function updateOrder(){
-        var order = document.getElementsByName('order-option[]');
-        for (var i=0; i < order.length; i++) {
-            if (order[i].checked) {
-                ordSelected = order[i].value;
-                return false;
-            }
-        }
-    }
-    
-    function updateSort(){
-        var sort = document.getElementsByName('sort-option[]');
-        for (var i=0; i < sort.length; i++) {
-            if (sort[i].checked) {
-                sortSelected = sort[i].value;
-                return false;
-            }
-        }
-    }
-            
-    // update at start of page, and again if changes are made
-    updatecols();
-    ordSelected = updateOrder();
-    sortSelected = updateSort();
 
     function addLinksToTable(){
         // Iterate through each table row and convert each result
@@ -332,27 +410,33 @@ $(document).ready(function(){
             var cell_link = $SCRIPT_ROOT + '/cell_details/';
             var model_link = $SCRIPT_ROOT + '/model_details/';
             $(this).children().eq(0).html(
-                    "<a href='" + cell_link + cellid + "' target='_blank'"
-                    + "id='" + cellid + "'>" + cellid + "</a>"
+                    "<p id='" + cellid + "'>" + cellid + "</p>"
                     );
+                    // can switch this back in when figure out a good way to toggle
+                    // links on and off
+                    //"<a href='" + cell_link + cellid + "' target='_blank'"
+                    //+ "id='" + cellid + "'>" + cellid + "</a>"
             $(this).children().eq(1).html(
-                    "<a href='" + model_link + modelname + "' target='_blank'"
-                    + "id='" + modelname + "'>" + modelname + "</a>"
+                    "<p id='" + modelname + "'>" + modelname + "</p>"
                     );
+                    //"<a href='" + model_link + modelname + "' "
+                    //+ "id='" + modelname + "'>" + modelname + "</a>"
         });
     }
-    
-    $("#modelSelector,#cellSelector,.result-option,#rowLimit,.order-option,.sort-option")
+
+    $("#modelSelector,#cellSelector,#rowLimit,#tableColSelector,#tableSortSelector,#descending")
     .change(updateResults);
     function updateResults(){
-        
-        updatecols();
-        updateOrder();
-        updateSort();
-        
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
+        var colSelected = $("#tableColSelector").val();
+        var sortSelected = $("#tableSortSelector").val();
+        if (document.getElementById("descending").checked){
+            var ordSelected = "desc";
+        } else {
+            var ordSelected = "asc";
+        }
         var rowLimit = $("#rowLimit").val();
                          
         $.ajax({
@@ -371,6 +455,8 @@ $(document).ready(function(){
                 //sizeDragTable();
                 var table = results.children("table");
                 initTable(table);
+                //disabled for now - need to figure out agood way to let user
+                // toggle the links on and off
                 addLinksToTable();
             },
             error: function(error) {
@@ -379,6 +465,23 @@ $(document).ready(function(){
         });
     }
     
+    updateColText();
+    $("#tableColSelector").change(updateColText);
+    function updateColText(){
+        button = $("#colsModalButton");
+        text = $("#tableColSelector").val();  
+        button.html("");
+        for (i=0; i < text.length; i++){
+            button.append(text[i] + ', ');
+            if (i >= 4){
+                button.append('...');
+                break;
+            }
+        }
+        if (text.length === 0){
+            button.html("Columns");
+        }
+    }
 
     ////////////////////////////////////////////////////////////////////////
     //         Analysis details, tags/status, edit/delete/new             //
@@ -403,43 +506,14 @@ $(document).ready(function(){
             }
         });
     }
-    
-    var tagSelected;
-    var statSelected;
-    
-    function updateTag(){
-        var tags = document.getElementsByName('tagOption[]');
-        for (var i=0; i < tags.length; i++) {
-            if (tags[i].checked) {
-                tagSelected = tags[i].value;
 
-                //saved_selections.tag = tags[i].value;
-
-                return false;
-            }
-        }
-    }
-    
-    function updateStatus(){
-        var status = document.getElementsByName('statusOption[]');
-        for (var i=0; i < status.length; i++) {
-            if (status[i].checked) {
-                statSelected = status[i].value;
-                //saved_selections.status = tags[i].status;
-                return false;
-            }
-        }
-    }
-    
-    updateTag();
-    updateStatus();
     updateAnalysis();
-    $(".tagOption, .statusOption").change(updateAnalysis);
+    $("#tagFilters, #statusFilters").change(updateAnalysis);
     
     function updateAnalysis(){
-        updateTag();
-        updateStatus();
-
+        analysis_still_updating = true;
+        var tagSelected = $("#tagFilters").val();
+        var statSelected = $("#statusFilters").val();
         $.ajax({
            url: $SCRIPT_ROOT + '/update_analysis',
            data: { tagSelected:tagSelected, statSelected:statSelected },
@@ -451,17 +525,67 @@ $(document).ready(function(){
                 $.each(data.analysislist, function(analysis) {
                     analyses.append($("<option></option>")
                         .attr("value", data.analysislist[analysis])
+                        .attr("name", data.analysis_ids[analysis])
                         .text(data.analysislist[analysis]));
                 });
-                    
-                $("#analysisSelector").val($("#analysisSelector option:first").val()).change();
+                
+                console.log("changing analysis selector value inside updateAnalysis() function");
+                if (data.analysislist.includes(saved_selections.analysis)){
+                    $("#analysisSelector").val(saved_selections.analysis);
+                } else {
+                    $("#analysisSelector").val($("#analysisSelector option:first").val()).change();
+                }
            },
            error: function(error){
                 console.log(error);
            }
         });
     }
-            
+    
+
+    updateStatusText();
+    updateTagText();
+
+    $("#statusFilters").change(updateStatusText);
+    $("#tagFilters").change(updateTagText);
+
+    function updateStatusText(){
+        button = $("#statusModalButton");
+        text = $("#statusFilters").val();  
+        button.html("");
+        for (i=0; i<text.length; i++){
+            if (!(text[i] === '__any')) {
+                button.append(text[i] + ", ");
+            } else {
+                button.html('Status');
+                break;
+            }
+            if (i >= 4){
+                button.append('...');
+                break;
+            }
+        }
+    }
+
+    function updateTagText(){
+        button = $("#tagModalButton");
+        text = $("#tagFilters").val();
+        button.html("");
+        for (i=0; i<text.length; i++){
+            if (!(text[i] === '__any')) {
+                button.append(text[i] + ", ");
+            } else {
+                button.html('Tags');
+                break;
+            }
+            if (i >= 4){
+                button.append('...');
+                break;
+            }
+        }
+    }
+
+    /*
     function updateTagOptions(){
         $.ajax({
            url: $SCRIPT_ROOT + '/update_tag_options',
@@ -540,11 +664,13 @@ $(document).ready(function(){
            }        
         });
     }
+    */
     
     $("#newAnalysis").on('click',newAnalysis);
     
     function newAnalysis(){
         $("[name='editName']").val('');
+        $("[name='editId']").val('__none');
         $("[name='editStatus']").val('');
         $("[name='editTags']").val('');
         $("[name='editQuestion']").html('');
@@ -559,7 +685,7 @@ $(document).ready(function(){
         // ajax call to get back name, tags, question, etc
         // fill in content of editor modal with response
         
-        var aSelected = $("#analysisSelector").val();
+        var aSelected = $("#analysisSelector option:selected").attr('name');
         
         $.ajax({
             url: $SCRIPT_ROOT + '/get_current_analysis',
@@ -567,6 +693,7 @@ $(document).ready(function(){
             type: 'GET',
             success: function(data){
                 $("[name='editName']").val(data.name);
+                $("[name='editId']").val(data.id);
                 $("[name='editStatus']").val(data.status);
                 $("[name='editTags']").val(data.tags);
                 $("[name='editQuestion']").html(data.question);
@@ -595,9 +722,9 @@ $(document).ready(function(){
            type: 'GET',
            success: function(data){
                 if (data.exists){
-                    alert("WARNING: An analysis by the same name already exists.\n" +
-                          "Submitting this form without changing the name will\n" +
-                          "overwrite the existing analysis entry!");
+                    alert("An analysis by the same name already exists.\n" +
+                          "Please choose a different name.");
+                    return false;
                 }
                 
                 if(confirm("ATTENTION: This will save the entered information to the\n" +
@@ -608,8 +735,6 @@ $(document).ready(function(){
                 } else{
                     return false;
                 }
-                $("#analysisSelector").val(nameEntered);
-
             },
            error: function(error){
                    
@@ -619,6 +744,7 @@ $(document).ready(function(){
                 
     function submitAnalysis(){
         var name = $("[name='editName']").val();
+        var id = $("[name='editId']").val();
         var status = $("[name='editStatus']").val();
         var tags = $("[name='editTags']").val();
         var question = $("[name='editQuestion']").val();
@@ -627,7 +753,7 @@ $(document).ready(function(){
         
         $.ajax({
            url: $SCRIPT_ROOT + '/edit_analysis',
-           data: { name:name, status:status, tags:tags,
+           data: { name:name, id:id, status:status, tags:tags,
                   question:question, answer:answer, tree:tree },
            type: 'GET',
            success: function(data){
@@ -645,11 +771,12 @@ $(document).ready(function(){
     
     function deleteAnalysis(){
             
-        var aSelected = $("#analysisSelector").val();
+        var aSelected = $("#analysisSelector option:selected").attr('name');
+        var aName = $("#analysisSelector").val();
         reply = confirm("WARNING: This will delete the database entry for the selected " +
                 "analysis. \n\n!!   THIS CANNOT BE UNDONE   !!\n\n" +
                 "Are you sure you wish to delete this analysis:\n" +
-                aSelected);
+                aName);
         
         if (reply){
             $.ajax({
@@ -663,8 +790,6 @@ $(document).ready(function(){
                     if (data.success){
                         py_console_log(aSelected + " successfully deleted.");
                         updateAnalysis();
-                        //updateTagOptions();
-                        //updateStatusOptions();
                     } else{
                         py_console_log("Something went wrong - unable to delete:\n" + aSelected);
                         return false;
@@ -727,11 +852,12 @@ $(document).ready(function(){
         var mSelected = [];
         var bSelected = $("#batchSelector").val();
         
+        // have to change .children('p')  back to 'a' if table links put back in
         $(".dataframe tr.selectedRow").each(function(){
-            cSelected.push($(this).children().eq(0).children('a').attr('id'));
+            cSelected.push($(this).children().eq(0).children('p').attr('id'));
         });
         $(".dataframe tr.selectedRow").each(function(){
-            mSelected.push($(this).children().eq(1).children('a').attr('id'));
+            mSelected.push($(this).children().eq(1).children('p').attr('id'));
         });
 
         // only proceed if selections have been made
@@ -864,6 +990,7 @@ $(document).ready(function(){
         var bSelected = $("#batchSelector").val();
         var cSelected = $("#cellSelector").val();
         var mSelected = $("#modelSelector").val();
+        var codeHash = $("#codeHash").val();
         var forceRerun = 0;
         
         if (document.getElementById('forceRerun').checked){
@@ -892,7 +1019,7 @@ $(document).ready(function(){
         $.ajax({
             url: $SCRIPT_ROOT + '/enqueue_models',
             data: { bSelected:bSelected, cSelected:cSelected,
-                   mSelected:mSelected, forceRerun },
+                   mSelected:mSelected, forceRerun, codeHash:codeHash },
             // TODO: should POST be used in this case?
             type: 'GET',
             success: function(result){
@@ -967,28 +1094,28 @@ $(document).ready(function(){
         }
     })
     
-    /*
     // Default values -- based on 'good' from NarfAnalysis > filter_cells
-    if saved_selections.hasOwnProperty('snr'){
-        var snr = saved_selections['snr'];
+    if (saved_selections.snr !== null){
+        var snr = saved_selections.snr;
     } else{
         var snr = $("#default_snr").val();
     }
-    if saved_selections.hasOwnProperty('iso'){
+    if (saved_selections.iso !== null){
         var iso = saved_selections['iso'];
     } else{
         var iso = $("#default_iso").val();
     }
-    if saved_selections.hasOwnProperty('snri'){
+    if (saved_selections.snri !== null){
         var snri = saved_selections['snri'];
     } else{
         var snri = $("#default_snri").val();
     }     
-    */
 
+    /*
     var snr = $("#default_snr").val();
     var iso = $("#default_iso").val();
     var snri = $("#default_snri").val();
+    */
 
     $("#plotOpSelect").val('snri');
     $("#plotOpVal").val(snri); 
@@ -1018,13 +1145,16 @@ $(document).ready(function(){
         var setVal = opVal.val();
         
         if (select.val() === 'snr'){
-            snr = setVal;       
+            snr = setVal;
+            saved_selections.snr = setVal;
         }
         if (select.val() === 'iso'){
-            iso = setVal;                
+            iso = setVal;
+            saved_selections.iso = setVal;                
         }
         if (select.val() === 'snri'){
-            snri = setVal;       
+            snri = setVal;
+            saved_selections.snri = setVal;
         }
     }
      
@@ -1047,9 +1177,6 @@ $(document).ready(function(){
             includeOutliers = 1;
         }
         var plotNewWindow = 0;
-        if (document.getElementById("plotNewWindow").checked){
-            plotNewWindow = 1;        
-        }
         
         addLoad();
         $.ajax({
@@ -1090,6 +1217,25 @@ $(document).ready(function(){
                         plotDiv.html(data.html);
                     }
                 }
+                if (data.hasOwnProperty('image')){
+                    if(plotNewWindow){
+                        var w = window.open(
+                            $SCRIPT_ROOT + '/plot_window',
+                            )
+                        $(w.document).ready(function(){
+                            w.$(w.document.body).append(
+                                '<img id="preview_image" src="data:image/png;base64,'
+                                + data.image + '" />'
+                            );
+                        });
+                    } else{
+                        $("#statusReportWrapper").html();
+                        plotDiv.html(
+                            '<img id="preview_image" src="data:image/png;base64,'
+                            + data.image + '" />'
+                        );
+                    }
+                }
                 removeLoad();
             },
             error: function(error){
@@ -1115,10 +1261,7 @@ $(document).ready(function(){
             includeOutliers = 1;
         }
         var plotNewWindow = 0;
-        if (document.getElementById("plotNewWindow").checked){
-            plotNewWindow = 1;        
-        }
-        
+
         addLoad();
         $.ajax({
             url: $SCRIPT_ROOT + '/run_custom',
@@ -1128,7 +1271,7 @@ $(document).ready(function(){
                     iso:iso, snr:snr, snri:snri },
             type: 'GET',
             success: function(data){
-                if(plotNewWindow){
+                if(odow){
                     var w = window.open(
                         $SCRIPT_ROOT + '/plot_window',
                         //"_blank",
@@ -1247,21 +1390,8 @@ $(document).ready(function(){
     ///////////////     Added div toggles / UI management     /////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    $("#toggleAnalysisOps").on('click', toggleAnalysisOps);
-    function toggleAnalysisOps(){
-        var div = $("#analysisButtonsWrapper")
-        if (div.css('display') === 'block'){
-            div.css('display', 'none');
-        } else if (div.css('display') === 'none'){
-            div.css('display', 'block');
-        } else {
-            return false;
-        }
-    }
-
-    $("#toggleCellSelector").on('click', toggleCellSelector);
-    function toggleCellSelector(){
-        var sel = $("#cellSelector");
+    function toggleVisibility(div){
+        var sel = div;
         if (sel.css('display') === 'none'){
             sel.css('display', 'block');
         } else if (sel.css('display') === 'block'){
@@ -1271,17 +1401,12 @@ $(document).ready(function(){
         }
     }
 
-    $("#toggleModelSelector").on('click', toggleModelSelector);
-    function toggleModelSelector(){
-        var sel = $("#modelSelector");
-        if (sel.css('display') === 'none'){
-            sel.css('display', 'block');
-        } else if (sel.css('display') === 'block'){
-            sel.css('display', 'none');
-        } else {
-            return false;
-        }
-    }
+    $("#toggleTags").on('click', function(){
+        toggleVisibility($("#tagFilters"));
+    });
 
+    $("#toggleStatus").on('click', function(){
+        toggleVisibility($("#statusFilters"));
+    });
 
 });
