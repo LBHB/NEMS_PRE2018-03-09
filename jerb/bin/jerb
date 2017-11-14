@@ -148,7 +148,7 @@ def handle_command_line():
             sh.ragequit("Usage: jerb fetch <jid>")
         for jid in sys.argv[2:]:
             j = net.fetch_jerb(jid)
-            print(j)
+            print(j, end='')
         exit(0)
 
     elif op == 'merge':    
@@ -161,7 +161,7 @@ def handle_command_line():
         else:
             jids_or_files = sys.argv[2:]        
         jr = JerbRepo('./')
-        jerbs = jerbs_or_shas(jids_or_files)
+        jerbs = _jerbs_or_shas(jids_or_files)
         # Now actually do the merge
         for j in jerbs:
             jr.merge_in_jerb(j)
