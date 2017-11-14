@@ -417,9 +417,9 @@ class ssa_index(nems_module):
 
             stim = b['stim']  # input 3d array: 0d #streasm ; 1d #trials; 2d time
             stim = stim.astype(np.int16)  # input stim is in uint8 which is problematic for diff
-            resp = b['resp']  # input 2d array: 0d #trials ; 1d time
+            resp = b['resp'].squeeze()  # input 2d array: 0d #trials ; 1d time
             if self.has_pred:
-                pred = b['pred']  # same shape as resp
+                pred = b['pred'].squeeze()  # same shape as resp
 
             diff = np.diff(stim, axis=2)  # transform the binary stim into an edge array for easy onset/offset location
 
@@ -620,7 +620,7 @@ class ssa_index(nems_module):
                 pred_flat_spont = pred_spont.flatten()[~np.isnan(pred_spont.flatten())]
                 pred_spont_ci = my_bootstrap(pred_flat_spont)
 
-            # pools standard responses for activity significance calculations
+            # Defines window to be used for SI and SIpval calculations
             all_cell = np.concatenate([np.asarray(resp_slice_dict['stream0Std']), np.asarray(resp_slice_dict['stream1Std'])], axis = 0)
             if self.significant_bins == 'mean_streams':
                 # find bins with stream mean activity significantly different of spontaneous activity level
