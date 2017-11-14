@@ -322,7 +322,7 @@ class nems_stack:
         
         tail = [self.popmodule_2() for m in self.modules[idx:]]
         self.append(mod, **xargs)
-        for mod in reversed(tail[:-1]):
+        for mod in reversed(tail[:]):
             self.append_instance(mod)
         return idx
     
