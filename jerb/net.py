@@ -93,3 +93,19 @@ def fetch_metadata(jid, jerb_index_route='http://localhost:3001/jid/'):
     else:
         print(result.raw)
         raise ValueError("Bad HTTP Status code from fetch_metadata")
+
+
+def get_ref(user, branch, query_route='http://localhost:3001/ref'):
+    """ Returns the JID found at the user/branch ref."""
+    # TODO: Error checking on user/branch
+    params = {'user': user, 'branch': branch}
+    result = requests.get(query_route, params=params)
+    if result.status_code == 200:
+        d = json.loads(result.content.decode())
+        if 'jids' in d:
+            return d['jids']
+        else:
+            raise ValueError('jids not found in response')
+    else:
+        print(result.content)
+        raise ValueError("Bad HTTP status code from get_ref")

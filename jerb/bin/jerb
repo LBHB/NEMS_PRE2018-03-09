@@ -148,7 +148,19 @@ def handle_command_line():
             sh.ragequit("Usage: jerb fetch <jid>")
         for jid in sys.argv[2:]:
             j = net.fetch_jerb(jid)
-            print(j)
+            print(j, end='')
+        exit(0)
+
+    elif op == 'ref':
+        if len(sys.argv) != 4:
+            sh.ragequit("Usage: jerb ref <user> <branch>")
+        user = sys.argv[2]
+        branch = sys.argv[3]
+        jid = net.get_ref(user, branch)
+        if jid:
+            print(jid)
+        else:
+            sys.stderr.write('Nothing found at '+ user + '/' + branch + '\n')
         exit(0)
 
     elif op == 'merge':    
@@ -161,7 +173,7 @@ def handle_command_line():
         else:
             jids_or_files = sys.argv[2:]        
         jr = JerbRepo('./')
-        jerbs = jerbs_or_shas(jids_or_files)
+        jerbs = _jerbs_or_shas(jids_or_files)
         # Now actually do the merge
         for j in jerbs:
             jr.merge_in_jerb(j)

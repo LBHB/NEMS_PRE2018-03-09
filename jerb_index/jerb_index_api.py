@@ -1,5 +1,5 @@
 from flask import abort, request, Response
-from flask_restful import Resource
+from flask_restful import Resource, reqparse
 import json
 
 import jerb_index.redis_index as red
@@ -53,7 +53,7 @@ class JerbIndex(Resource):
             jerb_not_found()
 
 
-class JerbQuery(Resource):
+class JerbFindQuery(Resource):
     def __init__(self, **kwargs):
         self.rdb = kwargs['redisdb']
 
@@ -63,3 +63,21 @@ class JerbQuery(Resource):
             abort(400, 'Invalid query format')
         jids = red.select_jids_where(self.rdb, js)
         return Response(json.dumps({"jids": jids}), 200)
+
+
+class JerbRefQuery(Resource):
+    def __init__(self, **kwargs):
+        self.rdb = kwargs['redisdb']
+        self.argparser = reqparse.RequestParser()
+        self.argparser.add_argument('user', type=str, help='jerb username')
+        self.argparser.add_argument('branch', type=str, help='jerb branch')
+
+    def get(self):
+        args = self.argparser.parse_args()
+        user = args['user']
+        branch = args['branch']
+        if (user and branch):
+            jids = red.get_head(self.rdb, user, branch)
+            return Response(json.dumps({"jids": jids}), 200)
+        else:
+            abort(400, 'User and branch not defined')

@@ -6,6 +6,15 @@ import numpy as np
 import pandas as pd
 import sys
 import matplotlib.pyplot as plt
+
+from importlib import reload
+import nems.db as ndb
+import nems.utilities as ut
+import nems.stack as ns
+sys.path.append('/auto/users/hellerc/nems/charlie_population_coding/')
+from classify_cell_types import getCellTypes
+from tqdm import tqdm
+
 def get_data(m):
     '''
     Takes a .mat file as argument. Returns dictionary of data contained in the
@@ -107,3 +116,80 @@ def downsample(resp_raster, pup, fs, fs_new):
                     p_temp[j] = np.mean(np.squeeze(p[z:z+n_comb]))
                 z+=n_comb
         return rd_temp.reshape((n_new_bins, repcount, stimcount, cellcount)), p_temp.reshape((n_new_bins, repcount, stimcount))
+
+def load_population_stack(modelname, batch):
+    
+    meta=ndb.get_batch_cells(batch=301)
+    cellids=meta['cellid']
+    cell1=meta['cellid'][0]
+    stack=ut.io.load_single_model(cell1, batch, modelname)
+    
+    nfiles = len(stack.data[-1])
+    a_p=[]
+    stacks=[]
+    for j in tqdm(range(1,nfiles,2)):
+    
+        for i, cellid in (enumerate(cellids)):
+            if j == 1:
+                stack=ut.io.load_single_model(cellid, batch, modelname)
+                stacks.append(stack)
+            
+            p = stacks[i].data[-1][j]['pred'].copy()
+            r = stacks[i].data[-1][j]['resp_raw'].copy()
+            if len(r.shape)==2:
+                r = r[np.newaxis,:,:]
+            if r.shape[0]>1:
+                p = np.transpose(np.tile(p, (r.shape[1],1,1)).T, (0,2,1))
+          
+            pup = stacks[i].data[-1][j]['pupil'].copy()
+            
+            if i == 0:
+                if stack.data[-1][j]['stimparam'][0].find('_a_') > 0:
+                    for z in range(0, stack.data[-1][j]['resp_raw'].shape[1]):
+                        a_p.append(1)
+                else:
+                    for z in range(0, stack.data[-1][j]['resp_raw'].shape[1]):
+                        a_p.append(0)
+        
+            if j == 1:
+                if i == 0:
+                    pred = np.empty((p.shape+ (len(cellids),)))
+                    resp = np.empty((r.shape+ (len(cellids),)))
+                    pupil = np.empty((pup.shape))
+                    ptemp = np.empty((r.shape+(len(cellids),)))
+                    rtemp = np.empty((r.shape+(len(cellids),)))
+                    pupTemp = np.empty((pup.shape))
+                
+                pred[:,:,:,i]=p
+                resp[:,:,:,i]=r
+                pupil[:,:,:]=pup
+                
+                ptemp[:,:,:,i]=p
+                rtemp[:,:,:,i]=r
+                pupTemp[:,:,:]=pup
+            
+            if j > 1:
+                if i == 0:
+                    ptemp = np.empty((r.shape+(len(cellids),)))
+                    rtemp = np.empty((r.shape+(len(cellids),)))
+                    pupTemp = np.empty((pup.shape))
+                   
+                ptemp[:,:,:,i]=p
+                rtemp[:,:,:,i]=r
+                pupTemp[:,:,:]=pup
+    
+        if j > 1:
+            pred = np.concatenate((pred, ptemp),axis=1)
+            resp = np.concatenate((resp, rtemp),axis=1)
+            pupil = np.concatenate((pupil, pupTemp),axis=1)
+            
+                
+    
+    return resp, pred, pupil
+    
+    
+    
+    
+    
+    
+    

@@ -35,6 +35,8 @@ class Jerb ():
         # TODO: Unpack it, and check that metadata is in the pack
         # TODO: Unpack it, and check that there is only 1 note object
         # TODO: Check that the JID hash matches the true commit
+        # TODO: Check that there is a user, date, branch defined (and other req fields)
+        # TODO: Check that the user, date, branch are in the correct format
         # TODO: Function that checks a date is ISO8601 compatible/strptime?
         return [None]
 

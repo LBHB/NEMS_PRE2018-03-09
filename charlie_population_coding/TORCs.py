@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
 import pandas as pd
+from tqdm import tqdm
 
 import sys
 sys.path.append('/auto/users/hellerc/nems/charlie_population_coding/')
@@ -363,12 +364,27 @@ plt.legend(loc='upper right')
 
 # ============= Comparing model weights with PC weights =======================
 from NRF_tools import get_weight_mat
-
+from pop_utils import get_spont_data
 difference = resp-pred
 model_weights = get_weight_mat(resp)
 model_weights_diff = get_weight_mat(difference)
+r_spont, _  = get_spont_data(resp,pupil,stack.data[-1][0]['prestim'],fs)
+spont_weights = get_weight_mat(r_spont)
 mw = np.empty((len(model_weights), len(model_weights)))
 mw_diff = np.empty((len(model_weights), len(model_weights)))
+mw_spont = np.empty((mw_diff.shape))
+
+
+model_active = get_weight_mat(resp[:,a_p==1,:,:])
+model_passive = get_weight_mat(resp[:,a_p==0,:,:])
+model_s_act = get_weight_mat(r_spont[:,a_p==1,:,:])
+model_s_pass = get_weight_mat(r_spont[:,a_p==0,:,:])
+mw_act = np.empty((mw.shape))
+mw_pass = np.empty((mw.shape))
+mw_spont_act = np.empty((mw_spont.shape))
+mw_spont_pass = np.empty((mw_spont.shape))
+
+
 for i in range(0, len(model_weights)):
     mw[i, 0:i] = model_weights[i, 0:i]
     mw[i, i]=np.nan
@@ -378,9 +394,124 @@ for i in range(0, len(model_weights)):
     mw_diff[i, i]=np.nan
     mw_diff[i,(i+1):] = model_weights_diff[i,i:]
     
+    mw_spont[i, 0:i] = spont_weights[i, 0:i]
+    mw_spont[i, i]=np.nan
+    mw_spont[i,(i+1):] = spont_weights[i,i:]
+    
+    mw_spont_act[i, 0:i] = model_s_act[i, 0:i]
+    mw_spont_act[i, i]=np.nan
+    mw_spont_act[i,(i+1):] = model_s_act[i,i:]
+    
+    mw_spont_pass[i, 0:i] = model_s_pass[i, 0:i]
+    mw_spont_pass[i, i]=np.nan
+    mw_spont_pass[i,(i+1):] = model_s_pass[i,i:]
+    
+    mw_act[i, 0:i] = model_active[i, 0:i]
+    mw_act[i, i]=np.nan
+    mw_act[i,(i+1):] = model_active[i,i:]
+    
+    mw_pass[i, 0:i] = model_passive[i, 0:i]
+    mw_pass[i, i]=np.nan
+    mw_pass[i,(i+1):] = model_passive[i,i:]
+
 
 PCA_weights = V[0:10,:]
 c_ids = [x[8:] for x in cellids]
+
+Vmax = np.nanmax(np.concatenate((mw_act.flatten(), mw_pass.flatten(), mw_spont_act.flatten(), mw_spont_act.flatten()))) 
+Vmin =np.nanmin(np.concatenate((mw_act.flatten(), mw_pass.flatten(), mw_spont_act.flatten(), mw_spont_act.flatten()))) 
+plt.figure()
+ax = plt.subplot(231)
+plt.imshow(mw_act, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Active, all')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax =plt.subplot(232)
+plt.imshow(mw_pass, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Passive, all')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax =plt.subplot(233)
+plt.imshow(mw_pass-mw_act, cmap='jet')
+plt.title('passive - active')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax=plt.subplot(234)
+plt.imshow(mw_spont_act, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Active, prestim spont only')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax=plt.subplot(235)
+plt.imshow(mw_spont_pass, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Passive, prestim spont only')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax=plt.subplot(236)
+plt.imshow(mw_spont_pass-mw_spont_act, cmap='jet')
+plt.title('passive - active')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+plt.suptitle(cellids[0][:7])
 
 plt.figure()
 plt.subplot(131)
@@ -405,6 +536,14 @@ plt.yticks(np.arange(0,len(c_ids)), np.array((c_ids)), fontsize=8)
 plt.xlabel('PCs')
 plt.ylabel('Neurons')
 plt.title('PC weights')
+
+
+
+
+
+plt.figure()
+
+
 
 
 plt.figure()
@@ -726,11 +865,26 @@ pr = pred[:,:,:,np.argwhere(np.array(celltypes[celltypes['isolation']>70]['reg_s
 # fit model
 rN = NRF_fit(r = r, r0_strf = pr, model='NRF_STRF',spontonly=False)
 # evaluate model
-from NRF_fit import plt_perf_by_trial
-figtest = plt_perf_by_trial(r, rN, pr,combine_stim=True,a_p=a_p,pupil=pupil)
+from NRF_tools import plt_perf_by_trial
+figtest = plt_perf_by_trial(r, rN, pr,combine_stim=True,a_p=a_p,pupil=pupil, pop_state={'method': 'SVD', 
+                                                                                        'dims': 5
+                                                                                        })
 
 
 
-
-
+# ======== Fit Network model over a range of lags =========
+lags = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+r = resp
+pr = pred
+cc_r0 = np.nanmean(eval_fit(r,pr)['bytrial'])
+mod = []
+for i in tqdm(lags):
+    rN=NRF_fit(r = r, r0_strf = pr, lag=i, fs=fs, single_lag=True, model='NRF_STRF',spontonly=False)
+    #figtest = plt_perf_by_trial(r,rN,pr,combine_stim=True,a_p=a_p,pupil=pupil)
+    cc_rN = np.nanmean(eval_fit(r, rN)['bytrial'])
+    mod.append(cc_rN-cc_r0)
+plt.figure()
+plt.plot(lags,mod)
+plt.xlabel('seconds')
+plt.ylable('rN-r0')
 
