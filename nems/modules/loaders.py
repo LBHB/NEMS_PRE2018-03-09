@@ -137,25 +137,6 @@ class load_mat(nems_module):
                 except:
                     data['filestate']=0
 
-                # cheks if there is files state filtering
-                if self.filestate == False:
-                    pass
-                elif isinstance(self.filestate, list):
-                    # checks that the elements in the list make sense
-                    for state in self.filestate:
-                        if isinstance(state,int):
-                            continue
-                        else:
-                            raise ValueError('filestate argument has to be a list of integers')
-
-                    if data['filestate'] in self.filestate:
-                        pass
-                    else:
-                        continue
-                else:
-                    raise ValueError('filestate argument should be either False (no selection) or a list of integers')
-
-                
                 # resample if necessary
                 data['fs']=self.fs
                 noise_thresh=0.05

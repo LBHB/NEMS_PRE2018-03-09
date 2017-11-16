@@ -52,38 +52,35 @@ def env100e(stack):
     stack.append(nm.est_val.crossval,valfrac=0.1)
     stack.append(nm.aux.onset_edges)
 
-
-def env100ej(stack):
+def env100em0(stack):
     """
     Loads a 100 Hz BAPHY .mat file with 'envelope' marker using the
     provided cellid and batch. Then compute and replace stim with envelope onsets.
 
-    only loads index of the mat file where the field 'filestate' is 1
+    Select only data blocks where state_mas == 0 i.e. Jitter is off
 
-    Specifically for batch296 SSA data, in this case 'filestate' == 1 means Jitter On
+    Specifically for batch296 SSA data
     """
     file = ut.baphy.get_celldb_file(stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True, filestate=[1])
+    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.1)
-    stack.append(nm.aux.onset_edges)
+    stack.append(nm.aux.onset_edges, state_mask=[0])
 
-
-def env100enj(stack):
+def env100em1(stack):
     """
     Loads a 100 Hz BAPHY .mat file with 'envelope' marker using the
     provided cellid and batch. Then compute and replace stim with envelope onsets.
 
-    only loads index of the mat file where the field 'filestate' is 1
+    Select only data blocks where state_mas == 1 i.e. Jitter is on
 
-    Specifically for batch296 SSA data, in this case 'filestate' == 1 means Jitter On
+    Specifically for batch296 SSA data
     """
     file = ut.baphy.get_celldb_file(stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True, filestate=[0])
+    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.1)
-    stack.append(nm.aux.onset_edges)
-
+    stack.append(nm.aux.onset_edges, state_mask=[1])
     
 def parm50x(stack):
     """
