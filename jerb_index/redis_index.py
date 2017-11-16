@@ -125,7 +125,7 @@ def reverse_index(r, jerb):
     # TODO: Write sanitizing function? Or use redis to treat it as
     # just an uninterpretable bytestring?
     for k, v in jerb.meta.items():
-        if (k and v):
+        if (k and v) and (type(k) is str):
             if type(v) is str:
                 r.sadd('idx:'+k+'='+v, jerb.jid)
                 r.sadd('prop:'+k, v)
@@ -133,6 +133,9 @@ def reverse_index(r, jerb):
                 for vv in v:
                     r.sadd('idx:'+k+'='+vv, jerb.jid)
                     r.sadd('prop:'+k, vv)
+        elif k and (type(k) is str):
+            # Also index the empty ones
+            r.sadd('idx:'+k+'=', jerb.jid)
 
 
 def delete_reverse_index(r, jerb):
@@ -149,7 +152,12 @@ def delete_reverse_index(r, jerb):
 def lookup_prop(r, prop, val):
     """ Reverse lookup. Returns list of all JIDs that have the given metadata
     prop and val defined. """
-    jids = r.smembers('idx:'+prop+'='+val)
+    if val:
+        print(1, prop, val)
+        jids = r.smembers('idx:'+prop+'='+val)
+    else:
+        print(2, prop, val)
+        jids = r.smembers('idx:'+prop+'=')
     return [j.decode() for j in jids]
 
 
@@ -194,16 +202,22 @@ def select_jids_where(r, query):
     tmpid = uuid.uuid4()
     first_time = True
     for k, v in query.items():
-        if type(v) is list:
+        if v and type(v) is list:
             # List values indicate OR
             for w in v:
                 r.sunionstore(tmpid, tmpid, 'idx:'+k+'='+w)
-        elif type(v) is str:
+        elif v and type(v) is str:
             # String values indicate AND
             if first_time:
                 r.sunionstore(tmpid, tmpid, 'idx:'+k+'='+v)
             else:
                 r.sinterstore(tmpid, tmpid, 'idx:'+k+'='+v)
+        elif not v:
+            # You may also do 'null'
+            if first_time:
+                r.sunionstore(tmpid, tmpid, 'idx:'+k+'=')
+            else:
+                r.sinterstore(tmpid, tmpid, 'idx:'+k+'=')
         else:
             # Anything else is unacceptable
             raise ValueError("The query spec was violated.")

@@ -67,11 +67,11 @@ def valid_metadata_structure(metadata):
     if type(metadata) is not dict:
         return False
     for k, v in metadata.items():
-        if not k or not v:
+        if not k:
             return False
         if type(k) is not str:
             return False
-        if (type(v) is not str) and (type(v) is not list):
+        if v and (type(v) is not str) and (type(v) is not list):
             return False
     return True
 
