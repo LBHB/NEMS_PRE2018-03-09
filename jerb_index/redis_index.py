@@ -10,7 +10,8 @@ import uuid
 #  jid:JID           -> JSON string           (Forward index)
 #  idx:field=value   -> Set of SHA256s        (Reverse indices)
 #  prop:field        -> Set of values seen so far for that prop
-
+#  br:user/branch    -> JID          (Essentially git refs)
+#  brt:user/branch   -> JID          (Essentially git refs)
 
 def redis_connect(credentials):
     """ Return a redis connection specified by the given credentials """
@@ -34,6 +35,7 @@ def index_jerb(r, jerb):
     # TODO : start transaction
     forward_index(r, jerb)
     reverse_index(r, jerb)
+    set_head_if_newer(r, jerb)
 
 
 def deindex_jerb(r, jerb):
@@ -64,6 +66,51 @@ def lookup_jid(r, jid):
     jrb = r.get('jid:' + jid)
     return jrb.decode()
 
+###############################################################################
+# User/Branch Lookups (Replaces git refs)
+
+
+def set_head_if_newer(r, jerb):
+    """ Sets the jerb as the branch head, if it is newer than HEAD, or
+    if that user/branch does not already exist. """
+    date = get_head_date(r, jerb.meta['user'], jerb.meta['branch'])
+    if not date or (jerb.meta['date'] > date):
+        # TODO: Avoid race condition that exists here!
+        set_head(r, jerb)
+
+
+def set_head(r, jerb):
+    """ Sets the jerb as the branch head. """
+    jid = jerb.jid
+    user = jerb.meta['user']
+    branch = jerb.meta['branch']
+    date = jerb.meta['date']
+    if not (user and branch and jid and date):
+        raise ValueError('JID, user, date and branch are not all defined!')
+    r.set('br:' + user + '/' + branch, jid)
+    r.set('brt:' + user + '/' + branch, date)
+
+
+def get_head(r, user, branch):
+    """ Gets the JID of the user/branch."""
+    if not (user and branch):
+        raise ValueError('User and Branch are not defined!')
+    v = r.get('br:' + user + '/' + branch)
+    if v:
+        return v.decode()
+    else:
+        return None
+
+
+def get_head_date(r, user, branch):
+    """ Gets the timestamp of the user/branch."""
+    if not (user and branch):
+        raise ValueError('User and Branch are not defined!')
+    v = r.get('brt:' + user + '/' + branch)
+    if v:
+        return v.decode()
+    else:
+        return None
 
 ###############################################################################
 # Reverse Lookups
@@ -159,8 +206,7 @@ def select_jids_where(r, query):
                 r.sinterstore(tmpid, tmpid, 'idx:'+k+'='+v)
         else:
             # Anything else is unacceptable
-            print("The query spec was violated. Returning None.")
-            return None
+            raise ValueError("The query spec was violated.")
         first_time = False
 
     ret = [v.decode() for v in r.smembers(tmpid)]
