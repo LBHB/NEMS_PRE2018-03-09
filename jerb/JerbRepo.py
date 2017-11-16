@@ -14,11 +14,12 @@ JERB_METADATA_OBJ = 'jerb_metadata'
 
 
 class JerbRepo():
-    def __init__(self, repopath, create=False):
+    def __init__(self, repopath, create=False, bare=False):
         """ An object that will stay in correspondance with the git/jerb
         repo that lives at repopath. """
         self.repopath = repopath
         self.reponame = os.path.basename(repopath)
+        self.isbare = bare
         self.gitdirpath = os.path.join(self.repopath, '.git/')
         self.packdirpath = os.path.join(self.repopath, PACK_DIR)
 
@@ -26,13 +27,16 @@ class JerbRepo():
             raise ValueError("Refusing to create/overwrite existing JerbRepo")
         # Ensure that the directory has the necessary hidden files:
         if not self._git_dir_exists():
-            self.init_git()
+            self.init_git(bare)
         if not self._jerb_metadata_object_exists():
             self.init_metadata()
 
     def _git_dir_exists(self):
         """ True when a git repo exists, false otherwise """
-        return os.path.isdir(self.gitdirpath)
+        if self.isbare:
+            return os.path.isdir(self.repopath)
+        else:
+            return os.path.isdir(self.gitdirpath)
 
     def _jerb_metadata_object_exists(self):
         """ True when a git repo exists, false otherwise """
