@@ -1,7 +1,6 @@
 """ jerbstore : An API for storing jerbs centrally
 Presently, by default it stores them in a directory. """
 
-import time
 import os
 import botocore
 import boto3
@@ -150,17 +149,11 @@ class S3JerbStore(Resource):
     def get(self, jid):
         """ Returns the jerb found at JID, if it exists. """
         ensure_valid_jid(jid)
-        start = int(round(time.time() * 1000))
         if not self.jerb_exists(jid):
             jerb_not_found()
         jf = io.BytesIO()
-        mid = int(round(time.time() * 1000))
         self.s3.download_fileobj(S3_JERBS_BUCKET, jid, jf)
-        done = int(round(time.time() * 1000))
-        print("exist:", mid - start)
-        print("fetch:", done - mid)
         d = jf.getvalue().decode()
-        print(d)
         jf.close()
         return Response(d, status=200, mimetype='application/json')
 

@@ -1,5 +1,16 @@
 #+Title: JERB Spec V0.1
 
+* UNSORTED
+** How do I change the metadata of a jerb that already exists?
+   You can't. But you can create a new one that is almost identical, except for the metadata:
+   #+BEGIN_EXAMPLE
+   jerb find ivar mybranch | jerb clone 
+   cd mybranch
+   jerb meta
+   jerb jerb > newmybranch.jerb
+   jerb publish newmybranch.jerb
+   #+END_EXAMPLE
+
 * What are JERBs? What problems do they solve?
 
   A JERB (JSON Executable Resource Blob; a.k.a. jerb) is an immutable object that contains an arbitrary function stored in an easily-interchanged format. Jerbs are intended to help data scientists manage and share their data and code they use for modeling. They are named "jerbs" as a pun on the word "jobs", because they usually contain a small amount of work you would like to have done, such as fitting a model to some data. 

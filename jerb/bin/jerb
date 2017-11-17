@@ -176,10 +176,23 @@ def handle_command_line():
             print(j)
         exit(0)
 
+    elif op == 'rebase-parents':
+        ensure_in_git_dir();
+        if len(sys.argv) != 2:
+            sh.ragequit("""Usage: jerb repbase-parents""")            
+        #TODO TODO TODO
+        exit(0)
+
     elif op == 'fetch':
-        if len(sys.argv) != 3:
-            sh.ragequit("Usage: jerb fetch <jid>")
-        for jid in sys.argv[2:]:
+        if len(sys.argv) < 2 or len(sys.argv) > 3:
+            sh.ragequit('Usage: jerb fetch <jid>')
+        elif len(sys.argv) == 2:
+            jids = sys.stdin.read().split()
+            if len(jids)>1:
+                raise ValueError("Too many JIDS!")
+        else:
+            jids = sys.argv[2:]
+        for jid in jids:
             j = net.fetch_jerb(jid)
             print(j, end='')
         exit(0)
