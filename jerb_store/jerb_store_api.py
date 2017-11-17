@@ -84,7 +84,7 @@ class CentralJerbStore(Resource):
     def get(self, jid):
         """ Returns the jerb found at JID, if it exists. """
         ensure_valid_jid(jid)
-        #if not self.jerb_exists(jid):
+        # if not self.jerb_exists(jid):
         #    jerb_not_found()
         d = self.jc.emit_jerb(jid)
         return Response(d, status=200, mimetype='application/json')

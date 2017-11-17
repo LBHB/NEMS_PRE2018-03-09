@@ -12,8 +12,9 @@ def print_usage():
     """ Prints usage information to the user. """
     print("""Example jerb workflow:
 
-    # 1. Find some Jerbs shared in the cloud:
+    # 1. Find some Jerbs published in the cloud:
     jerb find '{"user": "ivar"}'
+    jerb ref ivar hello  # Get the latest commit to branch: ivar/hello
 
     # 2. Download the jerbs you want
     jerb fetch b01736e3d0d53d36387af67bc5cdbef78d1b7381 > hello.jerb
@@ -34,8 +35,8 @@ def print_usage():
     # 6. Pack up the git repo into a new jerbfile
     jerb jerb > newjerb.jerb
 
-    # 7. Optional: Upload your jerb to jerbs.org to share it with others
-    jerb share newjerb.jerb    
+    # 7. Optional: Upload your jerb snapshot to jerbs.org
+    jerb publish newjerb.jerb    
     """)
 
 
@@ -51,7 +52,7 @@ def _jerbs_or_shas(jids_or_files):
             jerbs.append(load_jerb_from_file(f))
     return jerbs
 
-            
+
 def handle_command_line():
     """ Reads in the arguments from the command line """
 
@@ -74,6 +75,13 @@ def handle_command_line():
         sh.ensure_in_git_dir()
         jr = JerbRepo('./')
         jr.edit_metadata_interactively()
+        exit(0)
+
+    elif op == 'clone':
+        sh.ensure_not_in_git_dir()
+        # TODO TODO
+        #JerbRepo(sys.argv[2], create=True)
+        #jr.edit_metadata_interactively()
         exit(0)
 
     elif op == 'jerb':
@@ -107,16 +115,16 @@ def handle_command_line():
             print(j)
         exit(0)
 
-    elif op == 'share':
+    elif op == 'publish':
         if len(sys.argv) < 3:
-            sh.ragequit('Usage: jerb share <file1.jerb> [<file2.jerb> ...]')
+            sh.ragequit('Usage: jerb publish <file1.jerb> [<file2.jerb> ...]')
         jerbfiles = []
         for f in sys.argv[2:]:
             if not os.path.exists(f):
                 sh.ragequit('Not a file: ' + f)
             jerbfiles.append(f)
         for j in jerbfiles:
-            (r1, r2) = net.share_jerbfile(j)
+            (r1, r2) = net.publish_jerbfile(j)
 
             if (r1.status_code == 200):
                 storecode = "EXISTS  "
@@ -139,6 +147,14 @@ def handle_command_line():
             sh.ragequit("""Usage: jerb find '{"user"="ivar"}'""")
         query = sys.argv[2]
         jids = net.find_jerbs(query)
+        for j in jids:
+            print(j)
+        exit(0)
+
+    elif op == 'orphans':
+        if len(sys.argv) != 3:
+            sh.ragequit("""Usage: jerb orphans <user>""")
+        jids = net.rootjids(user=sys.argv[2])
         for j in jids:
             print(j)
         exit(0)

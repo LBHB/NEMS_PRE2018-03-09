@@ -2,21 +2,38 @@
 
 import json
 import requests
+import jerb.util
 from jerb.Jerb import Jerb, load_jerb_from_file, valid_metadata_structure
 from jerb.Jerb import valid_SHA1_string
+
+##############################################################################
+# Set up default routes:
+
+req_env_vars = ['JERB_INDEX_HOST',
+                'JERB_INDEX_PORT',
+                'JERB_STORE_HOST',
+                'JERB_STORE_PORT']
+
+creds = jerb.util.ensure_env_vars(req_env_vars)
+
+JSTORE = ('http://' + creds['JERB_STORE_HOST']
+          + ":" + creds['JERB_STORE_PORT']+'/')
+
+JINDEX = ('http://' + creds['JERB_INDEX_HOST']
+          + ":" + creds['JERB_INDEX_PORT']+'/')
 
 
 ##############################################################################
 # Storing and indexing
 
 
-def store_jerb(jerb, route='http://localhost:3000/jid/'):
+def store_jerb(jerb, route=JSTORE+'jid/'):
     """ Stores the jerb in the jerbstore at endpoint."""
     url = route + str(jerb.jid)
     return send_jerb(jerb, url)
 
 
-def index_jerb(jerb, route='http://localhost:3001/jid/'):
+def index_jerb(jerb, route=JINDEX+'jid/'):
     """ Indexes the jerb for search at jerb_index at route. """
     url = route + str(jerb.jid)
     return send_jerb(jerb, url)
@@ -30,17 +47,17 @@ def send_jerb(jerb, url, method='PUT'):
     return result
 
 
-def share_jerb(jerb):
+def publish_jerb(jerb):
     """ Stores and indexes the jerb object. """
     store_result = store_jerb(jerb)
     index_result = index_jerb(jerb)
     return (store_result, index_result)
 
 
-def share_jerbfile(jerbpath):
+def publish_jerbfile(jerbpath):
     """ Stores and indexes the jerbfile on at jerbpath."""
     j = load_jerb_from_file(jerbpath)
-    codes = share_jerb(j)
+    codes = publish_jerb(j)
     return codes
 
 
@@ -54,7 +71,7 @@ def valid_query_structure(query):
     return valid_metadata_structure(query)
 
 
-def find_jerbs(query, query_route='http://localhost:3001/find'):
+def find_jerbs(query, query_route=JINDEX+'find'):
     """ TODO. Returns a list of JIDs matching the query. """
     s = json.loads(query)
     if not valid_query_structure(s):
@@ -68,7 +85,7 @@ def find_jerbs(query, query_route='http://localhost:3001/find'):
         raise ValueError("Bad HTTP status code from find_jerbs")
 
 
-def fetch_jerb(jid, jerbstore_route='http://localhost:3000/jid/'):
+def fetch_jerb(jid, jerbstore_route=JSTORE+'jid/'):
     """ Fetches the jerb and returns the newly loaded object. """
     if not valid_SHA1_string(jid):
         raise ValueError('fetch_jerb received an invalid SHA1')
@@ -82,7 +99,7 @@ def fetch_jerb(jid, jerbstore_route='http://localhost:3000/jid/'):
         raise ValueError("Bad HTTP Status code from fetch_jerb")
 
 
-def fetch_metadata(jid, jerb_index_route='http://localhost:3001/jid/'):
+def fetch_metadata(jid, jerb_index_route=JINDEX+'jid/'):
     """ Fetches the metadata for the jerb at JID. """
     if not valid_SHA1_string(jid):
         raise ValueError('fetch_metadata received an invalid SHA1')
@@ -95,7 +112,7 @@ def fetch_metadata(jid, jerb_index_route='http://localhost:3001/jid/'):
         raise ValueError("Bad HTTP Status code from fetch_metadata")
 
 
-def get_ref(user, branch, query_route='http://localhost:3001/ref'):
+def get_ref(user, branch, query_route=JINDEX+'ref'):
     """ Returns the JID found at the user/branch ref."""
     # TODO: Error checking on user/branch
     params = {'user': user, 'branch': branch}
