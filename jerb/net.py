@@ -109,3 +109,28 @@ def get_ref(user, branch, query_route='http://localhost:3001/ref'):
     else:
         print(result.content)
         raise ValueError("Bad HTTP status code from get_ref")
+
+##############################################################################
+# Convenience functions: abbreviations for some of the above functions
+
+
+def rootjids(user=None):
+    """ Convenience. Returns all the roots of the JID tree. Add the
+    optional user parameter to restrict search to just one user's roots."""
+    if user:
+        query = {'user': user, 'parents': None}
+    else:
+        query = {'parents': None}
+    return find_jerbs(json.dumps(query))
+
+
+def children(jid):
+    """ Convenience. Returns all the children of a particular JID. """
+    query = {'parents': jid}
+    return find_jerbs(json.dumps(query))
+
+
+def parents(jid):
+    """ Convenience. Returns all the parents of a particular JID"""
+    md = fetch_metadata(jid)
+    return md['parents']

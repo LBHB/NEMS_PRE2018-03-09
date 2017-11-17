@@ -5,7 +5,6 @@ from functools import reduce
 import hashlib
 import json
 import os
-import re
 import zlib
 
 
@@ -42,23 +41,13 @@ def just_keys(dictionary, keys):
     return d
 
 
-# TODO: I should rethink this decision. This is the wrong way to do this.
-def environment_credentials():
+def ensure_env_vars(req_vars):
     """ Returns a dict of the credentials found in the environment. """
-
-    default_env = {'MYSQL_PORT': '3306'}
-    cred_keys = ['MYSQL_HOST',
-                 'MYSQL_USER',
-                 'MYSQL_PASS',
-                 'MYSQL_DB',
-                 'MYSQL_PORT',
-                 'REDIS_HOST',
-                 'REDIS_PORT',
-                 'REDIS_PASS',
-                 'AWS_ACCESS_KEY_ID',
-                 'AWS_SECRET_KEY']
-    env = merge_dicts(default_env, os.environ)
-    creds = dict((k, env[k]) for k in cred_keys if k in env)
+    env = os.environ
+    creds = dict((k, env[k]) for k in req_vars if k in env)
+    if not all(c in creds for c in req_vars):
+        raise ValueError('Required environment variables not all provided: '
+                         + str(req_vars))
     return creds
 
 
@@ -117,4 +106,3 @@ def parse_iso8601(dictionary, key):
     except:
         s = "{} not a valid ISO8601 datestring".format(key)
         raise ValueError(s)
-

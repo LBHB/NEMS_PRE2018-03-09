@@ -1,6 +1,12 @@
 from flask import Flask
 from flask_restful import Api
-from jerbstore.jerbstore_api import LocalJerbStore, CentralJerbStore
+
+import jerb.util
+from jerb_store.jerb_store_api import LocalJerbStore, CentralJerbStore
+
+req_env_vars = ['JERB_STORE_HOST',
+                'JERB_STORE_PORT']
+creds = jerb.util.ensure_env_vars(req_env_vars)
 
 app = Flask(__name__)
 api = Api(app)
@@ -15,4 +21,4 @@ api.add_resource(LocalJerbStore,
 #                  resource_class_kwargs={'jerb_central_repo_dir':
 #                                         '/home/ivar/central/'})
 
-app.run(port=3000, host='127.0.0.1')
+app.run(port=creds['JERB_STORE_PORT'], host=creds['JERB_STORE_HOST'])
