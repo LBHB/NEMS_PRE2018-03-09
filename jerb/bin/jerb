@@ -35,12 +35,14 @@ def print_usage():
     # 6. Pack up the git repo into a new jerbfile
     jerb jerb > newjerb.jerb
 
-    # 7. Optional: Upload your jerb snapshot to jerbs.org
+    # 7. Optional: Publish your jerb snapshot
     jerb publish newjerb.jerb    
     """)
 
 
 def _jerbs_or_shas(jids_or_files):
+    """ Sanitizes the input: accept only JIDS or files, and
+    loads them as jerbs. Returns a list of jerbs."""
     jerbs = []
     # Prepare the jerbs to merge
     for f in jids_or_files:
@@ -77,19 +79,34 @@ def handle_command_line():
         jr.edit_metadata_interactively()
         exit(0)
 
-    elif op == 'clone':
-        sh.ensure_not_in_git_dir()
-        # TODO TODO
-        #JerbRepo(sys.argv[2], create=True)
-        #jr.edit_metadata_interactively()
-        exit(0)
-
     elif op == 'jerb':
         sh.ensure_in_git_dir()
         jr = JerbRepo('./')
         js = jr.as_json()
         print(js)
         exit(0)
+
+    elif op == 'clone':
+        sh.ensure_not_in_git_dir()
+        if len(sys.argv) < 2 or len(sys.argv) > 3:
+            sh.ragequit('Usage: jerb clone <file1.jerb or SHA>')
+        elif len(sys.argv) == 2:
+            jids_or_files = sys.stdin.read().split()
+            if len(jids_or_files)>1:
+                raise ValueError("Too many JIDS!")
+        else:
+            jids_or_files = [sys.argv[2]]
+        jerbs = _jerbs_or_shas(jids_or_files)
+        j = jerbs[0]
+        md = j.meta
+        if os.path.exists(md['branch']):
+            raise ValueError("Cannot clone; branch already exists in this dir: "+md['branch'])
+        jr = JerbRepo(md['branch'], create=True)
+        jr.set_metadata(md)
+        jr.set_metadata_item('parents', [])
+        jr.merge_in_jerb(j)
+        exit(0)
+
 
     elif op == 'parents':
         if len(sys.argv) < 2 or len(sys.argv) > 3:
