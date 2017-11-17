@@ -57,13 +57,14 @@ class load_mat(nems_module):
     fs=100
     avg_resp=True
     
-    def my_init(self,est_files=[],fs=100,avg_resp=True):
+    def my_init(self,est_files=[],fs=100,avg_resp=True, filestate=False):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
         self.est_files=est_files.copy()
         self.fs=fs
         self.avg_resp=avg_resp
         self.parent_stack.avg_resp=avg_resp
+        self.filestate = filestate
         self.auto_plot=False
 
     def evaluate(self,**kwargs):
@@ -135,7 +136,7 @@ class load_mat(nems_module):
                     data['filestate']=s['filestate'][0][0]
                 except:
                     data['filestate']=0
-                
+
                 # resample if necessary
                 data['fs']=self.fs
                 noise_thresh=0.05
@@ -225,6 +226,10 @@ class load_mat(nems_module):
                 # with entries stim, resp, etc...
                 #print('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
+
+        # Raises error if d_out is an empty list
+        if not self.d_out:
+            raise IndexError ('loader module d_out is empty')
                
                 
 class load_gen(nems_module):
