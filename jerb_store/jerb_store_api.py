@@ -1,12 +1,19 @@
 """ jerbstore : An API for storing jerbs centrally
 Presently, by default it stores them in a directory. """
 
+import time
 import os
+import botocore
+import boto3
+import io
+
 from flask import abort, request, Response
 from flask_restful import Resource
 
 from jerb.Jerb import Jerb, valid_SHA1_string
 from jerb.JerbCentral import JerbCentral
+
+S3_JERBS_BUCKET = 'jerbs'
 
 
 def ensure_valid_jid(jid):
@@ -84,7 +91,7 @@ class CentralJerbStore(Resource):
     def get(self, jid):
         """ Returns the jerb found at JID, if it exists. """
         ensure_valid_jid(jid)
-        # if not self.jerb_exists(jid):
+        # if not self.jerb_exists(jid): # TODO
         #    jerb_not_found()
         d = self.jc.emit_jerb(jid)
         return Response(d, status=200, mimetype='application/json')
@@ -109,3 +116,74 @@ class CentralJerbStore(Resource):
         ensure_valid_jid(jid)
         # TODO
         jerb_not_found()
+
+
+class S3JerbStore(Resource):
+    """ A class representing a store of jerb files in S3."""
+    def __init__(self, **kwargs):
+        self.s3 = boto3.client('s3')
+        # Create the jerbs bucket:
+        try:
+            self.s3.head_bucket(Bucket=S3_JERBS_BUCKET)
+        except botocore.exceptions.ClientError as e:
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist. Create it.
+            error_code = int(e.response['Error']['Code'])
+            if error_code == 404:
+                self.jb = self.s3.create_bucket(
+                    Bucket=S3_JERBS_BUCKET,
+                    ACL='public-read',
+                    CreateBucketConfiguration={'LocationConstraint':
+                                               'us-west-2'})
+
+    def jerb_exists(self, jid):
+        """ Wow, either Boto3 design is bollocks or I am missing the obvious
+        way of testing existance. Control flow exception trapping logic is
+        shameful! """
+        try:
+            self.s3.head_object(Bucket=S3_JERBS_BUCKET,
+                                Key=jid)
+        except botocore.errorfactory.ClientError:
+            return False
+        return True
+
+    def get(self, jid):
+        """ Returns the jerb found at JID, if it exists. """
+        ensure_valid_jid(jid)
+        start = int(round(time.time() * 1000))
+        if not self.jerb_exists(jid):
+            jerb_not_found()
+        jf = io.BytesIO()
+        mid = int(round(time.time() * 1000))
+        self.s3.download_fileobj(S3_JERBS_BUCKET, jid, jf)
+        done = int(round(time.time() * 1000))
+        print("exist:", mid - start)
+        print("fetch:", done - mid)
+        d = jf.getvalue().decode()
+        print(d)
+        jf.close()
+        return Response(d, status=200, mimetype='application/json')
+
+    def put(self, jid):
+        """ Idempotent. Returns 201 if the jerb was created, or
+        return 200 if it exists already in this jerbstore."""
+        ensure_valid_jid(jid)
+        # TODO: Ensure request size is within limits
+        j = Jerb(request.data.decode())
+        if not jid == j.jid:
+            abort(400, 'JID does not match argument')
+        if any(j.errors()):
+            abort(400, 'jerb contains errors')
+        if not self.jerb_exists(jid):
+            jf = io.BytesIO(str(j).encode())
+            self.s3.upload_fileobj(jf, S3_JERBS_BUCKET, jid)
+            jf.close()
+            return Response(status=201)
+        else:
+            return Response(status=200)
+
+    def delete(self, jid):
+        ensure_valid_jid(jid)
+        if self.jerb_exists(jid):
+            self.s3.delete_object(Bucket=S3_JERBS_BUCKET,
+                                  Key=jid)
