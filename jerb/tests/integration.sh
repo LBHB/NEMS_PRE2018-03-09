@@ -19,7 +19,7 @@ cd hello
 echo "Hello, " > hello.txt
 echo "Adding metadata..."
 git add hello.txt
-git notes add -f jerb_metadata -m "{\"user\": \"ivar\", \"parents\": [], \"description\": \"A simple jerb containing the file hello.txt.\", \"branch\": \"hello\", \"tags\": [\"example\", \"hello\", \"$TESTID\"]}"
+git notes add -f jerb_metadata -m "{\"user\": \"ivar\", \"parents\": [], \"description\": \"A simple jerb containing the file hello.txt.\", \"ref\": \"hello\", \"tags\": [\"example\", \"hello\", \"$TESTID\"]}"
 git commit -m "Initial commit"
 
 echo "Building hello.jerb..."
@@ -33,7 +33,7 @@ jerb init world
 cd world
 echo "world!" > world.txt
 git add world.txt
-git notes add -f jerb_metadata -m "{\"user\": \"ivar\", \"parents\": [], \"description\": \"Another file, containing just world.txt\", \"branch\": \"world\", \"tags\": [\"example\", \"world\", \"$TESTID\"]}"
+git notes add -f jerb_metadata -m "{\"user\": \"ivar\", \"parents\": [], \"description\": \"Another file, containing just world.txt\", \"ref\": \"world\", \"tags\": [\"example\", \"world\", \"$TESTID\"]}"
 git commit -m "Initial commit" > /dev/null
 
 echo "Building world.jerb..."
@@ -58,7 +58,7 @@ jerb share hello.jerb
 jerb share world.jerb
 
 echo "Searching for JID..."
-jid=`jerb find "{\"branch\": \"hello\", \"tags\": \"$TESTID\"}"`
+jid=`jerb find "{\"ref\": \"hello\", \"tags\": \"$TESTID\"}"`
 
 echo "Fetching and diffing JID: $jid"
 diff hello.jerb <(jerb fetch $jid)

@@ -38,7 +38,7 @@ where COMMAND can be:
 
     # 1. Find some Jerbs published in the cloud:
     jerb find '{"user": ["ivar", "jacob"]}' # Everything from ivar or jacob
-    jerb ref ivar hello  # Get the latest commit to branch: ivar/hello
+    jerb ref ivar hello  # Get the latest commit to ref: ivar/hello
 
     # 2. Download the jerbs you want
     jerb fetch b01736e3d0d53d36387af67bc5cdbef78d1b7381 > hello.jerb
@@ -123,9 +123,9 @@ def handle_command_line():
         jerbs = _jerbs_or_shas(jids_or_files)
         j = jerbs[0]
         md = j.meta
-        if os.path.exists(md['branch']):
-            raise ValueError("Cannot clone; branch already exists in this dir: "+md['branch'])
-        jr = JerbRepo(md['branch'], create=True)
+        if os.path.exists(md['ref']):
+            raise ValueError("Cannot clone; ref already exists in this dir: "+md['ref'])
+        jr = JerbRepo(md['ref'], create=True)
         jr.set_metadata(md)
         jr.set_metadata_item('parents', [])
         jr.merge_in_jerb(j)
@@ -223,14 +223,14 @@ def handle_command_line():
 
     elif op == 'ref':
         if len(sys.argv) != 4:
-            sh.ragequit("Usage: jerb ref <user> <branch>")
+            sh.ragequit("Usage: jerb ref <user> <ref>")
         user = sys.argv[2]
-        branch = sys.argv[3]
-        jid = net.get_ref(user, branch)
+        ref = sys.argv[3]
+        jid = net.get_ref(user, ref)
         if jid:
             print(jid)
         else:
-            sys.stderr.write('Nothing found at '+ user + '/' + branch + '\n')
+            sys.stderr.write('Nothing found at '+ user + '/' + ref + '\n')
         exit(0)
 
     elif op == 'merge':    
@@ -260,7 +260,7 @@ def handle_command_line():
             md = net.fetch_metadata(jid)
             print("{:20.20s}{:20.20s} {:30.30s} {:20.20s}"
                   .format(md['date'],
-                          md['user'] + '/' + md['branch'],
+                          md['user'] + '/' + md['ref'],
                           md['description'],
                           str(md['tags'])))
     else:

@@ -112,10 +112,10 @@ def fetch_metadata(jid, jerb_index_route=JINDEX+'jid/'):
         raise ValueError("Bad HTTP Status code from fetch_metadata")
 
 
-def get_ref(user, branch, query_route=JINDEX+'ref'):
-    """ Returns the JID found at the user/branch ref."""
-    # TODO: Error checking on user/branch
-    params = {'user': user, 'branch': branch}
+def get_ref(user, ref, query_route=JINDEX+'ref'):
+    """ Returns the JID found at the user/ref"""
+    # TODO: Error checking on user/ref
+    params = {'user': user, 'ref': ref}
     result = requests.get(query_route, params=params)
     if result.status_code == 200:
         d = json.loads(result.content.decode())

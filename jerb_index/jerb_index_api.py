@@ -70,14 +70,14 @@ class JerbRefQuery(Resource):
         self.rdb = kwargs['redisdb']
         self.argparser = reqparse.RequestParser()
         self.argparser.add_argument('user', type=str, help='jerb username')
-        self.argparser.add_argument('branch', type=str, help='jerb branch')
+        self.argparser.add_argument('ref', type=str, help='jerb ref')
 
     def get(self):
         args = self.argparser.parse_args()
         user = args['user']
-        branch = args['branch']
-        if (user and branch):
-            jids = red.get_head(self.rdb, user, branch)
+        ref = args['ref']
+        if (user and ref):
+            jids = red.get_head(self.rdb, user, ref)
             return Response(json.dumps({"jids": jids}), 200)
         else:
-            abort(400, 'User and branch not defined')
+            abort(400, 'User and ref not defined')

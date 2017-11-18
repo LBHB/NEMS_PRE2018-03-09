@@ -10,8 +10,8 @@ import uuid
 #  jid:JID           -> JSON string           (Forward index)
 #  idx:field=value   -> Set of SHA256s        (Reverse indices)
 #  prop:field        -> Set of values seen so far for that prop
-#  br:user/branch    -> JID          (Essentially git refs)
-#  brt:user/branch   -> JID          (Essentially git refs)
+#  br:user/myref     -> JID          (Essentially git branch refs)
+#  brt:user/myref    -> JID          (branch ref timestamp)
 
 def redis_connect(credentials):
     """ Return a redis connection specified by the given credentials """
@@ -67,46 +67,46 @@ def lookup_jid(r, jid):
     return jrb.decode()
 
 ###############################################################################
-# User/Branch Lookups (Replaces git refs)
+# User/Ref Lookups (Replaces git refs)
 
 
 def set_head_if_newer(r, jerb):
-    """ Sets the jerb as the branch head, if it is newer than HEAD, or
-    if that user/branch does not already exist. """
-    date = get_head_date(r, jerb.meta['user'], jerb.meta['branch'])
+    """ Sets the jerb as the ref head, if it is newer than HEAD, or
+    if that user/ref does not already exist. """
+    date = get_head_date(r, jerb.meta['user'], jerb.meta['ref'])
     if not date or (jerb.meta['date'] > date):
         # TODO: Avoid race condition that exists here!
         set_head(r, jerb)
 
 
 def set_head(r, jerb):
-    """ Sets the jerb as the branch head. """
+    """ Sets the jerb as the ref head. """
     jid = jerb.jid
     user = jerb.meta['user']
-    branch = jerb.meta['branch']
+    ref = jerb.meta['ref']
     date = jerb.meta['date']
-    if not (user and branch and jid and date):
-        raise ValueError('JID, user, date and branch are not all defined!')
-    r.set('br:' + user + '/' + branch, jid)
-    r.set('brt:' + user + '/' + branch, date)
+    if not (user and ref and jid and date):
+        raise ValueError('JID, user, date and ref are not all defined!')
+    r.set('br:' + user + '/' + ref, jid)
+    r.set('brt:' + user + '/' + ref, date)
 
 
-def get_head(r, user, branch):
-    """ Gets the JID of the user/branch."""
-    if not (user and branch):
-        raise ValueError('User and Branch are not defined!')
-    v = r.get('br:' + user + '/' + branch)
+def get_head(r, user, ref):
+    """ Gets the JID of the user/ref."""
+    if not (user and ref):
+        raise ValueError('User and Ref are not defined!')
+    v = r.get('br:' + user + '/' + ref)
     if v:
         return v.decode()
     else:
         return None
 
 
-def get_head_date(r, user, branch):
-    """ Gets the timestamp of the user/branch."""
-    if not (user and branch):
-        raise ValueError('User and Branch are not defined!')
-    v = r.get('brt:' + user + '/' + branch)
+def get_head_date(r, user, ref):
+    """ Gets the timestamp of the user/ref."""
+    if not (user and ref):
+        raise ValueError('User and Ref are not defined!')
+    v = r.get('brt:' + user + '/' + ref)
     if v:
         return v.decode()
     else:

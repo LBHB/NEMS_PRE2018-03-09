@@ -109,7 +109,7 @@
 
    While the original repo exists, metadata is version controlled like everything else. If you want to look through the history of metadata, run "git log -p notes/metadata jerb_metadata".
 
-** Branches
+** Branches and Refs
    Jerbs unfortunately don't quite have branches like git. Jerbs only include a single commit, created at the moment the jerb is created. Therefore, they cannot have a true git history, and the concept of 'branches' is not exactly the same. 
 
    We can, however, use the concept of a "ref", a reference to a specific commit. 

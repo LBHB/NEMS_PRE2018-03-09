@@ -75,9 +75,9 @@ class JerbRepo():
         if not name:
             raise ValueError('Please set the jerb.user variable with:',
                              'git config --global jerb.user "myusernamehere"')
-        branch = self.reponame
+        ref = self.reponame
         md = {'user': name.strip().lower().decode(),
-              'branch': branch,
+              'ref': ref,
               'parents': [],
               'tags': [],
               'description': ''}
