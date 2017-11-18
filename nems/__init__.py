@@ -5,7 +5,6 @@ import nems.keyword
 import nems.modules
 #import nems.user_def_mods
 import nems.utilities
-import nems.web
 
 __all__=['fitters','keyword','modules','utilities','web']
 
