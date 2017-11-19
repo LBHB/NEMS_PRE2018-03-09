@@ -1,1 +1,0 @@
-""" Views functions for site or app administration. """

@@ -1,2 +1,0 @@
-recursive-include nemsapp/templates *
-recurisve-include nemsapp/static * 
