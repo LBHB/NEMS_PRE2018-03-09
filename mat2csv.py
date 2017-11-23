@@ -1,116 +1,42 @@
 import os
 import numpy as np
 import scipy.io
+from nems.Signal import Signal
 
 DEFAULT_DIRPATH = '/home/ivar/mat/'
 
 
-class Signal():
-    """ A signal has these properties:
-    .name         The name of the signal [string]
-    .fs           The frequency [uint] of sampling, in Hz.
+###############################################################################
+# For unpacking matlab stuff
 
-    And some hidden data:
-    .__matrix__   A matrix of channels x time x repetitions [numpy ndarray]
-    """
-    def __init__(self, **kwargs):
-        self.name = kwargs['name']
-        self.__matrix__ = kwargs['matrix']  # must be nparray
-        self.fs = int(kwargs['fs'])
+def __extract_metadata(matrec):
+    """ Extracts metadata from the matlab matrix object matrec. """
+    found = set(matrec.dtype.names)
+    needed = ['cellid', 'isolation', 'stimfs', 'respfs',
+              'stimchancount', 'stimfmt', 'filestate']
+    unwrap = lambda n: n[0] if type(n) == np.ndarray else n
+    meta = dict((n, unwrap(matrec[n][0])) for n in needed if n in found)
 
-        if type(self.name) is not str:
-            raise ValueError('Name of signal must be a string:'
-                             + str(self.name))
+    meta['cellid'] = str(meta['cellid'])  # Convert numpy string to normal
 
-        if type(self.fs) is not int or self.fs < 1:
-            raise ValueError('fs of signal must be a positive integer:'
-                             + str(self.fs))
+    # Tags is not completely examined here; TODO: find others?
+    meta['prestim'] = matrec['tags'][0]['PreStimSilence'][0][0][0]
+    meta['poststim'] = matrec['tags'][0]['PostStimSilence'][0][0][0]
+    meta['duration'] = matrec['tags'][0]['Duration'][0][0][0]
 
-        if type(self.__matrix__) is not np.ndarray:
-            raise ValueError('matrix must be a np.ndarray:'
-                             + type(self.__matrix__))
+    # TODO: fn_spike, fn_param metadata are mostly ignored; too complicated!
+    meta['stimparam'] = [str(''.join(letter)) for letter in matrec['fn_param']]
 
-        (C, T, R) = self.chans_samps_trials()
+    # TODO: These are not metadata so much as 'baked-in' model fitting
+    # parameters. Remove anywhere found.
+    # meta['est'] = matrec['estfile']
+    # meta['repcount']=np.sum(np.isfinite(data['resp'][0,:,:]),axis=0)
 
-        if T < R or T < C:
-            raise ValueError(('Matrix dims weird: (C, T, R) = ' +
-                              str((C, T, R))))
-
-    def chans_samps_trials(self):
-        """ Returns (C, T, R), where:
-        C  is the number of channels
-        T  is the number of time samples per trial repetition
-        R  is the number of trial repetitions """
-        return self.__matrix__.shape
-
-    def as_ctr_matrix(self):
-        return self.__matrix__
-
-    def as_time_stream(self):
-        """ Return the matrix as a single stream of data. (1 repetition)  """
-        (C, T, R) = self.__matrix__.shape
-        return self.__matrix__.reshape(C, T*R)
-
-    def as_average_trial(self):
-        """ Return the matrix as the average of all repetitions.  """
-        # data['avgresp']=np.transpose(data['avgresp'],(1,0))
-        avg = np.nanmean(self.__matrix__, axis=2)
-        return avg
-
-    def savetocsv(self, dirpath):
-        """ Saves this signal to a CSV. """
-        np.savetxt(os.path.join(dirpath, "blah.csv"),
-                   self.__matrix__,
-                   delimiter=", ")
+    return meta
 
 
-class MatlabRecording():
-    """ A MatlabRecording is a collection of simultaneous signals.
-    .name      Recording session name, usually something like 13.
-    .signals   A list of all the signals
-    """
-    def __init__(self, **kwargs):
-        m = kwargs['matdata']
-        self.name = 'TODO'
-        self.signals = []
-
-        # Verify that this is not a 'stimid' recording file format
-        signal_names = set(m.dtype.names)
-        if 'stimids' in signal_names:
-            raise ValueError('stimids are not supported yet, sorry')
-
-        self.meta = extract_metadata(m)
-
-        # Extract the two required signals, and possibly the pupil as well
-        self.add_signal(Signal(name='stim',
-                               matrix=m['stim'],
-                               fs=self.meta['stimfs']))
-        self.add_signal(Signal(name='resp',
-                               matrix=np.swapaxes(m['resp_raster'], 0, 1),
-                               fs=self.meta['respfs']))
-        if 'pupil' in signal_names:
-            self.add_signal(Signal(name='pupil',
-                                   matrix=(np.swapaxes(m['pupil']*0.01,
-                                           0, 1)),
-                                   fs=self.meta['respfs']))
-        # TODO: instead of respfs, switch to pupilfs and behavior_conditionfs
-        if 'behavior_condition' in signal_names:
-            self.add_signal(Signal(name='behavior_condition',
-                                   matrix=m['behavior_condition'],
-                                   fs=self.meta['respfs']))
-
-    def add_signal(self, sig):
-        if not type(sig) == Signal:
-            raise ValueError("Signals must be of type Signal()")
-        self.signals.append(sig)
-
-    def savetodir(self, dirpath=DEFAULT_DIRPATH):
-        for s in self.signals:
-            s.savetocsv(dirpath)
-
-
-def mat2recordings(matfile):
-    """ Converts a matlab file into multiple Recordings """
+def mat2signals(matfile):
+    """ Converts a matlab file into a set of signals. """
     matdata = scipy.io.loadmat(matfile,
                                chars_as_strings=True,
                                squeeze_me=False)
@@ -123,33 +49,58 @@ def mat2recordings(matfile):
         raise ValueError("Unexpected variables found in .mat file: "
                          + found_matrices)
 
-    recordings = [MatlabRecording(matdata=r) for r in matdata['data'][0, :]]
+    sigs = []
+    for m in matdata['data'][0, :]:
+        meta = __extract_metadata(m)
+        meta['recording'] = os.path.basename(meta['stimparam'][0])
 
-    return recordings
+        # Verify that this is not a 'stimid' recording file format
+        signal_names = set(m.dtype.names)
+        if 'stimids' in signal_names:
+            raise ValueError('stimids are not supported yet, sorry')
 
+        # Extract the two required signals
+        sigs.append(Signal(signal_name='stim',
+                           recording=meta['recording'],
+                           cellid=meta['cellid'],
+                           meta={k: meta[k] for k in meta
+                                 if k in set(['duration',
+                                              'prestim',
+                                              'poststim',
+                                              'stimfmt',
+                                              'stimchancount',
+                                              'filestate'])},
+                           matrix=m['stim'],
+                           fs=meta['stimfs']))
 
-def extract_metadata(matrec):
-    """ Extracts metadata from the matlab matrix object matrec. """
-    found = set(matrec.dtype.names)
-    needed = ['cellid', 'isolation', 'stimfs', 'respfs',
-              'stimchancount', 'stimfmt', 'filestate']
-    unwrap = lambda n: n[0] if type(n) == np.ndarray else n
-    meta = dict((n, unwrap(matrec[n][0])) for n in needed if n in found)
+        sigs.append(Signal(signal_name='resp',
+                           recording=meta['recording'],
+                           cellid=meta['cellid'],
+                           meta={k: meta[k] for k in meta
+                                 if k in set(['isolation'])},
+                           matrix=np.swapaxes(m['resp_raster'], 0, 1),
+                           fs=meta['respfs']))
 
-    meta['stimparam'] = [str(''.join(letter)) for letter in matrec['fn_param']]
+        # Extract the pupil size and behavior_condition, if they exist
+        if 'pupil' in signal_names:
+            sigs.append(Signal(signal_name='pupil',
+                               recording=meta['recording'],
+                               cellid=meta['cellid'],
+                               meta=None,
+                               matrix=(np.swapaxes(m['pupil']*0.01,
+                                                   0, 1)),
+                               fs=meta['respfs']))
 
-    # Tags is not completely examined here; TODO: find others?
-    meta['prestim'] = matrec['tags'][0]['PreStimSilence'][0][0][0]
-    meta['poststim'] = matrec['tags'][0]['PostStimSilence'][0][0][0]
-    meta['duration'] = matrec['tags'][0]['Duration'][0][0][0]
+        # TODO: instead of respfs, switch to pupilfs and behavior_conditionfs
+        if 'behavior_condition' in signal_names:
+            sigs.append(Signal(signal_name='behavior_condition',
+                               recording=meta['recording'],
+                               cellid=meta['cellid'],
+                               meta=None,
+                               matrix=m['behavior_condition'],
+                               fs=meta['respfs']))
 
-    # TODO: 'fn_spike', 'fn_param' metadata is ignored; too complicated!
-
-    # TODO: I don't think these should be metadata. Remove anywhere found.
-    # meta['est'] = matrec['estfile']
-    # meta['repcount']=np.sum(np.isfinite(data['resp'][0,:,:]),axis=0)
-
-    return meta
+    return sigs
 
 
 ###############################################################################
@@ -158,12 +109,10 @@ def extract_metadata(matrec):
 matfile = ('/home/ivar/tmp/gus027b-a1_b293_parm_fs200'
            + '/gus027b-a1_b293_parm_fs200.mat')
 
-recordings = mat2recordings(matfile)
+sigs = mat2signals(matfile)
 
-for r in recordings:
-    for s in r.signals:
-        print("shape of", s.name,  s.__matrix__.shape)
-        print("avg of", s.name,  s.as_average_trial().shape)
-        print("app of", s.name,  s.as_time_stream().shape)
+print("---")
+for s in sigs:
+    print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
 
-    # r.savetodir('/home/ivar/mat/')
+    # s.savetocsv('/home/ivar/sigs/')

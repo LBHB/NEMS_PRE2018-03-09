@@ -17,18 +17,6 @@ import pprint
 import h5py
 
 import nems.utilities as ut
-from nems_config.defaults import DEMO_MODE
-
-try:
-    import boto3
-    import nems_config.Storage_Config as sc
-    AWS = sc.USE_AWS
-except Exception as e:
-    print(e)
-    from nems_config.defaults import STORAGE_DEFAULTS
-    sc = STORAGE_DEFAULTS
-    AWS = False
-    
 
 """
 load_single_model - load and evaluate a model, specified by cellid, batch and modelname
@@ -96,17 +84,17 @@ def save_model(stack, file_path):
         del stack2.data[i][:]
     del stack2.keyfuns
     
-    if AWS:
-        # TODO: Need to set up AWS credentials in order to test this
-        # TODO: Can file key contain a directory structure, or do we need to
-        #       set up nested 'buckets' on s3 itself?
-        s3 = boto3.resource('s3')
-        # this leaves 'nems_saved_models/' as a prefix, so that s3 will
-        # mimick a saved models folder
-        key = file_path[len(sc.DIRECTORY_ROOT):]
-        fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
-        s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
-    else:
+    # if AWS:
+    #     # TODO: Need to set up AWS credentials in order to test this
+    #     # TODO: Can file key contain a directory structure, or do we need to
+    #     #       set up nested 'buckets' on s3 itself?
+    #     s3 = boto3.resource('s3')
+    #     # this leaves 'nems_saved_models/' as a prefix, so that s3 will
+    #     # mimick a saved models folder
+    #     key = file_path[len(sc.DIRECTORY_ROOT):]
+    #     fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
+    #     s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+    # else:
         directory = os.path.dirname(file_path)
     
         try:
@@ -162,58 +150,58 @@ def save_model_dict(stack, filepath=None):
     
     # to do: this info should go to a table in celldb if compact enough
     if filepath:
-        if AWS:
-            s3 = boto3.resource('s3')
-            key = filepath[len(sc.DIRECTORY_ROOT):]
-            fileobj = json.dumps(sdict)
-            s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
-        else:
-            with open(filepath,'w') as fp:
-                json.dump(sdict,fp)
+        # if AWS:
+        #     s3 = boto3.resource('s3')
+        #     key = filepath[len(.):]
+        #     fileobj = json.dumps(sdict)
+        #     s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
+        # else:
+        with open(filepath,'w') as fp:
+            json.dump(sdict,fp)
     
     return sdict
         
 
 def load_model_dict(filepath):
     #TODO: need to add AWS stuff
-    if AWS:
-        s3_client = boto3.client('s3')
-        key = filepath[len(sc.DIRECTORY_ROOT):]
-        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-        sdict = json.loads(fileobj['Body'].read())
-    else:
-        with open(filepath,'r') as fp:
-            sdict=json.load(fp)
+    # if AWS:
+    #     s3_client = boto3.client('s3')
+    #     key = filepath[len(sc.DIRECTORY_ROOT):]
+    #     fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+    #     sdict = json.loads(fileobj['Body'].read())
+    # else:
+    with open(filepath,'r') as fp:
+        sdict=json.load(fp)
     
     return sdict
     
 
 def load_model(file_path):
-    if AWS:
-        # TODO: need to set up AWS credentials to test this
-        s3_client = boto3.client('s3')
-        key = file_path[len(sc.DIRECTORY_ROOT):]
-        fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-        stack = pickle.loads(fileobj['Body'].read())
+    # if AWS:
+    #     # TODO: need to set up AWS credentials to test this
+    #     s3_client = boto3.client('s3')
+    #     key = file_path[len(sc.DIRECTORY_ROOT):]
+    #     fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+    #     stack = pickle.loads(fileobj['Body'].read())
         
-        return stack
-    else:
-        try:
-            # Load data (deserialize)
-            with open(file_path, 'rb') as handle:
-                stack = pickle.load(handle)
+    #     return stack
+    # else:
+    try:
+        # Load data (deserialize)
+        with open(file_path, 'rb') as handle:
+            stack = pickle.load(handle)
             print('stack successfully loaded')
-
+            
             if not stack.data:
                 raise Exception("Loaded stack from pickle, but data is empty")
-                
+            
             return stack
-        except Exception as e:
-            # TODO: need to do something else here maybe? removed return stack
-            #       at the end b/c it was being returned w/o assignment when
-            #       open file failed.
-            print("error loading {0}".format(file_path))
-            raise e
+    except Exception as e:
+        # TODO: need to do something else here maybe? removed return stack
+        #       at the end b/c it was being returned w/o assignment when
+        #       open file failed.
+        print("error loading {0}".format(file_path))
+        raise e
 
 
 def get_file_name(cellid, batch, modelname):
@@ -232,34 +220,33 @@ def get_mat_file(filename, chars_as_strings=True):
         TODO: generic support of s3 URI, not NEMS-specific
            check for local version (where, cached? before loading from s3)
     """
-    
-    if DEMO_MODE:
-        s3_client = boto3.client('s3')
-        i = filename.find('batch')
-        key = 'sample_data/{0}'.format(filename[i:])
-        fileobj = s3_client.get_object(Bucket='nemspublic', Key=key)
-        data = scipy.io.loadmat(
-                io.BytesIO(fileobj['Body'].read()),
-                chars_as_strings=chars_as_strings,
-                )
-        return data
-    if AWS:
-        s3_client = boto3.client('s3')
-        key = filename[len(sc.DIRECTORY_ROOT):]
-        try:
-            fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
-        except Exception as e:
-            print("File not found on S3: {0}".format(key))
-            raise e
+    # if DEMO_MODE:
+    #     s3_client = boto3.client('s3')
+    #     i = filename.find('batch')
+    #     key = 'sample_data/{0}'.format(filename[i:])
+    #     fileobj = s3_client.get_object(Bucket='nemspublic', Key=key)
+    #     data = scipy.io.loadmat(
+    #             io.BytesIO(fileobj['Body'].read()),
+    #             chars_as_strings=chars_as_strings,
+    #             )
+    #     return data
+    # if AWS:
+    #     s3_client = boto3.client('s3')
+    #     key = filename[len(sc.DIRECTORY_ROOT):]
+    #     try:
+    #         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+    #     except Exception as e:
+    #         print("File not found on S3: {0}".format(key))
+    #         raise e
             
-        data = scipy.io.loadmat(
-                io.BytesIO(fileobj['Body'].read()),
-                chars_as_strings=chars_as_strings
-                )
-        return data
-    else:
-        data = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
-        return data
+    #     data = scipy.io.loadmat(
+    #             io.BytesIO(fileobj['Body'].read()),
+    #             chars_as_strings=chars_as_strings
+    #             )
+    #     return data
+    #else:
+    data = scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
+    return data
 
 
 def load_ecog(stack,fs=25):

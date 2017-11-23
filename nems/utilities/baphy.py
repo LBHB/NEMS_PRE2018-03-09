@@ -9,12 +9,6 @@ Created on Wed Jun 14 09:33:47 2017
 import scipy.io as si
 import numpy as np
 
-try:
-    import nems_config.Storage_Config as sc
-except Exception as e:
-    print(e)
-    from nems_config.defaults import STORAGE_DEFAULTS
-    sc = STORAGE_DEFAULTS
 
 def load_baphy_file(filepath,level=0):
     """
@@ -67,7 +61,7 @@ def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18,pertrial=Fal
     @author: svd
     """
     
-    rootpath=sc.DIRECTORY_ROOT + "nems_in_cache"
+    rootpath= '/tmp/' + "nems_in_cache"
     if pertrial:
         ptstring="_pertrial"
     else:

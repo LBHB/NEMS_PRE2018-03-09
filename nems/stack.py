@@ -14,15 +14,7 @@ import os
 import io
 import copy
 
-try:
-    import boto3
-    import nems_config.Storage_Config as sc
-    AWS = sc.USE_AWS
-except:
-    from nems_config.defaults import STORAGE_DEFAULTS
-    sc = STORAGE_DEFAULTS
-    AWS = False
-
+g
 class nems_stack:
         
     """
@@ -492,9 +484,9 @@ class nems_stack:
                 plt.subplot(len(self.modules)-1,1,idx)
                 m.do_plot(m)
         plt.tight_layout()
-
+    
         filename = (
-                    sc.DIRECTORY_ROOT + "nems_saved_images/batch{0}/{1}/{2}.{3}"
+                    '/tmp/' + "nems_saved_images/batch{0}/{1}/{2}.{3}"
                     .format(batch, cellid, modelname, mode)
                     )
         
@@ -508,7 +500,7 @@ class nems_stack:
             #return ("s3://" + sc.PRIMARY_BUCKET + "/" + key)
         else:
             dr = (
-                    sc.DIRECTORY_ROOT
+                    '/tmp/'
                     + "nems_saved_images/batch{0}/{1}/".format(batch, cellid)
                     )
             try:
