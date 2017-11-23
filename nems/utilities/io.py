@@ -95,31 +95,32 @@ def save_model(stack, file_path):
     #     fileobj = pickle.dumps(stack2, protocol=pickle.HIGHEST_PROTOCOL)
     #     s3.Object(sc.PRIMARY_BUCKET, key).put(Body=fileobj)
     # else:
-        directory = os.path.dirname(file_path)
+    directory = os.path.dirname(file_path)
     
-        try:
-            os.stat(directory)
-        except:
-            os.mkdir(directory)       
+    try:
+        os.stat(directory)
+    except:
+        os.mkdir(directory)       
+        
+    if os.path.isfile(file_path):
+        print("Removing existing model at: {0}".format(file_path))
+        os.remove(file_path)
+        
+    try:
+        # Store data (serialize)
+        with open(file_path, 'wb') as handle:
+            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    except FileExistsError:
+        # delete pkl file first and try again
+        print("Removing existing model at: {0}".format(file_path))
+        os.remove(file_path)
+        with open(file_path, 'wb') as handle:
+            pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
+    os.chmod(file_path, 0o666)
+    print("Saved model to {0}".format(file_path))
     
-        if os.path.isfile(file_path):
-            print("Removing existing model at: {0}".format(file_path))
-            os.remove(file_path)
 
-        try:
-            # Store data (serialize)
-            with open(file_path, 'wb') as handle:
-                pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        except FileExistsError:
-            # delete pkl file first and try again
-            print("Removing existing model at: {0}".format(file_path))
-            os.remove(file_path)
-            with open(file_path, 'wb') as handle:
-                pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        
-        os.chmod(file_path, 0o666)
-        print("Saved model to {0}".format(file_path))
-        
 def save_model_dict(stack, filepath=None):
     sdict=dict.fromkeys(['modlist','mod_dicts','parm_fits','meta','nests','fitted_modules'])
     sdict['modlist']=[]
