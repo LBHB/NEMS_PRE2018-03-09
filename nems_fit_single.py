@@ -44,8 +44,6 @@ if __name__ == '__main__':
     batch=sys.argv[2]
     modelname=sys.argv[3]
     
-    print("Testing checkout during runqueue... \n\nTHIS IS THE MODIFIED COMMIT")
-    
     print("Running fit_single_model({0},{1},{2})".format(cellid,batch,modelname))
     stack = nems.fit_single_model(cellid,batch,modelname,autoplot=False)
 
