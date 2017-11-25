@@ -39,6 +39,9 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     dataset contains all the data, while the estimation dataset is just the estimation 
     data that was fitted last (i.e. on the last nest)
     """
+    
+    print("testing runqueue on git hash: THIS IS THE MODIFIED FIT_SINGLE_MODEL")
+    
     stack=ns.nems_stack()
     
     stack.meta['batch']=batch
