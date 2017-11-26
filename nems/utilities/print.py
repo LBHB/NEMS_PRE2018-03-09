@@ -1,8 +1,8 @@
 def web_print(s):
     use_app = False
     try:
-        from nems.web.nems_analysis import app
-        from nems.web.nems_analysis import socketio
+        from nems_web.nems_analysis import app
+        from nems_web.nems_analysis import socketio
         use_app = True
     except Exception as e:
         print('Error when using web_print')

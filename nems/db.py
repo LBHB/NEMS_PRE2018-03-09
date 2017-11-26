@@ -122,7 +122,7 @@ cluster_Session = sessionmaker(bind=cluster_engine)
 
 def enqueue_models(
         celllist, batch, modellist, force_rerun=False,
-        user=None, codeHash="master",
+        user=None, codeHash="master", jerbQuery='',
         ):
     """Call enqueue_single_model for every combination of cellid and modelname
     contained in the user's selections.
@@ -135,7 +135,17 @@ def enqueue_models(
         batch number selected by user.
     modellist : list
         List of modelname selections made by user.
-    
+    force_rerun : boolean
+        If true, models will be fit even if a result already exists.
+        If false, models with existing results will be skipped.
+    user : TODO
+    codeHash : string
+        Git hash string identifying a commit for the specific version of the
+        code repository that should be used to run the model fit.
+        Can also accept the name of a branch.
+    jerbQuery : dict
+        Dict that will be used by 'jerb find' to locate matching jerbs
+        
     Returns:
     --------
     pass_fail : list
@@ -158,7 +168,7 @@ def enqueue_models(
         for cell in celllist:
             queueid, message = _enqueue_single_model(
                         cell, batch, model, force_rerun, user,
-                        session, cluster_session, codeHash,
+                        session, cluster_session, codeHash, jerbQuery,
                         )
             if queueid:
                 pass_fail.append(
@@ -182,7 +192,7 @@ def enqueue_models(
 
 def _enqueue_single_model(
         cellid, batch, modelname, force_rerun, user,
-        session, cluster_session, codeHash,
+        session, cluster_session, codeHash, jerbQuery
         ):
     
     """Adds a particular model to the queue to be fitted.
@@ -265,7 +275,9 @@ def _enqueue_single_model(
         #result must not have existed, or status value was greater than 2
         # add new entry
         message = "Adding job to queue for: %s\n"%note
-        job = _add_model_to_queue(commandPrompt, note, user, codeHash)
+        job = _add_model_to_queue(
+                commandPrompt, note, user, codeHash, jerbQuery
+                )
         cluster_session.add(job)
         
     cluster_session.commit()
@@ -282,7 +294,8 @@ def _enqueue_single_model(
     return queueid, message
     
 def _add_model_to_queue(
-        commandPrompt, note, user, codeHash, priority=1, rundataid=0,
+        commandPrompt, note, user, codeHash, jerbQuery, priority=1,
+        rundataid=0,
         ):
     """
     Returns:
@@ -328,6 +341,8 @@ def _add_model_to_queue(
     job.note = note
     job.waitid = waitid
     job.codeHash = codeHash
+    # TODO: add jerbQuery to tQueue table
+    #job.jerbQuery = jerbQuery
     
     return job
 
