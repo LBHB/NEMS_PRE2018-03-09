@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 
 
@@ -8,26 +9,26 @@ class Signal():
     .recording    The name of the recording session [string]
     .cellid       The name of the cellid [string]
     .fs           The frequency [uint] of sampling, in Hz.
+    .nchans       The number of input channels
+    .nreps        The number of trial repetitions
+    .ntimes       The number of time samples per trial
 
     There is one optional field:
     .meta         Metadata for the signal
 
-    To see the dimensions of the thing, use
-    .chans_samps_trials()
-
-    To get views of the same data in different ways, use:
+    To get (cheap) views of the same data matrix in different ways, use:
     .as_single_trial()
     .as_average_trial()
 
-    To create modified copies of this object, use:
-    .jackknifed_by_trials(nsplits, split_idx)
+    To create (more expensive) modified copies of this object, use:
+    .jackknifed_by_reps(nsplits, split_idx)
     .jackknifed_by_time(nsplits, split_idx)
     .with_condition(condition)
     .normalized()
 
     To combine with other objects, use:
     .append_timeseries()
-    .append_trials()
+    .append_reps()
     .append_channels()
 
     The immutable data is hidden inside:
@@ -67,31 +68,46 @@ class Signal():
 
         self.__matrix__.flags.writeable = False  # Make it immutable
 
-        (C, T, R) = self.chans_samps_trials()
+        (C, T, R) = self.__matrix__.shape
 
         if T < R or T < C:
-            raise ValueError(('Matrix dims weird: (C, T, R) = ' +
-                              str((C, T, R))))
+            raise ValueError(('Matrix dims weird: (C, T, R) = '
+                              + str((C, T, R))
+                              + '; failing because we expected a long time'
+                              + ' series but found T < R or T < C'))
 
-    def chans_samps_trials(self):
-        """ Returns (C, T, R), where:
-        C  is the number of channels
-        T  is the number of time samples per trial repetition
-        R  is the number of trial repetitions """
-        return self.__matrix__.shape
+        self.nchans = C
+        self.ntimes = T
+        self.nreps = R
+
 
     def savetocsv(self, dirpath):
-        """ Saves this signal to a CSV. """
-        np.savetxt(os.path.join(dirpath, "blah.csv"),
-                   self.__matrix__,
+        """ Saves this signal to a CSV as a single long trial. """
+        filename = self.recording + '_' + self.name
+        filepath = os.path.join(dirpath, filename)
+        csvfilepath = filepath + '.csv'
+        jsonfilepath = filepath + '.json'
+        np.savetxt(csvfilepath,
+                   self.as_single_trial(),
                    delimiter=", ")
+        obj = {'name': self.name,
+               'recording': self.recording,
+               'cellid': self.cellid,
+               'fs': self.fs,
+               'nchans': self.nchans,
+               'nreps': self.nreps,
+               'ntimes': self.ntimes,
+               'meta': self.meta}
+        with open(jsonfilepath, 'w') as f:
+            json.dump(obj, f)
+        return (csvfilepath, jsonfilepath)
 
     def copy(self):
         """ Returns a copy of the Chans x Time x Reps matrix; TODO: Tests """
         return self.__matrix__.copy()
 
     def as_single_trial(self):
-        """ Return the data by concatenating all trials one after another
+        """ Return the data by concatenating all reps one after another
         so that it appears to be a single, long trial. (i.e. 1 repetition)  """
         (C, T, R) = self.__matrix__.shape
         return self.__matrix__.reshape(C, T*R)
@@ -100,8 +116,8 @@ class Signal():
         """ Return the matrix as the average of all repetitions.  """
         return np.nanmean(self.__matrix__, axis=2)
 
-    def jackknifed_by_trials(self, nsplits, split_idx):
-        """ Returns a new signal, with entire trials NaN'd out. """
+    def jackknifed_by_reps(self, nsplits, split_idx):
+        """ Returns a new signal, with entire reps NaN'd out. """
         # TODO
         pass
 
@@ -113,7 +129,7 @@ class Signal():
     def append_timeseries(self, other):
         """ TODO """
 
-    def append_trials(self, other):
+    def append_reps(self, other):
         """ TODO """
 
     def append_channels(self, other):
@@ -130,3 +146,18 @@ class Signal():
         have zero mean and unity variance."""
         # TODO
         pass
+
+
+def loadfromcsv(csvfilepath, jsonfilepath):
+    """ Loads the CSV file. """
+    mat = np.loadtxt(csvfilepath, delimiter=", ")
+    with open(jsonfilepath, 'r') as f:
+        js = json.load(f)
+    matrix = mat.reshape(js['nchans'], js['ntimes'], js['nreps'])
+    s = Signal(signal_name=js['name'],
+               cellid=js['cellid'],
+               recording=js['recording'],
+               fs=js['fs'],
+               meta=js['meta'],
+               matrix=matrix)
+    return s

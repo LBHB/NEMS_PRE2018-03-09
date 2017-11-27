@@ -1,7 +1,11 @@
 import os
 import numpy as np
 import scipy.io
-from nems.Signal import Signal
+import nems
+
+# TODO: This type of hackery is CRAP, python!
+from importlib import reload
+reload(nems.Signal)
 
 DEFAULT_DIRPATH = '/home/ivar/mat/'
 
@@ -17,12 +21,23 @@ def __extract_metadata(matrec):
     unwrap = lambda n: n[0] if type(n) == np.ndarray else n
     meta = dict((n, unwrap(matrec[n][0])) for n in needed if n in found)
 
+    # Convert into integers or floats cuz np datatypes are not serializable
+    for k, v in meta.items():
+        if isinstance(v, np.str_):
+            next
+        elif isinstance(v, np.integer):
+            meta[k] = int(v)
+        elif isinstance(v, np.floating):
+            meta[k] = float(v)
+        else:
+            print("WARN:", k, 'is', type(v))
+
     meta['cellid'] = str(meta['cellid'])  # Convert numpy string to normal
 
     # Tags is not completely examined here; TODO: find others?
-    meta['prestim'] = matrec['tags'][0]['PreStimSilence'][0][0][0]
-    meta['poststim'] = matrec['tags'][0]['PostStimSilence'][0][0][0]
-    meta['duration'] = matrec['tags'][0]['Duration'][0][0][0]
+    meta['prestim'] = float(matrec['tags'][0]['PreStimSilence'][0][0][0])
+    meta['poststim'] = float(matrec['tags'][0]['PostStimSilence'][0][0][0])
+    meta['duration'] = float(matrec['tags'][0]['Duration'][0][0][0])
 
     # TODO: fn_spike, fn_param metadata are mostly ignored; too complicated!
     meta['stimparam'] = [str(''.join(letter)) for letter in matrec['fn_param']]
@@ -60,7 +75,7 @@ def mat2signals(matfile):
             raise ValueError('stimids are not supported yet, sorry')
 
         # Extract the two required signals
-        sigs.append(Signal(signal_name='stim',
+        sigs.append(nems.Signal.Signal(signal_name='stim',
                            recording=meta['recording'],
                            cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
@@ -73,7 +88,7 @@ def mat2signals(matfile):
                            matrix=m['stim'],
                            fs=meta['stimfs']))
 
-        sigs.append(Signal(signal_name='resp',
+        sigs.append(nems.Signal.Signal(signal_name='resp',
                            recording=meta['recording'],
                            cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
@@ -83,7 +98,7 @@ def mat2signals(matfile):
 
         # Extract the pupil size and behavior_condition, if they exist
         if 'pupil' in signal_names:
-            sigs.append(Signal(signal_name='pupil',
+            sigs.append(nems.Signal.Signal(signal_name='pupil',
                                recording=meta['recording'],
                                cellid=meta['cellid'],
                                meta=None,
@@ -93,7 +108,7 @@ def mat2signals(matfile):
 
         # TODO: instead of respfs, switch to pupilfs and behavior_conditionfs
         if 'behavior_condition' in signal_names:
-            sigs.append(Signal(signal_name='behavior_condition',
+            sigs.append(nems.Signal.Signal(signal_name='behavior_condition',
                                recording=meta['recording'],
                                cellid=meta['cellid'],
                                meta=None,
@@ -114,5 +129,6 @@ sigs = mat2signals(matfile)
 print("---")
 for s in sigs:
     print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
-
-    # s.savetocsv('/home/ivar/sigs/')
+    (csv, js) = s.savetocsv('/home/ivar/sigs/')
+    q = nems.Signal.loadfromcsv(csv, js)
+    print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
