@@ -1,5 +1,6 @@
 import os
 import json
+import pandas as pd   # Pulled in for fast CSV i/o
 import numpy as np
 
 
@@ -13,7 +14,7 @@ class Signal():
     .nreps        The number of trial repetitions
     .ntimes       The number of time samples per trial
 
-    There is one optional field:
+    There is one optional initialization field:
     .meta         Metadata for the signal
 
     To get (cheap) views of the same data matrix in different ways, use:
@@ -32,7 +33,7 @@ class Signal():
     .append_channels()
 
     The immutable data is hidden inside:
-    .__matrix__   A matrix of channels x time x repetitions [np.ndarray]
+    .__matrix__   A matrix of time x channels x repetitions [np.ndarray]
     """
     def __init__(self, **kwargs):
         # Four required parameters:
@@ -68,11 +69,11 @@ class Signal():
 
         self.__matrix__.flags.writeable = False  # Make it immutable
 
-        (C, T, R) = self.__matrix__.shape
+        (T, C, R) = self.__matrix__.shape
 
         if T < R or T < C:
-            raise ValueError(('Matrix dims weird: (C, T, R) = '
-                              + str((C, T, R))
+            raise ValueError(('Matrix dims weird: (T, C, R) = '
+                              + str((T, C, R))
                               + '; failing because we expected a long time'
                               + ' series but found T < R or T < C'))
 
@@ -81,15 +82,24 @@ class Signal():
         self.nreps = R
 
 
-    def savetocsv(self, dirpath):
-        """ Saves this signal to a CSV as a single long trial. """
+    def savetocsv(self, dirpath, fmt=None):
+        """ Saves this signal to a CSV as a single long trial. If
+        desired, you may use optional parameter fmt='%1.3f' to alter
+        the precision of the matrices written to file"""
         filename = self.recording + '_' + self.name
         filepath = os.path.join(dirpath, filename)
         csvfilepath = filepath + '.csv'
         jsonfilepath = filepath + '.json'
-        np.savetxt(csvfilepath,
-                   self.as_single_trial(),
-                   delimiter=", ")
+        if fmt:
+            np.savetxt(csvfilepath,
+                       self.as_single_trial(),
+                       delimiter=", ",
+                       fmt=fmt)
+        else:
+            np.savetxt(csvfilepath,
+                       self.as_single_trial(),
+                       delimiter=", ")
+        # df = pd.DataFrame(self.as_single_trial())  # 10x slower than savetxt
         obj = {'name': self.name,
                'recording': self.recording,
                'cellid': self.cellid,
@@ -109,8 +119,10 @@ class Signal():
     def as_single_trial(self):
         """ Return the data by concatenating all reps one after another
         so that it appears to be a single, long trial. (i.e. 1 repetition)  """
-        (C, T, R) = self.__matrix__.shape
-        return self.__matrix__.reshape(C, T*R)
+        mat = self.__matrix__.swapaxes(1, 0)
+        mat = mat.swapaxes(2, 0)
+        mat = mat.reshape(self.ntimes * self.nreps, self.nchans)
+        return mat
 
     def as_average_trial(self):
         """ Return the matrix as the average of all repetitions.  """
@@ -150,14 +162,17 @@ class Signal():
 
 def loadfromcsv(csvfilepath, jsonfilepath):
     """ Loads the CSV file. """
-    mat = np.loadtxt(csvfilepath, delimiter=", ")
+    # mat = np.loadtxt(csvfilepath, delimiter=", ") # 10x slower than read_csv:
+    mat = pd.read_csv(csvfilepath, header=None).values
     with open(jsonfilepath, 'r') as f:
         js = json.load(f)
-    matrix = mat.reshape(js['nchans'], js['ntimes'], js['nreps'])
+    mat = mat.reshape(js['nreps'], js['ntimes'], js['nchans'])
+    mat = mat.swapaxes(1, 0)
+    mat = mat.swapaxes(2, 1)
     s = Signal(signal_name=js['name'],
                cellid=js['cellid'],
                recording=js['recording'],
                fs=js['fs'],
                meta=js['meta'],
-               matrix=matrix)
+               matrix=mat)
     return s

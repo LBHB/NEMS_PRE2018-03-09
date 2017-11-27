@@ -85,7 +85,7 @@ def mat2signals(matfile):
                                               'stimfmt',
                                               'stimchancount',
                                               'filestate'])},
-                           matrix=m['stim'],
+                           matrix=np.swapaxes(m['stim'], 0, 1),
                            fs=meta['stimfs']))
 
         sigs.append(nems.Signal.Signal(signal_name='resp',
@@ -93,7 +93,7 @@ def mat2signals(matfile):
                            cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
                                  if k in set(['isolation'])},
-                           matrix=np.swapaxes(m['resp_raster'], 0, 1),
+                           matrix=m['resp_raster'],
                            fs=meta['respfs']))
 
         # Extract the pupil size and behavior_condition, if they exist
@@ -102,8 +102,7 @@ def mat2signals(matfile):
                                recording=meta['recording'],
                                cellid=meta['cellid'],
                                meta=None,
-                               matrix=(np.swapaxes(m['pupil']*0.01,
-                                                   0, 1)),
+                               matrix=m['pupil']*0.01,
                                fs=meta['respfs']))
 
         # TODO: instead of respfs, switch to pupilfs and behavior_conditionfs
@@ -112,7 +111,7 @@ def mat2signals(matfile):
                                recording=meta['recording'],
                                cellid=meta['cellid'],
                                meta=None,
-                               matrix=m['behavior_condition'],
+                               matrix=np.swapaxes(m['behavior_condition'], 0, 1),
                                fs=meta['respfs']))
 
     return sigs
@@ -129,6 +128,25 @@ sigs = mat2signals(matfile)
 print("---")
 for s in sigs:
     print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
-    (csv, js) = s.savetocsv('/home/ivar/sigs/')
+    (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
+    print("loading")
     q = nems.Signal.loadfromcsv(csv, js)
     print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
+
+
+# A Test of the above
+with open('/tmp/ooo.csv', 'w') as f:
+    n = 0
+    for i in range(200):
+        f.write(str(n))
+        n += 1
+        for j in range(1, 8):            
+            f.write(', ')
+            f.write(str(n))
+            n += 1
+        f.write('\n')
+
+q = nems.Signal.loadfromcsv('/tmp/ooo.csv', '/tmp/ooo.json')
+q.savetocsv('/tmp/')
+
+assert(q.__matrix__[1,2,3] == 490)
