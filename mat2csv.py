@@ -1,11 +1,7 @@
 import os
 import numpy as np
 import scipy.io
-import nems
-
-# TODO: This type of hackery is CRAP, python!
-from importlib import reload
-reload(nems.Signal)
+from nems.Signal import Signal, loadfromcsv
 
 DEFAULT_DIRPATH = '/home/ivar/mat/'
 
@@ -75,7 +71,7 @@ def mat2signals(matfile):
             raise ValueError('stimids are not supported yet, sorry')
 
         # Extract the two required signals
-        sigs.append(nems.Signal.Signal(signal_name='stim',
+        sigs.append(Signal(signal_name='stim',
                            recording=meta['recording'],
                            cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
@@ -88,7 +84,7 @@ def mat2signals(matfile):
                            matrix=np.swapaxes(m['stim'], 0, 1),
                            fs=meta['stimfs']))
 
-        sigs.append(nems.Signal.Signal(signal_name='resp',
+        sigs.append(Signal(signal_name='resp',
                            recording=meta['recording'],
                            cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
@@ -98,7 +94,7 @@ def mat2signals(matfile):
 
         # Extract the pupil size and behavior_condition, if they exist
         if 'pupil' in signal_names:
-            sigs.append(nems.Signal.Signal(signal_name='pupil',
+            sigs.append(Signal(signal_name='pupil',
                                recording=meta['recording'],
                                cellid=meta['cellid'],
                                meta=None,
@@ -107,7 +103,7 @@ def mat2signals(matfile):
 
         # TODO: instead of respfs, switch to pupilfs and behavior_conditionfs
         if 'behavior_condition' in signal_names:
-            sigs.append(nems.Signal.Signal(signal_name='behavior_condition',
+            sigs.append(Signal(signal_name='behavior_condition',
                                recording=meta['recording'],
                                cellid=meta['cellid'],
                                meta=None,
@@ -125,14 +121,14 @@ matfile = ('/home/ivar/tmp/gus027b-a1_b293_parm_fs200'
 
 sigs = mat2signals(matfile)
 
-print("---")
-for s in sigs:
-    print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
-    (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
-    print("loading")
-    q = nems.Signal.loadfromcsv(csv, js)
-    print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
+# print("---")
+# for s in sigs:
+#     print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
+#     (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
+#     q = nems.Signal.loadfromcsv(csv, js)
+#     print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
 
+##############################################################################
 
 # A Test of the above
 with open('/tmp/ooo.csv', 'w') as f:
@@ -140,13 +136,28 @@ with open('/tmp/ooo.csv', 'w') as f:
     for i in range(200):
         f.write(str(n))
         n += 1
-        for j in range(1, 8):            
+        for j in range(1, 8):
             f.write(', ')
             f.write(str(n))
             n += 1
         f.write('\n')
 
-q = nems.Signal.loadfromcsv('/tmp/ooo.csv', '/tmp/ooo.json')
+q = loadfromcsv('/tmp/ooo.csv', '/tmp/ooo.json')
 q.savetocsv('/tmp/')
 
 assert(q.__matrix__[1,2,3] == 490)
+assert(q.as_average_trial()[3,3] == 747.0)
+
+p = q.jackknifed_by_reps(10, 0)
+assert(np.isnan(p.__matrix__[1,3,0]))
+assert(np.isnan(p.__matrix__[2,5,0]))
+assert(not np.isnan(p.__matrix__[2,5,1]))
+
+r = q.jackknifed_by_time(200, 199)
+assert(np.isnan(r.__matrix__[-1,3,-1]))
+assert(not np.isnan(r.__matrix__[1,3,1]))
+
+#print(r.__matrix__)
+#print(r.as_single_trial())
+
+print("Tests passed")

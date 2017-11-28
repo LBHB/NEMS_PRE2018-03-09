@@ -81,7 +81,6 @@ class Signal():
         self.ntimes = T
         self.nreps = R
 
-
     def savetocsv(self, dirpath, fmt=None):
         """ Saves this signal to a CSV as a single long trial. If
         desired, you may use optional parameter fmt='%1.3f' to alter
@@ -113,8 +112,25 @@ class Signal():
         return (csvfilepath, jsonfilepath)
 
     def copy(self):
-        """ Returns a copy of the Chans x Time x Reps matrix; TODO: Tests """
+        """ Returns a copy of the matrix; TODO: Tests """
         return self.__matrix__.copy()
+
+    def modified_copy(self, m):
+        """ Returns a copy of the Signal using the modified data matrix m"""
+        new_obj = Signal(signal_name=self.name,
+                         cellid=self.cellid,
+                         recording=self.recording,
+                         fs=self.fs,
+                         meta=self.meta,
+                         matrix=m)
+        return new_obj
+
+    def single_to_multi_trial(self, m):
+        """ TODO """
+        mat = m.reshape(self.nreps, self.ntimes, self.nchans)
+        mat = mat.swapaxes(1, 0)
+        mat = mat.swapaxes(2, 1)
+        return mat
 
     def as_single_trial(self):
         """ Return the data by concatenating all reps one after another
@@ -129,23 +145,50 @@ class Signal():
         return np.nanmean(self.__matrix__, axis=2)
 
     def jackknifed_by_reps(self, nsplits, split_idx):
-        """ Returns a new signal, with entire reps NaN'd out. """
-        # TODO
-        pass
+        """ Returns a new signal, with entire reps NaN'd out. If nreps is not
+        an integer multiple of nsplits, an error is thrown. """
+        ratio = (self.nreps / nsplits)
+        if ratio != int(ratio):
+            raise ValueError('nreps must be an integer multiple of nsplits:'
+                             + str(ratio))
+        m = self.__matrix__.copy()
+        m[:, :, split_idx] = float('NaN')
+        return self.modified_copy(m)
 
     def jackknifed_by_time(self, nsplits, split_idx):
-        """ Returns a new signal, with some data in every trial NaN'd out."""
-        # TODO
-        pass
+        """ Returns a new signal, with some data NaN'd out based on its position
+        in the time stream. split_idx is indexed from 0; if you have 20 splits,
+        the first is #0 and the last is #19. """
+        n_time_elements = self.ntimes * self.nreps
+        splitsize = int(n_time_elements / nsplits)
+        if splitsize < 1:
+            raise ValueError('Too many jackknifes? Splitsize was: '
+                             + str(splitsize))
+        split_start = split_idx * splitsize
+        if split_idx == nsplits - 1:
+            split_end = n_time_elements
+        else:
+            split_end = (split_idx + 1) * splitsize
+        m = self.as_single_trial().copy()
+        m[split_start:split_end, :] = float('NaN')
+        return self.modified_copy(self.single_to_multi_trial(m))
 
     def append_timeseries(self, other):
         """ TODO """
+        if not type(other) == type(self):
+            raise ValueError('append_timeseries needs another Signal object.')
+        pass
 
     def append_reps(self, other):
         """ TODO """
+        if not type(other) == type(self):
+            raise ValueError('append_reps needs another Signal object.')
+        pass
 
     def append_channels(self, other):
         """ TODO """
+        if not type(other) == type(self):
+            raise ValueError('append_reps needs another Signal object.')
 
     def with_condition(self, condition):
         """Returns a new signal, with data that does not meet the condition
@@ -155,17 +198,25 @@ class Signal():
 
     def normalized(self):
         """ Returns a new signal, same as this one, but shifted to
-        have zero mean and unity variance."""
+        have zero mean and unity variance on each channel."""
         # TODO
+        # p = self.as_single_trial()
+        # chan_means = 
+        # chan_variances = 
+        # m = self.__matrix__
+        # obj = Signal(matrix=m)
+        # return obj
         pass
 
 
 def loadfromcsv(csvfilepath, jsonfilepath):
-    """ Loads the CSV file. """
+    """ Loads the CSV & JSON files and returns a Signal() object """
     # mat = np.loadtxt(csvfilepath, delimiter=", ") # 10x slower than read_csv:
     mat = pd.read_csv(csvfilepath, header=None).values
+    mat = mat.astype('float')
     with open(jsonfilepath, 'r') as f:
         js = json.load(f)
+    # NOTE: Please also see 'single_to_multi_trial'; TODO: refactor?
     mat = mat.reshape(js['nreps'], js['ntimes'], js['nchans'])
     mat = mat.swapaxes(1, 0)
     mat = mat.swapaxes(2, 1)
