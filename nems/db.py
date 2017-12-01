@@ -50,9 +50,11 @@ except Exception as e:
     print('No database info detected')
     print(e)
     path = os.path.dirname(nems_config.defaults.__file__)
-    i = path.find('nems_config')
-    db_path = (path[:i+11] + '/default_db.db')
+    i = path.find('nems/nems_config')
+    db_path = (path[:i+5] + 'nems_sample/demo_db.db')
     db_uri = 'sqlite:///' + db_path + '?check_same_thread=False'
+    nems_config.defaults.DEMO_MODE = True
+    print('Using demo mode: {0}'.format(nems_config.defaults.DEMO_MODE))
 
 try:
     import nems_config.Cluster_Database_Info as clst_db
@@ -73,8 +75,8 @@ except Exception as e:
     print('No cluster database info detected')
     print(e)
     path = os.path.dirname(nems_config.defaults.__file__)
-    i = path.find('nems_config')
-    db_path = (path[:i+11] + '/default_db.db')
+    i = path.find('nems/nems_config')
+    db_path = (path[:i+5] + 'nems_sample/demo_db.db')
     clst_db_uri = 'sqlite:///' + db_path + '?check_same_thread=False'
 
     
@@ -120,7 +122,7 @@ cluster_Session = sessionmaker(bind=cluster_engine)
 
 def enqueue_models(
         celllist, batch, modellist, force_rerun=False,
-        user=None, codeHash="master",
+        user=None, codeHash="master", jerbQuery='',
         ):
     """Call enqueue_single_model for every combination of cellid and modelname
     contained in the user's selections.
@@ -133,7 +135,17 @@ def enqueue_models(
         batch number selected by user.
     modellist : list
         List of modelname selections made by user.
-    
+    force_rerun : boolean
+        If true, models will be fit even if a result already exists.
+        If false, models with existing results will be skipped.
+    user : TODO
+    codeHash : string
+        Git hash string identifying a commit for the specific version of the
+        code repository that should be used to run the model fit.
+        Can also accept the name of a branch.
+    jerbQuery : dict
+        Dict that will be used by 'jerb find' to locate matching jerbs
+        
     Returns:
     --------
     pass_fail : list
@@ -156,7 +168,7 @@ def enqueue_models(
         for cell in celllist:
             queueid, message = _enqueue_single_model(
                         cell, batch, model, force_rerun, user,
-                        session, cluster_session, codeHash,
+                        session, cluster_session, codeHash, jerbQuery,
                         )
             if queueid:
                 pass_fail.append(
@@ -180,7 +192,7 @@ def enqueue_models(
 
 def _enqueue_single_model(
         cellid, batch, modelname, force_rerun, user,
-        session, cluster_session, codeHash,
+        session, cluster_session, codeHash, jerbQuery
         ):
     
     """Adds a particular model to the queue to be fitted.
@@ -263,7 +275,9 @@ def _enqueue_single_model(
         #result must not have existed, or status value was greater than 2
         # add new entry
         message = "Adding job to queue for: %s\n"%note
-        job = _add_model_to_queue(commandPrompt, note, user, codeHash)
+        job = _add_model_to_queue(
+                commandPrompt, note, user, codeHash, jerbQuery
+                )
         cluster_session.add(job)
         
     cluster_session.commit()
@@ -280,7 +294,8 @@ def _enqueue_single_model(
     return queueid, message
     
 def _add_model_to_queue(
-        commandPrompt, note, user, codeHash, priority=1, rundataid=0,
+        commandPrompt, note, user, codeHash, jerbQuery, priority=1,
+        rundataid=0,
         ):
     """
     Returns:
@@ -326,6 +341,8 @@ def _add_model_to_queue(
     job.note = note
     job.waitid = waitid
     job.codeHash = codeHash
+    # TODO: add jerbQuery to tQueue table
+    #job.jerbQuery = jerbQuery
     
     return job
 
@@ -557,6 +574,21 @@ def get_batch_cells(batch=None, cellid=None):
     
     return d
 
+def get_data_parms(rawid=None,parmfile=None):
+    # get parameters stored in gData associated with a rawfile
+
+    if rawid is not None:
+        sql="SELECT gData.* FROM gData INNER JOIN gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.id={0}".format(rawid)
+        #sql="SELECT * FROM gData WHERE rawid={0}".format(rawid)
+    elif parmfile is not None:
+        sql="SELECT gData.* FROM gData INNER JOIN gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.parmfile = '{0}'".format(parmfile)
+        print(sql)
+    else:
+        pass
+
+    d=pd.read_sql(sql=sql,con=cluster_engine)
+
+    return d
 
 def batch_comp(batch,modelnames=[],cellids=['%']):
     

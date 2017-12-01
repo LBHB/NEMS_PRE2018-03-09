@@ -9,122 +9,122 @@ s"""
 from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
-
 import numpy as np
 import scipy.stats as spstats
 
+
 class mean_square_error(nems_module):
+    name = 'metrics.mean_square_error'
+    user_editable_fields = ['input1', 'input2', 'norm', 'shrink']
+    plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_psth_smooth,
+                nems.utilities.plot.pred_act_scatter]
+    input1 = 'pred'
+    input2 = 'resp'
+    norm = True
+    shrink = 0
+    mse_est = np.ones([1, 1])
+    mse_val = np.ones([1, 1])
 
-    name='metrics.mean_square_error'
-    user_editable_fields=['input1','input2','norm','shrink']
-    plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_psth_smooth,nems.utilities.plot.pred_act_scatter]
-    input1='pred'
-    input2='resp'
-    norm=True
-    shrink=0
-    mse_est=np.ones([1,1])
-    mse_val=np.ones([1,1])
+    def my_init(self, input1='pred', input2='resp', norm=True, shrink=0):
+        self.field_dict = locals()
+        self.field_dict.pop('self', None)
+        self.input1 = input1
+        self.input2 = input2
+        self.norm = norm
+        self.shrink = shrink
+        self.do_trial_plot = self.plot_fns[1]
 
-    def my_init(self, input1='pred',input2='resp',norm=True,shrink=0):
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
-        self.input1=input1
-        self.input2=input2
-        self.norm=norm
-        self.shrink=shrink
-        self.do_trial_plot=self.plot_fns[1]
-
-    def evaluate(self,nest=0):
-        if nest==0:
+    def evaluate(self, nest=0):
+        if nest == 0:
             del self.d_out[:]
             for i, d in enumerate(self.d_in):
                 self.d_out.append(d.copy())
-            
-        X1=self.unpack_data(self.input1,est=True)
-        X2=self.unpack_data(self.input2,est=True)
-        keepidx=np.isfinite(X1) * np.isfinite(X2)
-        X1=X1[keepidx]
-        X2=X2[keepidx]
+
+        X1 = self.unpack_data(self.input1, est=True)
+        X2 = self.unpack_data(self.input2, est=True)
+        keepidx = np.isfinite(X1) * np.isfinite(X2)
+        X1 = X1[keepidx]
+        X2 = X2[keepidx]
         if self.shrink:
-            bounds=np.round(np.linspace(0,len(X1)+1,11)).astype(int)
-            E=np.zeros([10,1])
-            #P=np.mean(np.square(X2))
-            
-            for ii in range(0,10):
-                if bounds[ii]==bounds[ii+1]:
+            bounds = np.round(np.linspace(0, len(X1) + 1, 11)).astype(int)
+            E = np.zeros([10, 1])
+            # P=np.mean(np.square(X2))
+
+            for ii in range(0, 10):
+                if bounds[ii] == bounds[ii + 1]:
                     print('no data in range?')
-                P=np.mean(np.square(X2[bounds[ii]:bounds[ii+1]]))
-                if P>0:
-                    E[ii]=np.mean(np.square(X1[bounds[ii]:bounds[ii+1]]-X2[bounds[ii]:bounds[ii+1]]))/P
+                P = np.mean(np.square(X2[bounds[ii]:bounds[ii + 1]]))
+                if P > 0:
+                    E[ii] = np.mean(np.square(X1[bounds[ii]:bounds[ii + 1]] - X2[bounds[ii]:bounds[ii + 1]])) / P
                 else:
-                    E[ii]=1
-            #E=E/P
-            
-            mE=E.mean()
-            sE=E.std()
-            
+                    E[ii] = 1
+            # E=E/P
+
+            mE = E.mean()
+            sE = E.std()
+
             if self.parent_stack.valmode:
                 print(E)
                 print(mE)
                 print(sE)
                 print("MSE shrink: {0}".format(self.shrink))
-                
-            if mE<1:
+
+            if mE < 1:
                 # apply shrinkage filter to 1-E with factors self.shrink
-                mse=1-nems.utilities.utils.shrinkage(1-mE,sE,self.shrink)
+                mse = 1 - nems.utilities.utils.shrinkage(1 - mE, sE, self.shrink)
             else:
-                mse=mE
+                mse = mE
 
         else:
-            E=np.sum(np.square(X1-X2))
-            P=np.sum(X2*X2)
-            N=X1.size
+            E = np.sum(np.square(X1 - X2))
+            P = np.sum(X2 * X2)
+            N = X1.size
 
-#            E=np.zeros([1,1])
-#            P=np.zeros([1,1])
-#            N=0
-#            for f in self.d_out:
-#                #try:
-#                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-#                P+=np.sum(np.square(f[self.input2]))
-#                #except TypeError:
-#                    #print('error eval')
-#                    #nems.utilities.utils.concatenate_helper(self.parent_stack)
-#                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-#                    #P+=np.sum(np.square(f[self.input2]))
-#                N+=f[self.input2].size
+            #            E=np.zeros([1,1])
+            #            P=np.zeros([1,1])
+            #            N=0
+            #            for f in self.d_out:
+            #                #try:
+            #                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+            #                P+=np.sum(np.square(f[self.input2]))
+            #                #except TypeError:
+            #                    #print('error eval')
+            #                    #nems.utilities.utils.concatenate_helper(self.parent_stack)
+            #                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
+            #                    #P+=np.sum(np.square(f[self.input2]))
+            #                N+=f[self.input2].size
 
             if self.norm:
-                if P>0:
-                    mse=E/P
+                if P > 0:
+                    mse = E / P
                 else:
-                    mse=1
+                    mse = 1
             else:
-                mse=E/N
+                mse = E / N
 
-        self.mse_est=mse
-        self.parent_stack.meta['mse_est']=[mse]
-                
+        self.mse_est = mse
+        self.parent_stack.meta['mse_est'] = [mse]
+
         if self.parent_stack.valmode:
-            
-            X1=self.unpack_data(self.input1,est=False)            
-            X2=self.unpack_data(self.input2,est=False)
-            keepidx=np.isfinite(X1) * np.isfinite(X2)
-            X1=X1[keepidx]
-            X2=X2[keepidx]
-            E=np.sum(np.square(X1-X2))
-            P=np.sum(X2*X2)
-            N=X1.size
+
+            X1 = self.unpack_data(self.input1, est=False)
+            X2 = self.unpack_data(self.input2, est=False)
+            keepidx = np.isfinite(X1) * np.isfinite(X2)
+            X1 = X1[keepidx]
+            X2 = X2[keepidx]
+            E = np.sum(np.square(X1 - X2))
+            P = np.sum(X2 * X2)
+            N = X1.size
 
             if self.norm:
-                if P>0:
-                    mse=E/P
+                if P > 0:
+                    mse = E / P
                 else:
-                    mse=1    
+                    mse = 1
             else:
-                mse=E/N
-            self.mse_val=mse
-            self.parent_stack.meta['mse_val']=[mse]
+                mse = E / N
+            self.mse_val = mse
+            self.parent_stack.meta['mse_val'] = [mse]
 
         return mse
 
@@ -137,60 +137,59 @@ class mean_square_error(nems_module):
 
 
 class likelihood_poisson(nems_module):
+    name = 'metrics.likelihood_poisson'
+    user_editable_fields = ['input1', 'input2', 'shrink']
+    plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_psth_smooth,
+                nems.utilities.plot.pred_act_scatter]
+    input1 = 'pred'
+    input2 = 'resp'
+    norm = True
+    shrink = 0
+    ll_est = np.zeros([1, 1])
+    ll_val = np.zeros([1, 1])
 
-    name='metrics.likelihood_poisson'
-    user_editable_fields=['input1','input2','shrink']
-    plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_psth_smooth,nems.utilities.plot.pred_act_scatter]
-    input1='pred'
-    input2='resp'
-    norm=True
-    shrink=0
-    ll_est=np.zeros([1,1])
-    ll_val=np.zeros([1,1])
+    def my_init(self, input1='pred', input2='resp', shrink=False):
+        self.input1 = input1
+        self.input2 = input2
+        self.shrink = shrink
+        self.do_trial_plot = self.plot_fns[1]
 
-    def my_init(self, input1='pred',input2='resp',shrink=False):
-        self.input1=input1
-        self.input2=input2
-        self.shrink=shrink
-        self.do_trial_plot=self.plot_fns[1]
-
-    def evaluate(self,nest=0):
+    def evaluate(self, nest=0):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
 
-        X1=self.unpack_data(self.input1,est=True)
-        X2=self.unpack_data(self.input2,est=True)
-        keepidx=np.isfinite(X1) * np.isfinite(X2)
-        X1=X1[keepidx]
-        X2=X2[keepidx]
-        X1[X1<0.00001]=0.00001
+        X1 = self.unpack_data(self.input1, est=True)
+        X2 = self.unpack_data(self.input2, est=True)
+        keepidx = np.isfinite(X1) * np.isfinite(X2)
+        X1 = X1[keepidx]
+        X2 = X2[keepidx]
+        X1[X1 < 0.00001] = 0.00001
 
-        ll_est=np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
+        ll_est = np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
 
-        self.ll_est=ll_est
-        self.parent_stack.meta['ll_est']=[ll_est]
+        self.ll_est = ll_est
+        self.parent_stack.meta['ll_est'] = [ll_est]
 
-        #ee(bb)= -nanmean(r(bbidx).*log(p(bbidx)) - p(bbidx))./(d+(d==0));
+        # ee(bb)= -nanmean(r(bbidx).*log(p(bbidx)) - p(bbidx))./(d+(d==0));
 
-        X1=self.unpack_data(self.input1,est=False)
+        X1 = self.unpack_data(self.input1, est=False)
 
         if X1.size:
-            X2=self.unpack_data(self.input2,est=False)
-            keepidx=np.isfinite(X1) * np.isfinite(X2)
-            X1=X1[keepidx]
-            X2=X2[keepidx]
-            X1[X1<0.00001]=0.00001
+            X2 = self.unpack_data(self.input2, est=False)
+            keepidx = np.isfinite(X1) * np.isfinite(X2)
+            X1 = X1[keepidx]
+            X2 = X2[keepidx]
+            X1[X1 < 0.00001] = 0.00001
 
-            ll_val=-np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
+            ll_val = -np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
 
-            self.ll_val=ll_val
-            self.parent_stack.meta['ll_val']=[ll_val]
+            self.ll_val = ll_val
+            self.parent_stack.meta['ll_val'] = [ll_val]
 
             return [ll_val]
         else:
             return [ll_est]
-
 
     def error(self, est=True):
         if est:
@@ -198,8 +197,6 @@ class likelihood_poisson(nems_module):
         else:
             # placeholder for something that can distinguish between est and val
             return self.ll_val
-
-
 
 
 class pseudo_huber_error(nems_module):
@@ -219,109 +216,111 @@ class pseudo_huber_error(nems_module):
     
     @author: shofer, June 30 2017
     """
-    #I think this is working (but I'm not positive). When fitting with a pseudo-huber
-    #cost function, the fitter tends to ignore areas of high spike rates, but does
-    #a good job finding the mean spike rate at different times during a stimulus.
-    #This makes sense in that the huber error penalizes outliers, and could be
-    #potentially useful, depending on what is being fit? --njs, June 30 2017
+    # I think this is working (but I'm not positive). When fitting with a pseudo-huber
+    # cost function, the fitter tends to ignore areas of high spike rates, but does
+    # a good job finding the mean spike rate at different times during a stimulus.
+    # This makes sense in that the huber error penalizes outliers, and could be
+    # potentially useful, depending on what is being fit? --njs, June 30 2017
 
 
-    name='metrics.pseudo_huber_error'
-    user_editable_fields=['input1','input2','b']
-    plot_fns=[nems.utilities.plot.pred_act_psth,nems.utilities.plot.pred_act_scatter]
-    input1='pred'
-    input2='resp'
-    b=0.9 #sets the value of error where fall-off goes from linear to quadratic\
-    huber_est=np.ones([1,1])
-    huber_val=np.ones([1,1])
+    name = 'metrics.pseudo_huber_error'
+    user_editable_fields = ['input1', 'input2', 'b']
+    plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_scatter]
+    input1 = 'pred'
+    input2 = 'resp'
+    b = 0.9  # sets the value of error where fall-off goes from linear to quadratic\
+    huber_est = np.ones([1, 1])
+    huber_val = np.ones([1, 1])
 
-    def my_init(self, input1='pred',input2='resp',b=0.9):
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
-        self.input1=input1
-        self.input2=input2
-        self.b=b
-        self.do_trial_plot=self.plot_fns[1]
+    def my_init(self, input1='pred', input2='resp', b=0.9):
+        self.field_dict = locals()
+        self.field_dict.pop('self', None)
+        self.input1 = input1
+        self.input2 = input2
+        self.b = b
+        self.do_trial_plot = self.plot_fns[1]
 
-    def evaluate(self,nest=0):
+    def evaluate(self, nest=0):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
 
         for f in self.d_out:
-            delta=np.divide(np.sum(f[self.input1]-f[self.input2],axis=1),np.sum(f[self.input2],axis=1))
-            C=np.sum(2*np.square(self.b)*(np.sqrt(1+np.square(np.divide(delta,self.b)))-1))
-            C=np.array([C])
-        self.huber_est=C
+            delta = np.divide(np.sum(f[self.input1] - f[self.input2], axis=1), np.sum(f[self.input2], axis=1))
+            C = np.sum(2 * np.square(self.b) * (np.sqrt(1 + np.square(np.divide(delta, self.b))) - 1))
+            C = np.array([C])
+        self.huber_est = C
 
-    def error(self,est=True):
+    def error(self, est=True):
         if est is True:
-            return(self.huber_est)
+            return (self.huber_est)
         else:
-            return(self.huber_val)
+            return (self.huber_val)
+
 
 class correlation(nems_module):
+    name = 'metrics.correlation'
+    user_editable_fields = ['input1', 'input2', 'norm']
+    plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_scatter,
+                nems.utilities.plot.pred_act_scatter_smooth]
+    input1 = 'pred'
+    input2 = 'resp'
+    r_est = np.ones([1, 1])
+    r_val = np.ones([1, 1])
 
-    name='metrics.correlation'
-    user_editable_fields=['input1','input2','norm']
-    plot_fns=[nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_scatter, nems.utilities.plot.pred_act_scatter_smooth]
-    input1='pred'
-    input2='resp'
-    r_est=np.ones([1,1])
-    r_val=np.ones([1,1])
+    def my_init(self, input1='pred', input2='resp', norm=True):
+        self.field_dict = locals()
+        self.field_dict.pop('self', None)
+        self.input1 = input1
+        self.input2 = input2
+        self.do_plot = self.plot_fns[1]
 
-    def my_init(self, input1='pred',input2='resp',norm=True):
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
-        self.input1=input1
-        self.input2=input2
-        self.do_plot=self.plot_fns[1]
-
-    def evaluate(self,**kwargs):
+    def evaluate(self, **kwargs):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
 
-        X1=self.unpack_data(self.input1,est=True)
-        X2=self.unpack_data(self.input2,est=True)
-        keepidx=np.isfinite(X1) * np.isfinite(X2)
-        X1=X1[keepidx]
-        X2=X2[keepidx]
+        X1 = self.unpack_data(self.input1, est=True)
+        X2 = self.unpack_data(self.input2, est=True)
+        keepidx = np.isfinite(X1) * np.isfinite(X2)
+        X1 = X1[keepidx]
+        X2 = X2[keepidx]
         if not X1.sum() or not X2.sum():
-            r_est=0
+            r_est = 0
         else:
-            r_est,p=spstats.pearsonr(X1,X2)
-        self.r_est=r_est
-        self.parent_stack.meta['r_est']=[r_est]
+            r_est, p = spstats.pearsonr(X1, X2)
+        self.r_est = r_est
+        self.parent_stack.meta['r_est'] = [r_est]
 
-        X1=self.unpack_data(self.input1,est=False)
+        X1 = self.unpack_data(self.input1, est=False)
         if X1.size:
-            X2=self.unpack_data(self.input2,est=False)
-            keepidx=np.isfinite(X1) * np.isfinite(X2)
-            X1=X1[keepidx]
-            X2=X2[keepidx]
+            X2 = self.unpack_data(self.input2, est=False)
+            keepidx = np.isfinite(X1) * np.isfinite(X2)
+            X1 = X1[keepidx]
+            X2 = X2[keepidx]
             if not X1.sum() or not X2.sum():
-                r_val=0
+                r_val = 0
             else:
-                r_val,p=spstats.pearsonr(X1,X2)
-            self.r_val=r_val
-            self.parent_stack.meta['r_val']=[r_val]
+                r_val, p = spstats.pearsonr(X1, X2)
+            self.r_val = r_val
+            self.parent_stack.meta['r_val'] = [r_val]
 
             # if running validation test, also measure r_floor
-            rf=np.zeros([1000,1])
-            for rr in range(0,len(rf)):
-                n1=(np.random.rand(500,1)*len(X1)).astype(int)
-                n2=(np.random.rand(500,1)*len(X2)).astype(int)
-                rf[rr],p=spstats.pearsonr(X1[n1],X2[n2])
-            rf=np.sort(rf[np.isfinite(rf)],0)
+            rf = np.zeros([1000, 1])
+            for rr in range(0, len(rf)):
+                n1 = (np.random.rand(500, 1) * len(X1)).astype(int)
+                n2 = (np.random.rand(500, 1) * len(X2)).astype(int)
+                rf[rr], p = spstats.pearsonr(X1[n1], X2[n2])
+            rf = np.sort(rf[np.isfinite(rf)], 0)
             if len(rf):
-                self.parent_stack.meta['r_floor']=[rf[np.int(len(rf)*0.95)]]
+                self.parent_stack.meta['r_floor'] = [rf[np.int(len(rf) * 0.95)]]
             else:
-                self.parent_stack.meta['r_floor']=0
+                self.parent_stack.meta['r_floor'] = 0
 
             return [r_val]
         else:
             return [r_est]
+
 
 class ssa_index(nems_module):
     '''
@@ -355,9 +354,6 @@ class ssa_index(nems_module):
     input2 = 'resp'
     window = 'start'
 
-    resp_SI = dict()
-    pred_SI = dict()
-
     # for raster and PSTH plotting
     folded_resp = list()
     folded_pred = list()
@@ -367,7 +363,7 @@ class ssa_index(nems_module):
     resp_tone_act = list()
     pred_tone_act = list()
 
-    def my_init(self, input1='stim', input2='resp', window='start', z_score = 'spont'):
+    def my_init(self, input1='stim', input2='resp', window='start', z_score='bootstrap', significant_bins='window'):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         self.input1 = input1
@@ -377,6 +373,7 @@ class ssa_index(nems_module):
         self.do_trial_plot = self.plot_fns[0]
         self.has_pred = False
         self.z_score = z_score
+        self.significant_bins = significant_bins
 
     def evaluate(self, **kwargs):
         del self.d_out[:]
@@ -397,6 +394,7 @@ class ssa_index(nems_module):
 
         out_SI_dicts = list()
         out_act_dicts = list()
+        out_SI_T_dict = list()
 
         # if validation is active picks only estimation blocks for SSA Index calculation. Validation subsets can be
         # inconveniently short, this leads to lack of deviants and standards for one or other streams, preventing any
@@ -418,9 +416,9 @@ class ssa_index(nems_module):
 
             stim = b['stim']  # input 3d array: 0d #streasm ; 1d #trials; 2d time
             stim = stim.astype(np.int16)  # input stim is in uint8 which is problematic for diff
-            resp = b['resp']  # input 2d array: 0d #trials ; 1d time
+            resp = b['resp'].squeeze()  # input 2d array: 0d #trials ; 1d time
             if self.has_pred:
-                pred = b['pred']  # same shape as resp
+                pred = b['pred'].squeeze()  # same shape as resp
 
             diff = np.diff(stim, axis=2)  # transform the binary stim into an edge array for easy onset/offset location
 
@@ -583,22 +581,93 @@ class ssa_index(nems_module):
                         pred_slice_dict['stream1Std'] = pred_slice_dict['stream1Std'] + predstream1
                         pred_slice_dict['stream0Dev'] = pred_slice_dict['stream0Dev'] + predstream0
 
+            # transforms the spontaneous activity list of heterogeneous lists into a 2d array padded with nan
+            def aspadedarray(v, fillval=np.nan):
+                lens = np.array([len(item) for item in v])
+                mask = lens[:, None] > np.arange(lens.max())
+                out = np.full(mask.shape, fillval)
+                out[mask] = np.concatenate(v)
+                return out
+
+            resp_spont = aspadedarray(resp_spont, np.nan)
+            if self.has_pred:
+                pred_spont = aspadedarray(pred_spont, np.nan)
+
+            def my_bootstrap(data):
+                # Bootstrap for mean confidence intervals
+                # imput data as a list or 1d array of values
+                # output the 95% confidence interval
+                # based on scikyt.bootstrap.ci() .
+
+                n_samples = 200  # number of samples
+                alpha = 0.1  # two tailed alpha value, 90% confidence interval
+                alpha = np.array([alpha / 2, 1 - alpha / 2])
+                ardata = np.array(data)
+                bootindexes = [np.random.randint(ardata.shape[0], size=ardata.shape[0]) for _ in
+                               range(n_samples)]
+                stat = np.array([np.nanmean(ardata[indexes]) for indexes in bootindexes])
+                stat.sort(axis=0)
+                nvals = np.round((n_samples - 1) * alpha)
+                nvals = np.nan_to_num(nvals).astype('int')
+                return stat[nvals]
+
+            # defines confidence intervals for the spontaneous activity.
+            resp_flat_spont = resp_spont.flatten()[~np.isnan(resp_spont.flatten())]
+            resp_spont_ci = my_bootstrap(resp_flat_spont)
+            if self.has_pred:
+                pred_flat_spont = pred_spont.flatten()[~np.isnan(pred_spont.flatten())]
+                pred_spont_ci = my_bootstrap(pred_flat_spont)
+
+            # Defines window to be used for SI and SIpval calculations
+            all_cell = np.concatenate(
+                [np.asarray(resp_slice_dict['stream0Std']), np.asarray(resp_slice_dict['stream1Std'])], axis=0)
+            if self.significant_bins == 'mean_streams':
+                # find bins with stream mean activity significantly different of spontaneous activity level
+                all_cell_CI = np.asarray([my_bootstrap(all_cell[:, bb]) for bb in range(toneLen, all_cell.shape[1], 1)])
+                # creates a mask for bins to consider for SI calculations
+                selected_bins = np.asarray([True if np.min(ci) > np.max(resp_spont_ci) else False for ci in all_cell_CI]
+                                           ).astype(bool)
+                # set false to the bins coresponding to the interval previous the tone
+                selected_bins = np.concatenate([np.full((toneLen), False, dtype=bool), selected_bins])
+            elif self.significant_bins == 'per_stream':
+                # find bins with stream0 activity significantly different of spontaneous activity level
+                stream0 = np.asarray(resp_slice_dict['stream0Std'])
+                stream0_CI = np.asarray([my_bootstrap(stream0[:, bb]) for bb in range(toneLen, stream0.shape[1], 1)])
+                # repeats for stream1
+                stream1 = np.asarray(resp_slice_dict['stream1Std'])
+                stream1_CI = np.asarray([my_bootstrap(stream1[:, bb]) for bb in range(toneLen, stream1.shape[1], 1)])
+                # creates a mask for bins to consider for SI calculations
+                selected_bins = np.asarray(
+                    [True if ((np.min(ci0) > np.max(resp_spont_ci)) | (np.min(ci1) > np.max(resp_spont_ci)))
+                     else False for ci0, ci1 in zip(stream0_CI, stream1_CI)]
+                    ).astype(bool)
+                # set false to the bins coresponding to the interval previous the tone
+                selected_bins = np.concatenate([np.full((toneLen), False, dtype=bool), selected_bins])
+            elif self.significant_bins == 'window':
+                # considers all point from the tone onset to the slice end
+                selected_bins = np.ones(all_cell.shape[1])
+                selected_bins[:toneLen] = 0
+                selected_bins = selected_bins.astype(bool)
+            else:
+                raise ValueError("significant_bins method '{0}' is not supported.".format(self.significant_bins))
+
             # calculates activity for each slice pool: first averages across trials, then integrates from the start
             # of the tone to the end of the slice. Organizes in an Activity dictionary with the same keys
+
             all_resp_tone_types = resp_slice_dict.copy()  # holds a copy por all activity calculation
             resp_slice_dict = {key: np.asarray(value) for key, value in resp_slice_dict.items()}
-            resp_tone_act_dict = {key: np.nansum(value[:, toneLen:], axis=1)
+            resp_tone_act_dict = {key: np.nansum(value[:, selected_bins], axis=1)  # for t-test and adaptation plotting
                                   for key, value in resp_slice_dict.items()}
-            resp_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[toneLen:])
+            resp_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[selected_bins])
                              for key, value in resp_slice_dict.items()}
 
             # repeats the same as last for predicted responses if any
             if self.has_pred:
                 all_pred_tone_types = pred_slice_dict.copy()  # holds a copy por all activity calculation
                 pred_slice_dict = {key: np.asarray(value) for key, value in pred_slice_dict.items()}
-                pred_tone_act_dict = {key: np.nansum(value[:, toneLen:], axis=1)
+                pred_tone_act_dict = {key: np.nansum(value[:, selected_bins], axis=1)
                                       for key, value in pred_slice_dict.items()}
-                pred_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[toneLen:])
+                pred_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[selected_bins])
                                  for key, value in pred_slice_dict.items()}
 
             # calculates the response ssa index  values for each stream and cell and organizes in a dictionary
@@ -627,85 +696,122 @@ class ssa_index(nems_module):
                             (pred_act_dict['stream0Dev'] + pred_act_dict['stream1Dev'] +  # dev + dev plus
                              pred_act_dict['stream0Std'] + pred_act_dict['stream1Std'])}  # std + std
 
-            # transformt the spontaneous activity list of heterogeneous lists into a 2d array padded with nan
-            def aspadedarray(v, fillval=np.nan):
-                lens = np.array([len(item) for item in v])
-                mask = lens[:, None] > np.arange(lens.max())
-                out = np.full(mask.shape, fillval)
-                out[mask] = np.concatenate(v)
-                return out
+            # calculates significance (t-test) between standard and deviant for each response stream
+            allstd = np.concatenate([resp_tone_act_dict['stream0Std'], resp_tone_act_dict['stream1Std']])
+            alldev = np.concatenate([resp_tone_act_dict['stream0Dev'], resp_tone_act_dict['stream1Dev']])
 
-            resp_spont = aspadedarray(resp_spont, np.nan)
+            resp_t = {'stream0': spstats.ttest_ind(resp_tone_act_dict['stream0Std'], resp_tone_act_dict['stream0Dev']),
+                      'stream1': spstats.ttest_ind(resp_tone_act_dict['stream1Std'], resp_tone_act_dict['stream1Dev']),
+                      'cell': spstats.ttest_ind(allstd, alldev)}
+            # extract pvalue
+            resp_t = {key: value.pvalue for key, value in resp_t.items()}
+            # also calculates significance for predicted streams.
             if self.has_pred:
-                pred_spont = aspadedarray(pred_spont, np.nan)
+                allstd = np.concatenate([pred_tone_act_dict['stream0Std'], pred_tone_act_dict['stream1Std']])
+                alldev = np.concatenate([pred_tone_act_dict['stream0Dev'], resp_tone_act_dict['stream1Dev']])
+
+                pred_t = {
+                    'stream0': spstats.ttest_ind(pred_tone_act_dict['stream0Std'], pred_tone_act_dict['stream0Dev']),
+                    'stream1': spstats.ttest_ind(pred_tone_act_dict['stream1Std'], pred_tone_act_dict['stream1Dev']),
+                    'cell': spstats.ttest_ind(allstd, alldev)}
+                # extract pvalue
+                pred_t = {key: value.pvalue for key, value in pred_t.items()}
 
             # organizes the ssa index data into a dictionary containing the SI of the response and of the prediction in
             # corresponding keys, then append to the block list.
             # also append block dependent calculations into lists for such elements across all blocks of one cell.
 
             block_SI_dict = dict()
+            block_SI_T_dict = dict()
 
-            block_SI_dict['resp_SI'] = resp_SI_dict
+            block_SI_dict['resp'] = resp_SI_dict
+            block_SI_T_dict['resp'] = resp_t
             folded_resp.append(resp_slice_dict)
             resp_tone_act.append(resp_tone_act_dict)
             interval_dict = {key: np.asarray(value) for key, value in interval_dict.items()}
             intervals.append(interval_dict)
-            resp_SI.append(resp_SI_dict)
             cell_resp_spont.append(resp_spont)
 
             if self.has_pred:
-                block_SI_dict['pred_SI'] = pred_SI_dict
+                block_SI_dict['pred'] = pred_SI_dict
+                block_SI_T_dict['pred'] = pred_t
                 pred_tone_act.append(pred_tone_act_dict)
                 folded_pred.append(pred_slice_dict)
-                pred_SI.append(pred_SI_dict)
                 cell_pred_spont.append(pred_spont)
 
             out_SI_dicts.append(block_SI_dict)
+            out_SI_T_dict.append(block_SI_T_dict)
 
-            # calculates the stream activitiy for all tones, and calculates the activity ratio between the streams
+            # calculates cell activity level as z-score of significant time bins, this is done for each stream and
+            # their mean.
+
             # pools all the tones into the respective stream, regardless onset, standard or deviant.
             all_resp_act = [list(), list()]
             for key, value in all_resp_tone_types.items():
-                if self.z_score == 'all':
-                    if key[:7] == 'stream0':
-                        all_resp_act[0] += value
-                    elif key[:7] == 'stream1':
-                        all_resp_act[1] += value
-
-                elif self.z_score == 'spont':
+                if key[-3:] == 'Std':
                     if key == 'stream0Std':
                         all_resp_act[0] += value
                     elif key == 'stream1Std':
                         all_resp_act[1] += value
 
-            # Then calculates the activity
+            # calculates z-score for the pooled streams.
             for ii, stream in enumerate(all_resp_act):
                 stream = np.asarray(stream)
                 if self.z_score == 'all':
                     all_resp_act[ii] = (np.nanmean(np.nanmean(stream, axis=0)[toneLen:])) * np.nanmean(
                         resp) / np.nanstd(resp)
                 elif self.z_score == 'spont':
-                    all_resp_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(resp_spont)) / (
-                                        np.nanstd(np.nanmean(stream[:, toneLen:], axis = 1)))
+                    all_resp_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(resp_flat_spont)) / (
+                        np.nanstd(np.nanmean(stream[:, toneLen:], axis=1)))
+                elif self.z_score == 'bootstrap':
+                    binCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
+                    sign_bin_mask = np.asarray([1 if np.min(bb) > np.max(resp_spont_ci) else 0 for bb in binCI]).astype(
+                        bool)
+                    sign_bin_mask = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bin_mask])
+                    sign_bins = stream[:, sign_bin_mask]
+
+                    if sign_bins.shape[1] == 0:
+                        all_resp_act[ii] = 0
+                    elif sign_bins.shape[1] >= 1:
+                        binzcore = np.asarray([(np.mean(sign_bins[:, tt]) - np.nanmean(resp_flat_spont)) /
+                                               np.nanstd(np.concatenate([sign_bins[:, tt], resp_flat_spont]))
+                                               for tt in range(sign_bins.shape[1])])
+                        all_resp_act[ii] = np.nanmean(binzcore)
+
+                elif self.z_score == 'bootstrap2':
+                    # calculates the bootstrap confidence interval of the mean of each time bin
+                    binmeanCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
+                    # Compares reponse CI vs spontaneous activity CI to define bins with significant difference.
+                    sign_bins = np.asarray([1 if np.min(bb) > np.max(resp_spont_ci) else 0 for bb in binmeanCI]).astype(
+                        bool)
+                    sign_bins = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bins])
+                    # if there are significant bins, calculate the z_score of such bins. otherwise force value to 0
+                    if True in sign_bins:
+                        sample = stream[:, sign_bins].flatten()
+                        population = np.concatenate([sample, resp_flat_spont])
+                        z_score = (np.nanmean(sample) - np.nanmean(resp_flat_spont)) / (np.nanstd(population))
+                        all_resp_act[ii] = z_score
+                    else:
+                        all_resp_act[ii] = 0
+                else:
+                    raise ValueError("z-score method '{0}' is not supported.".format(self.z_score))
 
             # creates a dictionary and appends it to the block list
+            if 0 in [np.min(all_resp_act), np.max(all_resp_act)]:
+                actv_ratio = 1
+            else:
+                actv_ratio = np.min(all_resp_act) / np.max(all_resp_act)
             all_resp_act_dict = {'stream0': all_resp_act[0],
                                  'stream1': all_resp_act[1],
-                                 'ratio': np.min(all_resp_act) / np.max(all_resp_act),
-                                 'mean': np.nanmean(all_resp_act)}
+                                 'ratio': actv_ratio,
+                                 'mean': np.nanmean(all_resp_act[0:2])}
 
             # also calculates activity in the same way for the predicted responses.
             if self.has_pred:
-                pred_spont_mean = np.nanmean(np.asarray(pred_spont))
+
                 all_pred_act = [list(), list()]
                 for key, value in all_pred_tone_types.items():
-                    if self.z_score == 'all':
-                        if key[:7] == 'stream0':
-                            all_pred_act[0] += value
-                        elif key[:7] == 'stream1':
-                            all_pred_act[1] += value
-
-                    elif self.z_score == 'spont':
+                    if key[-3:] == 'Std':
                         if key == 'stream0Std':
                             all_pred_act[0] += value
                         elif key == 'stream1Std':
@@ -718,33 +824,69 @@ class ssa_index(nems_module):
                         all_pred_act[ii] = np.nanmean(np.nanmean(np.asarray(stream), axis=0)[toneLen:]) * np.nanmean(
                             pred) / np.nanstd(pred)
                     elif self.z_score == 'spont':
-                        all_pred_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(pred_spont)) / (
-                                            np.nanstd(np.nanmean(stream[:, toneLen:], axis = 1)))
+                        all_pred_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(pred_flat_spont)) / (
+                            np.nanstd(np.nanmean(stream[:, toneLen:], axis=1)))
+                    elif self.z_score == 'bootstrap':
+                        binCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
+                        sign_bin_mask = np.asarray(
+                            [1 if np.min(bb) > np.max(pred_spont_ci) else 0 for bb in binCI]).astype(
+                            bool)
+                        sign_bin_mask = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bin_mask])
+                        sign_bins = stream[:, sign_bin_mask]
+
+                        if sign_bins.shape[1] == 0:
+                            all_pred_act[ii] = 0
+                        elif sign_bins.shape[1] >= 1:
+                            binzcore = np.asarray([(np.mean(sign_bins[:, tt]) - np.nanmean(pred_flat_spont)) /
+                                                   np.nanstd(np.concatenate([sign_bins[:, tt], pred_flat_spont]))
+                                                   for tt in range(sign_bins.shape[1])])
+                            all_pred_act[ii] = np.nanmean(binzcore)
+                    elif self.z_score == 'bootstrap2':
+                        # calculates the bootstrap confidence interval of the mean of each time bin
+                        binmeanCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
+                        # Compares reponse CI vs spontaneous activity CI to define bins with significant difference.
+                        sign_bins = np.asarray(
+                            [1 if np.min(bb) > np.max(pred_spont_ci) else 0 for bb in binmeanCI]).astype(
+                            bool)
+                        sign_bins = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bins])
+                        # if there are significant bins, calculate the z_score of such bins. otherwise force value to 0
+                        if True in sign_bins:
+                            sample = stream[:, sign_bins].flatten()
+                            population = np.concatenate([sample, pred_flat_spont])
+                            z_score = (np.nanmean(sample) - np.nanmean(pred_flat_spont)) / (np.nanstd(population))
+                            all_pred_act[ii] = z_score
+                        else:
+                            all_pred_act[ii] = 0
+                    else:
+                        raise ValueError("z-score method '{0}' is not supported.".format(self.z_score))
 
                 # creates a dictionary and appends it to the block list
+                if 0 in [np.min(all_pred_act), np.max(all_pred_act)]:
+                    actv_ratio = 1
+                else:
+                    actv_ratio = np.min(all_pred_act) / np.max(all_pred_act)
                 all_pred_act_dict = {'stream0': all_pred_act[0],
                                      'stream1': all_pred_act[1],
-                                     'ratio': np.min(all_pred_act) / np.max(all_pred_act),
-                                     'mean': np.nanmean(all_pred_act)}
-
+                                     'ratio': actv_ratio,
+                                     'mean': np.nanmean(all_pred_act[0:2])}
 
             block_act_dict = dict()
-            block_act_dict['resp_act'] = all_resp_act_dict
+            block_act_dict['resp'] = all_resp_act_dict
             if self.has_pred:
-                block_act_dict['pred_act'] = all_pred_act_dict
+                block_act_dict['pred'] = all_pred_act_dict
 
             out_act_dicts.append(block_act_dict)
 
         self.folded_resp = folded_resp
         self.resp_tone_act = resp_tone_act
         self.intervals = intervals
-        self.resp_SI = resp_SI
         self.parent_stack.meta['ssa_index'] = out_SI_dicts
-        self.stream_activity = out_act_dicts
+        self.SI = out_SI_dicts
+        self.SIpval = out_SI_T_dict
+        self.activity = out_act_dicts
         self.resp_spont = cell_resp_spont
 
         if self.has_pred:
             self.folded_pred = folded_pred
             self.pred_tone_act = pred_tone_act
-            self.pred_SI = pred_SI
             self.pred_spont = cell_pred_spont

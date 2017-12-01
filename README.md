@@ -28,19 +28,14 @@ Ongoing: expand this information in [NEMS Wiki](https://bitbucket.org/lbhb/nems/
     * fit_by_type: fitter that fits each module individually using a fitter specified for each type of module, such as nonlinearity or weight channel
     * Jackknife fits (20 X 95% fit, 5% val) are taken care of at a higher level than individual fitters, and any of the fitters will work with the jacknife/cross-validation routine. 
 #Nested Crossvalidation - nested crossval (also called jacknife fitting) is implemented as keywords that are appended on the end of any modelname. They are contained in nems/nested.py, but are called by fit_single_model just like any other keyword. Must be at the end of the modelname. 
-* GUI
-    * cellDB (other DB) interface
-    * model inspector
-    * results browser
-    * population summary/comparison plots
+
 
 ### How do I get set up? ###
 
 * Dependencies
 
     * Model fitting: numpy, scipy, scipy.signal, scipy.io, scipy.stats, scipy.special, matplotlib.pyplot, importlib, tensorflow
-    * Web or database-specific: pandas, sqlalchemy, flask, mpld3, bokeh, pymysql, flask-socketio, eventlet, flask-login, flask-WTF, bcrypt, boto3, seaborn, 
-    flask-assets
+    * database-specific: pandas, sqlalchemy
 
 * Demos
 

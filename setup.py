@@ -9,13 +9,10 @@ version = 'pre-alpha'
 with codecs.open('README.md', encoding='utf-8') as f:
     long_description = f.read()
 
-GENERAL_REQUIRES = ['numpy', 'scipy', 'matplotlib', 'flask', 
-                    'sqlalchemy', 'mpld3', 'boto3', 'tensorflow']
-WEB_REQUIRES = [
-        'flask', 'mpld3', 'bokeh', 'flask-socketio', 'eventlet', 'flask-login',
-        'flask-WTF', 'bcrypt', 'flask-bcrypt', 'seaborn', 'flask-assets'
+GENERAL_REQUIRES = [
+        'numpy', 'scipy', 'matplotlib', 'sqlalchemy', 'pymysql',
+        'mpld3', 'boto3', 'tensorflow',
         ]
-DB_REQUIRES = ['sqlalchemy', 'pymysql']
 
 setup(
     name=NAME,
@@ -25,16 +22,9 @@ setup(
     zip_safe=True,
     author='LBHB',
     author_email='lbhb.ohsu@gmail.com',
-    description='Neural encoding model system',
+    description='Neural Encoding Model System',
     long_description=long_description,
     url='http://neuralprediction.org',
     install_requires=GENERAL_REQUIRES,
-    extras_require={
-        'web': WEB_REQUIRES + DB_REQUIRES,
-        'database': DB_REQUIRES,
-    },
-    #setup_requires=['pytest-runner'],
-    #tests_require=['pytest'],
-    #license='MIT',
     classifiers=[]
 )

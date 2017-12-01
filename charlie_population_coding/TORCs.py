@@ -17,7 +17,12 @@ import nems.stack as ns
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
+import pandas as pd
+from tqdm import tqdm
 
+import sys
+sys.path.append('/auto/users/hellerc/nems/charlie_population_coding/')
+from classify_cell_types import getCellTypes
 
 reload(ut)
 
@@ -40,6 +45,8 @@ database = 'cell'
 cellids = d['cellid'][0:]
 rvals=[]
 stacks=[]
+
+celltypes = getCellTypes(fn = 'TAR010c_9_10_11_12_96clusts_V2', animal='Tartufo')  ## sorted in same order as cellids
 
 batch=301
 modelname= "fb18ch100x_wcg02_fir15_dexp_fit01_nested5"
@@ -125,17 +132,19 @@ rN_perf = eval_fit(resp, rN)
 r0_perf = eval_fit(resp, pred)
 
 
-cc_rN_all = np.empty((resp.shape[1], resp.shape[2], resp.shape[-1]))
-cc_r0_all = np.empty((resp.shape[1], resp.shape[2], resp.shape[-1]))
+#cc_rN_all = np.empty((resp.shape[1], resp.shape[2], resp.shape[-1]))
+#cc_r0_all = np.empty((resp.shape[1], resp.shape[2], resp.shape[-1]))
+cc_rN_all = rN_perf['bytrial']
+cc_r0_all = r0_perf['bytrial']
 for i in range(0, resp.shape[1]):
     for stim in range(0, resp.shape[2]):
         for cell in range(0, resp.shape[-1]):
             cc_rN_all[i, stim, cell]=np.corrcoef(rN[:,i, stim,cell], resp[:,i,stim,cell])[0][1]
             cc_r0_all[i,stim, cell]=np.corrcoef(pred[:,i, stim,cell], resp[:,i,stim,cell])[0][1]
             
-cc_rN = np.mean(cc_rN_all[:,:,:],1)
-cc_r0 = np.mean(cc_r0_all[:,:,:],1)
-pup = np.mean(pup[:,:,:],2)
+cc_rN = np.nanmean(cc_rN_all[:,:,:],1)
+cc_r0 = np.nanmean(cc_r0_all[:,:,:],1)
+pup = np.mean(pupil[:,:,:],2)
 
 act_pass = list(a_p)
 for i, x in enumerate(act_pass):
@@ -151,7 +160,6 @@ plt.plot(np.nanmean(cc_r0,1), '-', color='b', alpha = 0.3)
 plt.scatter(np.arange(0,len(cc_rN)), np.nanmean(cc_r0, 1), c=act_pass)
 plt.ylabel('pearsons corr coef')
 plt.legend(['rN', 'r0 (strf)'], loc = 'upper right', fontsize = 'large')
-#plt.xlabel('pip trial')
 pup_m = np.mean(pup,0)/2
 plt.title('rN vs. pupil: %s, r0 vs. pupil: %s' 
           %(np.corrcoef(np.nanmean(cc_rN,1), pup_m)[0][1], np.corrcoef(np.nanmean(cc_r0,1), pup_m)[0][1]))
@@ -162,7 +170,6 @@ plt.plot(pup_m/2,'-o', color='k', alpha=0.5, lw=2)
 plt.scatter(np.arange(0,len(cc_rN)), diff, c=act_pass)
 plt.plot(diff, '-', color='g', alpha = 0.3)
 plt.legend(['pup', 'rN-r0'])
-#plt.xlabel('pip trials')
 plt.title('corr coef btwn rN-r0 and pupil: %s' 
           %(np.corrcoef(diff, pup_m)[0][1]))
         
@@ -357,32 +364,186 @@ plt.legend(loc='upper right')
 
 # ============= Comparing model weights with PC weights =======================
 from NRF_tools import get_weight_mat
-
+from pop_utils import get_spont_data
+difference = resp-pred
 model_weights = get_weight_mat(resp)
+model_weights_diff = get_weight_mat(difference)
+r_spont, _  = get_spont_data(resp,pupil,stack.data[-1][0]['prestim'],fs)
+spont_weights = get_weight_mat(r_spont)
 mw = np.empty((len(model_weights), len(model_weights)))
+mw_diff = np.empty((len(model_weights), len(model_weights)))
+mw_spont = np.empty((mw_diff.shape))
+
+
+model_active = get_weight_mat(resp[:,a_p==1,:,:])
+model_passive = get_weight_mat(resp[:,a_p==0,:,:])
+model_s_act = get_weight_mat(r_spont[:,a_p==1,:,:])
+model_s_pass = get_weight_mat(r_spont[:,a_p==0,:,:])
+mw_act = np.empty((mw.shape))
+mw_pass = np.empty((mw.shape))
+mw_spont_act = np.empty((mw_spont.shape))
+mw_spont_pass = np.empty((mw_spont.shape))
+
+
 for i in range(0, len(model_weights)):
     mw[i, 0:i] = model_weights[i, 0:i]
     mw[i, i]=np.nan
     mw[i,(i+1):] = model_weights[i,i:]
 
+    mw_diff[i, 0:i] = model_weights_diff[i, 0:i]
+    mw_diff[i, i]=np.nan
+    mw_diff[i,(i+1):] = model_weights_diff[i,i:]
     
+    mw_spont[i, 0:i] = spont_weights[i, 0:i]
+    mw_spont[i, i]=np.nan
+    mw_spont[i,(i+1):] = spont_weights[i,i:]
+    
+    mw_spont_act[i, 0:i] = model_s_act[i, 0:i]
+    mw_spont_act[i, i]=np.nan
+    mw_spont_act[i,(i+1):] = model_s_act[i,i:]
+    
+    mw_spont_pass[i, 0:i] = model_s_pass[i, 0:i]
+    mw_spont_pass[i, i]=np.nan
+    mw_spont_pass[i,(i+1):] = model_s_pass[i,i:]
+    
+    mw_act[i, 0:i] = model_active[i, 0:i]
+    mw_act[i, i]=np.nan
+    mw_act[i,(i+1):] = model_active[i,i:]
+    
+    mw_pass[i, 0:i] = model_passive[i, 0:i]
+    mw_pass[i, i]=np.nan
+    mw_pass[i,(i+1):] = model_passive[i,i:]
+
 
 PCA_weights = V[0:10,:]
 c_ids = [x[8:] for x in cellids]
 
+Vmax = np.nanmax(np.concatenate((mw_act.flatten(), mw_pass.flatten(), mw_spont_act.flatten(), mw_spont_act.flatten()))) 
+Vmin =np.nanmin(np.concatenate((mw_act.flatten(), mw_pass.flatten(), mw_spont_act.flatten(), mw_spont_act.flatten()))) 
 plt.figure()
-plt.subplot(121)
+ax = plt.subplot(231)
+plt.imshow(mw_act, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Active, all')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax =plt.subplot(232)
+plt.imshow(mw_pass, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Passive, all')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax =plt.subplot(233)
+plt.imshow(mw_pass-mw_act, cmap='jet')
+plt.title('passive - active')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax=plt.subplot(234)
+plt.imshow(mw_spont_act, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Active, prestim spont only')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax=plt.subplot(235)
+plt.imshow(mw_spont_pass, vmin=Vmin, vmax = Vmax,cmap='jet')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+plt.title('Passive, prestim spont only')
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+ax=plt.subplot(236)
+plt.imshow(mw_spont_pass-mw_spont_act, cmap='jet')
+plt.title('passive - active')
+plt.colorbar()
+plt.xticks(range(0,len(cellids)),c_ids,fontsize=8,rotation=90)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+count = 0
+for xtick, ytick in zip(ax.get_xticklabels(), ax.get_yticklabels()):
+    if np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[count]==1:
+        xtick.set_color('red')
+        ytick.set_color('red')
+    else:
+        xtick.set_color('blue')
+        ytick.set_color('blue')
+    count+=1
+plt.suptitle(cellids[0][:7])
+
+plt.figure()
+plt.subplot(131)
 plt.imshow(mw)
 plt.xlabel('neurons')
 plt.ylabel('neurons')
 plt.xticks(np.arange(0,len(c_ids)), np.array((c_ids)), rotation=90, fontsize=8)
 plt.yticks(np.arange(0,len(c_ids)), np.array((c_ids)), fontsize=8)
-plt.title('network coupling weights')
-plt.subplot(122)
+plt.title('network coupling weights - resp')
+
+plt.subplot(132)
+plt.imshow(mw_diff)
+plt.xlabel('neurons')
+plt.ylabel('neurons')
+plt.xticks(np.arange(0,len(c_ids)), np.array((c_ids)), rotation=90, fontsize=8)
+plt.yticks(np.arange(0,len(c_ids)), np.array((c_ids)), fontsize=8)
+plt.title('network coupling weights - (resp-pred)')
+
+plt.subplot(133)
 plt.imshow(PCA_weights.T, aspect = 'equal')
+plt.yticks(np.arange(0,len(c_ids)), np.array((c_ids)), fontsize=8)
 plt.xlabel('PCs')
 plt.ylabel('Neurons')
 plt.title('PC weights')
+
+
+
+
+
+plt.figure()
+
+
 
 
 plt.figure()
@@ -400,7 +561,7 @@ for i in range(0,4):
 from sklearn.cluster import KMeans
 import numpy as np
 
-nclusters = 4 ## trial and error...
+nclusters = 2 ## trial and error...
 
 # get rid of nans in coupling matrix for the sake of clustering
 mw_0 = mw.flatten()
@@ -413,11 +574,17 @@ kmeans = KMeans(n_clusters=nclusters, random_state=0).fit(mw_0)
 # Look at clusters in PCA space
 U_, S_, V_ = np.linalg.svd(mw_0)
 plt.figure()
+plt.subplot(121)
 plt.scatter(U_[:,0], U_[:,1], c=kmeans.labels_)
-plt.legend(['1','2','3','4'])
 plt.xlabel('PC1 - weights')
 plt.ylabel('PC2 - weights')
-plt.title('kmeans clustering')
+plt.title('clustering on coupling weights')
+plt.subplot(122)
+plt.title('clustering on waveform type')
+plt.xlabel('PC1 - weights')
+plt.ylabel('PC2 - weights')
+plt.scatter(U_[:,0], U_[:,1], c=celltypes[celltypes['isolation'] > 70]['reg_spiking'])
+
 
 # Plot PSTHs for each cluster of neurons
 resp_ds = ss.resample(resp*fs, samps)   # multiply by fs to get to hz
@@ -470,20 +637,254 @@ plt.xticks(range(0, nclusters), range(1,nclusters+1))
 plt.xlabel('neuron clusters')
 plt.ylabel('rN pred - r0 prediction')
 
-# by each neuron
+# ===================== Model Performance of each neuron =====================
+# Use coupling index (Runyan et al., 2004): (rN-r0)/rN 
+# This normalizes strength of coupling to overall model performance
 plt.figure()
 diff_clust = np.empty((cellcount, cc_rN_all.shape[0]*cc_rN_all.shape[1]))
+coup_index = np.empty((cellcount, cc_rN_all.shape[0]*cc_rN_all.shape[1]))
+ftick=0
+rtick=0
 for i in range(0, cellcount):
     bar_width = 0.35
     diff_clust[i,:] = np.squeeze(cc_rN_clust[:, i]- cc_r0_clust[:, i])
-    plt.bar(i, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), bar_width, color='r')
-    sem = np.nanstd((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]))/np.sqrt(len((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)])))
-    sem2 = np.nanstd((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]))/np.sqrt(len((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)])))
-    plt.bar(i+bar_width, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), bar_width, color='b')
-    plt.legend(['active', 'passive'])
-    plt.errorbar(i, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), yerr = sem, color='k')
-    plt.errorbar(i+bar_width, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), yerr = sem2, color='k')
-    
-plt.xticks(range(0, cellcount), c_ids, rotation = 90, fontsize=8)
+    coup_index[i,:] = diff_clust[i,:]/cc_rN_clust[:,i]
+    if np.array(celltypes[celltypes['isolation'] > 70]['reg_spiking'])[i] == 1:
+        plt.subplot(221)
+        plt.title('regular-spiking')
+        plt.bar(rtick, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), bar_width, color='r')
+        sem = np.nanstd((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]))/np.sqrt(len((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)])))
+        sem2 = np.nanstd((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]))/np.sqrt(len((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)])))
+        plt.bar(rtick+bar_width, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), bar_width, color='b')
+        plt.legend(['active', 'passive'])
+        plt.errorbar(rtick, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), yerr = sem, color='k')
+        plt.errorbar(rtick+bar_width, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), yerr = sem2, color='k')
+        
+        
+        plt.subplot(222)
+        plt.title('regular-spiking')
+        plt.bar(rtick, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), bar_width, color='r')
+        sem = np.nanstd((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]))/np.sqrt(len((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)])))
+        sem2 = np.nanstd((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]))/np.sqrt(len((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)])))
+        plt.bar(rtick+bar_width, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), bar_width, color='b')
+        plt.legend(['active', 'passive'])
+        plt.errorbar(rtick, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), yerr = sem, color='k')
+        plt.errorbar(rtick+bar_width, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), yerr = sem2, color='k')
+        rtick+=1
+    else:
+        plt.subplot(223)
+        plt.title('fast-spiking')
+        plt.bar(ftick, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), bar_width, color='r')
+        sem = np.nanstd((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]))/np.sqrt(len((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)])))
+        sem2 = np.nanstd((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]))/np.sqrt(len((diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)])))
+        plt.bar(ftick+bar_width, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), bar_width, color='b')
+        plt.legend(['active', 'passive'])
+        plt.errorbar(ftick, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), yerr = sem, color='k')
+        plt.errorbar(ftick+bar_width, np.nanmean(diff_clust[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), yerr = sem2, color='k')
+        
+        plt.subplot(224)
+        plt.title('fast-spiking')
+        plt.bar(ftick, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), bar_width, color='r')
+        sem = np.nanstd((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]))/np.sqrt(len((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)])))
+        sem2 = np.nanstd((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]))/np.sqrt(len((coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)])))
+        plt.bar(ftick+bar_width, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), bar_width, color='b')
+        plt.legend(['active', 'passive'])
+        plt.errorbar(ftick, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==1)]), yerr = sem, color='k')
+        plt.errorbar(ftick+bar_width, np.nanmean(coup_index[i,np.argwhere(np.repeat(a_p, [stimcount])==0)]), yerr = sem2, color='k')
+        ftick+=1
+plt.subplot(221)   
+c_ids = np.array(c_ids)
+c_ids_1 = c_ids[np.array(celltypes[celltypes['isolation'] > 70]['reg_spiking'])>0] 
+plt.xticks(range(0, len(c_ids_1)), c_ids_1, rotation = 90, fontsize=8)
 plt.xlabel('neuron')
 plt.ylabel('rN pred - r0 prediction')
+ymin, ymax = plt.ylim()
+
+plt.subplot(222)
+plt.xticks(range(0, len(c_ids_1)), c_ids_1, rotation = 90, fontsize=8)
+plt.xlabel('neuron')
+plt.ylabel('coupling index')
+ymin2, ymax2 = plt.ylim()
+
+plt.subplot(223)
+c_ids_2 = c_ids[np.array(celltypes[celltypes['isolation'] > 70]['reg_spiking'])==0] 
+plt.xticks(range(0, len(c_ids_2)), c_ids_2, rotation = 90, fontsize=8)
+plt.xlabel('neuron')
+plt.ylabel('rN pred - r0 prediction')
+plt.ylim((ymin,ymax))
+
+plt.subplot(224)
+c_ids_2 = c_ids[np.array(celltypes[celltypes['isolation'] > 70]['reg_spiking'])==0] 
+plt.xticks(range(0, len(c_ids_2)), c_ids_2, rotation = 90, fontsize=8)
+plt.xlabel('neuron')
+plt.ylabel('coupling index')
+plt.ylim((ymin2,ymax2))
+
+plt.tight_layout()
+# ============== Look at weights over a number of time lags ===================
+timeLag = 0.1   # in seconds
+h = get_weight_mat(resp,lag=timeLag, fs=100)
+mw = np.empty((len(h), int(timeLag*fs), len(h)))
+for i in range(0, len(model_weights)):
+    for j in range(0, int(timeLag*fs)):
+        mw[i, j, 0:i] = h[i, j, 0:i]
+        mw[i, j, i]=0
+        mw[i, j, (i+1):] = h[i, j, i:]
+
+plt.figure()
+for i in range(0, cellcount):
+    plt.subplot(4, 7, i+1)
+    if np.array(celltypes[celltypes['isolation'] > 70]['reg_spiking'])[i] == 1:
+        plt.ylabel(cellids[i], fontsize=8,color='red')
+    else:
+        plt.ylabel(cellids[i], fontsize=8,color='blue')
+    plt.imshow(mw[i,:,:].T,aspect='auto')
+    plt.xlabel('0-100ms', fontsize=8)
+    plt.yticks(range(0,len(cellids)),c_ids, fontsize=6)
+    
+# ========== over downsampled data (kind of like including lags) ============
+h = get_weight_mat(resp_ds)
+mw = np.empty((len(h), len(h)))
+for i in range(0, len(model_weights)):
+    mw[i, 0:i] = h[i, 0:i]
+    mw[i, i]=np.nan
+    mw[i,(i+1):] = h[i,i:]
+plt.figure()
+plt.imshow(mw)
+plt.xticks(range(0,len(cellids)),c_ids,rotation=90,fontsize=8)
+plt.yticks(range(0,len(cellids)),c_ids,fontsize=8)
+
+# ======= Sort cells by time of peak activity level within a trial ===========
+#z-score resp
+def z_score(r, prestim, fs):
+    shape = len(r.shape)
+    pstim = int(prestim*fs)
+    if shape==2:
+        out = np.zeros(r.shape)
+        for cell in range(0, r.shape[1]):
+            m_spont = np.mean(r[0:pstim,i])
+            std = np.std(r[:,i])
+            for t in range(0, r.shape[0]):
+                out[t,cell] = (r[t,cell]-m_spont)/std 
+    elif shape==4:
+        pass
+    return out
+
+
+resp_act = resp[:,a_p==1,:,:]
+resp_act = resp_act.reshape(resp_act.shape[0],resp_act.shape[1]*resp_act.shape[2], resp_act.shape[3])
+resp_act = np.mean(resp_act,1)
+#resp_act = z_score(resp_act,stack.data[-1][1]['prestim'],fs)
+resp_pass = resp[:,a_p==0,:,:]
+resp_pass = resp_pass.reshape(resp_pass.shape[0],resp_pass.shape[1]*resp_pass.shape[2], resp_pass.shape[3])
+resp_pass = np.mean(resp_pass,1)
+#resp_pass = z_score(resp_pass,stack.data[-1][1]['prestim'],fs)
+
+act_ind = []
+pass_ind = []
+for i in range(0, len(cellids)):
+    act_ind.append(np.argwhere(resp_act[:,i]==max(resp_act[:,i]))[0][0])
+    pass_ind.append(np.argwhere(resp_pass[:,i]==max(resp_pass[:,i]))[0][0])
+    resp_act[:,i] = resp_act[:,i]/max(resp_act[:,i])
+    resp_pass[:,i] = resp_pass[:,i]/max(resp_act[:,i])
+    
+plt.figure()
+plt.subplot(221)
+if max((resp_pass[:,np.argsort(act_ind)]).flatten())>1:
+    plt.imshow(resp_act[:,np.argsort(act_ind)].T,aspect='auto', vmin =0,vmax = max((resp_pass[:,np.argsort(act_ind)]).flatten()))
+plt.yticks(range(0,len(cellids)), c_ids[np.argsort(act_ind)], fontsize=8)
+plt.title('active trials, sorted by active, normalized to peak')
+plt.colorbar()
+plt.subplot(222)
+plt.imshow(resp_pass[:,np.argsort(act_ind)].T,aspect='auto', vmin =0,vmax = max((resp_pass[:,np.argsort(act_ind)]).flatten()))
+plt.yticks(range(0,len(cellids)), c_ids[np.argsort(act_ind)], fontsize=8)
+plt.title('passive trials, sorted by active, normalized to active')
+plt.colorbar()
+plt.subplot2grid((2,2),(1,0),colspan=2)
+plt.imshow(resp_act[:,np.argsort(act_ind)].T - resp_pass[:,np.argsort(act_ind)].T, aspect='auto')
+plt.yticks(range(0,len(cellids)), c_ids[np.argsort(act_ind)], fontsize=8)
+plt.colorbar()
+plt.title('act-passive')
+plt.tight_layout()
+
+
+#=================== for reg spiking =========================
+
+reg_spike = np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])[np.argsort(act_ind)]
+
+plt.figure()
+plt.subplot(221)
+if max((resp_pass[:,np.argsort(act_ind)][:,reg_spike==1]).flatten())>1:
+    plt.imshow(resp_act[:,np.argsort(act_ind)][:,reg_spike==1].T,aspect='auto', vmin =0,vmax = max((resp_pass[:,np.argsort(act_ind)][:,reg_spike==1]).flatten()))
+plt.yticks(range(0,len(cellids[reg_spike==1])), c_ids[np.argsort(act_ind)][reg_spike==1], fontsize=8)
+plt.title('active trials, sorted by active, normalized to peak')
+plt.colorbar()
+plt.subplot(222)
+plt.imshow(resp_pass[:,np.argsort(act_ind)][:,reg_spike==1].T,aspect='auto', vmin =0,vmax = max((resp_pass[:,np.argsort(act_ind)][:,reg_spike==1]).flatten()))
+plt.yticks(range(0,len(cellids[reg_spike==1])), c_ids[np.argsort(act_ind)][reg_spike==1], fontsize=8)
+plt.title('passive trials, sorted by active, normalized to active')
+plt.colorbar()
+plt.subplot2grid((2,2),(1,0),colspan=2)
+plt.imshow(resp_act[:,np.argsort(act_ind)][:,reg_spike==1].T - resp_pass[:,np.argsort(act_ind)][:,reg_spike==1].T, aspect='auto')
+plt.yticks(range(0,len(cellids[reg_spike==1])), c_ids[np.argsort(act_ind)][reg_spike==1], fontsize=8)
+plt.colorbar()
+plt.title('act-passive')
+plt.tight_layout()
+plt.suptitle('Regular spiking')
+
+# ================== for fast spiking ===================================
+
+plt.figure()
+plt.subplot(221)
+if max((resp_pass[:,np.argsort(act_ind)][:,reg_spike==0]).flatten())>1:
+    plt.imshow(resp_act[:,np.argsort(act_ind)][:,reg_spike==0].T,aspect='auto', vmin =0,vmax = max((resp_pass[:,np.argsort(act_ind)][:,reg_spike==0]).flatten()))
+else:
+    plt.imshow(resp_act[:,np.argsort(act_ind)][:,reg_spike==0].T,aspect='auto', vmin =0,vmax = 1)
+plt.yticks(range(0,len(cellids[reg_spike==0])), c_ids[np.argsort(act_ind)][reg_spike==0], fontsize=8)
+plt.title('active trials, sorted by active, normalized to peak')
+plt.colorbar()
+plt.subplot(222)
+plt.imshow(resp_pass[:,np.argsort(act_ind)][:,reg_spike==0].T,aspect='auto', vmin =0,vmax = max((resp_pass[:,np.argsort(act_ind)][:,reg_spike==0]).flatten()))
+plt.yticks(range(0,len(cellids[reg_spike==0])), c_ids[np.argsort(act_ind)][reg_spike==0], fontsize=8)
+plt.title('passive trials, sorted by active, normalized to active')
+plt.colorbar()
+plt.subplot2grid((2,2),(1,0),colspan=2)
+plt.imshow(resp_act[:,np.argsort(act_ind)][:,reg_spike==0].T - resp_pass[:,np.argsort(act_ind)][:,reg_spike==0].T, aspect='auto')
+plt.yticks(range(0,len(cellids[reg_spike==0])), c_ids[np.argsort(act_ind)][reg_spike==0], fontsize=8)
+plt.colorbar()
+plt.title('act-passive')
+plt.tight_layout()
+plt.suptitle('Fast spiking')
+
+# ============== Network Model Fitting with subsets of Neurons ================
+
+# ============= All neurons except fast-spiking neurons ======================
+# Set subset of neurons:
+r = resp[:,:,:,np.argwhere(np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])==1)].squeeze()
+pr = pred[:,:,:,np.argwhere(np.array(celltypes[celltypes['isolation']>70]['reg_spiking'])==1)].squeeze()
+# fit model
+rN = NRF_fit(r = r, r0_strf = pr, model='NRF_STRF',spontonly=False)
+# evaluate model
+from NRF_tools import plt_perf_by_trial
+figtest = plt_perf_by_trial(r, rN, pr,combine_stim=True,a_p=a_p,pupil=pupil, pop_state={'method': 'SVD', 
+                                                                                        'dims': 5
+                                                                                        })
+
+
+
+# ======== Fit Network model over a range of lags =========
+lags = [0.0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+r = resp
+pr = pred
+cc_r0 = np.nanmean(eval_fit(r,pr)['bytrial'])
+mod = []
+for i in tqdm(lags):
+    rN=NRF_fit(r = r, r0_strf = pr, lag=i, fs=fs, single_lag=True, model='NRF_STRF',spontonly=False)
+    #figtest = plt_perf_by_trial(r,rN,pr,combine_stim=True,a_p=a_p,pupil=pupil)
+    cc_rN = np.nanmean(eval_fit(r, rN)['bytrial'])
+    mod.append(cc_rN-cc_r0)
+plt.figure()
+plt.plot(lags,mod)
+plt.xlabel('seconds')
+plt.ylable('rN-r0')
+
