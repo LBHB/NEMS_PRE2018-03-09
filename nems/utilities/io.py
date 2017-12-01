@@ -231,6 +231,7 @@ def get_mat_file(filename, chars_as_strings=True):
         TODO: generic support of s3 URI, not NEMS-specific
            check for local version (where, cached? before loading from s3)
     """
+    print(filename)
     if AWS:
         s3_client = boto3.client('s3')
         key = filename[len(sc.DIRECTORY_ROOT):]

@@ -238,6 +238,19 @@ class crossval(nems_module):
                     d_val['pupil']=[]
                     
                 try:
+                    d_est['stim1']=copy.deepcopy(d['stim1'][:,eidx,:])
+                    d_val['stim1']=copy.deepcopy(d['stim1'][:,vidx,:])
+                    d_est['pred1']=d_est['stim1']
+                    d_val['pred1']=d_val['stim1']
+                    d_est['stim2']=copy.deepcopy(d['stim2'][:,eidx,:])
+                    d_val['stim2']=copy.deepcopy(d['stim2'][:,vidx,:])
+                    d_est['pred2']=d_est['stim2']
+                    d_val['pred2']=d_val['stim2']
+                    
+                except:
+                    pass
+                    
+                try:
                     if d['state'].shape[1]==n_trials:
                         d_est['state']=copy.deepcopy(d['state'][:,eidx,:])
                         d_val['state']=copy.deepcopy(d['state'][:,vidx,:])

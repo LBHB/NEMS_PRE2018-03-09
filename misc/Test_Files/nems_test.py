@@ -50,8 +50,14 @@ def dexp_fn(phi,X):
     Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
     return(Y)
 
-doval=1
+doval=0
 
+if 1:
+    """ RDT """
+    cellid="oys022b-b1"
+    modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
+    batch=269
+    
 if 0:
     """ NAT SOUND """
     cellid="bbl031f-a1"
@@ -102,7 +108,7 @@ if 0:
     
     
 """ pupil gain test -- PPS data """
-if 1:
+if 0:
     #cellid='gus021d-a2'
     #cellid='gus021d-b1'
     #cellid="BOL006b-11-1"
