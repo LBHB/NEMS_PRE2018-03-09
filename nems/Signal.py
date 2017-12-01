@@ -220,6 +220,7 @@ def loadfromcsv(csvfilepath, jsonfilepath):
     mat = mat.reshape(js['nreps'], js['ntimes'], js['nchans'])
     mat = mat.swapaxes(1, 0)
     mat = mat.swapaxes(2, 1)
+    # See also: modified_copy
     s = Signal(signal_name=js['name'],
                cellid=js['cellid'],
                recording=js['recording'],

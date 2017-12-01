@@ -14,7 +14,7 @@ import os
 import io
 import copy
 
-g
+
 class nems_stack:
         
     """

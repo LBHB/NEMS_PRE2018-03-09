@@ -84,7 +84,10 @@ def mat2signals(matfile):
                            matrix=np.swapaxes(m['stim'], 0, 1),
                            fs=meta['stimfs']))
 
-        sigs.append(Signal(signal_name='resp',
+        guessed_cellid = meta['cellid'][-3:]
+        if guessed_cellid[0] != '-':
+            raise ValueError("I think I guessed the wrong cellid suffix!")
+        sigs.append(Signal(signal_name='resp'+guessed_cellid,
                            recording=meta['recording'],
                            cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
@@ -121,12 +124,12 @@ matfile = ('/home/ivar/tmp/gus027b-a1_b293_parm_fs200'
 
 sigs = mat2signals(matfile)
 
-# print("---")
-# for s in sigs:
-#     print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
-#     (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
-#     q = nems.Signal.loadfromcsv(csv, js)
-#     print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
+print("---")
+for s in sigs:
+    print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
+    (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
+    q = loadfromcsv(csv, js)
+    print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
 
 ##############################################################################
 
