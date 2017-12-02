@@ -138,6 +138,10 @@ class Model:
     def output(self):
         return self.modules[-1].data
 
+    def fit(self):
+        print('NOT YET IMPLEMENTED')
+        return None
+
     # def quick_plot(self, size=(12, 24)):
     #     fig = plt.figure(figsize=size)
 

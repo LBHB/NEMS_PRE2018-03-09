@@ -5,6 +5,8 @@
 import nems.keyword as nk
 import nems.modules as nm
 import nems.stack as ns
+from nems.Model import Model
+from nems.Signal import Signal, load_signal
 import sys
 
 
@@ -45,22 +47,28 @@ def construct_model(keywordstring):
     return(stack)
 
 
-   python3 nems_fit_single.py gus027b-a1 293 \
-   parm50_wcg02_fir10_pupwgtctl_fit01_nested5
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print('syntax: nems_fit_single modelname signal1 [signal2...]')
-        exit(-1)
+#    if len(sys.argv) < 3:
+#        print('syntax: nems_fit_single modelname signal1 [signal2...]')
+#        exit(-1)
 
-    modelname = sys.argv[1]
-    signalfiles = sys.argv[2:]
+    modelname = "parm50_wcg02_fir10_pupwgtctl_fit01_nested5"
+    signalfiles = ["/home/ivar/sigs/gus027b13_p_PPS_resp-a1",
+                   "/home/ivar/sigs/gus027b13_p_PPS_pupil",
+                   "/home/ivar/sigs/gus027b13_p_PPS_stim"]
+
+    signals = [load_signal(f) for f in signalfiles]
+
+    # modelname = sys.argv[1]
+    # signalfiles = sys.argv[2:]
 
     print("Creating Model...")
-    m = nems.Model(
+    m = Model()
+    m.append(nm.filters.weight_channels, num_chans=2, parm_type="gauss")
 
     print("Starting fit.")
-    stack = fit_model(modelname, signalfiles)
+    stack = m.fit(signalfiles)
     print("Done with fit.")
 
     # TODO: Decide to plot or not
@@ -76,8 +84,7 @@ if __name__ == '__main__':
     # preview_file = stack.quick_plot_save(mode="png")
     # print("Preview saved to: {0}".format(preview_file))
 
-    #r_id = nd.save_results(stack, preview_file, queueid=queueid)
+    # r_id = nd.save_results(stack, preview_file, queueid=queueid)
     # print("Fit results saved to NarfResults, id={0}".format(r_id))
 
     # TODO: make new jerb from result?
-

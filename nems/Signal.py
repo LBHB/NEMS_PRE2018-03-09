@@ -6,28 +6,29 @@ import numpy as np
 
 class Signal():
     """ A signal is immutable, and has these required fields:
-    .name         The name of the signal, e.g. 'stim' or 'a1-resp' [string]
+    .name         The name of the signal, e.g. 'stim' or 'resp-a1' [string]
     .recording    The name of the recording session [string]
-    .cellid       The name of the cellid [string]
     .fs           The frequency [uint] of sampling, in Hz.
-    .nchans       The number of input channels
-    .nreps        The number of trial repetitions
-    .ntimes       The number of time samples per trial
 
     There is one optional initialization field:
     .meta         Metadata for the signal
+
+    Internally, the signal has several matrix dimensions you may refer to:
+    .nchans       The number of input channels [uint]
+    .nreps        The number of trial repetitions [uint]
+    .ntimes       The number of time samples per trial [uint]
 
     To get (cheap) views of the same data matrix in different ways, use:
     .as_single_trial()
     .as_average_trial()
 
-    To create (more expensive) modified copies of this object, use:
+    To create a mutated copies of this object (a more expensive op), use:
     .jackknifed_by_reps(nsplits, split_idx)
     .jackknifed_by_time(nsplits, split_idx)
-    .with_condition(condition)
+    .where(element_condition_function1, condition2, ...)
     .normalized()
 
-    To combine with other objects, use:
+    To combine this Signal with other Signals, use:
     .append_timeseries()
     .append_reps()
     .append_channels()
@@ -38,7 +39,6 @@ class Signal():
     def __init__(self, **kwargs):
         # Four required parameters:
         self.name = kwargs['signal_name']
-        self.cellid = kwargs['cellid']
         self.recording = kwargs['recording']
         self.fs = int(kwargs['fs'])
         self.__matrix__ = kwargs['matrix']
@@ -50,10 +50,6 @@ class Signal():
         if type(self.name) is not str:
             raise ValueError('Name of signal must be a string:'
                              + str(self.name))
-
-        if type(self.cellid) is not str:
-            raise ValueError('Cellid must be a string:'
-                             + str(self.cellid))
 
         if type(self.recording) is not str:
             raise ValueError('Recording must be a string:'
@@ -101,7 +97,6 @@ class Signal():
         # df = pd.DataFrame(self.as_single_trial())  # 10x slower than savetxt
         obj = {'name': self.name,
                'recording': self.recording,
-               'cellid': self.cellid,
                'fs': self.fs,
                'nchans': self.nchans,
                'nreps': self.nreps,
@@ -118,7 +113,6 @@ class Signal():
     def modified_copy(self, m):
         """ Returns a copy of the Signal using the modified data matrix m"""
         new_obj = Signal(signal_name=self.name,
-                         cellid=self.cellid,
                          recording=self.recording,
                          fs=self.fs,
                          meta=self.meta,
@@ -190,7 +184,7 @@ class Signal():
         if not type(other) == type(self):
             raise ValueError('append_reps needs another Signal object.')
 
-    def with_condition(self, condition):
+    def where(self, condition):
         """Returns a new signal, with data that does not meet the condition
         NaN'd out."""
         # TODO
@@ -222,9 +216,14 @@ def loadfromcsv(csvfilepath, jsonfilepath):
     mat = mat.swapaxes(2, 1)
     # See also: modified_copy
     s = Signal(signal_name=js['name'],
-               cellid=js['cellid'],
                recording=js['recording'],
                fs=js['fs'],
                meta=js['meta'],
                matrix=mat)
     return s
+
+
+def load_signal(basepath):
+    csvpath = basepath + '.csv'
+    jsonpath = basepath + '.json'
+    return loadfromcsv(csvpath, jsonpath)

@@ -73,7 +73,6 @@ def mat2signals(matfile):
         # Extract the two required signals
         sigs.append(Signal(signal_name='stim',
                            recording=meta['recording'],
-                           cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
                                  if k in set(['duration',
                                               'prestim',
@@ -87,9 +86,8 @@ def mat2signals(matfile):
         guessed_cellid = meta['cellid'][-3:]
         if guessed_cellid[0] != '-':
             raise ValueError("I think I guessed the wrong cellid suffix!")
-        sigs.append(Signal(signal_name='resp'+guessed_cellid,
+        sigs.append(Signal(signal_name='resp' + guessed_cellid,
                            recording=meta['recording'],
-                           cellid=meta['cellid'],
                            meta={k: meta[k] for k in meta
                                  if k in set(['isolation'])},
                            matrix=m['resp_raster'],
@@ -99,7 +97,6 @@ def mat2signals(matfile):
         if 'pupil' in signal_names:
             sigs.append(Signal(signal_name='pupil',
                                recording=meta['recording'],
-                               cellid=meta['cellid'],
                                meta=None,
                                matrix=m['pupil']*0.01,
                                fs=meta['respfs']))
@@ -108,7 +105,6 @@ def mat2signals(matfile):
         if 'behavior_condition' in signal_names:
             sigs.append(Signal(signal_name='behavior_condition',
                                recording=meta['recording'],
-                               cellid=meta['cellid'],
                                meta=None,
                                matrix=np.swapaxes(m['behavior_condition'], 0, 1),
                                fs=meta['respfs']))
@@ -126,10 +122,10 @@ sigs = mat2signals(matfile)
 
 print("---")
 for s in sigs:
-    print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
+    print(s.recording, s.name, s.__matrix__.shape, s.meta)
     (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
     q = loadfromcsv(csv, js)
-    print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
+    print(q.recording, q.name, q.__matrix__.shape, q.meta)
 
 ##############################################################################
 
