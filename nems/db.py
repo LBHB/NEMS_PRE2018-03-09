@@ -262,6 +262,7 @@ def _enqueue_single_model(
         qdata.complete = 0
         qdata.progress = 0
         job = qdata
+        job.codeHash = codeHash
     elif qdata and (int(qdata.complete) == 1):
         #TODO:
         #resetting existing queue entry for note
@@ -271,6 +272,8 @@ def _enqueue_single_model(
         qdata.complete = 0
         qdata.progress = 0
         job = qdata
+        # update codeHash on re-run
+        job.codeHash = codeHash
     else:
         #result must not have existed, or status value was greater than 2
         # add new entry
@@ -340,8 +343,7 @@ def _add_model_to_queue(
     job.linux_user = linux_user
     job.note = note
     job.waitid = waitid
-    job.codeHash = codeHash
-    # TODO: add jerbQuery to tQueue table
+    job.codehash = codeHash
     #job.jerbQuery = jerbQuery
     
     return job
@@ -531,7 +533,7 @@ def fetch_meta_data(stack, r, attrs):
         setattr(r, a, _fetch_attr_value(stack, k, default))
 
 def _fetch_attr_value(stack,k,default=0.0):
-    """Return the value of key 'k' of stack.meta, or default. Internal use."""
+    """Return the value of key 'k' of stack.meta, or default."""
     
     # if stack.meta[k] is a string, return it.
     # if it's an ndarray or anything else with indicies, get the first index;
