@@ -243,6 +243,7 @@ def get_mat_file(filename, chars_as_strings=True):
                 chars_as_strings=chars_as_strings,
                 )
         return data
+    
     if AWS:
         s3_client = boto3.client('s3')
         key = filename[len(sc.DIRECTORY_ROOT):]

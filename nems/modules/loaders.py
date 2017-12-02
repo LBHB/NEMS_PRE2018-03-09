@@ -125,6 +125,12 @@ class load_mat(nems_module):
                 except:
                     data['pupil']=None
                 try:
+                    data['state']=s['state']
+                except:
+                    data['state']=None
+                #data['tags']=s.get('tags',None)
+                
+                try:
                     if s['estfile']:
                         data['est']=True
                     else:
@@ -136,7 +142,16 @@ class load_mat(nems_module):
                     data['filestate']=s['filestate'][0][0]
                 except:
                     data['filestate']=0
-
+                
+                # deal with extra dimensions in RDT data
+                if data['stim'].ndim>3:
+                    data['stim1']=data['stim'][:,:,:,1]
+                    data['stim2']=data['stim'][:,:,:,2]
+                    data['stim']=data['stim'][:,:,:,0]
+                    stimvars=['stim','stim1','stim2']
+                else:
+                    stimvars=['stim']
+               
                 # resample if necessary
                 data['fs']=self.fs
                 noise_thresh=0.05
@@ -146,16 +161,16 @@ class load_mat(nems_module):
                 self.parent_stack.unresampled={'resp':data['resp'],'respFs':data['respFs'],'duration':data['duration'],
                                                'poststim':data['poststim'],'prestim':data['prestim'],'pupil':data['pupil']}
                 
-                # reshape stimulus to be channel X time
-                data['stim']=np.transpose(data['stim'],(0,2,1))
-                
-                
-                if stim_resamp_factor in np.arange(0,10):
-                    print("stim bin resamp factor {0}".format(stim_resamp_factor))
-                    data['stim']=nems.utilities.utils.bin_resamp(data['stim'],stim_resamp_factor,ax=2)
+                for sname in stimvars:
+                    # reshape stimulus to be channel X time
+                    data[sname]=np.transpose(data[sname],(0,2,1))
+                    
+                    if stim_resamp_factor in np.arange(0,10):
+                        print("stim bin resamp factor {0}".format(stim_resamp_factor))
+                        data[sname]=nems.utilities.utils.bin_resamp(data[sname],stim_resamp_factor,ax=2)
                    
-                elif stim_resamp_factor != 1:
-                    data['stim']=nems.utilities.utils.thresh_resamp(data['stim'],stim_resamp_factor,thresh=noise_thresh,ax=2)
+                    elif stim_resamp_factor != 1:
+                        data[sname]=nems.utilities.utils.thresh_resamp(data[sname],stim_resamp_factor,thresh=noise_thresh,ax=2)
                     
                 # resp time (axis 0) should be resampled to match stim time (axis 1)
                 
