@@ -22,7 +22,7 @@ class nems_module:
         self.parent_model = parent_model  # The Model that owns this module
         self.input_signal_names = input_signal_names
         self.output_signal_name = output_signal_name
-        self.d_in = self.parent_model.modules[-1].dout
+        self.d_in = self.parent_model.fit_stack[-1].d_out
         self.d_out = copy.copy(self.d_in)  # TODO: Shallow ok iff d_in is flat!
         self.fit_fields = []
         self.plot_fns = []

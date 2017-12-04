@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from nems.utilities.utils import find_modules
+import nems.Signal as sig
+import nems.modules as mods
 import numpy as np
 import os
 import io
@@ -41,10 +43,11 @@ class Model:
                  output_signal_pred='pred'):
         self.modules = modules
         if not modelname:
-            guessed_modelname = [m.name for m in modules].join('_')
+            guessed_modelname = '_'.join([m.name for m in modules])
         self.modelname = modelname if modelname else guessed_modelname
         self.fitter = fitter
         self.meta = meta if meta else {}
+        self.fit_stack = []
 
     def evaluate(self, start_idx=0, end_idx=None):
         """ Evaluate modules in model, starting at module # start_idx,
@@ -68,8 +71,9 @@ class Model:
         if mod is None:
             raise ValueError('stack.append: module not specified')
 
-        self.modules.append(mod)
-        mod.evaluate()
+        self.fit_stack.append(mod(self))
+        if evaluate:
+            mod.evaluate(mod, mod.my_eval)
 
     def insert(self, idx, mod):
         """ Insert a module mod at index idx in stack, evaluate the inserted
@@ -138,10 +142,49 @@ class Model:
     def output(self):
         return self.modules[-1].data
 
-    def fit(self):
-        print('NOT YET IMPLEMENTED')
-        return None
+    def fit(self, signal):
+        
+        # check that signals are actually Signals
+        if not self.verify_signals(signal):
+            # TODO: Try to package the argument as a Signal, or keep hard req?
+            #       Ex. if user tried to pass in some 3-dim numpy arrays.
+            raise Exception("Model.fit method only accepts Signal objects.")
+        
+        data = signal.get_matrix()
+        
+        # add data to dummy object and instantiate the modules and append to
+        # fit stack
+        x = type('data', (object,), {})()
+        x.d_out = data
+        self.fit_stack.append(x)
+        for i, m in enumerate(self.modules):
+            self.append(m)
+        # run the fit
+        self.fitter.do_fit(self, self.fit_stack)
+        # add performance metrics
+        self.append(mods.metrics.correlation(self))
+        
+        # Stick everything here that we want to save for a result. I.e. meta
+        # for looking at performance metrics, the fitted parameters, etc.
+        # Put in dict so can be saved as JSON
+        result = {
+                'phi':'phi vector',
+                'meta':Model.meta,
+                '...':'TODO',
+                }
+        
+        return result
+        
+    def verify_signals(self, signal):
+        """Check that the signal argument is in fact a Signal object.
+        Return boolean indicating success or failure."""
+        
+        verified = False
+        if signal and isinstance(signal, sig.Signal):
+            verified = True
 
+        return verified
+        
     # def quick_plot(self, size=(12, 24)):
     #     fig = plt.figure(figsize=size)
 

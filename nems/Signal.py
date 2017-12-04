@@ -126,6 +126,12 @@ class Signal():
         mat = mat.swapaxes(2, 1)
         return mat
 
+    def get_matrix(self):
+        """ Just return self.__matrix__, after doing any other checks needed.
+        TODO: anything else needed here?
+        """
+        return self.__matrix__
+    
     def as_single_trial(self):
         """ Return the data by concatenating all reps one after another
         so that it appears to be a single, long trial. (i.e. 1 repetition)  """
