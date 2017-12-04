@@ -12,7 +12,7 @@ import importlib
 import os
 import nems_sample as ns
 import boto3
-sample_path = os.path.abspath(ns.__file__)[:-11]
+sample_path = os.path.dirname(os.path.abspath(ns.__file__))
 
 # stays false unless changed by db.py if database info is missing
 DEMO_MODE = False
@@ -40,7 +40,7 @@ class UI_OPTIONS():
 class STORAGE_DEFAULTS():
     DIRECTORY_ROOT = sample_path
     USE_AWS = False
-    
+
 class FLASK_DEFAULTS():
     Debug = False
     COPY_PRINTS = False
@@ -75,9 +75,9 @@ def update_settings(module_name, default_class):
                 %module_name
                 )
         return
-    
+
     for key in mod.__dict__:
         setattr(default_class, key, getattr(mod, key))
-        
+
 update_settings("Storage_Config", STORAGE_DEFAULTS)
 update_settings("Flask_Config", FLASK_DEFAULTS)
