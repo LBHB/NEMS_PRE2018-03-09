@@ -13,6 +13,8 @@ import numpy as np
 import scipy.io
 import matplotlib.pyplot as plt
 
+import nems.Signal as sig
+
 import nems.utilities.utils
 import nems.utilities.plot
 import nems.utilities.io
@@ -52,7 +54,8 @@ class load_mat(nems_module):
     """
     name='loaders.load_mat'
     user_editable_fields=['output_name','est_files','fs','avg_resp']
-    plot_fns=[nems.utilities.plot.plot_spectrogram, nems.utilities.plot.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.plot_spectrogram, 
+              nems.utilities.plot.plot_spectrogram]
     est_files=[]
     fs=100
     avg_resp=True
@@ -286,4 +289,36 @@ class dummy_data(nems_module):
         self.d_out[0]['resp']=self.d_out[0]['stim'][0,:,:]*2+1        
         self.d_out[0]['repcount']=np.sum(np.isnan(self.d_out[0]['resp'])==False,axis=0)
         
-        
+
+class load_mat_hacked(load_mat):
+    def evaluate(self, **kwargs):
+        del self.d_out[:]
+
+        print('Loading load_mat_hacked')
+
+        # Fake loading of the signals
+        resp = sig.load_signal('/home/ivar/sigs/gus027b13_p_PPS_resp-a1')
+        stim = sig.load_signal('/home/ivar/sigs/gus027b13_p_PPS_stim_wav')
+        pupil = sig.load_signal('/home/ivar/sigs/gus027b15_p_PPS_pupil')
+
+        data = {}
+        data['stim'] = stim.as_old_matlab_format()
+        data['resp'] = resp.as_old_matlab_format()
+        data['stimFs'] = stim.fs
+        data['respFs'] = resp.fs
+        data['isolation'] = resp.meta['isolation']
+        data['prestim'] = stim.meta['prestim']
+        data['poststim'] = stim.meta['poststim']
+        data['duration'] = stim.meta['duration']
+        data['pupil'] = pupil.as_old_matlab_format()
+        data['filestate'] = 0
+
+        # DELETED: Resampling stuff.
+
+        # fund number of reps of each stimulus
+        # data['repcount'] = np.sum(np.isfinite(data['resp'][0,:,:]),axis=0)    
+        # data['avg_resp'] = ...
+        #data['behavior_condition'] = np.ones(data['resp'].shape)*(data['filestate']>0)
+        #data['behavior_condition'][np.isnan(data['resp'])]=np.nan
+        print('Exiting load_mat_hacked ')
+        self.d_out.append(data)

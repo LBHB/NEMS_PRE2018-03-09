@@ -81,10 +81,11 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     #       -jacob, 6/20/17
     if autoplot:
         stack.quick_plot()
-    
-    # save
-    filename = nems.utilities.io.get_file_name(cellid, batch, modelname)
-    nems.utilities.io.save_model(stack, filename)
+
+    # save    
+    # TODO: Find a better way to serialize a model than pickling
+    # filename = nems.utilities.io.get_file_name(cellid, batch, modelname)
+    # nems.utilities.io.save_model(stack, filename)
 
     return(stack)
 

@@ -207,11 +207,11 @@ def load_model(file_path):
 
 def get_file_name(cellid, batch, modelname):
     
-    filename=(
-        sc.DIRECTORY_ROOT + "nems_saved_models/batch{0}/{1}/{2}.pkl"
-        .format(batch, cellid, modelname)
-        )
-    
+    # filename=(
+    #     sc.DIRECTORY_ROOT + "nems_saved_models/batch{0}/{1}/{2}.pkl"
+    #     .format(batch, cellid, modelname)
+    #     )
+    filename = cellid + '_' + batch + '_' + modelname
     return filename
 
 

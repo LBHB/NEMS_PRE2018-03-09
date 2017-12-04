@@ -144,6 +144,13 @@ class Signal():
         """ Return the matrix as the average of all repetitions.  """
         return np.nanmean(self.__matrix__, axis=2)
 
+    def as_old_matlab_format(self):
+        """ Return the matrix as the average of all repetitions.  """
+        m = self.__matrix__
+        m = m.swapaxes(1, 2)
+        m = m.swapaxes(0, 2)
+        return m
+
     def jackknifed_by_reps(self, nsplits, split_idx):
         """ Returns a new signal, with entire reps NaN'd out. If nreps is not
         an integer multiple of nsplits, an error is thrown. """

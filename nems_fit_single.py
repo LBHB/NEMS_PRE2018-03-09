@@ -5,15 +5,15 @@
 import nems.main as nems
 import sys
 import os
-try:
-    import nems.db as nd
-    db_exists = True
-except Exception as e:
-    # If there's an error import nems.db, probably missing database
-    # dependencies. So keep going but don't do any database stuff.
-    print("Problem importing nems.db, can't update tQueue")
-    print(e)
-    db_exists = False
+# try:
+#     import nems.db as nd
+#     db_exists = True
+# except Exception as e:
+#     # If there's an error import nems.db, probably missing database
+#     # dependencies. So keep going but don't do any database stuff.
+#     print("Problem importing nems.db, can't update tQueue")
+#     print(e)
+#     db_exists = False
         
 if __name__ == '__main__':
     
@@ -53,17 +53,17 @@ if __name__ == '__main__':
     preview_file = stack.quick_plot_save(mode="png")
     print("Preview saved to: {0}".format(preview_file))
     
-    if db_exists:
-        if queueid:
-            pass
-        else:
-            queueid = None
-        r_id = nd.save_results(stack, preview_file, queueid=queueid)
-        print("Fit results saved to NarfResults, id={0}".format(r_id))
+    # if db_exists:
+    #     if queueid:
+    #         pass
+    #     else:
+    #         queueid = None
+    #     r_id = nd.save_results(stack, preview_file, queueid=queueid)
+    #     print("Fit results saved to NarfResults, id={0}".format(r_id))
 
     # Mark completed in the queue. Note that this should happen last thing! 
     # Otherwise the job might still crash after being marked as complete.
-    if queueid:
-        nd.update_job_complete(queueid)
+    # if queueid:
+    #     nd.update_job_complete(queueid)
         
        

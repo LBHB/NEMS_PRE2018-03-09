@@ -108,10 +108,15 @@ def parm50(stack):
     
     Specifically for batch293 tone-pip data.
     """
-    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
-                                     fs=200,stimfmt='parm')
-    print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
+    #file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
+    #                                 fs=200,stimfmt='parm')
+    # file = 
+    #
+    #print("Initializing load_mat with file {0}".format(file))
+    print("-----------------------------------------------")
+    print("Running a hacked version of load_mat! WARNING! ")
+    print("-----------------------------------------------")
+    stack.append(nm.loaders.load_mat_hacked,est_files=[],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2)
 
 def parm50pt(stack):

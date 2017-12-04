@@ -199,9 +199,12 @@ class crossval(nems_module):
                 self.estidx_sets.append([])
                 self.validx_sets.append([])
                 fcount+=1
-                self.estidx_sets[fcount],self.validx_sets[fcount]=nems.utilities.utils.crossval_set(
-                        n_trials,cv_count=nests,cv_idx=None,
-                        interleave_valtrials=self.interleave_valtrials)
+                print(n_trials, nests)
+                tacos = nems.utilities.utils.crossval_set(n_trials,
+                                                          cv_count=nests,
+                                                          cv_idx=None,
+                                                          interleave_valtrials=self.interleave_valtrials)
+                self.estidx_sets[fcount], self.validx_sets[fcount] = tacos
                 eidx=self.estidx_sets[fcount][count]
                 vidx=self.validx_sets[fcount][count]
                 
