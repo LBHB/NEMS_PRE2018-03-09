@@ -13,11 +13,15 @@ import nems.Signal as sig
 import nems.modules as mods
 import nems.fitters.fitters as fit
 
-modules = [mods.filters.weight_channels, mods.filters.fir, mods.nonlin.gain]
-x = sig.load_signal('/home/jacob/code/demo-signals/gus027b13_p_PPS_pupil')
-y = sig.load_signal('/home/jacob/code/demo-signals/gus027b15_p_PPS_pupil')
+modules = [mods.filters.weight_channels,
+           mods.filters.fir,
+           mods.nonlin.gain]
 
-m = mdl.Model(modules=modules, fitter=fit.basic_min)
+x = sig.load_signal('/home/ivar/sigs/gus027b13_p_PPS_pupil')
+y = sig.load_signal('/home/ivar/sigs/gus027b15_p_PPS_pupil')
+
+m = mdl.Model(modules=modules,
+              fitter=fit.basic_min)
 
 result1 = m.fit(x)
 result2 = m.fit(y)
