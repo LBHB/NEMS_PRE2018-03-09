@@ -26,6 +26,17 @@ def parm100(stack):
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.est_val.crossval)
     
+def env100(stack):
+    """
+    Loads a 100 Hz BAPHY .mat file with 'envelope' marker using the 
+    provided cellid and batch. Designed for SPN data
+    
+    """
+    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='envelope')
+    print("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
+    stack.append(nm.est_val.standard)
+    
 def env50e(stack):
     """
     Loads a 50 Hz BAPHY .mat file with 'envelope' marker using the 
