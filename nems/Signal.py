@@ -65,6 +65,7 @@ class Signal():
 
         self.__matrix__.flags.writeable = False  # Make it immutable
 
+        # TODO: Rearrange this matrix dimensions; I'm not sure T,C,R is ideal
         (T, C, R) = self.__matrix__.shape
 
         if T < R or T < C:
@@ -216,27 +217,60 @@ class Signal():
         pass
 
 
-def loadfromcsv(csvfilepath, jsonfilepath):
-    """ Loads the CSV & JSON files and returns a Signal() object """
-    # mat = np.loadtxt(csvfilepath, delimiter=", ") # 10x slower than read_csv:
+def load_from_file(basepath):
+    """ Loads the CSV & JSON files and returns a Signal() object.
+    Ex: If you want to load
+    /tmp/sigs/gus027b13_p_PPS_resp-a1.csv
+    /tmp/sigs/gus027b13_p_PPS_resp-a1.json
+    then give this function
+    /tmp/sigs/gus027b13_p_PPS_resp-a1"""
+    csvfilepath = basepath + '.csv'
+    jsonfilepath = basepath + '.json'
+    # Weirdly, numpy is 10x slower than read_csv (pandas):
+    # mat = np.loadtxt(csvfilepath, delimiter=", ")
     mat = pd.read_csv(csvfilepath, header=None).values
     mat = mat.astype('float')
     with open(jsonfilepath, 'r') as f:
         js = json.load(f)
-    # NOTE: Please also see 'single_to_multi_trial'; TODO: refactor?
-    mat = mat.reshape(js['nreps'], js['ntimes'], js['nchans'])
-    mat = mat.swapaxes(1, 0)
-    mat = mat.swapaxes(2, 1)
-    # See also: modified_copy
-    s = Signal(signal_name=js['name'],
-               recording=js['recording'],
-               fs=js['fs'],
-               meta=js['meta'],
-               matrix=mat)
+        # NOTE: Please also see 'single_to_multi_trial';
+        mat = mat.reshape(js['nreps'], js['ntimes'], js['nchans'])
+        mat = mat.swapaxes(1, 0)  # TODO: refactor?
+        mat = mat.swapaxes(2, 1)
+        s = Signal(signal_name=js['name'],
+                   recording=js['recording'],
+                   fs=js['fs'],
+                   meta=js['meta'],
+                   matrix=mat)
     return s
 
 
-def load_signal(basepath):
-    csvpath = basepath + '.csv'
-    jsonpath = basepath + '.json'
-    return loadfromcsv(csvpath, jsonpath)
+def load_signals(basepaths):
+    """ Returns a list of the Signal objects created by loading the
+    signal files at paths. """
+    signals = [load_from_file(f) for f in basepaths]
+    return signals
+
+
+def list_signals_in_dir(dirpath):
+    """ Returns a list of all CSV/JSON signal files found in dirpath.
+    Returns relative paths; not absolute ones. """
+    files = os.listdir(dirpath)
+    just_fileroot = lambda f: os.path.splitext(os.path.basename(f))[0]
+    csvs = [just_fileroot(f) for f in files if f.endswith('.csv')]
+    jsons = [just_fileroot(f) for f in files if f.endswith('.json')]
+    # print(csvs, jsons)
+    overlap = set.intersection(set(csvs), set(jsons))
+    return overlap
+
+
+def load_signals_in_dir(dirpath):
+    """ Returns a list of all CSV/JSON signals found in BASEPATH.
+    Ex: If you want to load
+      /home/ivar/sigs/gus027b13_p_PPS_resp-a1.csv
+      /home/ivar/sigs/gus027b13_p_PPS_resp-a1.json
+    then pass this function
+      /home/ivar/sigs/gus027b13_p_PPS_resp-a1"""
+    files = list_signals_in_dir(dirpath)
+    filepaths = [os.path.join(dirpath, f) for f in files]
+    signals = load_signals(filepaths)
+    return signals

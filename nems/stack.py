@@ -249,7 +249,7 @@ class nems_stack:
         if mod is None:
             raise ValueError('stack.append: module not specified')
         else:
-            m=mod(self, **xargs)
+            m = mod(self, **xargs)
         self.append_instance(m)
         
     def append_instance(self, mod=None):
@@ -524,10 +524,10 @@ class nems_stack:
                 raise e
 
         return filename
-    
 
 
-                
+
+
 
 
 
