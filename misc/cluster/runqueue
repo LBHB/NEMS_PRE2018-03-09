@@ -110,12 +110,12 @@ echo "about to check for jerb stuff, should be commented out right now" > $DEBUG
 
 echo "about to check for codehash stuff" > $DEBUGLOG
 # check if codehash returned empty and jerb wasn't used
-if [ ! -z "$CODEHASH" ] && [ "$DEFAULTNEMS" -eq 1 ]
+if [ "$DEFAULTNEMS" -eq 1 ] && ["$CODEHASH" != "master"]
 then
     echo "cloning repo..." > $DEBUGLOG
     git clone https://bitbucket.org/lbhb/nems.git
     cd nems
-    echo "checking out $CODEHASH ..." > > $DEBUGLOG
+    echo "checking out $CODEHASH ..." > $DEBUGLOG
     git checkout $CODEHASH
     if [ $? -eq 0 ]
     then
