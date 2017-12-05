@@ -61,14 +61,14 @@ mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --port=$DBPORT --da
 # command line as program to run
 shift
 
-echo "about to get codehash from mysql"
+echo "about to get codehash from mysql" > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
 # get codehash and jerbquery values from mysql
 CODEHASH=$(mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --port=$DBPORT --database=cell --execute="select codehash from tQueue where id=$QUEUEID;")
 export CODEHASH
 # JERBQUERY=$(mysql --host=$DBSERVER --user=$DBUESR --password=$DBPASSWORD --port=$DBPORT --database=cell --execute="select jerbQuery from tQueue where id=$QUEUEID;")
 # export JERBQUERY
 
-echo "making temp directory"
+echo "making temp directory" > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
 #make new temp directory
 TMPDIR='nems$QUEUEID'
 mkdir -p $TMPDIR
@@ -76,7 +76,7 @@ mkdir -p $TMPDIR
 DEFAULTNEMS=1
 export DEFAULTNEMS
 
-echo "about to check for jerb stuff, should be commented out right now"
+echo "about to check for jerb stuff, should be commented out right now" > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
 # check if jerbquery returned empty
 #if [ ! -z "$JERBQUERY" ]
 #then
@@ -100,6 +100,7 @@ echo "about to check for jerb stuff, should be commented out right now"
 #        echo "COMMAND: nice -n19 /$TMPDIR/nems/nems_fit_single.py $*" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
 #        exec nice -n19 /$TMPDIR/nems/nems_fit_single.py $* >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
 #
+#        echo "cleaning up temporary files" > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
 #        #delete the temporary files
 #        cd ../..
 #        rm -rf $TMPDIR
@@ -107,14 +108,14 @@ echo "about to check for jerb stuff, should be commented out right now"
 #        export DEFAULTNEMS
 #fi
 
-echo "about to check for codehash stuff"
+echo "about to check for codehash stuff" > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
 # check if codehash returned empty and jerb wasn't used
 if [ ! -z "$CODEHASH" ] && [ "$DEFAULTNEMS" -eq 1 ]
 then
-    echo "cloning repo..."
+    echo "cloning repo..." > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
     git clone https://bitbucket.org/lbhb/nems.git
     cd nems
-    echo "checking out $CODEHASH ..."
+    echo "checking out $CODEHASH ..." > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
     git checkout $CODEHASH
     if [ $? -eq 0 ]
     then
@@ -128,7 +129,7 @@ then
         echo "COMMAND: nice -n19 /$TMPDIR/nems/nems_fit_single.py $*" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
         exec nice -n19 /$TMPDIR/nems/nems_fit_single.py $* >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
 
-        echo "cleaning up temporary files..."
+        echo "cleaning up temporary files..." > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
         #delete the temporary files
         cd ../..
         rm -rf $TMPDIR
@@ -138,7 +139,7 @@ then
         :
 fi
 
-echo "about to check if default should be run"
+echo "about to check if default should be run" > $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
 #check if neither jerb nor git hash was used
 if [ "$DEFAULTNEMS" -eq 1 ]
 then
