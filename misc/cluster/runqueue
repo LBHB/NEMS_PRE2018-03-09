@@ -102,8 +102,7 @@ echo "about to check for jerb stuff, should be commented out right now" >> $DEBU
 #
 #        echo "cleaning up temporary files" >> $DEBUGLOG
 #        #delete the temporary files
-#        cd ..
-#        cd ..
+#        cd /auto/users/nems
 #        rm -rf $TMPDIR
 #        DEFAULTNEMS=0
 #        export DEFAULTNEMS
@@ -118,7 +117,7 @@ then
     echo TMPDIR
     mkdir -p $TMPDIR
     cd $TMPDIR
-    echo "cloning repo..." > $DEBUGLOG
+    echo "cloning repo..." >> $DEBUGLOG
     git clone https://bitbucket.org/lbhb/nems.git
     cd nems
     echo "checking out $CODEHASH ..." >> $DEBUGLOG
@@ -127,29 +126,26 @@ then
     then
         #call shift command again to remove $1 which is currently the path to
         #nems_fit_single in the main nems directory
-        shift
         #do echo and exec statements similar to below but insert path to temp dir
         echo "PATH: $PATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
         echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
-        echo "COMMAND: nice -n19 /$TMPDIR/nems/nems_fit_single.py $*" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
-        exec nice -n19 /$TMPDIR/nems/nems_fit_single.py $* >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
+        echo "COMMAND: nice -n19 $1 nems_fit_single.py $3 $4 $5" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+        exec nice -n19 $1 nems_fit_single.py $3 $4 $5 >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
 
         echo "cleaning up temporary files..." >> $DEBUGLOG
         #delete the temporary files
-        cd ..
-        cd ..
+        cd /auto/users/nems
         rm -rf $TMPDIR
         DEFAULTNEMS=0
         export DEFAULTNEMS
     else
         echo "git checkout returned an error, cleaning up files..." >> $DEBUGLOG
-        cd ..
-        cd ..
+        cd /auto/users/nems
         rm -rf $TMPDIR
     fi
 fi
 
-echo "about to check if default should be run" > $DEBUGLOG
+echo "about to check if default should be run" >> $DEBUGLOG
 #check if neither jerb nor git hash was used
 if [ "$DEFAULTNEMS" -eq 1 ]
 then
