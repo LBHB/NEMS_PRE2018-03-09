@@ -3,8 +3,10 @@
 """
 Created on Wed Jun 14 09:33:47 2017
 
-@author: svd, changes added by njs 
+@author: svd, changes added by njs
 """
+
+import os.path
 
 import scipy.io as si
 import numpy as np
@@ -18,11 +20,11 @@ except Exception as e:
 
 def load_baphy_file(filepath,level=0):
     """
-    This function loads data from a BAPHY .mat file located at 'filepath'. 
+    This function loads data from a BAPHY .mat file located at 'filepath'.
     It returns two dictionaries contining the file data and metadata,
     'data' and 'meta', respectively. 'data' contains:
         {'stim':stimulus,'resp':response raster,'pupil':pupil diameters}
-    Note that if there is no pupil data in the BAPHY file, 'pup' will return 
+    Note that if there is no pupil data in the BAPHY file, 'pup' will return
     None. 'meta' contains:
         {'stimf':stimulus frequency,'respf':response frequency,'iso':isolation,
              'tags':stimulus tags,'tagidx':tag idx, 'ff':frequency channel bins,
@@ -42,7 +44,7 @@ def load_baphy_file(filepath,level=0):
         data['isolation']=s['isolation']
         data['prestim']=s['tags'][0]['PreStimSilence'][0][0][0]
         data['poststim']=s['tags'][0]['PostStimSilence'][0][0][0]
-        data['duration']=s['tags'][0]['Duration'][0][0][0] 
+        data['duration']=s['tags'][0]['Duration'][0][0][0]
     except:
         data['raw_stim']=s['stim'].copy()
         data['raw_resp']=s['resp'].copy()
@@ -58,30 +60,30 @@ def load_baphy_file(filepath,level=0):
     except ValueError:
         print("Est/val conditions not flagged in datafile")
     return(data)
-    
+
 def get_celldb_file(batch,cellid,fs=200,stimfmt='ozgf',chancount=18,pertrial=False):
     """
     Given a stim/resp preprocessing parameters, figure out relevant cache filename.
     TODO: if cache file doesn't exist, have Matlab generate it
-    
+
     @author: svd
     """
-    
-    rootpath=sc.DIRECTORY_ROOT + "nems_in_cache"
+
+    rootpath=os.path.join(sc.DIRECTORY_ROOT, "nems_in_cache")
     if pertrial or batch in [269,273,284,285]:
         ptstring="_pertrial"
     else:
         ptstring=""
-        
+
     if stimfmt in ['none','parm','envelope']:
         fn="{0}/batch{1}/{2}_b{1}{6}_{3}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs,ptstring)
     else:
         fn="{0}/batch{1}/{2}_b{1}{6}_{3}_c{4}_fs{5}.mat".format(rootpath,batch,cellid,stimfmt,chancount,fs,ptstring)
-      
+
     # placeholder. Need to check if file exists in nems_in_cache.
     # If not, call baphy function in Matlab to regenerate it:
     # fn=export_cellfile(batchid,cellid,fs,stimfmt,chancount)
-    
+
     return fn
 
 def load_baphy_ssa(filepath):
