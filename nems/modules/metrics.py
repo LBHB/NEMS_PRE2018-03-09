@@ -415,7 +415,9 @@ class ssa_index(nems_module):
         for ii, b in enumerate(blocks):
 
             stim = b['stim']  # input 3d array: 0d #streasm ; 1d #trials; 2d time
+            stim = (stim > 0).astype(np.int16)  # forces stim to binary by making anything greater than zero into one
             stim = stim.astype(np.int16)  # input stim is in uint8 which is problematic for diff
+
             resp = b['resp'].squeeze()  # input 2d array: 0d #trials ; 1d time
             if self.has_pred:
                 pred = b['pred'].squeeze()  # same shape as resp
