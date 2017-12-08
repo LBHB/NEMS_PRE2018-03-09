@@ -1,149 +1,90 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Aug 11 10:37:57 2017
+import re
+from functools import partial
 
-@author: shofer
-"""
-
-import nems.modules as nm
+from .registry import keyword_registry
 from nems.utilities.utils import mini_fit
 
-def wc01(stack):
-    """
-    Applies a 1 channel spectral filter matrix to the data
-    stream.
-    """
-    stack.append(nm.filters.weight_channels,num_chans=1)
+################################################################################
+# Stack manipulation
+################################################################################
+def wc(stack, rank=1, transform=None):
+    '''
+    Applies a n-channel spectral filter to the data stream.
 
-def wc02(stack):
-    """
-    Applies a 2 channel spectral filter matrix to the data
-    stream.
-    """
-    stack.append(nm.filters.weight_channels,num_chans=2)
+    Parameters
+    ----------
+    rank : int
+        Number of filters to apply to input stream.
+    '''
 
-def wc03(stack):
-    """
-    Applies a 3 channel spectral filter matrix to the data
-    stream.
-    """
-    stack.append(nm.filters.weight_channels,num_chans=3)
+    module = nm.filters.weight_channels(num_chans=rank, parm_type=transform)
+    stack.append(module)
 
-def wc04(stack):
-    """
-    Applies a 4 channel spectral filter matrix to a the data
-    stream.
-    """
-    stack.append(nm.filters.weight_channels,num_chans=4)
 
-def wcg01(stack):
+def fir(stack, coefs=10, random=False):
     """
-    Applies a 1 channel spectral filter matrix to the data stream.
-    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
-    """
-    stack.append(nm.filters.weight_channels,num_chans=1,parm_type="gauss")
+    Adds a temporal bin finite impluse response (FIR) filter to the datastream.
+    This filter can serve as either the entire STRF for the cell and be fitted
+    as such, or as the temporal filter in the factorized STRF if used in
+    conjuction with the weight channel spectral filter.
 
-def wcg02(stack):
+    Parameters
+    ----------
+    coefs : int
+        Number of coefficients for FIR filter.
+    random : bool
+        If true, initial FIR coefficients are drawn from a normal distribution
+        (mu=0, sigma=0.0025). Otherwise, FIR coefficients are set to 0.
     """
-    Applies a 2 channel spectral filter matrix to the data stream.
-    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
-    """
-    stack.append(nm.filters.weight_channels,num_chans=2,parm_type="gauss")
+    module = nm.filters.fir(num_coefs=coefs, random=random)
+    stack.append(module)
+    mini_fit(stack,
+             mods=['filters.weight_channels','filters.fir','filters.stp'])
 
-def wcg03(stack):
-    """
-    Applies a 3 channel spectral filter matrix to the data stream.
-    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
-    """
-    stack.append(nm.filters.weight_channels,num_chans=3,parm_type="gauss")
 
-def wcg04(stack):
-    """
-    Applies a 4 channel spectral filter matrix to the data stream.
-    Each channel constrained to be a Gaussian with 2 parameters (mu,sigma).
-    """
-    stack.append(nm.filters.weight_channels,num_chans=4,parm_type="gauss")
+def stp(n_channels=1, u=None, tau=None, normalize=False):
+    if normalize:
+        module = nm.aux.normalize()
+        stack.append(module)
+    module = nm.filters.stp(num_channels=n_channels)
+    if u is not None:
+        u = np.array(u)
+        module.u[:] = u
+    if tau is not None:
+        module.tau[:] = tau
 
-def fir10(stack):
-    """
-    Appends a 10 temporal bin finite impluse response (FIR) filter to the datastream. 
-    This filter can serve as either the entire STRF for the cell and be fitted as such, 
-    or as the temporal filter in the factorized STRF if used in conjuction with the 
-    weight channel spectral filter. 
-    
-    This keyword initializes the FIR coefficients to 0, and performs a fit on the 
-    FIR coefficients (and weight channel coefficients, if a weight channel matrix
-    is included in the model).
-    """
-    stack.append(nm.filters.fir,num_coefs=10)
-    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
-    
-def fir10r(stack):
-    """
-    Appends a 10 temporal bin finite impluse response (FIR) filter to the datastream. 
-    This filter can serve as either the entire STRF for the cell and be fitted as such, 
-    or as the temporal filter in the factorized STRF if used in conjuction with the 
-    weight channel spectral filter. 
-    
-    This keyword draws the intial FIR coeffcients from a normal distribution about 0 
-    with a standard distribution of 0.0025, and performs a fit on the FIR coefficients 
-    (and weight channel coefficients, if a weight channel matrix is included in the model).
-    """
-    stack.append(nm.filters.fir,num_coefs=10,random=True)
-    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
-    
-def fir15(stack):
-    """
-    Appends a 15 temporal bin finite impluse response (FIR) filter to the datastream. 
-    This filter can serve as either the entire STRF for the cell and be fitted as such, 
-    or as the temporal filter in the factorized STRF if used in conjuction with the 
-    weight channel spectral filter. 
-    
-    This keyword initializes the FIR coefficients to 0, and performs a fit on the 
-    FIR coefficients (and weight channel coefficients, if a weight channel matrix
-    is included in the model).
-    """
-    stack.append(nm.filters.fir,num_coefs=15)
-    mini_fit(stack,mods=['filters.weight_channels','filters.fir','filters.stp'])
 
-def fir20(stack):
-    """
-    Appends a 20 temporal bin finite impluse response (FIR) filter to the datastream. 
-    This filter can serve as either the entire STRF for the cell and be fitted as such, 
-    or as the temporal filter in the factorized STRF if used in conjuction with the 
-    weight channel spectral filter. 
-    
-    This keyword initializes the FIR coefficients to 0, and performs a fit on the 
-    FIR coefficients (and weight channel coefficients, if a weight channel matrix
-    is included in the model). -- for fir20, temporarily disabling stp in mini_fit
-    """
-    stack.append(nm.filters.fir,num_coefs=20)
-    mini_fit(stack,mods=['filters.weight_channels','filters.fir'])
+################################################################################
+# Keyword registry
+################################################################################
+def parse_wc(groups):
+    if groups[0] == 'g':
+        transform = 'gauss'
+    elif groups[0] is None:
+        transform = None
+    else:
+        raise ValueError('Unsupported argument')
+    rank = int(groups[1])
+    return partial(wc, rank=rank, transform=transform)
 
-def stp1pc(stack):
-    #stack.append(nm.aux.normalize)
-    #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])
-    stack.append(nm.filters.stp,num_channels=1)
-    stack.modules[-1].u[:]=0.01
-    
-def stp1pcon(stack):
-    #stack.append(nm.aux.normalize)
-    #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])
-    stack.append(nm.filters.stp,num_channels=1)
-    stack.modules[-1].u[:]=0.1
-    stack.modules[-1].tau[:]=0.5
-   
-    
-def stp2pc(stack):
-    stack.append(nm.filters.stp,num_channels=2)
-    stack.modules[-1].u[:,0]=0.01
-    stack.modules[-1].u[:,1]=0.1
 
-def stp1pcn(stack):
-    #stack.append(nm.aux.normalize)
-    #stack.append(nm.filters.stp,num_channels=1,fit_fields=[])
-    stack.append(nm.aux.normalize)
-    stack.append(nm.filters.stp,num_channels=1)
-    stack.modules[-1].u[:]=0.01
+def parse_fir(groups):
+    n_coefs = int(groups[0])
+    if groups[1] == 'r':
+        random = True
+    elif groups[1] is None:
+        random = False
+    else:
+        raise ValueError('Unsupported argument')
+    return partial(fir, n_coefs=n_coefs, random=random)
 
+
+keyword_registry.update({
+    # Both the FIR and weight channels keywords are simple enough that they can
+    # be composed as a set of arguments.
+    re.compile(r'wc(\w)??(\d{2})'): parse_wc,
+    re.compile(r'fir(\d{2})(\w)??'): parse_fir,
+    'stp1pcon': partial(stp, n_channels=1, u=0.1, tau=0.5),
+    'stp2pc': partial(stp, n_channels=2, u=[0.01, 0.1]),
+    'stp1pcn': partial(stp, n_channels=1, u=0.01),
+})

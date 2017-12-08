@@ -13,24 +13,24 @@ import nems.utilities as ut
 
 def parm100(stack):
     """
-    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the 
-    provided cellid and batch. Does not average over 
-    response rasters, instead treating each trial as a separate stimulus. Applies 
-    a 5% estimation/validation split if the est/val datasets are not specified in 
-    the file. 
-    
+    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the
+    provided cellid and batch. Does not average over
+    response rasters, instead treating each trial as a separate stimulus. Applies
+    a 5% estimation/validation split if the est/val datasets are not specified in
+    the file.
+
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='parm',chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.est_val.crossval)
-    
+
 def env50e(stack):
     """
-    Loads a 50 Hz BAPHY .mat file with 'envelope' marker using the 
+    Loads a 50 Hz BAPHY .mat file with 'envelope' marker using the
     provided cellid and batch. Then compute and replace stim with envelope onsets.
-    
+
     Specifically for batch296 SSA data
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='envelope')
@@ -38,12 +38,12 @@ def env50e(stack):
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=True)
     stack.append(nm.est_val.crossval,valfrac=0.00)
     stack.append(nm.aux.onset_edges)
-    
+
 def env100e(stack):
     """
-    Loads a 100 Hz BAPHY .mat file with 'envelope' marker using the 
+    Loads a 100 Hz BAPHY .mat file with 'envelope' marker using the
     provided cellid and batch. Then compute and replace stim with envelope onsets.
-    
+
     Specifically for batch296 SSA data
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='envelope')
@@ -81,15 +81,15 @@ def env100em1(stack):
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.1)
     stack.append(nm.aux.onset_edges, state_mask=[1])
-    
+
 def parm50x(stack):
     """
-    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the 
-    provided cellid and batch, and downsamples it to 50 Hz. Does not average over 
-    response rasters, instead treating each trial as a separate stimulus. Applies 
-    a 5% estimation/validation split if the est/val datasets are not specified in 
-    the file. 
-    
+    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the
+    provided cellid and batch, and downsamples it to 50 Hz. Does not average over
+    response rasters, instead treating each trial as a separate stimulus. Applies
+    a 5% estimation/validation split if the est/val datasets are not specified in
+    the file.
+
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
@@ -97,15 +97,15 @@ def parm50x(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval_old)
-    
+
 def parm50(stack):
     """
-    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the 
-    provided cellid and batch, and downsamples it to 50 Hz. Does not average over 
-    response rasters, instead treating each trial as a separate stimulus. Applies 
-    a 5% estimation/validation split if the est/val datasets are not specified in 
-    the file. 
-    
+    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the
+    provided cellid and batch, and downsamples it to 50 Hz. Does not average over
+    response rasters, instead treating each trial as a separate stimulus. Applies
+    a 5% estimation/validation split if the est/val datasets are not specified in
+    the file.
+
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
@@ -116,12 +116,12 @@ def parm50(stack):
 
 def parm50pt(stack):
     """
-    Loads a 100 Hz BAPHY .mat file, extracted pertrial with 'parm' marker using the 
-    provided cellid and batch, and downsamples it to 50 Hz. Does not average over 
-    response rasters, instead treating each trial as a separate stimulus. Applies 
-    a 5% estimation/validation split if the est/val datasets are not specified in 
-    the file. 
-    
+    Loads a 100 Hz BAPHY .mat file, extracted pertrial with 'parm' marker using the
+    provided cellid and batch, and downsamples it to 50 Hz. Does not average over
+    response rasters, instead treating each trial as a separate stimulus. Applies
+    a 5% estimation/validation split if the est/val datasets are not specified in
+    the file.
+
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
@@ -129,15 +129,15 @@ def parm50pt(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2)
-    
+
 def parm50ptp(stack):
     """
-    Loads a 100 Hz BAPHY .mat file, extracted pertrial with 'parm' marker using the 
-    provided cellid and batch, and downsamples it to 50 Hz. Does not average over 
-    response rasters, instead treating each trial as a separate stimulus. Applies 
-    a 5% estimation/validation split if the est/val datasets are not specified in 
-    the file. 
-    
+    Loads a 100 Hz BAPHY .mat file, extracted pertrial with 'parm' marker using the
+    provided cellid and batch, and downsamples it to 50 Hz. Does not average over
+    response rasters, instead treating each trial as a separate stimulus. Applies
+    a 5% estimation/validation split if the est/val datasets are not specified in
+    the file.
+
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
@@ -145,15 +145,15 @@ def parm50ptp(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2,keep_filestate=[0])
-    
+
 def parm100pt(stack):
     """
-    Loads a 100 Hz BAPHY .mat file, extracted pertrial with 'parm' marker using the 
-    provided cellid and batch, and downsamples it to 50 Hz. Does not average over 
-    response rasters, instead treating each trial as a separate stimulus. Applies 
-    a 5% estimation/validation split if the est/val datasets are not specified in 
-    the file. 
-    
+    Loads a 100 Hz BAPHY .mat file, extracted pertrial with 'parm' marker using the
+    provided cellid and batch, and downsamples it to 50 Hz. Does not average over
+    response rasters, instead treating each trial as a separate stimulus. Applies
+    a 5% estimation/validation split if the est/val datasets are not specified in
+    the file.
+
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
@@ -161,15 +161,15 @@ def parm100pt(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2)
-    
+
 def parm50a(stack):
     """
-    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the 
-    provided cellid and batch, and downsamples it to 50 Hz. Averages the response 
-    to each stimulus over its respective raster, and applies a 5% 
-    estimation/validation split if the est/val datasets are not specified in 
+    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the
+    provided cellid and batch, and downsamples it to 50 Hz. Averages the response
+    to each stimulus over its respective raster, and applies a 5%
+    estimation/validation split if the est/val datasets are not specified in
     the file.
-    
+
     Specifically for batch293 tone-pip data.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],
@@ -182,58 +182,58 @@ def fb24ch200(stack):
     """
     Loads a 24 channel, 200 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=200,avg_resp=True)
     stack.append(nm.est_val.standard)
-    
+
 def fb24ch100(stack):
     """
     Loads a 24 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True) #Data not preprocessed to 100 Hz, internally converts
     stack.append(nm.est_val.standard)
-    
+
 def fb18ch100(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.standard)
-    
+
 def fb18ch100pt(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     PERTRIAL
-    
+
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18,pertrial=True)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.2)
-    
+
 def fb93ch100(stack):
     """
     Loads a 93-channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
 
     This is for DIRECT comparison with Sam N-H's cochlear model.
     """
@@ -241,13 +241,13 @@ def fb93ch100(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.standard)
-    
+
 def ctx100ch100(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -261,8 +261,8 @@ def coch93ch100(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -271,39 +271,39 @@ def coch93ch100(stack):
     for d in stack.data[-1]:
         d['stim']=stimdata['stim']
     stack.append(nm.est_val.standard)
-    
+
 def fb18ch100x(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
     stack.append(nm.est_val.crossval)
     stack.modules[-1].do_plot=ut.plot.plot_spectrogram
-    
+
 def fb18ch100u(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch.
     Does not average over response rasters, instead treating each trial as a separate
-    stimulus. Applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    stimulus. Applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.est_val.crossval)
-      
+
 def fb18ch50(stack):
     """
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch,
     then downsamples to 50 Hz.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -315,8 +315,8 @@ def fb18ch50u(stack):
     Loads an 18 channel, 100 Hz BAPHY .mat file using the provided cellid and batch,
     then downsamples to 50 Hz.
     Averages the response to each stimulus over its respective raster, and
-    applies a 5% estimation/validation split if the est/val datasets are not 
-    specified in the file. 
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
     """
     file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
@@ -338,3 +338,10 @@ def loadlocal(stack):
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval)
+
+
+from .registry import keyword_registry
+
+for k, v in locals():
+    if k.startswith('fb'):
+        keyword_registry[k] = v

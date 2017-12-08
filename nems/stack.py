@@ -249,16 +249,11 @@ class nems_stack:
                 self.modules[ii].evaluate()
 
     # create instance of mod and append to stack
-    def append(self, mod=None, **xargs):
+    def append(self, module):
         """
-        Creates an instance of a module and appends it to the stack. Evaluates
-        module in doing so.
+        Appends module to stack.
         """
-        if mod is None:
-            raise ValueError('stack.append: module not specified')
-        else:
-            m=mod(self, **xargs)
-        self.append_instance(m)
+        self.append_instance(module)
 
     def append_instance(self, mod=None):
         """Same as append but takes an instance of a module instead
