@@ -3,9 +3,9 @@
 # A fake, minimalist fit_single_model that loads signal files instead
 # of requesting them from Baphy
 
+import os
 import nems.Signal as sig
 import nems.hackery as hack
-
 
 
 if __name__ == '__main__':
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # 3. Some database query
 
     # For now, just put them in a single directory:
-    signals = sig.load_signals_in_dir('/home/ivar/sigs/')
+    signals = sig.load_signals_in_dir(os.getcwd())
     modelname = 'wcg02_fir10_pupwgtctl_fit01'
 
     stack = hack.build_stack_from_signals_and_keywords(signals, modelname)
