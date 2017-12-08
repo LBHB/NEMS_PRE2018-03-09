@@ -342,6 +342,8 @@ def loadlocal(stack):
 
 from .registry import keyword_registry
 
-for k, v in locals():
-    if k.startswith('fb'):
+for k, v in list(locals().items()):
+    # TODO: this is a bit of a hack for now. It misses quite a few of the load
+    # functions. But, aren't we refactoring the load system anyway?
+    if k.startswith('fb') or k.startswith('parm'):
         keyword_registry[k] = v
