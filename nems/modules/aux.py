@@ -37,35 +37,38 @@ class normalize(nems_module):
     name='aux.normalize'
     user_editable_fields=['input_name','output_name','d','g']
     force_positive=True
+    # what do d and g represent?
     d=0
     g=1
     
     def my_init(self, force_positive=True):
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
-        self.force_positive=force_positive
-        self.auto_plot=False
+        self.field_dict = locals()
+        self.field_dict.pop('self', None)
+        self.force_positive = force_positive
+        self.auto_plot = False
             
-    def evaluate(self,nest=0):
+    def evaluate(self, nest=0):
         del self.d_out[:]
-        for i,d in enumerate(self.d_in):
+        for i, d in enumerate(self.d_in):
             # create a copy of each input variable
             self.d_out.append(copy.copy(d))
         
-        X=self.unpack_data(name=self.input_name,est=True,use_dout=False)
+        matrix = self.unpack_data(
+                name=self.input_name, est=True, use_dout=False
+                )
         if self.force_positive:
-            self.d=X.min(axis=-1)
-            m=(X.max(axis=-1).T - self.d.T).T
-            m[m==0]=1
-            self.g=1/m
+            self.d = matrix.min(axis=-1)
+            m = (matrix.max(axis=-1).T - self.d.T).T
+            m[m==0] = 1
+            self.g = 1/m
         else:
-            self.d=X.mean(axis=-1)
-            self.g=X.std(axis=-1)
+            self.d = matrix.mean(axis=-1)
+            self.g = matrix.std(axis=-1)
         
         for f_in,f_out in zip(self.d_in,self.d_out):
             # don't need to eval the est data for each nest, just the first one
-            X=copy.deepcopy(f_in[self.input_name])
-            f_out[self.output_name]=((X.T-self.d) * self.g).T
+            matrix = copy.deepcopy(f_in[self.input_name])
+            f_out[self.output_name] = ((matrix.T-self.d) * self.g).T
             
         if hasattr(self,'state_mask'):
             del_idx=[]
@@ -84,16 +87,16 @@ class add_scalar(nems_module):
     """
     name='aux.add_scalar'
     user_editable_fields=['input_name','output_name','n']
-    n=np.zeros([1,1])
+    n = np.zeros([1,1])
     
     def my_init(self, n=0, fit_fields=['n']):
-        self.field_dict=locals()
+        self.field_dict = locals()
         self.field_dict.pop('self',None)
-        self.fit_fields=fit_fields
-        self.n[0,0]=n
+        self.fit_fields = fit_fields
+        self.n[0,0] = n
                    
-    def my_eval(self,X):
-        Y=X+self.n
+    def my_eval(self, X):
+        Y = X + self.n
         return Y
     
 class dc_gain(nems_module):
@@ -103,18 +106,18 @@ class dc_gain(nems_module):
  
     name='aux.dc_gain'
     user_editable_fields=['input_name','output_name','d','g']
-    d=np.zeros([1,1])
-    g=np.ones([1,1])
+    d = np.zeros([1,1])
+    g = np.ones([1,1])
     
     def my_init(self, d=0, g=1, fit_fields=['d','g']):
-        self.field_dict=locals()
+        self.field_dict = locals()
         self.field_dict.pop('self',None)
-        self.fit_fields=fit_fields
-        self.d[0,0]=d
-        self.g[0,0]=g
+        self.fit_fields = fit_fields
+        self.d[0,0] = d
+        self.g[0,0] = g
     
-    def my_eval(self,X):
-        Y=X*self.g+self.d
+    def my_eval(self, X):
+        Y = X * self.g + self.d
         return Y
    
         
@@ -138,27 +141,33 @@ class sum_dim(nems_module):
     
 class onset_edges(nems_module):
     """
-    onset_edges - calculate diff, replace positive diffs with 1, everything else with zero
+    onset_edges - calculate diff, replace positive diffs with 1, everything
+    else with zero
     """
-    name='aux.onset_edges'
-    user_editable_fields=['input_name','output_name','dim','state_mask']
-    dim=0
-    state_mask=[0,1]
-    plot_fns=[nems.utilities.plot.plot_stim, nems.utilities.plot.plot_spectrogram]
+    
+    name = 'aux.onset_edges'
+    user_editable_fields = ['input_name', 'output_name', 'dim', 'state_mask']
+    dim = 0
+    state_mask = [0,1]
+    plot_fns = [
+            nems.utilities.plot.plot_stim,
+            nems.utilities.plot.plot_spectrogram
+            ]
     
     def my_init(self, dim=2, state_mask=[0,1]):
-        self.field_dict=locals()
+        self.field_dict = locals()
         self.field_dict.pop('self',None)
-        self.dim=dim
-        self.state_mask=state_mask
+        self.dim = dim
+        self.state_mask = state_mask
         
     def my_eval(self,X):
-        dim=self.dim
-        s=list(X.shape)
-        s[dim]=1
-        Z=np.zeros(s)
-        Y=np.concatenate((Z,np.diff(X.astype(float))),axis=dim)
-        Y[Y<0]=0
+        dim = self.dim
+        shape = list(X.shape)
+        shape[dim] = 1
+        Z = np.zeros(shape)
+        diffs = np.diff(X.astype(float))
+        Y = np.concatenate((Z, diffs), axis=dim)
+        Y[Y<0] = 0
         
         return Y
     

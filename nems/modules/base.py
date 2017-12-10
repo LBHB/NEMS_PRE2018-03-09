@@ -84,128 +84,159 @@ class nems_module:
         parms2phi - extract all parameter values contained in properties
         listed in self.fit_fields so that they can be passed to fit routines.
         """
-        phi=np.empty(shape=[0,1])
+        
+        # start with an empty vector
+        phi = np.empty(shape=[0,1])
         for k in self.fit_fields:
-            phi=np.append(phi,getattr(self, k).flatten())
+            # append values of each set of parameters, flattened into a vector
+            parm_vector = getattr(self, k).flatten()
+            phi = np.append(phi, parm_vector)
         return phi
         
     def phi2parms(self,phi=[]):
         """
         phi2parms - import fit parameter values from a vector provided by a 
         fit routine
+
         """
-        os=0;
-        #print(phi)
+        
+        start = 0
         for k in self.fit_fields:
-            s=getattr(self, k).shape
-            #phi=np.array(phi)
-            setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
-            os+=np.prod(s)
+            k_shape = getattr(self, k).shape
+
+            # get total number of elements that should be in k
+            k_size = np.prod(k_shape)
+            # grab values from phi between previous index + size of k
+            end = start + k_size
+            sliced = phi[start:end]
+            # match the grabbed values to k's shape
+            reshaped = sliced.reshape(k_shape)
+            setattr(self, k, reshaped)
+
+            start += k_size
             
     def get_user_fields(self):
-        f={}
+        f = {}
         print(self.user_editable_fields)
         for k in self.user_editable_fields:
-            t=getattr(self,k)
+            t = getattr(self,k)
             if type(t) is np.ndarray:
-                t=t.tolist()
-            f[k]=t
+                t = t.tolist()
+            f[k] = t
+            
         return f
         
-    def unpack_data(self,name='stim',est=True,use_dout=False):
+    def unpack_data(self, name='stim', est=True, use_dout=False):
         """
         unpack_data - extract a data variable from all files into a single
         matrix (concatenated across files)
         """
         m=self
+        
         if use_dout:
-            D=m.d_out
+            data = m.d_out
         else:
-            D=m.d_in
+            data = m.d_in
             
-        if D[0][name].ndim==2:
-            X=np.empty([1,0])
-            s=m.d_in[0][name].shape
+        # why checking for 2?
+        if data[0][name].ndim == 2:
+            matrix = np.empty([1,0])
+            # why force d_in here after checkin for d_out above?
+            # can't just use shape = data[0][name].shape like next part?
+            shape = m.d_in[0][name].shape
+            dim_one = shape[0]
+        # what is ndim expected to be otherwise?
         else:
-            s=D[0][name].shape
-            X=np.empty([s[0],0])
+            shape = data[0][name].shape
+            dim_one = shape[0]
+            matrix = np.empty([dim_one, 0])
             
-        for i, d in enumerate(D):
-            if not 'est' in d.keys():
-                if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
+        for i, d in enumerate(data):
+            # all of the if/elsif/elsif statements did the same thing, so
+            # just check for at least one condition and then do it once.
+            # but why are these checked in the first place?
+            a = (not 'est' in d.keys())
+            b = (est and d['est'])
+            c = (not est and not d['est'])
+            if a or b or c:
+                if d[name].ndim == 2:
+                    to_add = d[name].reshape([1, -1], order='C')
+                    matrix = np.concatenate((matrix, to_add), axis=1)
                 else:
-                    X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
-            elif (est and d['est']):
-                if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
-                else:
-                    X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
-            elif not est and not d['est']:
-                if d[name].ndim==2:
-                    X=np.concatenate((X,d[name].reshape([1,-1],order='C')),axis=1)
-                else:
-                    X=np.concatenate((X,d[name].reshape([s[0],-1],order='C')),axis=1)
-                
-        return X
+                    to_add = d[name].reshape([dim_one, -1], order='C')
+                    matrix = np.concatenate((matrix, to_add), axis=1)
     
-    def pack_data(self,X,name='stim',est=True,use_dout=True):
+        return matrix
+    
+    def pack_data(self, matrix, name='stim', est=True, use_dout=True):
         """
         unpack_data - extract a data variable from all files into a single
         matrix (concatenated across files)
         """
-        m=self
+
         if use_dout:
-            D=m.d_out
+            data = self.d_out
         else:
-            D=m.d_in
-            
-        s=X.shape
-        for i, d in enumerate(D):
-            if not 'est' in d.keys() or (est and d['est']) or (not est and not d['est']):
-                s2=list(d[name].shape)
-                s2[0]=s[0]
-                n=np.prod(s2[1:])
-                d[name]=np.reshape(X[:,0:n],s2)
-                X=X[:,n:]
-                
+            data = self.d_in
+        x_shape = matrix.shape
+        
+        for i, d in enumerate(data):
+            # as above, why are these tests performed?
+            a = (not 'est' in d.key())
+            b = (est and d['est'])
+            c = (not est and not d['est'])
+            if a or b or c:
+                d_shape = list(d[name].shape)
+                d_shape[0] = x_shape[0]
+                n = np.prod(d_shape[1:])
+                # grab slice of matrix to assign to d_in or d_out
+                d[name] = np.reshape(matrix[:, 0:n], d_shape)
+                # drop the values that were sliced above
+                matrix = matrix[:, n:]
     
-    def evaluate(self,nest=0):
+    def evaluate(self, nest=0):
+        """General evaluate function, for both nested and non-nested crossval.
+        Creates a copy of the d_in dataframe and places it in the next position
+        in stack.data. Then calls the module-specific my_eval, and replaces
+        d_out[output_name] with the output of my_eval.
         """
-        General evaluate function, for both nested and non-nested crossval. Creates
-        a copy of the d_in dataframe and places it in the next position in stack.data.
-        Then calls the module specific my_eval, and replaces d_out[output_name] with 
-        the output of my_eval.
-        """
-        if nest==0:
+
+        if nest == 0:
             del self.d_out[:]
             # create a copy of each input variable
-            for i,d in enumerate(self.d_in):
+            for i, d in enumerate(self.d_in):
                 #self.d_out.append(copy.deepcopy(d))
                 # TODO- make it so don't deepcopy eveything. deal with nesting!
                 self.d_out.append(copy.copy(d))
-        
-        for f_in,f_out in zip(self.d_in,self.d_out):
-            if self.parent_stack.nests>0 and f_in['est'] is False:
+
+        # bunch of checks for nested validation stuff that will hopefully be
+        # separated out later anyway.
+        # key is: X = deep copy of f_in[self.input_name] (ex 'pred' or 'stim')
+        #         f_out[self.output_name] = self.my_eval(X)
+        #         which is actually assigning it to d_out since f_out contains
+        #         references to object attributes?
+        # TODO: come back to break this up more later
+        for f_in, f_out in zip(self.d_in, self.d_out):
+            if self.parent_stack.nests > 0 and f_in['est'] is False:
                 X=copy.deepcopy(f_in[self.input_name][nest])
                 # duplicate placeholder list in case output_name is a new variable
-                if nest==0:
+                if nest == 0:
                     print("nest={0} deep copying in[{1}] to out[{2}]".format(nest,self.input_name,self.output_name))
                     f_out[self.output_name]=copy.deepcopy(f_in[self.input_name])
-                f_out[self.output_name][nest]=self.my_eval(X)
-            elif nest==0:
+                f_out[self.output_name][nest] = self.my_eval(X)
+            elif nest == 0:
                 # don't need to eval the est data for each nest, just the first one
-                X=copy.deepcopy(f_in[self.input_name])
-                f_out[self.output_name]=self.my_eval(X)
-            
+                X = copy.deepcopy(f_in[self.input_name])
+                f_out[self.output_name] = self.my_eval(X)
+
         if hasattr(self,'state_mask'):
             del_idx=[]
             for i in range(0,len(self.d_out)):
                 if not self.d_out[i]['filestate'] in self.state_mask:
                     del_idx.append(i)
             for i in sorted(del_idx, reverse=True):
-               del self.d_out[i]
-                    
+                del self.d_out[i]
+
     #
     # customizable functions
     #

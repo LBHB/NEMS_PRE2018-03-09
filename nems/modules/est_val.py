@@ -26,14 +26,15 @@ class standard(nems_module):
     This estimation/validation routine is not compatible with nested
     crossvalidation.
     """
-    name='est_val.standard'
-    input_name='stim'
-    user_editable_fields=['input_name','output_name','valfrac']
-    valfrac=0.05
-    def my_init(self,valfrac=0.05):
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
-        self.valfrac=valfrac
+    
+    name = 'est_val.standard'
+    input_name = 'stim'
+    user_editable_fields = ['input_name','output_name','valfrac']
+    valfrac = 0.05
+    def my_init(self, valfrac=0.05):
+        self.field_dict = locals()
+        self.field_dict.pop('self', None)
+        self.valfrac = valfrac
         print('Using standard est/val')
     
     def evaluate(self,**kwargs):
@@ -56,9 +57,9 @@ class standard(nems_module):
                 #--made a new est/val specifically for pupil --njs, June 28 2017
                 
                 # figure out number of distinct stim
-                s=copy.deepcopy(d['repcount'])
+                s = copy.deepcopy(d['repcount'])
                 
-                m=s.max()
+                m = s.max()
                 validx = s==m
                 estidx = s<m
                 if not estidx.sum():
