@@ -59,34 +59,40 @@ class standard(nems_module):
                 # figure out number of distinct stim
                 s = copy.deepcopy(d['repcount'])
                 
+                # get boolean arrays to indicate whether each element should be
+                # included in val or est data
                 m = s.max()
                 validx = s==m
                 estidx = s<m
+                # check if estidx is false for all elements, indicating all
+                # repcounts were equal to s.max()
                 if not estidx.sum():
+                    # if so, increment the last entry so that it gets split off
+                    # as val data
                     s[-1]+=1
-                    m=s.max()
+                    m = s.max()
                     validx = s==m
                     estidx = s<m
                 
                 d_est=d.copy()
                 #d_val=d.copy()
                 
-                d_est['repcount']=copy.deepcopy(d['repcount'][estidx])
-                d_est['resp']=copy.deepcopy(d['resp'][:,estidx,:])
-                d_est['stim']=copy.deepcopy(d['stim'][:,estidx,:])
-                d_est['pred']=d_est['stim']
+                d_est['repcount'] = copy.deepcopy(d['repcount'][estidx])
+                d_est['resp'] = copy.deepcopy(d['resp'][:,estidx,:])
+                d_est['stim'] = copy.deepcopy(d['stim'][:,estidx,:])
+                d_est['pred'] = d_est['stim']
                 #d_val['repcount']=copy.deepcopy(d['repcount'][validx])
                 #d_val['resp']=copy.deepcopy(d['resp'][validx,:])
                 #d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
                 try:
                     if d['pupil'].size:
-                        d_est['pupil']=copy.deepcopy(d['pupil'][:,estidx,:])
+                        d_est['pupil'] = copy.deepcopy(d['pupil'][:,estidx,:])
                 except:
                     pass
                     #print('No pupil data')
                 try:
                     if d['state'].size:
-                        d_est['state']=copy.deepcopy(d['state'][:,estidx,:])
+                        d_est['state'] = copy.deepcopy(d['state'][:,estidx,:])
                 except:
                     pass
                     #print('No pupil data')
@@ -95,28 +101,44 @@ class standard(nems_module):
                 #d_val['est']=False
                 
                 self.d_out.append(d_est)
+                # so if val mode isn't active, this just passes through d_in
+                # with validx positions removed?
                 if self.parent_stack.valmode:
                     
-                    d_val=d.copy()
-                    d_val['repcount']=copy.deepcopy(d['repcount'][validx])
-                    d_val['resp']=copy.deepcopy(d['resp'][:,validx,:])
-                    d_val['stim']=copy.deepcopy(d['stim'][:,validx,:])
-                    d_val['pred']=d_val['stim']
+                    d_val = d.copy()
+                    d_val['repcount'] = copy.deepcopy(d['repcount'][validx])
+                    d_val['resp'] = copy.deepcopy(d['resp'][:,validx,:])
+                    d_val['stim'] = copy.deepcopy(d['stim'][:,validx,:])
+                    d_val['pred'] = d_val['stim']
                     try:
                         if d['pupil'].size:
-                            d_val['pupil']=copy.deepcopy(d['pupil'][:,validx,:])
+                            d_val['pupil'] = copy.deepcopy(
+                                                d['pupil'][:,validx,:]
+                                                )
                     except:
                         pass
                         #print('No pupil data')
                         
                     try:
                         if d['state'].size:
-                            d_val['state']=copy.deepcopy(d['state'][:,validx,:])
+                            d_val['state']=copy.deepcopy(
+                                                d['state'][:,validx,:]
+                                                )
                     except:
                         pass
  
                     d_val['est']=False
                     self.d_out.append(d_val)
+                    # if val mode is active, also passes through the validx
+                    # data but as a separate data entry.
+                    # (no transformations or anything to the data, just copy)
+                    
+                    # TODO: Doesn't seem like this makes any guarantees about
+                    #       the ratio of the split? for example, if data had
+                    #       3 stimuli with 3 reps and 4 stimuli with 4 reps,
+                    #       est would get the 3 stimuli, so less data.
+                    #       Isn't est supposed to be significantly
+                    #       larger than val?
 
             
 class crossval(nems_module):
@@ -134,43 +156,51 @@ class crossval(nems_module):
     each time. 
     
     """
-    name='est_val.crossval'
-    input_name='stim'
-    user_editable_fields=['input_name','output_name',
-                          'valfrac','interleave_valtrials','val_mult_repeats',
-                          'cv_counter']
-    plot_fns=[nems.utilities.plot.raster_plot,nems.utilities.plot.plot_spectrogram]
-    valfrac=0.05
-    interleave_valtrials=True
-    val_mult_repeats=True
-    cv_counter=0
-    nests=0
-    estidx_sets=[[]]
-    validx_sets=[[]]
-    keep_filestate=[]
     
-    def my_init(self,valfrac=-1,interleave_valtrials=True,val_mult_repeats=True,keep_filestate=[]):
-        #self.field_dict=locals()
+    name = 'est_val.crossval'
+    input_name = 'stim'
+    user_editable_fields = [
+            'input_name', 'output_name', 'valfrac', 'interleave_valtrials',
+            'val_mult_repeats', 'cv_counter',
+            ]
+    plot_fns = [
+            nems.utilities.plot.raster_plot,
+            nems.utilities.plot.plot_spectrogram,
+            ]
+    valfrac = 0.05
+    interleave_valtrials = True
+    val_mult_repeats = True
+    cv_counter = 0
+    nests = 0
+    estidx_sets = [[]]
+    validx_sets = [[]]
+    keep_filestate = []
+    
+    def my_init(
+            self, valfrac=-1, interleave_valtrials=True, val_mult_repeats=True,
+            keep_filestate=[]
+            ):
+        #self.field_dict = locals()
         #self.field_dict.pop('self',None)
-        nests=self.parent_stack.meta['nests']
-        #if nests==0:
-        #    nests=1;
-        #    self.parent_stack.nests=1
-        if nests>1:
-            valfrac=1/nests
-        elif valfrac<0:
-            valfrac=0.05
+        nests = self.parent_stack.meta['nests']
+        #if nests == 0:
+        #    nests = 1;
+        #    self.parent_stack.nests = 1
+        if nests > 1:
+            valfrac = 1/nests
+        elif valfrac < 0:
+            valfrac = 0.05
         print("valfrac={0}".format(valfrac))
-        self.valfrac=valfrac
-        self.estidx_sets=[[]]
-        self.validx_sets=[[]]
-        self.nests=nests
-        self.interleave_valtrials=interleave_valtrials
-        self.val_mult_repeats=val_mult_repeats
-        self.cv_counter=0
-        self.keep_filestate=keep_filestate # by default keep all files
+        self.valfrac = valfrac
+        self.estidx_sets = [[]]
+        self.validx_sets = [[]]
+        self.nests = nests
+        self.interleave_valtrials = interleave_valtrials
+        self.val_mult_repeats = val_mult_repeats
+        self.cv_counter = 0
+        self.keep_filestate = keep_filestate # by default keep all files
         
-    def evaluate(self,nest=0):
+    def evaluate(self, nest=0):
 
         del self.d_out[:]
 
@@ -178,118 +208,121 @@ class crossval(nems_module):
         if valfrac == 0:
             for i, d in enumerate(self.d_in):
                 # special case, no validation data, this should just be a pass-through
-                d_est=d.copy()
-                d_est['est']=True
+                d_est = d.copy()
+                d_est['est'] = True
                 d_est['pred'] = d_est['stim']
                 self.d_out.append(d_est)
             return
 
-        self.estidx_sets=[]
-        self.validx_sets=[]
-        fcount=-1
+        self.estidx_sets = []
+        self.validx_sets = []
+        fcount = -1
         for i, d in enumerate(self.d_in):
-            if self.keep_filestate==[] or d['filestate'] in self.keep_filestate:
+            if self.keep_filestate == [] or d['filestate'] in self.keep_filestate:
                 try:
-                    count=self.parent_stack.meta['cv_counter']
+                    count = self.parent_stack.meta['cv_counter']
                 except:
-                    count=self.cv_counter
+                    count = self.cv_counter
     
-                nests=int(1/valfrac)
-                n_trials=d['resp'].shape[1]
+                nests = int(1/valfrac)
+                n_trials = d['resp'].shape[1]
                 
                 self.estidx_sets.append([])
                 self.validx_sets.append([])
-                fcount+=1
-                self.estidx_sets[fcount],self.validx_sets[fcount]=nems.utilities.utils.crossval_set(
-                        n_trials,cv_count=nests,cv_idx=None,
-                        interleave_valtrials=self.interleave_valtrials)
-                eidx=self.estidx_sets[fcount][count]
-                vidx=self.validx_sets[fcount][count]
+                fcount += 1
+                self.estidx_sets[fcount], self.validx_sets[fcount] = (
+                        nems.utilities.utils.crossval_set(
+                                n_trials, cv_count=nests, cv_idx=None,
+                                interleave_valtrials=self.interleave_valtrials
+                                )
+                        )
+                eidx = self.estidx_sets[fcount][count]
+                vidx = self.validx_sets[fcount][count]
                 
-                print("Nest {0}/{1}, File {2} validx:".format(count,nests,i))
+                print("Nest {0}/{1}, File {2} validx:".format(count, nests, i))
                 print(vidx)
                 
-                d_est=d.copy()
-                d_val=d.copy()               
-    
-                d_est['est']=True
-                d_val['est']=False
-                
-                d_est['resp']=copy.deepcopy(d['resp'][:,eidx,:])
-                d_val['resp']=copy.deepcopy(d['resp'][:,vidx,:])
-                
-                d_est['stim']=copy.deepcopy(d['stim'][:,eidx,:])
-                d_val['stim']=copy.deepcopy(d['stim'][:,vidx,:])
-                
+                d_est = d.copy()
+                d_val = d.copy()               
+
+                d_est['est'] = True
+                d_val['est'] = False
+
+                d_est['resp'] = copy.deepcopy(d['resp'][:,eidx,:])
+                d_val['resp'] = copy.deepcopy(d['resp'][:,vidx,:])
+
+                d_est['stim'] = copy.deepcopy(d['stim'][:,eidx,:])
+                d_val['stim'] = copy.deepcopy(d['stim'][:,vidx,:])
+
                 # just copy pointers as placeholders for prediction trace
-                d_est['pred']=d_est['stim']
-                d_val['pred']=d_val['stim']
-    
+                d_est['pred'] = d_est['stim']
+                d_val['pred'] = d_val['stim']
+
                 try:
-                    if d['pupil'].shape[1]==n_trials:
-                        d_est['pupil']=copy.deepcopy(d['pupil'][:,eidx,:])
-                        d_val['pupil']=copy.deepcopy(d['pupil'][:,vidx,:])
+                    if d['pupil'].shape[1] == n_trials:
+                        d_est['pupil'] = copy.deepcopy(d['pupil'][:,eidx,:])
+                        d_val['pupil'] = copy.deepcopy(d['pupil'][:,vidx,:])
                     else:
                         print(d['pupil'].shape)
-                        d_est['pupil']=copy.deepcopy(d['pupil'][:,:,eidx])
-                        d_val['pupil']=copy.deepcopy(d['pupil'][:,:,vidx])
+                        d_est['pupil'] = copy.deepcopy(d['pupil'][:,:,eidx])
+                        d_val['pupil'] = copy.deepcopy(d['pupil'][:,:,vidx])
                 except:
                     #print('No pupil data')
-                    d_est['pupil']=[]
-                    d_val['pupil']=[]
+                    d_est['pupil'] = []
+                    d_val['pupil'] = []
                     
                 try:
-                    d_est['stim1']=copy.deepcopy(d['stim1'][:,eidx,:])
-                    d_val['stim1']=copy.deepcopy(d['stim1'][:,vidx,:])
-                    d_est['pred1']=d_est['stim1']
-                    d_val['pred1']=d_val['stim1']
-                    d_est['stim2']=copy.deepcopy(d['stim2'][:,eidx,:])
-                    d_val['stim2']=copy.deepcopy(d['stim2'][:,vidx,:])
-                    d_est['pred2']=d_est['stim2']
-                    d_val['pred2']=d_val['stim2']
+                    d_est['stim1'] = copy.deepcopy(d['stim1'][:,eidx,:])
+                    d_val['stim1'] = copy.deepcopy(d['stim1'][:,vidx,:])
+                    d_est['pred1'] = d_est['stim1']
+                    d_val['pred1'] = d_val['stim1']
+                    d_est['stim2'] = copy.deepcopy(d['stim2'][:,eidx,:])
+                    d_val['stim2'] = copy.deepcopy(d['stim2'][:,vidx,:])
+                    d_est['pred2'] = d_est['stim2']
+                    d_val['pred2'] = d_val['stim2']
                     
                 except:
                     pass
                     
                 try:
-                    if d['state'].shape[1]==n_trials:
-                        d_est['state']=copy.deepcopy(d['state'][:,eidx,:])
-                        d_val['state']=copy.deepcopy(d['state'][:,vidx,:])
+                    if d['state'].shape[1] == n_trials:
+                        d_est['state'] = copy.deepcopy(d['state'][:,eidx,:])
+                        d_val['state'] = copy.deepcopy(d['state'][:,vidx,:])
                     else:
                         print(d['state'].shape)
-                        d_est['state']=copy.deepcopy(d['state'][:,:,eidx])
-                        d_val['state']=copy.deepcopy(d['state'][:,:,vidx])
+                        d_est['state'] = copy.deepcopy(d['state'][:,:,eidx])
+                        d_val['state'] = copy.deepcopy(d['state'][:,:,vidx])
                 except:
                     #print('No state data')
-                    d_est['state']=[]
-                    d_val['state']=[]
+                    d_est['state'] = []
+                    d_val['state'] = []
                 
                 try:
-                    if d['behavior_condition'].shape[1]==n_trials:
-                        d_est['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,eidx,:])
-                        d_val['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,vidx,:])
+                    if d['behavior_condition'].shape[1] == n_trials:
+                        d_est['behavior_condition'] = copy.deepcopy(d['behavior_condition'][:,eidx,:])
+                        d_val['behavior_condition'] = copy.deepcopy(d['behavior_condition'][:,vidx,:])
                     else:
                         print(d['behavior_condition'].shape)
-                        d_est['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,:,eidx])
-                        d_val['behavior_condition']=copy.deepcopy(d['behavior_condition'][:,:,vidx])
+                        d_est['behavior_condition'] = copy.deepcopy(d['behavior_condition'][:,:,eidx])
+                        d_val['behavior_condition'] = copy.deepcopy(d['behavior_condition'][:,:,vidx])
                 except:
                     #print('No state data')
-                    d_est['behavior_condition']=[]
-                    d_val['behavior_condition']=[]
+                    d_est['behavior_condition'] = []
+                    d_val['behavior_condition'] = []
                 
                 try:
-                    d_est['repcount']=copy.deepcopy(d['repcount'][eidx])
-                    d_val['repcount']=copy.deepcopy(d['repcount'][vidx])
+                    d_est['repcount'] = copy.deepcopy(d['repcount'][eidx])
+                    d_val['repcount'] = copy.deepcopy(d['repcount'][vidx])
                 except:
-                    d_est['repcount']=None
-                    d_val['repcount']=None
+                    d_est['repcount'] = None
+                    d_val['repcount'] = None
                     
                 try:
-                    d_est['replist']=copy.deepcopy(d['replist'][eidx])
-                    d_val['replist']=copy.deepcopy(d['replist'][vidx])
+                    d_est['replist'] = copy.deepcopy(d['replist'][eidx])
+                    d_val['replist'] = copy.deepcopy(d['replist'][vidx])
                 except:
-                    d_est['replist']=None
-                    d_val['replist']=None
+                    d_est['replist'] = None
+                    d_val['replist'] = None
                     
                 self.d_out.append(d_est)
                 if self.parent_stack.valmode is True:

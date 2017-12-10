@@ -50,22 +50,25 @@ class load_mat(nems_module):
                 3 times and stimulus 2 that was played 2 times, replist would
                 be [1,1,1,2,2].
     """
-    name='loaders.load_mat'
-    user_editable_fields=['output_name','est_files','fs','avg_resp']
-    plot_fns=[nems.utilities.plot.plot_spectrogram, nems.utilities.plot.plot_spectrogram]
-    est_files=[]
-    fs=100
-    avg_resp=True
-    
-    def my_init(self,est_files=[],fs=100,avg_resp=True, filestate=False):
-        self.field_dict=locals()
+    name = 'loaders.load_mat'
+    user_editable_fields = ['output_name', 'est_files', 'fs', 'avg_resp']
+    plot_fns = [
+            nems.utilities.plot.plot_spectrogram,
+            nems.utilities.plot.plot_spectrogram,
+            ]
+    est_files = []
+    fs = 100
+    avg_resp = True
+
+    def my_init(self, est_files=[], fs=100, avg_resp=True, filestate=False):
+        self.field_dict = locals()
         self.field_dict.pop('self',None)
-        self.est_files=est_files.copy()
-        self.fs=fs
-        self.avg_resp=avg_resp
-        self.parent_stack.avg_resp=avg_resp
+        self.est_files = est_files.copy()
+        self.fs = fs
+        self.avg_resp = avg_resp
+        self.parent_stack.avg_resp = avg_resp
         self.filestate = filestate
-        self.auto_plot=False
+        self.auto_plot = False
 
     def evaluate(self,**kwargs):
         
