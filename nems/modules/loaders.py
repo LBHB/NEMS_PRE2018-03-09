@@ -88,20 +88,20 @@ class load_mat(nems_module):
                 if 'stimids' in s.dtype.names:
                     # new format: stimulus events logged in stimids and 
                     # pulled from stim matrix or from a separate file
-                    tstim=s['stim']
-                    stimids=s['stimids']
-                    stimtrials=s['stimtrials']
-                    stimtimes=np.double(s['stimtimes'])
-                    stimshape=tstim.shape
-                    respshape=s['resp_raster'].shape
-                    chancount=stimshape[0]
-                    stimbins=np.round(stimtimes*np.double(s['stimfs']))
-                    stim=np.zeros([chancount,respshape[0],respshape[2]])
-                    eventcount=len(stimtimes)
+                    tstim = s['stim']
+                    stimids = s['stimids']
+                    stimtrials = s['stimtrials']
+                    stimtimes = np.double(s['stimtimes'])
+                    stimshape = tstim.shape
+                    respshape = s['resp_raster'].shape
+                    chancount = stimshape[0]
+                    stimbins = np.round(stimtimes*np.double(s['stimfs']))
+                    stim = np.zeros([chancount,respshape[0],respshape[2]])
+                    eventcount = len(stimtimes)
                     for ii in range(0,eventcount):
-                        startbin=np.int(stimbins[ii])
-                        stopbin=startbin+stimshape[1]
-                        if stimids[ii]<stimshape[2] and stopbin<=respshape[0]:
+                        startbin = np.int(stimbins[ii])
+                        stopbin = startbin+stimshape[1]
+                        if stimids[ii] < stimshape[2] and stopbin <= respshape[0]:
                             stim[:,startbin:stopbin,stimtrials[ii]-1]=tstim[:,:,stimids[ii]-1]
                     data['stim']=stim
                     

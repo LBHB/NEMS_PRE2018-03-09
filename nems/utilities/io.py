@@ -63,25 +63,25 @@ def load_single_model(cellid, batch, modelname, evaluate=True):
 
 def load_from_dict(batch,cellid,modelname):
     filepath = get_file_name(cellid, batch, modelname)
-    sdict=load_model_dict(filepath)
+    sdict = load_model_dict(filepath)
     
     #Maybe move some of this to the load_model_dict function?
-    stack=ns.nems_stack()
+    stack = ns.nems_stack()
     
-    stack.meta=sdict['meta']
-    stack.nests=sdict['nests']
-    parm_list=[]
+    stack.meta = sdict['meta']
+    stack.nests = sdict['nests']
+    parm_list = []
     for i in sdict['parm_fits']:
         parm_list.append(np.array(i))
-    stack.parm_fits=parm_list
+    stack.parm_fits = parm_list
     #stack.cv_counter=sdict['cv_counter']
-    stack.fitted_modules=sdict['fitted_modules']
+    stack.fitted_modules = sdict['fitted_modules']
     
     for i in range(0,len(sdict['modlist'])):
         stack.append(op.attrgetter(sdict['modlist'][i])(nm),**sdict['mod_dicts'][i])
         #stack.evaluate()
         
-    stack.valmode=True
+    stack.valmode = True
     stack.evaluate()
     #stack.quick_plot()
     return stack
