@@ -9,8 +9,6 @@ Created on Fri Aug 11 11:18:34 2017
 """
 
 import nems.modules as nm
-import nems.modules.user_def as ud
-
 
 
 def jitterload(stack):
@@ -22,30 +20,30 @@ def jitterload(stack):
     print("Initializing load_mat with file {0}".format(filepath))
     stack.append(ud.load_baphy_ssa.load_baphy_ssa,file=filepath,fs=500)
     stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
-    
+
 def simpledemo00(stack):
     """
     Keyword for the simple_demo DC gain module. Appends the simple_demo module
     with its default arguments.
-    
+
     Applies a simple DC gain and offset to the input data:
         y = v1*x + v2
-    where x is the input variable, and v1,v2 are fitted parameters. 
-    
+    where x is the input variable, and v1,v2 are fitted parameters.
+
     """
     stack.append(ud.demo.simple_demo)
-    
+
 def simpledemo01(stack):
     """
     Keyword for the simple_demo DC gain module. Uses arguments different than the
     default.
-    
+
     Applies a simple DC gain and offset to the input data with a 0 output threshold:
         y = v1*x + v2
-    where x is the input variable, and v1,v2 are fitted parameters. 
+    where x is the input variable, and v1,v2 are fitted parameters.
     """
     stack.append(ud.demo.simple_demo,thresh=True)
-    
+
 def advdemo00(stack):
     stack.append(ud.demo.adv_demo)
 

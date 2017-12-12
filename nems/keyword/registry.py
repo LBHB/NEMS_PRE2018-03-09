@@ -1,3 +1,4 @@
+from nems.stack import nems_stack as Stack
 import collections
 
 
@@ -18,6 +19,9 @@ class KeywordRegistry(collections.MutableMapping):
                 # If not, then check to see if it's a simple string
                 if pattern == key:
                     return function
+            except ValueError:
+                # Keep going. We may eventually find a match in the list.
+                pass
         raise KeyError
 
     def __setitem__(self, key, value):
@@ -33,7 +37,7 @@ class KeywordRegistry(collections.MutableMapping):
         return len(self.store)
 
     def model_name_to_stack(self, model_name):
-        stack = []
+        stack = Stack()
         for key in model_name.split('_'):
             self[key](stack)
         return stack

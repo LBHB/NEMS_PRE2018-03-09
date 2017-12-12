@@ -209,10 +209,20 @@ def fb18ch100(stack):
     applies a 5% estimation/validation split if the est/val datasets are not
     specified in the file.
     """
-    file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
-    print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=True)
-    stack.append(nm.est_val.standard)
+    filename = ut.baphy.get_celldb_file(
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100,
+        stimfmt='ozgf',
+        chancount=18)
+
+    print("Initializing load_mat with file {0}".format(filename))
+    module = nm.loaders.load_mat(parent_stack=stack, est_files=[filename],
+                                 fs=100, avg_resp=True)
+    stack.append(module)
+    module = nm.est_val.standard(parent_stack=stack)
+    stack.append(module)
+
 
 def fb18ch100pt(stack):
     """
