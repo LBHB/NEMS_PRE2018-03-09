@@ -94,9 +94,10 @@ def thresh_resamp(data, resamp_factor, thresh=0, ax=0):
     resamp[mask] = 0
     return resamp
 
+
 def bin_resamp(data,resamp_factor,ax=0):
     """
-    Integer downsampling-- just average values occuring in each group of 
+    Integer downsampling-- just average values occuring in each group of
     resp_factor bins along axis ax. Gets rid of edge effects and ringing. Plus
     it makes more sense for rebinning single-trial spike rates.
     """
@@ -107,6 +108,7 @@ def bin_resamp(data,resamp_factor,ax=0):
     d=np.reshape(data,snew.astype(int),order='F')
     d=np.mean(d,ax)
     return d
+
 
 def stretch_trials(data):
     """
@@ -160,9 +162,9 @@ def stretch_trials(data):
     replist=replist[keepidx]
     if not pupil is None:
         pupil=pupil[keepidx,:]
-    
-        
-        
+
+
+
     #    Y=data['stim'][:,0,:]
     #    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
     #    for i in range(1,s[2]):
@@ -186,8 +188,9 @@ def mini_fit(stack, mods=['filters.weight_channels', 'filters.fir', 'filters.stp
     This function is not appended directly to the stack, but instead is included
     in keywords
     """
-    stack.append(nems.modules.metrics.mean_square_error,shrink=0.05)
-    stack.error = stack.modules[-1].error
+    module = nems.modules.metrics.mean_square_error(shrink=0.05)
+    stack.append(module)
+    stack.error = module.error
     fitidx = []
     for i in mods:
         try:

@@ -14,6 +14,15 @@ import nems.utilities.plot
 import numpy as np
 
 
+class NormalizeChannels(nems_module):
+
+    def my_init(self, force_positive=False):
+        self.force_positvie = force_positive
+
+    def my_eval(self, x):
+        return x
+
+
 def dexp(phi, x):
     '''
     Defines a double-exponential sigmoid that's naturally asymmetric.
@@ -24,8 +33,36 @@ def dexp(phi, x):
     return base + peak * np.exp(-np.exp(-kappa*(x-lrshift)))
 
 
+def log(phi, x):
+    '''
+    Parmeters
+    ---------
+    phi : array-like (length 3)
+        First term is the curvature of the logarithm (i.e., the logarithm base),
+        second term is the zero offset (i.e,, baseline rate) and third term
+        specifies an input threshold. Inputs below this threshold are ignored.
+    x: array-like
+        Input to transform
+    '''
+    #base, offset, threshold = phi
+    base = phi
+    if base > 4:
+        base = 4 + (offset-4)/50;
+    elif base < -4:
+        base = -4 + (offset+4)/50;
+
+    d = 10**base
+
+    #mask = x < threshold
+    #x[mask] = threshold
+    #x -= threshold
+    #return np.log((x + d)/d) + offset
+    return np.log((x + d)/d)
+
+
 nl_functions = {
     'dexp': dexp,
+    'log': log,
 }
 
 
@@ -45,7 +82,7 @@ class gain(nems_module):
     phi=np.array([1])
     nltype='dlog'
 
-    def my_init(self,nltype='dlog',fit_fields=['phi'],phi=[1]):
+    def my_init(self, nltype='dlog', fit_fields=['phi'], phi=[1]):
         """
         nltype: type of nonlinearity
         fit_fields: name of fitted parameters
@@ -91,9 +128,13 @@ class gain(nems_module):
     #    return a+b/(1+np.exp(-(x-c)/d))
 
     def get_phi(self):
+        print(self.phi)
+        print(self.phi)
+        print(self.phi)
         return self.phi
 
     def my_eval(self, x):
         f = nl_functions[self.nltype]
         phi = self.get_phi()
         return f(phi, x)
+

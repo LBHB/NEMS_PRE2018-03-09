@@ -1,218 +1,218 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Modules that apply a filter to the stimulus
-
-
-Created on Fri Aug  4 13:36:43 2017
-
-@author: shofer
-"""
-from nems.modules.base import nems_module
-import nems.utilities.utils
-
 import numpy as np
 from scipy import signal
+from scipy.stats import norm
 
 
+from nems.modules.base import Module
+import nems.utilities.utils
 
-class weight_channels(nems_module):
+
+################################################################################
+# Base class for all filters in this module
+################################################################################
+class Filter(Module):
+
+    plot_fns = Module.plot_fns + [nems.utilities.plot.plot_strf]
+
+
+################################################################################
+# Channel weighting
+################################################################################
+def weight_channels(x, weights, y_offset=None):
+    '''
+    Parameters
+    ----------
+    x : ndarray
+        The last three axes must map to channel x trial x time. Any remaning
+        dimensions will be passed through. Weighting will be applied to the
+        channel dimension.
+    coefficients : 2d array (output channel x input channel weights)
+        Weighting of the input channels. A set of weights are provided for each
+        desired output channel. Each row in the array are the weights for the
+        input channels for that given output. The length of the row must be
+        equal to the number of channels in the input array
+        (e.g., `x.shape[-3] == coefficients.shape[-1]`).
+    y_offset : 1d array
+        Offset of the channels
+
+    Returns
+    -------
+    out : ndarray
+        Result of the weight channels transform. The shape of the output array
+        will be equal to the input array except for the third to last dimension
+        (the channel dimension). This dimension's length will be equivalent to
+        the length of the coefficients.
+    '''
+    # We need to shift the channel dimension to the second-to-last dimension
+    # so that matmul will work properly (it operates on the last two
+    # dimensions of the inputs and treats the rest of the dimensions as
+    # stacked matrices).
+    x = np.swapaxes(x, -3, -2)
+    x = weights @ x
+    x = np.swapaxes(x, -3, -2)
+    if y_offset is not None:
+        x += y_offset[..., np.newaxis, np.newaxis]
+    return x
+
+
+class WeightChannels(Module):
     """
-    weight_channels - apply a weighting matrix across a variable in the data
-    stream. Used to provide spectral filters, directly imported from NARF.
-    a helper function parm_fun can be defined to parameterize the weighting
-    matrix. but by default the weights are each independent
+    Apply a weighting matrix across a variable in the data stream.
     """
-    name='filters.weight_channels'
-    user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_chans','coefs','phi','parm_fun']
-    plot_fns=[nems.utilities.plot.plot_strf,nems.utilities.plot.plot_spectrogram]
-    coefs=None
-    num_chans=1
-    parm_fun=None
-    parm_type=None
 
-    def my_init(self, num_dims=0, num_chans=1, fit_fields=None, parm_type=None,
-                parm_fun=None):
-        # TODO: num_dims and num_chans need to be renamed. We should probably
-        # revise this system a bit and use classmethod constructors to provide
-        # different ways of initializing the class.
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
-        if self.d_in and not(num_dims):
-            num_dims=self.d_in[0][self.input_name].shape[0]
-        self.num_dims=num_dims
-        self.num_chans=num_chans
-        self.fit_fields=fit_fields
-        if parm_type:
-            if parm_type=='gauss':
-                # TODO: This needs to be documented before I can adequately
-                # refactor this.
-                self.parm_fun=self.gauss_fn
-                m=np.matrix(np.linspace(1,self.num_dims,self.num_chans+2))
-                m=m[:,1:-1]/self.num_dims
-                s=np.ones([self.num_chans,1])/4
-                phi=np.concatenate([m.transpose(),s],1)
-                self.phi=np.array(phi)
-            if not fit_fields:
-                self.fit_fields=['phi']
-        else:
-            #self.coefs=np.ones([num_chans,num_dims])/num_dims/100
-            self.coefs=np.random.normal(1,0.1,[num_chans,num_dims])/num_dims
-            if not fit_fields:
-                self.fit_fields=['coefs']
-        self.parm_type=parm_type
+    name = 'filters.weight_channels'
+    fit_fields = ['phi', 'y_offset']
+    user_editable_fields = Module.user_editable_fields + fit_fields
+    plot_fns = Module.plot_fns + [nems.utilities.plot.plot_strf]
 
-        self.y_offset = np.zeros(num_chans)
+    output_channels = None
+    y_offset =  None
+    phi = None
 
-    def gauss_fn(self,phi):
-        coefs=np.zeros([self.num_chans,self.num_dims])
-        for i in range(0,self.num_chans):
-            m=phi[i,0]*self.num_dims
-            s=phi[i,1]*self.num_dims
-            if s<0.05:
-                s=0.05
-            if (m<0 and m<s):
-                s=-m
-            elif (m>self.num_dims and m>self.num_dims+s):
-                s=m-self.num_dims
+    def my_init(self, output_channels, *args, **kwargs):
+        self.output_channels = output_channels
 
-            x=np.arange(0,self.num_dims)
-            coefs[i,:]=np.exp(-np.square((x-m)/s))
-            coefs[i,:]=coefs[i,:]/np.sum(coefs[i,:])
-        return coefs
+    def initialize_parameters(self):
+        input_data = self.get_input()
+        input_channels = input_data.shape[-3]
+        self.y_offset = np.zeros(n_channels)
+        phi_shape = [self.output_channels, input_channels]
+        self.phi = np.random.normal(1, 0.1, phi_shape)
 
     def get_weights(self):
-        # TODO: phi should always exist. If we just want a null transform, then
-        # we'd define parm_fun as a null transform.
-        try:
-            coefs = self.parm_fun(self.phi)
-        except (TypeError, AttributeError):
-            coefs = self.coefs
-
-        # Normalize so the weights are one
-        coefs /= np.sum(coefs, axis=-1)[..., np.newaxis]
-        return coefs
+        return self.phi
 
     def get_y_offset(self):
         return self.y_offset
 
     def my_eval(self, x):
-        # We need to shift the channel dimension to the second-to-last dimension
-        # so that matmul will work properly (it operates on the last two
-        # dimensions of the inputs and treats the rest of the dimensions as
-        # stacked matrices).
         weights = self.get_weights()
         y_offset = self.get_y_offset()
-        x = np.swapaxes(x, -3, -2)
-        x = weights @ x
-        x = np.swapaxes(x, -3, -2)
-        x += y_offset[..., np.newaxis, np.newaxis]
-        return x
+        return weight_channels(x, weights, y_offset)
 
 
-class fir(nems_module):
+class WeightChannelsGaussian(WeightChannels):
+
+    name = 'filters.weight_channels_gaussian'
+    input_channels = None
+
+    def initialize_parameters(self):
+        input_data = self.get_input()
+        input_channels = input_data.shape[-3]
+        self.y_offset = np.zeros(input_channels)
+        mu = np.random.uniform(high=input_channels, size=self.output_channels)
+        sigma = np.full_like(mu, fill_value=input_channels/4.0)
+        self.phi = np.c_[mu, sigma]
+        self.input_channels = input_channels
+
+    def get_weights(self):
+        # Pull values for mu and sigma out of phi. The length of mu and sigma
+        # are equal to the number of output channels.
+        mu_khz = self.phi[0]
+        sigma_khz = self.phi[1]
+
+        # Check if mu falls outside 0.2 to 20 kHz
+        if np.any(mu_khz < 0.2) or np.any(mu_khz > 20):
+            raise ValueError('Invalid coefficient')
+
+        spacing = np.log10(20e3) - np.log10(200) / self.input_channels
+        mu = (np.log10(mu_khz*1e3) - np.log10(200)) / spacing
+        sigma = (sigma_khz/10)*mu
+
+        # a1*exp(-((x-b1)/c1)^2)
+
+        x = np.arange(self.input_channels)
+        coefs = norm.pdf(x, mu[..., np.newaxis], sigma[..., np.newaxis])
+        mu = mu[..., np.newaxis]
+        sigma = sigma[..., np.newaxis]
+        coefs = np.exp(-np.square((x-mu)/sigma))
+        coefs /= coefs.sum(axis=-1)[..., np.newaxis]
+        print(coefs.sum(axis=-1))
+        print(coefs.shape)
+        return coefs
+
+
+################################################################################
+# FIR filter
+################################################################################
+def get_zi(b, x):
+    # This is the approach NARF uses. If the initial value of x[0] is 1,
+    # this is identical to the NEMS approach. We need to provide zi to
+    # lfilter to force it to return the final coefficients of the dummy
+    # filter operation.
+    n_taps = len(b)
+    null_data = np.full(n_taps*2, x[0])
+    zi = np.ones(n_taps-1)
+    return signal.lfilter(b, [1], null_data, zi=zi)[1]
+
+
+def fir_filter(x, coefficients, baseline=None):
+    # TODO: This will be a nice addition, but for now let's leave it out
+    # because NARF doesn't do this. Alternatively, Ivar's revamp of the data
+    # loading system may  make this a moot point.
+    #pad_width = coefs.shape[-1] * 2
+    #padding = [(0, 0)] * X.ndim
+    #padding[-1] = (0, pad_width)
+    #X = np.pad(X, padding, mode='constant')
+
+    result = []
+    x = x.swapaxes(0, -3)
+    for x, c in zip(x, coefficients):
+        old_shape = x.shape
+        x = x.ravel()
+        zi = get_zi(c, x)
+        r, zf = signal.lfilter(c, [1], x, zi=zi)
+        r.shape = old_shape
+        result.append(r[np.newaxis])
+    result = np.concatenate(result)
+    result = np.sum(result, axis=0)
+    if baseline is not None:
+        result += baseline
+    return result
+
+
+class FIR(Module):
     """
-    fir - the workhorse linear fir filter module. Takes in a 3D stim array
-    (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
-    offset, and outputs a 2D stim array (stims,time).
+    Applies a linear FIR filter
     """
-    name='filters.fir'
-    user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_coefs','coefs','baseline','random_init']
-    plot_fns=[nems.utilities.plot.plot_strf, nems.utilities.plot.plot_spectrogram]
-    coefs=None
-    baseline=np.zeros([1,1])
-    num_dims=0
-    random_init=False
-    num_coefs=20
+    name = 'filters.fir'
+    user_editable_fields = Module.user_editable_fields + ['n_coefs']
+    fit_fields = ['baseline', 'coefficients']
 
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False, coefs=None):
-        """
-        num_dims: number of stimulus channels (y axis of STRF)
-        num_coefs: number of temporal channels of STRF
-        baseline: initial value of DC offset
-        fit_fields: names of fitted parameters
-        random: randomize initial values of fir coefficients
-        """
-        self.field_dict=locals()
-        self.field_dict.pop('self',None)
-        if self.d_in and not(num_dims):
-            num_dims=self.d_in[0][self.input_name].shape[0]
-        self.num_dims=num_dims
-        self.num_coefs=num_coefs
-        self.baseline[0]=baseline
-        self.random_init=random_init
-        if coefs:
-            self.coefs=coefs
-        elif random_init is True:
-            self.coefs=np.random.normal(loc=0.0,scale=0.0025,size=[num_dims,num_coefs])
-        else:
-            self.coefs=np.zeros([num_dims,num_coefs])
-        self.fit_fields=fit_fields
-        self.do_trial_plot=self.plot_fns[0]
+    coefficients = None
+    baseline = None
 
-    def get_coefs(self):
-        return self.coefs
+    def initialize_coefficients(self):
+        input_data = self.get_input()
+        input_channels = input_data.shape[-3]
+        coef_shape = [input_channels, self.n_coefficients]
+        if init_method == 'zeros':
+            coefs = np.zeros(coef_shape)
+        elif init_method == 'random':
+            coefs = np.random.normal(0, 2.5e-3, size=coef_shape)
+        self.baseline = 0
+
+    def my_init(self, n_coefficients=20, init_method='zeros'):
+        self.n_coefficients = n_coefficients
+        self.init_method = init_method
+
+    def get_coefficients(self):
+        return self.coefficients
 
     def get_baseline(self):
         return self.baseline
 
-    def get_zi(self, b, x):
-        # This is the approach NARF uses. If the initial value of x[0] is 1,
-        # this is identical to the NEMS approach. We need to provide zi to
-        # lfilter to force it to return the final coefficients of the dummy
-        # filter operation.
-        n_taps = len(b)
-        null_data = np.full(n_taps*2, x[0])
-        zi = np.ones(n_taps-1)
-        return signal.lfilter(b, [1], null_data, zi=zi)[1]
-
     def my_eval(self, x):
-        coefs = self.get_coefs()
+        coefficients = self.get_coefficients()
         baseline = self.get_baseline()
-
-        # TODO: This will be a nice addition, but for now let's leave it out
-        # because NARF doesn't do this.
-        #pad_width = coefs.shape[-1] * 2
-        #padding = [(0, 0)] * X.ndim
-        #padding[-1] = (0, pad_width)
-        #X = np.pad(X, padding, mode='constant')
-
-        result = []
-        for x, c in zip(x, coefs):
-            old_shape = x.shape
-            x = x.ravel()
-            zi = self.get_zi(c, x)
-            r, zf = signal.lfilter(c, [1], x, zi=zi)
-            r.shape = old_shape
-            result.append(r[np.newaxis])
-        result = np.concatenate(result)
-        return result.sum(axis=0) + baseline
-
-    def get_strf(self):
-        h=self.coefs
-
-        # if weight channels exist and dimensionality matches, generate a full STRF
-        try:
-            wcidx=nems.utilities.utils.find_modules(self.parent_stack,"filters.weight_channels")
-            if len(wcidx)>0 and self.parent_stack.modules[wcidx[0]].output_name==self.output_name:
-                wcidx=wcidx[0]
-            elif len(wcidx)>1 and self.parent_stack.modules[wcidx[1]].output_name==self.output_name:
-                wcidx=wcidx[1]
-            else:
-                wcidx=-1
-        except:
-            wcidx=-1
-
-        if self.name=="filters.fir" and wcidx>=0:
-            #print(m.name)
-            w=self.parent_stack.modules[wcidx].coefs
-            if w.shape[0]==h.shape[0]:
-                h=np.matmul(w.transpose(), h)
-
-        return h
+        return fir_filter(x, coefficients, baseline)
 
 
-class stp(nems_module):
+################################################################################
+# STP filter
+################################################################################
+# TODO: update the STP code!
+class stp(Module):
     """
     stp - simulate short-term plasticity with the Tsodyks and Markram model
 
