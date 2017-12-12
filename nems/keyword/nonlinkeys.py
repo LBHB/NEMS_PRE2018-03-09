@@ -7,9 +7,13 @@ Created on Fri Aug 11 11:08:08 2017
 
 @author: shofer
 """
+from functools import partial
+
 import numpy as np
 import nems.modules as nm
 from nems.utilities.utils import mini_fit
+
+from .registry import keyword_registry
 
 
 def dlog2(stack):
@@ -132,3 +136,16 @@ def tanhsig(stack):
     stack.append(nm.nonlin.gain, nltype='tanh',
                  fit_fields=['phi'], phi=[1, 1, 0])
     mini_fit(stack, mods=['nonlin.gain'])
+
+
+keyword_registry.update({
+    'poly01': poly01,
+    'poly02': poly02,
+    'poly03': poly03,
+    'tanhsig': tanhsig,
+    'logsig': logsig,
+    'exp': exp,
+    'dexp': dexp,
+    'dlog': dlog,
+    'dlog2': dlog2,
+})

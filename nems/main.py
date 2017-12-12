@@ -8,10 +8,11 @@ Created on Sun Jun 18 20:16:37 2017
 import nems.modules as nm
 import nems.stack as ns
 import nems.utilities
-import nems.keyword as nk
 import operator as op
 import numpy as np
 import pkgutil as pk
+
+from nems.keyword.registry import keyword_registry
 
 """
 fit_single_model - create, fit and save a model specified by cellid, batch and modelname
@@ -51,19 +52,17 @@ def fit_single_model(cellid, batch, modelname,
     stack.valmode = False
     stack.keywords = modelname.split("_")
 
-    # pre-indexed set of keyword functions
-    stack.keyfuns = nk.keyfuns
-
     # evaluate the stack of keywords
     if 'nested' in stack.keywords[-1]:
         # special case for nested keywords. Stick with this design?
         print('Using nested cross-validation, fitting will take longer!')
         k = stack.keywords[-1]
-        stack.keyfuns[k](stack)
+        keyword_registry[k](stack)
     else:
         print('Using standard est/val conditions')
         for k in stack.keywords:
-            stack.keyfuns[k](stack)
+            print(k)
+            keyword_registry[k](stack)
 
     # measure performance on both estimation and validation data
     stack.valmode = True

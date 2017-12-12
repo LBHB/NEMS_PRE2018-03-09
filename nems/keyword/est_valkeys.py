@@ -1,40 +1,36 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Est/val keywords
-
-Est/val is usually incorporated into most loader keywords, but these work if
-an est/val module is not included in the loader keyword
-
-Created on Fri Aug 11 10:36:16 2017
-
-@author: shofer
-"""
-
+import re
 import nems.modules as nm
+from .registry import keyword_registry
 
-__all__ = ['ev', 'xval05', 'xval10']
 
-
-def ev(stack):
+def ev(stack, fraction):
     """
     Breaks the data into estimation and validation datasets based on the number
     of trials of each stimulus.
     """
-    stack.append(nm.est_val.standard, valfrac=0.05)
+    stack.append(nm.est_val.standard, valfrac=fraction)
 
 
-def xval10(stack):
-    """
-    Breaks the data into estimation and validation datasets by placing 90% of the
-    trials/stimuli into the estimation set and 10% into the validation set.
-    """
-    stack.append(nm.est_val.crossval, valfrac=0.1)
+def xval(stack, fraction):
+    '''
+    Splits the data into estimation and validation datasets by placing
+    (1-fraction)*100% the trials/stimuli into the estimation set and
+    fraction*100% into the validation set.
+    '''
+    stack.append(nm.est_val.crossval, valfrac=fraction)
 
 
-def xval05(stack):
-    """
-    Breaks the data into estimation and validation datasets by placing 95% of the
-    trials/stimuli into the estimation set and 5% into the validation set.
-    """
-    stack.append(nm.est_val.crossval, valfrac=0.05)
+def parse_ev(groups):
+    fraction = float(groups[0])/100.0
+    return partial(ev, fraction=fraction)
+
+
+def parse_xval(groups):
+    fraction = float(groups[0])/100.0
+    return partial(xval, fraction=fraction)
+
+
+keyword_registry.update({
+    re.compile(r'xval(\d{2})'): parse_xval,
+    re.compile(r'ev(\d{2})'): parse_ev,
+})

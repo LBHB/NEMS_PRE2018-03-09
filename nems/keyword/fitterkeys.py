@@ -10,8 +10,9 @@ Created on Fri Aug 11 11:14:52 2017
 
 import nems.modules as nm
 import nems.fitters
-#import nems.tensorflow_fitters as ntf
 from nems.utilities.utils import create_parmlist
+
+from .registry import keyword_registry
 
 
 def fit00(stack):
@@ -217,3 +218,8 @@ def fititer01(stack):
 #   stack.fitter.do_fit()
 #    create_parmlist(stack)
 #    stack.append(nm.mean_square_error)
+
+
+for k, v in list(locals().items()):
+    if k.startswith('fit') and callable(v):
+        keyword_registry[k] = v

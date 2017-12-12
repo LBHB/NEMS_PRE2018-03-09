@@ -11,6 +11,8 @@ Created on Fri Aug 11 10:34:40 2017
 import nems.modules as nm
 import nems.utilities as ut
 
+from .registry import keyword_registry
+
 
 def parm100(stack):
     """
@@ -23,23 +25,12 @@ def parm100(stack):
     Specifically for batch293 tone-pip data.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='parm', chancount=16)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='parm', chancount=16)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=False)
     stack.append(nm.est_val.crossval)
-
-
-def env100(stack):
-    """
-    Loads a 100 Hz BAPHY .mat file with 'envelope' marker using the
-    provided cellid and batch. Designed for SPN data
-
-    """
-    file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='envelope')
-    print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
-    stack.append(nm.est_val.standard)
 
 
 def env50e(stack):
@@ -50,7 +41,9 @@ def env50e(stack):
     Specifically for batch296 SSA data
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='envelope')
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.00)
@@ -65,7 +58,9 @@ def env100e(stack):
     Specifically for batch296 SSA data
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='envelope')
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.1)
@@ -82,7 +77,9 @@ def env100em0(stack):
     Specifically for batch296 SSA data
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='envelope')
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.1)
@@ -99,7 +96,9 @@ def env100em1(stack):
     Specifically for batch296 SSA data
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='envelope')
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='envelope')
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.1)
@@ -150,8 +149,13 @@ def parm50pt(stack):
 
     Specifically for batch293 tone-pip data.
     """
-    file = ut.baphy.get_celldb_file(stack.meta['batch'], stack.meta['cellid'],
-                                    fs=100, stimfmt='parm', chancount=16, pertrial=True)
+    file = ut.baphy.get_celldb_file(
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100,
+        stimfmt='parm',
+        chancount=16,
+        pertrial=True)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2)
@@ -167,8 +171,13 @@ def parm50ptp(stack):
 
     Specifically for batch293 tone-pip data.
     """
-    file = ut.baphy.get_celldb_file(stack.meta['batch'], stack.meta['cellid'],
-                                    fs=100, stimfmt='parm', chancount=16, pertrial=True)
+    file = ut.baphy.get_celldb_file(
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100,
+        stimfmt='parm',
+        chancount=16,
+        pertrial=True)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2, keep_filestate=[0])
@@ -184,8 +193,13 @@ def parm100pt(stack):
 
     Specifically for batch293 tone-pip data.
     """
-    file = ut.baphy.get_celldb_file(stack.meta['batch'], stack.meta['cellid'],
-                                    fs=100, stimfmt='parm', chancount=16, pertrial=True)
+    file = ut.baphy.get_celldb_file(
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100,
+        stimfmt='parm',
+        chancount=16,
+        pertrial=True)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2)
@@ -216,7 +230,9 @@ def fb24ch200(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=200, stimfmt='ozgf', chancount=24)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=200, stimfmt='ozgf', chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=200, avg_resp=True)
     stack.append(nm.est_val.standard)
@@ -230,7 +246,9 @@ def fb24ch100(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=200, stimfmt='ozgf', chancount=24)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=200, stimfmt='ozgf', chancount=24)
     print("Initializing load_mat with file {0}".format(file))
     # Data not preprocessed to 100 Hz, internally converts
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
@@ -244,11 +262,19 @@ def fb18ch100(stack):
     applies a 5% estimation/validation split if the est/val datasets are not
     specified in the file.
     """
-    file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18)
-    print("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
-    stack.append(nm.est_val.standard)
+    filename = ut.baphy.get_celldb_file(
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100,
+        stimfmt='ozgf',
+        chancount=18)
+
+    print("Initializing load_mat with file {0}".format(filename))
+    module = nm.loaders.load_mat(parent_stack=stack, est_files=[filename],
+                                 fs=100, avg_resp=True)
+    stack.append(module)
+    module = nm.est_val.standard(parent_stack=stack)
+    stack.append(module)
 
 
 def fb18ch100pt(stack):
@@ -261,7 +287,12 @@ def fb18ch100pt(stack):
 
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18, pertrial=True)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100,
+        stimfmt='ozgf',
+        chancount=18,
+        pertrial=True)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.2)
@@ -277,7 +308,9 @@ def fb93ch100(stack):
     This is for DIRECT comparison with Sam N-H's cochlear model.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=93)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=93)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.standard)
@@ -291,11 +324,15 @@ def ctx100ch100(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stimdata = ut.io.load_nat_cort(
-        100, stack.data[-1][0]['prestim'], stack.data[-1][0]['duration'], stack.data[-1][0]['poststim'])
+        100, stack.data[-1][0]['prestim'],
+        stack.data[-1][0]['duration'],
+        stack.data[-1][0]['poststim'])
     for d in stack.data[-1]:
         d['stim'] = stimdata['stim']
     stack.append(nm.est_val.standard)
@@ -309,11 +346,15 @@ def coch93ch100(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stimdata = ut.io.load_nat_coch(
-        100, stack.data[-1][0]['prestim'], stack.data[-1][0]['duration'], stack.data[-1][0]['poststim'])
+        100, stack.data[-1][0]['prestim'],
+        stack.data[-1][0]['duration'],
+        stack.data[-1][0]['poststim'])
     for d in stack.data[-1]:
         d['stim'] = stimdata['stim']
     stack.append(nm.est_val.standard)
@@ -327,7 +368,9 @@ def fb18ch100x(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
     stack.append(nm.est_val.crossval)
@@ -342,7 +385,9 @@ def fb18ch100u(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=False)
     stack.append(nm.est_val.crossval)
@@ -357,7 +402,9 @@ def fb18ch50(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=True)
     stack.append(nm.est_val.standard)
@@ -372,7 +419,9 @@ def fb18ch50u(stack):
     specified in the file.
     """
     file = ut.baphy.get_celldb_file(
-        stack.meta['batch'], stack.meta['cellid'], fs=100, stimfmt='ozgf', chancount=18)
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=False)
     stack.append(nm.est_val.crossval)
@@ -389,9 +438,19 @@ def loadlocal(stack):
     This keyword is just to load up a local file that is not yet on the BAPHY database.
     Right now just loads files from my computer --njs, June 27 2017
     """
-    file = '/Users/HAL-9000/Desktop/CompNeuro/batch' + str(stack.meta['batch']) + '/' + str(
-        stack.meta['cellid']) + '_b' + str(stack.meta['batch']) + '_ozgf_c18_fs100.mat'
+    file = '/Users/HAL-9000/Desktop/CompNeuro/batch'+str(stack.meta['batch'])+'/'+str(
+        stack.meta['cellid'])+'_b'+str(stack.meta['batch'])+'_ozgf_c18_fs100.mat'
     # file=ut.baphy.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=100,stimfmt='ozgf',chancount=18)
     print("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=False)
     stack.append(nm.est_val.crossval)
+
+
+matches = ['parm', 'env', 'fb', 'ctx', 'coch', 'ecog', 'load']
+
+for k, v in list(locals().items()):
+    # TODO: this is a hack for now.
+    for m in matches:
+        if k.startswith(m):
+            keyword_registry[k] = v
+            continue
