@@ -24,7 +24,7 @@ example usage for one nice IC cell:
     nems.fit_single_model(cellid,batch,modelname)
 
 """
-def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove xvals later, need to rework web app
+def fit_single_model(cellid, batch, modelname, autoplot=True, saveInDB=True, **xvals): #Remove xvals later, need to rework web app
     """
     Fits a single NEMS model. With the exception of the autoplot feature,
     all the details of modelfitting are taken care of by the model keywords.
@@ -82,9 +82,10 @@ def fit_single_model(cellid, batch, modelname, autoplot=True,**xvals): #Remove x
     if autoplot:
         stack.quick_plot()
     
-    # save
-    filename = nems.utilities.io.get_file_name(cellid, batch, modelname)
-    nems.utilities.io.save_model(stack, filename)
+    # save in data base
+    if saveInDB == True:
+        filename = nems.utilities.io.get_file_name(cellid, batch, modelname)
+        nems.utilities.io.save_model(stack, filename)
 
     return(stack)
 

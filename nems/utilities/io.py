@@ -304,6 +304,7 @@ def load_nat_cort(fs=100,prestimsilence=0.5,duration=3,poststimsilence=0.5):
     """
 
     stimfile='/auto/data/tmp/filtcoch_PCs_100.mat'
+    stimfile='/auto/users/nems/data/filtcoch_PCs_100.mat'
     stimdata = h5py.File(stimfile,'r')
 
     data={}

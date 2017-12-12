@@ -12,6 +12,8 @@ import importlib
 import os
 import nems_sample as ns
 import boto3
+from botocore import UNSIGNED
+from botocore.config import Config
 sample_path = os.path.dirname(os.path.abspath(ns.__file__))
 
 # stays false unless changed by db.py if database info is missing
@@ -53,7 +55,12 @@ db_obj = Path(db_path)
 # Check if sample database exists. If it doesn't, get it from the public s3
 if not db_obj.exists():
     print("Demo database not found, retrieving....")
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client(
+            's3',
+            #aws_access_key_id='dummyid', aws_secret_access_key='dummykey',
+            #aws_session_token='dummytoken',
+            #config=Config(signature_version=UNSIGNED),
+            )
     key = "demodb/demo_db.db"
     fileobj = s3_client.get_object(Bucket='nemspublic', Key=key)
     with open(db_path, 'wb+') as f:

@@ -52,23 +52,24 @@ def dexp_fn(phi,X):
 
 doval=0
 
-if 1:
+if 0:
     """ RDT """
     cellid="oys022b-b1"
     modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
     batch=269
     
-if 0:
+if 1:
     """ NAT SOUND """
-    cellid="bbl031f-a1"
+    #cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
-    cellid="bbl031f-a1"
-    batch=291  # IC
+    #batch=291  # IC
     
     #cellid="bbl031f-a1"
-    #batch=271 #A1
-    modelname="fb18ch100_wcg01_fir15_dexp_fit01"
+    cellid="chn020f-b1"
+    batch=271 #A1
+    #modelname="fb18ch100_wcg01_fir15_dexp_fit01"
+    modelname="ctx100ch100_dlog_wc02_fir15_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
     #modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
     #modelname="fb18ch100_wc01_fir15_fit01"
@@ -140,6 +141,13 @@ if 0:
     batch=296
     modelname="env100e_fir20_fit01_ssa"
     #modelname="env100e_fir20_dexp_fit01"
+    
+""" SPN test """
+if 0:
+    #cellid='gus018d-d1'
+    cellid="eno023c-c1"
+    batch=259
+    modelname="env100_fir15_dexp_fit01"
 
 # following is equivalent of 
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
