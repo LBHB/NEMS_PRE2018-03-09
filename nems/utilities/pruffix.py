@@ -5,6 +5,7 @@ abbreviated strings with a common prefix and/or suffix.
 
 """
 
+
 def find_prefix(s_list):
     """Given a list of strings, returns the common prefix to nearest _."""
     prefix = ''
@@ -13,10 +14,10 @@ def find_prefix(s_list):
     while test:
         #print('while loop, i=%s'%i)
         #print('before for loop, prefix = %s'%prefix)
-        for j in range(len(s_list)-1):
+        for j in range(len(s_list) - 1):
             # look at ith item of each string in list, in order
             a = s_list[j][i]
-            b = s_list[j+1][i]
+            b = s_list[j + 1][i]
             #print('for loop, a = %s and b = %s'%(a, b))
             if a != b:
                 test = False
@@ -24,11 +25,12 @@ def find_prefix(s_list):
             if j == len(s_list) - 2:
                 prefix += b
         i += 1
-        
+
     while prefix and (prefix[-1] != '_'):
         prefix = prefix[:-1]
-        
+
     return prefix
+
 
 def find_suffix(s_list):
     """Given a list of strings, returns the common suffix to nearest _."""
@@ -38,14 +40,14 @@ def find_suffix(s_list):
     while test:
         #print('while loop, i=%s'%i)
         #print('before for loop, suffix = %s'%suffix)
-        for j in range(len(s_list)-1):
-            #look at ith item of each string in reverse order
-            a = s_list[j][-1*i]
-            b = s_list[j+1][-1*i]
+        for j in range(len(s_list) - 1):
+            # look at ith item of each string in reverse order
+            a = s_list[j][-1 * i]
+            b = s_list[j + 1][-1 * i]
             #print('for loop, a = %s and b = %s'%(a, b))
             if a != b:
                 test = False
-                break 
+                break
             if j == len(s_list) - 2:
                 suffix += b
         i += 1
@@ -53,8 +55,9 @@ def find_suffix(s_list):
     suffix = suffix[::-1]
     while suffix and (suffix[0] != '_'):
         suffix = suffix[1:]
-    
+
     return suffix
+
 
 def find_common(s_list, pre=True, suf=True):
     """Given a list of strings, finds the common suffix and prefix, then
@@ -65,9 +68,9 @@ def find_common(s_list, pre=True, suf=True):
     Takes s_list as list of strings (required), and pre and suf as Booleans
     (optional) to indicate whether prefix and suffix should be found. Both are
     set to True by default.
-    
+
     """
-    
+
     prefix = ''
     if pre:
         prefix = find_prefix(s_list)
@@ -80,9 +83,6 @@ def find_common(s_list, pre=True, suf=True):
         if prefix:
             s = s[len(prefix):]
         if suffix:
-            s = s[:-1*len(suffix)]
+            s = s[:-1 * len(suffix)]
         shortened.append(s)
     return (shortened, prefix, suffix)
-        
-        
-        

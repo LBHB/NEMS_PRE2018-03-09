@@ -1,7 +1,7 @@
 """ reference: https://www.huyng.com/posts/python-performance-analysis
 
 example:
-    
+
     from timer import Timer
     from redis import Redis
     rdb = Redis()
@@ -13,11 +13,12 @@ example:
     with Timer() as t:
         rdb.lpop("foo")
     print "=> elasped lpop: %s s" % t.secs
-    
+
 """
 
 
 import time
+
 
 class Timer(object):
     def __init__(self, verbose=False):
@@ -32,6 +33,4 @@ class Timer(object):
         self.secs = self.end - self.start
         self.msecs = self.secs * 1000  # millisecs
         if self.verbose:
-            print('elapsed time: %f ms'%self.msecs)
-            
-            
+            print('elapsed time: %f ms' % self.msecs)

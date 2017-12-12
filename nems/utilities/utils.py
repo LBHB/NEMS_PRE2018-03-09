@@ -46,7 +46,7 @@ def concatenate_helper(stack, start=1, **kwargs):
     """
     try:
         end = kwargs['end']
-    except:
+    except BaseException:
         end = len(stack.data)
     for k in range(start, end):
         # print('start loop 1')
@@ -56,27 +56,35 @@ def concatenate_helper(stack, start=1, **kwargs):
             if stack.data[k][n]['est'] is False:
                 # print('concatenating')
                 if stack.data[k][n]['stim'][0].ndim == 3:
-                    stack.data[k][n]['stim'] = np.concatenate(stack.data[k][n]['stim'], axis=1)
+                    stack.data[k][n]['stim'] = np.concatenate(
+                        stack.data[k][n]['stim'], axis=1)
                 else:
-                    stack.data[k][n]['stim'] = np.concatenate(stack.data[k][n]['stim'], axis=0)
-                stack.data[k][n]['resp'] = np.concatenate(stack.data[k][n]['resp'], axis=0)
+                    stack.data[k][n]['stim'] = np.concatenate(
+                        stack.data[k][n]['stim'], axis=0)
+                stack.data[k][n]['resp'] = np.concatenate(
+                    stack.data[k][n]['resp'], axis=0)
                 try:
-                    stack.data[k][n]['pupil'] = np.concatenate(stack.data[k][n]['pupil'], axis=0)
-                except:
+                    stack.data[k][n]['pupil'] = np.concatenate(
+                        stack.data[k][n]['pupil'], axis=0)
+                except BaseException:
                     stack.data[k][n]['pupil'] = None
                 try:
-                    stack.data[k][n]['replist'] = np.concatenate(stack.data[k][n]['replist'], axis=0)
-                except:
+                    stack.data[k][n]['replist'] = np.concatenate(
+                        stack.data[k][n]['replist'], axis=0)
+                except BaseException:
                     stack.data[k][n]['replist'] = []
                 try:
-                    stack.data[k][n]['repcount'] = np.concatenate(stack.data[k][n]['repcount'], axis=0)
-                except:
+                    stack.data[k][n]['repcount'] = np.concatenate(
+                        stack.data[k][n]['repcount'], axis=0)
+                except BaseException:
                     pass
                 if 'stim2' in stack.data[k][n]:
                     if stack.data[k][n]['stim2'][0].ndim == 3:
-                        stack.data[k][n]['stim2'] = np.concatenate(stack.data[k][n]['stim2'], axis=1)
+                        stack.data[k][n]['stim2'] = np.concatenate(
+                            stack.data[k][n]['stim2'], axis=1)
                     else:
-                        stack.data[k][n]['stim2'] = np.concatenate(stack.data[k][n]['stim2'], axis=0)
+                        stack.data[k][n]['stim2'] = np.concatenate(
+                            stack.data[k][n]['stim2'], axis=0)
             else:
                 pass
 
@@ -87,26 +95,30 @@ def thresh_resamp(data, resamp_factor, thresh=0, ax=0):
     the function will send all values in data below thresh to 0; this is often
     useful to reduce the ringing caused by FIR downsampling.
     """
-    resamp = sps.decimate(data, resamp_factor, ftype='fir', axis=ax, zero_phase=True)
-    mask=np.isfinite(resamp)
+    resamp = sps.decimate(data, resamp_factor, ftype='fir',
+                          axis=ax, zero_phase=True)
+    mask = np.isfinite(resamp)
     s_indices = resamp[mask] < thresh
-    mask[mask]=s_indices
+    mask[mask] = s_indices
     resamp[mask] = 0
     return resamp
 
-def bin_resamp(data,resamp_factor,ax=0):
+
+def bin_resamp(data, resamp_factor, ax=0):
     """
-    Integer downsampling-- just average values occuring in each group of 
+    Integer downsampling-- just average values occuring in each group of
     resp_factor bins along axis ax. Gets rid of edge effects and ringing. Plus
     it makes more sense for rebinning single-trial spike rates.
     """
-    s=np.array(data.shape)
-    snew=np.concatenate((s[0:ax],[resamp_factor],[s[ax]/resamp_factor],s[(ax+1):]))
-    #print(s)
-    #print(snew)
-    d=np.reshape(data,snew.astype(int),order='F')
-    d=np.mean(d,ax)
+    s = np.array(data.shape)
+    snew = np.concatenate(
+        (s[0:ax], [resamp_factor], [s[ax] / resamp_factor], s[(ax + 1):]))
+    # print(s)
+    # print(snew)
+    d = np.reshape(data, snew.astype(int), order='F')
+    d = np.mean(d, ax)
     return d
+
 
 def stretch_trials(data):
     """
@@ -126,7 +138,8 @@ def stretch_trials(data):
 
     # stack each rep on top of each other
     resp = np.transpose(data['resp'], (0, 2, 1))  # time X stim X rep
-    resp = np.transpose(np.reshape(resp, (s[0], s[1] * s[2]), order='F'), (1, 0))
+    resp = np.transpose(np.reshape(
+        resp, (s[0], s[1] * s[2]), order='F'), (1, 0))
 
     # data['resp']=np.transpose(np.reshape(data['resp'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
     # mask=np.logical_not(npma.getmask(npma.masked_invalid(resp)))
@@ -135,14 +148,17 @@ def stretch_trials(data):
     try:
         # stack each rep on top of each other -- identical to resp
         pupil = np.transpose(data['pupil'], (0, 2, 1))
-        pupil = np.transpose(np.reshape(pupil, (s[0], s[1] * s[2]), order='F'), (1, 0))
+        pupil = np.transpose(np.reshape(
+            pupil, (s[0], s[1] * s[2]), order='F'), (1, 0))
         # P=pupil[mask]
         # pupil=np.reshape(P,(-1,s[0]),order='C')
-        # data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0)) #Interleave
+        # data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0))
+        # #Interleave
     except ValueError:
         pupil = None
 
-    # copy stimulus as many times as there are repeats -- same stacking as resp??
+    # copy stimulus as many times as there are repeats -- same stacking as
+    # resp??
     stim = data['stim']
     for i in range(1, s[1]):
         stim = np.concatenate((stim, data['stim']), axis=1)
@@ -154,15 +170,13 @@ def stretch_trials(data):
     replist = np.reshape(replist.transpose(), (-1, 1))
 
     # find non-nan response trials
-    keepidx=np.isfinite(resp[:,0])
-    resp=resp[keepidx,:]
-    stim=stim[:,keepidx,:]
-    replist=replist[keepidx]
+    keepidx = np.isfinite(resp[:, 0])
+    resp = resp[keepidx, :]
+    stim = stim[:, keepidx, :]
+    replist = replist[keepidx]
     if not pupil is None:
-        pupil=pupil[keepidx,:]
-    
-        
-        
+        pupil = pupil[keepidx, :]
+
     #    Y=data['stim'][:,0,:]
     #    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
     #    for i in range(1,s[2]):
@@ -176,7 +190,8 @@ def stretch_trials(data):
     return stim, resp, pupil, replist
 
 
-def mini_fit(stack, mods=['filters.weight_channels', 'filters.fir', 'filters.stp']):
+def mini_fit(stack, mods=['filters.weight_channels',
+                          'filters.fir', 'filters.stp']):
     """
     Helper function that module coefficients in mod list prior to fitting
     all the model coefficients. This is often helpful, as it gets the model in the
@@ -186,16 +201,17 @@ def mini_fit(stack, mods=['filters.weight_channels', 'filters.fir', 'filters.stp
     This function is not appended directly to the stack, but instead is included
     in keywords
     """
-    stack.append(nems.modules.metrics.mean_square_error,shrink=0.05)
+    stack.append(nems.modules.metrics.mean_square_error, shrink=0.05)
     stack.error = stack.modules[-1].error
     fitidx = []
     for i in mods:
         try:
             fitidx = fitidx + find_modules(stack, i)
-        except:
+        except BaseException:
             fitidx = fitidx + []
     fitidx.sort()
-    stack.fitter = nems.fitters.fitters.basic_min(stack, fit_modules=fitidx, tolerance=0.00001)
+    stack.fitter = nems.fitters.fitters.basic_min(
+        stack, fit_modules=fitidx, tolerance=0.00001)
 
     stack.fitter.do_fit()
     stack.popmodule()
@@ -248,7 +264,8 @@ def nest_helper(stack, nests=20):
     # stack.cv_counter=0  # reset to avoid problem with val stage
 
 
-def crossval_set(n_trials, cv_count=10, cv_idx=None, interleave_valtrials=True):
+def crossval_set(n_trials, cv_count=10, cv_idx=None,
+                 interleave_valtrials=True):
     """ create a list trial indices to save for cross-validation in a nested
     cross-val procedure. standardized so it can be used across different
     analyses. user provides:
@@ -265,7 +282,8 @@ def crossval_set(n_trials, cv_count=10, cv_idx=None, interleave_valtrials=True):
     spl = n_trials / cv_count
 
     if n_trials < cv_count:
-        raise IndexError('Fewer stimuli than cv_count; cv_count<=n_trials required')
+        raise IndexError(
+            'Fewer stimuli than cv_count; cv_count<=n_trials required')
 
     # figure out grouping for each CV set
     if interleave_valtrials:
