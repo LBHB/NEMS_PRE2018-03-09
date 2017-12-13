@@ -1,20 +1,51 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Modules that apply a filter to the stimulus
-
-
-Created on Fri Aug  4 13:36:43 2017
-
-@author: shofer
-"""
-from nems.modules.base import nems_module
+from nems.modules.base import nems_module as Module
 import nems.utilities.utils
 
 import numpy as np
+from scipy import signal
 
 
-class weight_channels(nems_module):
+################################################################################
+# Channel weighting
+################################################################################
+def weight_channels(x, weights, baseline=None):
+    '''
+    Parameters
+    ----------
+    x : ndarray
+        The last three axes must map to channel x trial x time. Any remaning
+        dimensions will be passed through. Weighting will be applied to the
+        channel dimension.
+    coefficients : 2d array (output channel x input channel weights)
+        Weighting of the input channels. A set of weights are provided for each
+        desired output channel. Each row in the array are the weights for the
+        input channels for that given output. The length of the row must be
+        equal to the number of channels in the input array
+        (e.g., `x.shape[-3] == coefficients.shape[-1]`).
+    baseline : 1d array
+        Offset of the channels
+
+    Returns
+    -------
+    out : ndarray
+        Result of the weight channels transform. The shape of the output array
+        will be equal to the input array except for the third to last dimension
+        (the channel dimension). This dimension's length will be equivalent to
+        the length of the coefficients.
+    '''
+    # We need to shift the channel dimension to the second-to-last dimension
+    # so that matmul will work properly (it operates on the last two
+    # dimensions of the inputs and treats the rest of the dimensions as
+    # stacked matrices).
+    x = np.swapaxes(x, -3, -2)
+    x = weights @ x
+    x = np.swapaxes(x, -3, -2)
+    if baseline is not None:
+        x += baseline[..., np.newaxis, np.newaxis]
+    return x
+
+
+class WeightChannels(Module):
     """
     weight_channels - apply a weighting matrix across a variable in the data
     stream. Used to provide spectral filters, directly imported from NARF.
@@ -27,7 +58,6 @@ class weight_channels(nems_module):
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
     coefs = None
-    baseline = np.zeros([1, 1])
     num_chans = 1
     parm_fun = None
     parm_type = None
@@ -61,6 +91,7 @@ class weight_channels(nems_module):
                 self.fit_fields = ['coefs']
         self.parm_type = parm_type
         self.phi = np.array(phi)
+        self.baseline = np.zeros(num_chans)
 
     def gauss_fn(self, phi):
         coefs = np.zeros([self.num_chans, self.num_dims])
@@ -79,25 +110,63 @@ class weight_channels(nems_module):
             coefs[i, :] = coefs[i, :] / np.sum(coefs[i, :])
         return coefs
 
-    def my_eval(self, X):
-        # if not self.d_out:
-        #    # only allocate memory once, the first time evaling. rish is that output_name could change
+    def my_eval(self, x):
+        # TODO: baseline was an option on this class; however, it was never
+        # integrated in. In NARF, it was part of the fitting.
         if self.parm_fun:
             self.coefs = self.parm_fun(self.phi)
             coefs = self.coefs
         else:
             coefs = self.coefs
-
-        s = X.shape
-        X = np.reshape(X, [s[0], -1])
-        X = np.matmul(coefs, X)
-        s = list(s)
-        s[0] = self.num_chans
-        Y = np.reshape(X, s)
-        return Y
+        return weight_channels(x, coefs)
 
 
-class fir(nems_module):
+################################################################################
+# FIR filtering
+################################################################################
+def get_zi(b, x):
+    # This is the approach NARF uses. If the initial value of x[0] is 1,
+    # this is identical to the NEMS approach. We need to provide zi to
+    # lfilter to force it to return the final coefficients of the dummy
+    # filter operation.
+    n_taps = len(b)
+    null_data = np.full(n_taps*2, x[0])
+    zi = np.ones(n_taps-1)
+    return signal.lfilter(b, [1], null_data, zi=zi)[1]
+
+
+def fir_filter(x, coefficients, baseline=None, pad=False):
+    if pad:
+        # TODO: This may become a moot option after Ivar's revamp of the data
+        # loading system.
+        pad_width = coefs.shape[-1] * 2
+        padding = [(0, 0)] * X.ndim
+        padding[-1] = (0, pad_width)
+        x = np.pad(x, padding, mode='constant')
+
+    result = []
+    x = x.swapaxes(0, -3)
+    for x, c in zip(x, coefficients):
+        old_shape = x.shape
+        x = x.ravel()
+        zi = get_zi(c, x)
+        r, zf = signal.lfilter(c, [1], x, zi=zi)
+        r.shape = old_shape
+        result.append(r[np.newaxis])
+    result = np.concatenate(result)
+
+    if pad:
+        result = result[..., :-pad_width]
+
+    result = np.sum(result, axis=-3, keepdims=True)
+
+    if baseline is not None:
+        result += baseline
+
+    return result
+
+
+class FIR(Module):
     """
     fir - the workhorse linear fir filter module. Takes in a 3D stim array
     (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
@@ -141,17 +210,8 @@ class fir(nems_module):
         self.fit_fields = fit_fields
         self.do_trial_plot = self.plot_fns[0]
 
-    def my_eval(self, X):
-        s = X.shape
-        X = np.reshape(X, [s[0], -1])
-        for i in range(0, s[0]):
-            y = np.convolve(X[i, :], self.coefs[i, :])
-            X[i, :] = y[0:X.shape[1]]
-        X = X.sum(0) + self.baseline
-        s = list(s)
-        s[0] = 1
-        Y = np.reshape(X, s)
-        return Y
+    def my_eval(self, x):
+        return fir_filter(x, self.coefs, self.baseline)
 
     def get_strf(self):
         h = self.coefs
@@ -172,7 +232,6 @@ class fir(nems_module):
             wcidx = -1
 
         if self.name == "filters.fir" and wcidx >= 0:
-            # print(m.name)
             w = self.parent_stack.modules[wcidx].coefs
             if w.shape[0] == h.shape[0]:
                 h = np.matmul(w.transpose(), h)
@@ -180,7 +239,10 @@ class fir(nems_module):
         return h
 
 
-class stp(nems_module):
+################################################################################
+# Short-term plasticity
+################################################################################
+class stp(Module):
     """
     stp - simulate short-term plasticity with the Tsodyks and Markram model
 
@@ -278,12 +340,5 @@ class stp(nems_module):
                     di[i, :, tt] = td
 
             Y = np.append(Y, di * X, 0)
-            # print(np.sum(np.isnan(Y),1))
-            # print(np.sum(np.isnan(di*X),1))
-
-        # plt.figure()
-        #pre, =plt.plot(X[0,0,:],label='Pre-nonlinearity')
-        #post, =plt.plot(Y[0,0,:],'r',label='Post-nonlinearity')
-        # plt.legend(handles=[pre,post])
 
         return Y
