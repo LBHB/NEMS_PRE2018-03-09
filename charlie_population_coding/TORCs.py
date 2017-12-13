@@ -189,7 +189,7 @@ import pop_utils as pu
 resp_PCA = pu.whiten(resp_PCA)
 resp_PCA = np.reshape(resp_PCA, (bincount_pca*repcount*stimcount, cellcount))
 U,S,V = np.linalg.svd(resp_PCA)
-
+S = S**2   # converting to variance explained
 plt.subplot2grid((3,3),(2,0),colspan=2)
 for i in range(0,5):
     pc = np.mean(np.mean(U[:,i].reshape(bincount_pca, repcount, stimcount),0),1)
@@ -879,12 +879,12 @@ pr = pred
 cc_r0 = np.nanmean(eval_fit(r,pr)['bytrial'])
 mod = []
 for i in tqdm(lags):
-    rN=NRF_fit(r = r, r0_strf = pr, lag=i, fs=fs, single_lag=True, model='NRF_STRF',spontonly=False)
+    rN=NRF_fit(r = r, r0_strf = pr, lag=i, fs=fs, single_lag=True, model='NRF_STRF',spontonly=False,shuffle=False)
     #figtest = plt_perf_by_trial(r,rN,pr,combine_stim=True,a_p=a_p,pupil=pupil)
     cc_rN = np.nanmean(eval_fit(r, rN)['bytrial'])
     mod.append(cc_rN-cc_r0)
 plt.figure()
 plt.plot(lags,mod)
 plt.xlabel('seconds')
-plt.ylable('rN-r0')
+plt.ylabel('rN-r0')
 

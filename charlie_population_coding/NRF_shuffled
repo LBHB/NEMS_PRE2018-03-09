@@ -1,0 +1,139 @@
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Nov 17 09:29:55 2017
+
+@author: hellerc
+"""
+
+from pop_utils import load_population_stack
+import numpy as np
+from NRF_tools import NRF_fit, plt_perf_by_trial, eval_fit
+import matplotlib.pyplot as plt
+batch=301
+modelname= "fb18ch100x_wcg02_fir15_dexp_fit01_nested5"
+
+resp, pred, pupil, a_p = load_population_stack(modelname=modelname,batch=batch)
+
+# Dropping any reps in which there were Nans for one or more stimuli (quick way
+# way to deal with nana. This should be improved)
+
+inds = []
+for ind in np.argwhere(np.isnan(pupil[0,:,:])):
+    inds.append(ind[0])
+inds = np.array(inds)
+drop_inds=np.unique(inds)
+keep_inds=[x for x in np.arange(0,len(resp[0,:,0,0])) if x not in inds]
+
+resp = resp[:,keep_inds,:,:]
+pred = pred[:,keep_inds,:,:]
+pupil = pupil[:,keep_inds,:]
+a_p=np.array(a_p)[keep_inds]
+pup = pupil
+rN = NRF_fit(r=resp,r0_strf=pred,model='NRF_STRF',spontonly=False)
+fig = plt_perf_by_trial(resp,rN,pred,combine_stim=True,a_p=a_p,pupil=pupil,pop_state={'method': 'SVD', 'dims':5})
+
+# Fitting only active responses
+resp_act = resp[:,a_p==1,:,:]
+pred_act= pred[:,a_p==1,:,:]
+pupil_act = pupil[:,a_p==1,:]
+rN_act = NRF_fit(r=resp_act,r0_strf=pred_act,model='NRF_STRF',spontonly=False,cv_count=5)
+fig = plt_perf_by_trial(resp_act,rN_act,pred_act,combine_stim=False,pupil=pupil_act,pop_state={'method': 'SVD', 'dims':5})
+plt.suptitle('active')
+
+#Fitting only passive responses
+resp_pass = resp[:,a_p==0,:,:]
+pred_pass = pred[:,a_p==0,:,:]
+pupil_pass = pupil[:,a_p==0,:]
+rN_pass = NRF_fit(r=resp_pass,r0_strf=pred_pass,model='NRF_STRF',spontonly=False,cv_count=5)
+fig = plt_perf_by_trial(resp_pass,rN_pass,pred_pass,combine_stim=False,pupil=pupil_pass,pop_state={'method': 'SVD', 'dims':5})
+plt.suptitle('passive')
+
+
+# Shuffle trials within same behavioral state. This shouldn't alter the result
+# If behavior is the only dominant state
+
+# Fit active responses, no shuffle
+rN_act = NRF_fit(r=resp_act,r0_strf=pred_act,model='NRF_STRF',spontonly=False,cv_count=2)
+fig = plt_perf_by_trial(resp_act,rN_act,pred_act,combine_stim=False,pupil=pupil_act)
+plt.suptitle('Active, no shuffle')
+# Fit active responses with shuffle
+rN_act_shuff = NRF_fit(r=resp_act,r0_strf=pred_act,model='NRF_STRF',spontonly=False,shuffle_trials=True,cv_count=2)
+fig = plt_perf_by_trial(resp_act,rN_act_shuff,pred_act,combine_stim=False,pupil=pupil_act)
+plt.suptitle('Active, shuffled')
+# Fit passive responses, no shuffle
+
+rN_pass = NRF_fit(r=resp_pass,r0_strf=pred_pass,model='NRF_STRF',spontonly=False,cv_count=2)
+fig = plt_perf_by_trial(resp_pass,rN_pass,pred_pass,combine_stim=False,pupil=pupil_pass)
+plt.suptitle('Passive, no shuffle')
+# Fit passive responses, with shuffle
+rN_pass_shuff = NRF_fit(r=resp_pass,r0_strf=pred_pass,model='NRF_STRF',spontonly=False,shuffle_trials=True,cv_count=2)
+fig = plt_perf_by_trial(resp_pass,rN_pass_shuff,pred_pass,combine_stim=False,pupil=pupil_pass)
+plt.suptitle('Passive, shuffled')
+
+# evaluate fits over all stimuli presenations and compare
+cc_act = np.nanmean(eval_fit(resp_act,rN_act)['bytrial'],-1).flatten()
+cc_act_shuff = np.nanmean(eval_fit(resp_act,rN_act_shuff)['bytrial'],-1).flatten()
+cc_pred_act = np.nanmean(eval_fit(resp_act,pred_act)['bytrial'],-1).flatten()
+cc_pass = np.nanmean(eval_fit(resp_pass,rN_pass)['bytrial'],-1).flatten()
+cc_pass_shuff = np.nanmean(eval_fit(resp_pass,rN_pass_shuff)['bytrial'],-1).flatten()
+cc_pred_pass = np.nanmean(eval_fit(resp_pass,pred_pass)['bytrial'],-1).flatten()
+
+plt.figure()
+plt.subplot(121)
+plt.title('Active state rN performance')
+plt.plot(cc_pred_act,cc_act,'.',color='r',alpha=0.7,markersize=7)
+plt.plot(cc_pred_act,cc_act_shuff,'.',color='b',alpha=0.7,markersize=7)
+m = max(np.concatenate((cc_act,cc_act_shuff)))
+mi = min(np.concatenate((cc_act,cc_act_shuff)))
+plt.plot(np.arange(mi,m,.01),np.arange(mi,m,.01),'-k')
+plt.xlabel('STRF performance')
+plt.ylabel('rN performance')
+plt.legend(['Unshuffled trials', 'Shuffled Trials'])
+
+plt.subplot(122)
+plt.title('Passive state rN performance')
+plt.plot(cc_pred_pass,cc_pass,'.',color='r',alpha=0.7,markersize=7)
+plt.plot(cc_pred_pass,cc_pass_shuff,'.',color='b',alpha=0.7,markersize=7)
+m = max(np.concatenate((cc_pass,cc_pass_shuff)))
+mi = min(np.concatenate((cc_pass,cc_pass_shuff)))
+plt.plot(np.arange(mi,m,.01),np.arange(mi,m,.01),'-k')
+plt.xlabel('STRF performance')
+plt.ylabel('rN performance')
+plt.legend(['Unshuffled trials', 'Shuffled Trials'])
+
+
+plt.figure()
+plt.subplot(121)
+plt.title('Active state rN performance')
+plt.plot(cc_pred_act,cc_act-cc_pred_act,'.',color='r',alpha=0.7,markersize=7)
+plt.plot(cc_pred_act,cc_act_shuff-cc_pred_act,'.',color='b',alpha=0.7,markersize=7)
+plt.xlabel('STRF performance')
+plt.ylabel('rN performance - STRF performance')
+plt.legend(['Unshuffled trials', 'Shuffled Trials'])
+
+plt.subplot(122)
+plt.title('Passive state rN performance')
+plt.plot(cc_pred_pass,cc_pass-cc_pred_pass,'.',color='r',alpha=0.7,markersize=7)
+plt.plot(cc_pred_pass,cc_pass_shuff-cc_pred_pass,'.',color='b',alpha=0.7,markersize=7)
+plt.xlabel('STRF performance')
+plt.ylabel('rN performance - STRF performance')
+plt.legend(['Unshuffled trials', 'Shuffled Trials'])
+
+
+# Shuffle across all trials, not just act/passive
+rN = NRF_fit(r=resp,r0_strf=pred,model='NRF_STRF',spontonly=False,cv_count=5)
+rN_shuffled = NRF_fit(r=resp,r0_strf=pred,model='NRF_STRF',spontonly=False,shuffle_trials=True,cv_count=5)
+
+cc_rN = np.nanmean(eval_fit(resp,rN)['bytrial'],-1).flatten()
+cc_rN_shuff = np.nanmean(eval_fit(resp,rN_shuffled)['bytrial'],-1).flatten()
+cc_r0 = np.nanmean(eval_fit(resp,pred)['bytrial'],-1).flatten()
+
+plt.figure()
+plt.title('rN performance')
+plt.plot(cc_r0,cc_rN-cc_r0,'.',color='r',alpha=0.7,markersize=7)
+plt.plot(cc_r0,cc_rN_shuff-cc_r0,'.',color='b',alpha=0.7,markersize=7)
+plt.xlabel('STRF performance')
+plt.ylabel('rN performance - STRF performance')
+plt.legend(['Unshuffled trials', 'Shuffled Trials'])
