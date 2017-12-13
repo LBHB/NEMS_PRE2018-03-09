@@ -17,8 +17,7 @@ TMP="/tmp/$QUEUEID"
 export TMP
 mkdir -p $TMP
 
-MPLCONFIGDIR="/home/nems/nems/nems_config/matplotlib"
-export MPLCONFIGDIR
+export MPLCONFIGDIR="/home/nems/nems/nems_config/matplotlib"
 
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
@@ -60,10 +59,99 @@ mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --port=$DBPORT --da
 # pop first arg (QUEUEID), use rest of 
 # command line as program to run
 shift
-echo "PATH: $PATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
-echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
-echo "COMMAND: nice -n19 $*" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+DEBUGLOG="$QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out"
+#DEBUGLOG="/auto/users/nems/runqueue.log"
+export DEBUGLOG
+echo "about to get codehash from mysql" >> $DEBUGLOG
+# get codehash and jerbquery values from mysql
+CODEHASH=$(mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --port=$DBPORT --database=cell -N -s --execute="select codehash from tQueue where id=$QUEUEID;")
+export CODEHASH
+# JERBQUERY=$(mysql --host=$DBSERVER --user=$DBUESR --password=$DBPASSWORD --port=$DBPORT --database=cell -N -s --execute="select jerbQuery from tQueue where id=$QUEUEID;")
+# export JERBQUERY
 
-# exec means pid will be taken over by the queued job itself
-exec nice -n19 $* >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
+DEFAULTNEMS=1
+export DEFAULTNEMS
 
+echo "about to check for jerb stuff, should be commented out right now" >> $DEBUGLOG
+# check if jerbquery returned empty
+#if [ ! -z "$JERBQUERY" ]
+#then
+#    JERBID=$(jerb find "$JERBQUERY")
+#    if [ -z "$JERBID" ]
+#    then
+#        :
+#    else
+#        echo "making temp directory" >> $DEBUGLOG
+#        TMPDIR="tempnems"$QUEUEID
+#        mkdir -p $TMPDIR
+#        cd $TMPDIR
+#        jerb fetch $JERBID > nemsjerb.jerb
+#        jerb init nems
+#        cd nems
+#        jerb merge ../nemsjerb.jerb
+#    
+#        #call shift command again to remove $1 which is currently the path to
+#        #nems_fit_single in the main nems directory
+#        shift
+#        #do echo and exec statements similar to below but insert path to temp dir
+#        echo "PATH: $PATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+#        echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+#        echo "COMMAND: nice -n19 /$TMPDIR/nems/nems_fit_single.py $*" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+#        exec nice -n19 /$TMPDIR/nems/nems_fit_single.py $* >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
+#
+#        echo "cleaning up temporary files" >> $DEBUGLOG
+#        #delete the temporary files
+#        cd /auto/users/nems
+#        rm -rf $TMPDIR
+#        DEFAULTNEMS=0
+#        export DEFAULTNEMS
+#fi
+
+echo "about to check for codehash stuff" >> $DEBUGLOG
+# check if codehash returned empty and jerb wasn't used
+if [ "$DEFAULTNEMS" -eq 1 ] && [ "$CODEHASH" != "master" ]
+then
+    echo "making temp directory" >> $DEBUGLOG
+    TMPDIR="tempnems$QUEUEID"
+    echo TMPDIR
+    mkdir -p $TMPDIR
+    cd $TMPDIR
+    echo "cloning repo..." >> $DEBUGLOG
+    git clone https://bitbucket.org/lbhb/nems.git
+    cd nems
+    echo "checking out $CODEHASH ..." >> $DEBUGLOG
+    git checkout $CODEHASH
+    if [ $? -eq 0 ]
+    then
+        #call shift command again to remove $1 which is currently the path to
+        #nems_fit_single in the main nems directory
+        #do echo and exec statements similar to below but insert path to temp dir
+        echo "PATH: $PATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+        echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+        echo "COMMAND: nice -n19 $1 /auto/users/nems/$TMPDIR/nems_fit_single.py $3 $4 $5" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+        exec nice -n19 $1 nems_fit_single.py $3 $4 $5 >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
+	
+        echo "cleaning up temporary files..." >> $DEBUGLOG
+        #delete the temporary files
+        cd /auto/users/nems
+        rm -rf $TMPDIR
+        DEFAULTNEMS=0
+        export DEFAULTNEMS        
+    else
+        echo "git checkout returned an error, cleaning up files..." >> $DEBUGLOG
+        cd /auto/users/nems
+        rm -rf $TMPDIR
+    fi
+fi
+
+echo "about to check if default should be run" >> $DEBUGLOG
+#check if neither jerb nor git hash was used
+if [ "$DEFAULTNEMS" -eq 1 ]
+then
+    echo "PATH: $PATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+    echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+    echo "COMMAND: nice -n19 $*" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+
+    # exec means pid will be taken over by the queued job itself
+    exec nice -n19 $* >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
+fi

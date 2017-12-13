@@ -11,8 +11,9 @@ import pandas.io.sql as psql
 from nems.db import NarfResults, Session
 import matplotlib.pyplot as plt
 import numpy as np
+import nems.utilities as nu
 
-batch=303
+batch=301
 modelnames=['parm100pt_wcg02_fir15_pupgainctl_fit01_nested5',
            'parm100pt_wcg02_fir15_behgain_fit01_nested5',
            'parm100pt_wcg02_fir15_pupgain_fit01_nested5',
@@ -42,6 +43,8 @@ results['modelindex'] = results.modelname.map(mapping)
 
 r_test = results.set_index(['modelindex', 'cellid'])['r_test'].unstack('modelindex')
 
+r_test=r_test[r_test[3]>0.03]
+
 #plt.plot(r_test)
 
 f, ax = plt.subplots(1, 1)
@@ -57,7 +60,15 @@ e=r_test.sem()
 
 ax.errorbar(x,m,yerr=e, color='k', linewidth=2.0, zorder=2)
 
-ax.xaxis.set_ticklabels(modelnames)
-ax.xaxis.set_ticks([0, 1, 2])
+diffnames,pre,post=nu.pruffix.find_common(modelnames)
+ax.xaxis.set_ticklabels(diffnames)
+ax.xaxis.set_ticks(x)
 
+f, ax = plt.subplots(1, 1)
+ax.plot(r_test[3]-r_test[1],r_test[3]-r_test[2], 'o',zorder=1)
+
+ax.plot(np.array([-0.01,0.03]),np.array([-0.01,0.03]),'k-', linewidth=1.0, zorder=0)
+ax.set_xlabel(diffnames[2])
+ax.set_ylabel(diffnames[1])
+ax.set_aspect('equal','box')
 

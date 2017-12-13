@@ -1,7 +1,0 @@
-* FAQ
-** How do I erase the database?
-   #+BEGIN_EXAMPLE
-   redis-cli
-   flushdb
-   #+END_EXAMPLE
-   

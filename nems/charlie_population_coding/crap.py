@@ -17,36 +17,36 @@ print(data2['__globals__'])
 
 
 plt.figure()
-plt.imshow(data['resp'].reshape(550*40*2, 57).T, aspect='auto')
+plt.imshow(data['resp'].reshape(550 * 40 * 2, 57).T, aspect='auto')
 plt.title('response raster')
 
 r_spont, p_spont, fs = pu.get_spont_data(data)
 r_spont = pu.z_score(r_spont)
 plt.figure()
 plt.title('spont activity')
-plt.imshow(r_spont.reshape(200*40*2, 57).T, aspect='auto')
+plt.imshow(r_spont.reshape(200 * 40 * 2, 57).T, aspect='auto')
 
 
 replen = r_spont.shape[0]
 stimcount = r_spont.shape[2]
 repcount = r_spont.shape[1]
 cellcount = r_spont.shape[3]
-r_spont = r_spont.reshape(replen, repcount*stimcount, cellcount)
-test = r_spont[:,74:80,:]
-r_spont = r_spont[:,0:74,:]
-r_spont = r_spont.reshape((int(replen*74), cellcount))
+r_spont = r_spont.reshape(replen, repcount * stimcount, cellcount)
+test = r_spont[:, 74:80, :]
+r_spont = r_spont[:, 0:74, :]
+r_spont = r_spont.reshape((int(replen * 74), cellcount))
 
-h = np.empty((cellcount,cellcount))
+h = np.empty((cellcount, cellcount))
 # ------------------ filter at one time point -------------------------------
 
 for i in tqdm(range(0, cellcount)):
     n = i
-    neuron = r_spont[:,n]
+    neuron = r_spont[:, n]
     r_spont_temp = np.delete(r_spont, n, 1)
-    Css = np.matmul(r_spont_temp.T, r_spont_temp)/len(r_spont_temp)
-    Csr = np.matmul(r_spont_temp.T, neuron)/len(r_spont_temp)
+    Css = np.matmul(r_spont_temp.T, r_spont_temp) / len(r_spont_temp)
+    Csr = np.matmul(r_spont_temp.T, neuron) / len(r_spont_temp)
     h_temp = np.matmul(la.inv(Css).T, Csr)
-    h[i,:] = np.concatenate((h_temp[0:i], np.zeros(1), h_temp[i:len(h_temp)]))
+    h[i, :] = np.concatenate((h_temp[0:i], np.zeros(1), h_temp[i:len(h_temp)]))
 plt.figure()
 plt.title('Auto-correlation matrix')
 plt.imshow(Css)
@@ -70,12 +70,13 @@ cov = np.empty(cellcount)
 pred = np.empty((cellcount, 1200))
 for i in range(0, cellcount):
     sample_act = np.delete(trial, i, 1)
-    sample_resp = trial[:,:,i]
-    stim = np.delete(test,i,2)
-    stim = stim.reshape(replen*6, cellcount-1)
-    hnew = np.delete(h[i,:],i)
-    pred[i, :] = np.matmul(np.squeeze(hnew.T),stim.T)
-    cov[i] = np.corrcoef(pred[i,:], np.squeeze(test[:,:,i].reshape(1200,1)))[0][1]
+    sample_resp = trial[:, :, i]
+    stim = np.delete(test, i, 2)
+    stim = stim.reshape(replen * 6, cellcount - 1)
+    hnew = np.delete(h[i, :], i)
+    pred[i, :] = np.matmul(np.squeeze(hnew.T), stim.T)
+    cov[i] = np.corrcoef(pred[i, :], np.squeeze(
+        test[:, :, i].reshape(1200, 1)))[0][1]
 
 plt.figure()
 plt.plot(cov)
@@ -84,8 +85,8 @@ plt.ylabel('correlation coefficient')
 plt.xlabel('neuron')
 
 plt.figure()
-plt.plot(pred[1,:])
-plt.plot(test[:,:,1].reshape(1200,1))
+plt.plot(pred[1, :])
+plt.plot(test[:, :, 1].reshape(1200, 1))
 plt.title('example prediction')
 plt.xlabel('time')
 

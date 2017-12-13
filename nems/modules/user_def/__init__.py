@@ -7,16 +7,16 @@ Created on Wed Aug  2 18:35:22 2017
 """
 
 """
-Initialization file for user_def_mods. 
+Initialization file for user_def_mods.
 
 nems_modules subclasses defined by individual users should be kept in this file.
 
 Modules can either be imported from this package individually into nems.modules
 like:
     import nems.user_def_mods.modX as udmX (or whatever name)
-    
+
 Or by adding modX to the all __all__ list below and calling:
-    
+
     from nems.user_def_mods import *
 
 However, using the latter method to import will import everything in
