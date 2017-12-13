@@ -119,7 +119,7 @@ def downsample(resp_raster, pup, fs, fs_new):
 
 def load_population_stack(modelname, batch):
     
-    meta=ndb.get_batch_cells(batch=301)
+    meta=ndb.get_batch_cells(batch)
     cellids=meta['cellid']
     cell1=meta['cellid'][0]
     stack=ut.io.load_single_model(cell1, batch, modelname)
@@ -136,12 +136,13 @@ def load_population_stack(modelname, batch):
             
             p = stacks[i].data[-1][j]['pred'].copy()
             r = stacks[i].data[-1][j]['resp_raw'].copy()
+            pup = np.transpose(stacks[i].data[-1][j]['pupil'].copy(),(2,0,1))
+            
             if len(r.shape)==2:
                 r = r[np.newaxis,:,:]
             if r.shape[0]>1:
                 p = np.transpose(np.tile(p, (r.shape[1],1,1)).T, (0,2,1))
           
-            pup = stacks[i].data[-1][j]['pupil'].copy()
             
             if i == 0:
                 if stack.data[-1][j]['stimparam'][0].find('_a_') > 0:
@@ -177,7 +178,7 @@ def load_population_stack(modelname, batch):
                 ptemp[:,:,:,i]=p
                 rtemp[:,:,:,i]=r
                 pupTemp[:,:,:]=pup
-    
+  
         if j > 1:
             pred = np.concatenate((pred, ptemp),axis=1)
             resp = np.concatenate((resp, rtemp),axis=1)
@@ -185,7 +186,7 @@ def load_population_stack(modelname, batch):
             
                 
     
-    return resp, pred, pupil
+    return resp, pred, pupil, a_p
     
     
     
