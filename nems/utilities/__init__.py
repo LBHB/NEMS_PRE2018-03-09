@@ -6,7 +6,7 @@ Created on Thu Aug  3 17:05:14 2017
 @author: shofer
 """
 
-#Initialization file for nems/utilities
+# Initialization file for nems/utilities
 
 #import nems.utilities.baphy
 #import nems.utilities.io
@@ -14,5 +14,4 @@ Created on Thu Aug  3 17:05:14 2017
 #import nems.utilities.print
 #import nems.utilities.utils
 
-__all__=['baphy','io','plot','print','pruffix','utils']
-
+__all__ = ['baphy', 'io', 'plot', 'print', 'pruffix', 'utils']

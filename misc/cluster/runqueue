@@ -17,8 +17,7 @@ TMP="/tmp/$QUEUEID"
 export TMP
 mkdir -p $TMP
 
-MPLCONFIGDIR="/home/nems/nems/nems_config/matplotlib"
-export MPLCONFIGDIR
+export MPLCONFIGDIR="/home/nems/nems/nems_config/matplotlib"
 
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
@@ -60,8 +59,8 @@ mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --port=$DBPORT --da
 # pop first arg (QUEUEID), use rest of 
 # command line as program to run
 shift
-
-DEBUGLOG="/auto/users/nems/runqueue.log"
+DEBUGLOG="$QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out"
+#DEBUGLOG="/auto/users/nems/runqueue.log"
 export DEBUGLOG
 echo "about to get codehash from mysql" >> $DEBUGLOG
 # get codehash and jerbquery values from mysql
@@ -83,7 +82,7 @@ echo "about to check for jerb stuff, should be commented out right now" >> $DEBU
 #        :
 #    else
 #        echo "making temp directory" >> $DEBUGLOG
-#        TMPDIR="nems"$QUEUEID
+#        TMPDIR="tempnems"$QUEUEID
 #        mkdir -p $TMPDIR
 #        cd $TMPDIR
 #        jerb fetch $JERBID > nemsjerb.jerb
@@ -113,7 +112,7 @@ echo "about to check for codehash stuff" >> $DEBUGLOG
 if [ "$DEFAULTNEMS" -eq 1 ] && [ "$CODEHASH" != "master" ]
 then
     echo "making temp directory" >> $DEBUGLOG
-    TMPDIR="nems$QUEUEID"
+    TMPDIR="tempnems$QUEUEID"
     echo TMPDIR
     mkdir -p $TMPDIR
     cd $TMPDIR
@@ -129,15 +128,15 @@ then
         #do echo and exec statements similar to below but insert path to temp dir
         echo "PATH: $PATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
         echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
-        echo "COMMAND: nice -n19 $1 nems_fit_single.py $3 $4 $5" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
+        echo "COMMAND: nice -n19 $1 /auto/users/nems/$TMPDIR/nems_fit_single.py $3 $4 $5" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
         exec nice -n19 $1 nems_fit_single.py $3 $4 $5 >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
-
+	
         echo "cleaning up temporary files..." >> $DEBUGLOG
         #delete the temporary files
         cd /auto/users/nems
         rm -rf $TMPDIR
         DEFAULTNEMS=0
-        export DEFAULTNEMS
+        export DEFAULTNEMS        
     else
         echo "git checkout returned an error, cleaning up files..." >> $DEBUGLOG
         cd /auto/users/nems
