@@ -478,8 +478,6 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
                     np.nanstd(np.concatenate([val for k, val in folded_resp.items() if k[-3:] == key], axis=0), axis=0),
                     box, mode='same')) for key in tone_type}
 
-
-
     # plotting parameters: keys = Tone types to be ploted; colors = color of line, correspond with stream;
     # Lines = type of line, correspond with standard or deviant .
     keys = ['stream0Std', 'stream0Dev', 'stream1Std', 'stream1Dev']
@@ -534,10 +532,11 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=Fal
     # sets the y axis so they are shared
     axes[1].set_ylim(axes[0].get_ylim())
 
-def plot_ssa_timing(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=False):
+def plot_stp(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=False):
 
     '''
-    specific plotting function for the ssa_index module, plots each response size against the preceding time interval
+    specific plotting function for the stp module, creates a standarized two tone stimulus and evaluates
+    it with the fitted stp parameters i.e. Tau and U. Plots the response and displays Tau, U and SI
 
     '''
     if idx:
@@ -545,19 +544,94 @@ def plot_ssa_timing(m, idx=None, size=FIGSIZE, figure = None, outer=None, error=
 
     if isinstance(outer, gridspec.SubplotSpec):
         inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer) #,wspace=0.1, hspace=0.1)
-    elif figure == None:
+    elif outer == None:
         figure = plt.figure(num=idx, figsize=size)
-        inner = gridspec.GridSpec(1,2)
+        inner = gridspec.GridSpec(1, 2)
     else:
         raise ('"outer" has to be an instance of gridspec.GridSpecFromSubplotSpec or None (default)')
 
-    has_pred = m.has_pred
+    # creates a two tone paradigm with varying interval
+    pair_cout = 5 # number of pairs to be analized
+    toneLen = 0.100 # tone length in seconds
+    isi = toneLen # in seconds
+    flanks = toneLen * 2 # silences flanking the stimulus  in seconds
 
-    resp = m.resp_tone_act [m.parent_stack.plot_stimidx]
-    intervals = m.intervals[m.parent_stack.plot_stimidx]
+    amplitude = np.nanmax(m.d_in[0]['stim']) # TODO change to have the same amplitude as the stated in the experiment parameters
+    sf = m.d_in[0]['stimFs']
 
-    if has_pred:
-        pred = m.pred_tone_act[m.parent_stack.plot_stimidx]
+    stims = list()
+    for ii in range(0, pair_cout+1):
+        pair_pulse = np.zeros([2, np.int(pair_cout * sf *(toneLen + isi) +  sf * flanks * 2)])
+        pair_pulse[:,int(sf * flanks) : np.int(sf * (flanks+toneLen))] = amplitude # defines the first tone
+        if ii == 0:
+            # first trial only has the first tone
+            stims.append(pair_pulse)
+        else:
+            start = np.int(sf * (flanks+ ii * (toneLen + isi)))
+            end = np.int(sf * (flanks+ ii * (toneLen + isi) + toneLen))
+            pair_pulse[:, start : end] = amplitude # defines the second tone
+            stims.append(pair_pulse)
+
+    stims = np.asarray(stims)
+    stims = stims.swapaxes(0,1) # dim0: streams, dim1: trials, dim2: time
+
+
+    # Here just paste the stp module my_eval, dont know how to be more elegant.
+    s = stims.shape
+    tstim = (stims > 0) * stims
+    Y = np.zeros([0, s[1], s[2]])
+    di = np.ones(s)
+    for j in range(0, m.num_channels): # not sure what channels are these
+
+        ui = np.absolute(m.u[:, j])  # force only depression, no facilitation
+        # convert tau units from sec to bins
+        taui = np.absolute(m.tau[:, j]) * m.d_in[0]['fs']
+
+        # go through each stimulus channel
+        for i in range(0, s[0]):
+
+            for tt in range(1, s[2]):
+                td = di[i, :, tt - 1]  # previous time bin depression
+                if ui[i] > 0:
+                    delta = (1 - td) / taui[i] - ui[i] * td * tstim[i, :, tt - 1]
+                    td = td + delta
+                    td[td < 0] = 0
+                else:
+                    delta = (1 - td) / taui[i] - ui[i] * td * tstim[i, :, tt - 1]
+                    td = td + delta
+                    td[td < 1] = 1
+                di[i, :, tt] = td
+
+        Y = np.append(Y, di * stims, 0)
+
+    # does the plotting
+
+    axes = [plt.Subplot(figure, ax) for ax in inner]
+    # for test purposes
+    '''
+    fig, axes = plt.subplots(2,1, sharex=True, sharey=True)
+    axes = np.ravel(axes)
+    '''
+
+    xtime = np.arange(s[2])/sf
+
+    for ii in range(s[1]):
+        plot_offset = 1.5
+        # uses legend for Tau and U notation once
+        if ii == 0:
+            axes[0].plot(xtime, Y[0, ii, :], color='C0',
+                         label='Tau = {:.3f}, U = {:.3f}'.format(m.tau[0][0], m.u[0][0]))
+            axes[1].plot(xtime, Y[1, ii, :], color='C1',
+                         label='Tau = {:.3f}, U = {:.3f}'.format(m.tau[1][0], m.u[1][0]))
+        else:
+            axes[0].plot(xtime, Y[0, ii, :], color='C0', alpha=0.5)
+            axes[1].plot(xtime, Y[1, ii, :], color='C1', alpha=0.5)
+    for ax in axes:
+        ax.set_xlabel('seconds')
+        ax.set_ylabel('activity, AU')
+        ax.legend()
+        figure.add_subplot(ax)
+
 
 
 #

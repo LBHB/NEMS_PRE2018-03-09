@@ -180,7 +180,7 @@ class stp(nems_module):
     """
     name='filters.stp'
     user_editable_fields=['input_name','output_name','fit_fields','num_channels','u','tau','offset_in','deponly','crosstalk']
-    plot_fns=[nems.utilities.plot.pre_post_psth, nems.utilities.plot.plot_spectrogram]
+    plot_fns=[nems.utilities.plot.pre_post_psth, nems.utilities.plot.plot_spectrogram, nems.utilities.plot.plot_stp]
     coefs=None
     baseline=0
     u=np.zeros([1,1])
