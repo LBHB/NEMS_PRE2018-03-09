@@ -250,23 +250,22 @@ class stp(Module):
                     'per_channel', 'offset_in', 'facil_on', 'crosstalk',...
                     'input', 'input_mod','time', 'output' };
     """
-    name = 'filters.stp'
-    user_editable_fields = ['input_name', 'output_name', 'fit_fields',
-                            'num_channels', 'u', 'tau', 'offset_in', 'deponly', 'crosstalk']
-    plot_fns = [nems.utilities.plot.pre_post_psth,
-                nems.utilities.plot.plot_spectrogram]
-    coefs = None
-    baseline = 0
-    u = np.zeros([1, 1])
-    tau = np.zeros([1, 1]) + 0.1
-    offset_in = np.zeros([1, 1])
-    crosstalk = 0
-    dep_only = False
-    num_channels = 1
-    num_dims = 1
+    name='filters.stp'
+    user_editable_fields=['input_name','output_name','fit_fields','num_channels','u','tau','offset_in','deponly','crosstalk']
+    plot_fns=[nems.utilities.plot.pre_post_psth, nems.utilities.plot.plot_spectrogram, nems.utilities.plot.plot_stp]
+    coefs=None
+    baseline=0
+    u=np.zeros([1,1])
+    tau=np.zeros([1,1])+0.1
+    offset_in=np.zeros([1,1])
+    crosstalk=0
+    dep_only=False
+    num_channels=1
+    num_dims=1
+    
+    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, 
+                crosstalk=0, fit_fields=['tau','u']):
 
-    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None,
-                crosstalk=0, fit_fields=['tau', 'u']):
         """
         num_channels:
         u:

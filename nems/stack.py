@@ -467,10 +467,8 @@ class nems_stack:
                 # if the module specific plotting uses an inner subplot grid, passes the outer grid
                 # this implementation is quite nasty since it relies on an error to choose between cases
                 # although passing the handlers of figure and outer grid to the plotting function
-                # seems overall much more cleaner.
-                # , wspace=0.2, hspace=0.2)
-                self.modules[idx].do_plot(
-                    self.modules[idx], figure=fig, outer=outer[sp])
+                # seems to be what matplotlib wants us to do .
+                self.modules[idx].do_plot(self.modules[idx], figure = fig ,outer=outer[sp]) #, wspace=0.2, hspace=0.2)
             except BaseException:
                 mod_ax = plt.Subplot(fig, outer[sp])
                 fig.add_subplot(mod_ax)

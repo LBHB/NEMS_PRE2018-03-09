@@ -20,6 +20,7 @@ import nems.utilities.utils
 # set default figsize for pyplots (so we don't have to change each function)
 FIGSIZE = (12, 4)
 
+
 #
 # PLOTTING FUNCTIONS
 #
@@ -59,13 +60,13 @@ def plot_spectrogram(m, idx=None, size=FIGSIZE):
         s = out1[m.output_name][:, new_id]
         # r=out1['resp'][m.parent_stack.plot_stimidx,:]
         pred, = plt.plot(s, label='Average Model')
-        #resp, =plt.plot(r,'r',label='Response')
+        # resp, =plt.plot(r,'r',label='Response')
         plt.legend(handles=[pred])
         # TODO: plot time in seconds
         plt.xlabel('Time Step')
         plt.ylabel('Firing rate (a.u.)')
 
-    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+        # plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
 
 
 def plot_stim(m, idx=None, size=FIGSIZE):
@@ -91,8 +92,8 @@ def pred_act_scatter(m, idx=None, size=FIGSIZE):
     plt.plot(s, r, 'ko')
     plt.xlabel("Predicted ({0})".format(m.output_name))
     plt.ylabel('Actual')
-    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
-    #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
+    # plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    # plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
     axes = plt.gca()
     ymin, ymax = axes.get_ylim()
     xmin, xmax = axes.get_xlim()
@@ -100,8 +101,9 @@ def pred_act_scatter(m, idx=None, size=FIGSIZE):
         ymax = ymin + 1
     if xmin == xmax:
         xmax = xmin + 1
-    #print("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
-    plt.text(xmin + (xmax - xmin) / 50, ymax - (ymax - ymin) / 20, "r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0], m.parent_stack.meta['r_val'][0]),
+    # print("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
+    plt.text(xmin + (xmax - xmin) / 50, ymax - (ymax - ymin) / 20,
+             "r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0], m.parent_stack.meta['r_val'][0]),
              verticalalignment='top')
 
 
@@ -154,7 +156,7 @@ def scatter_smooth(m, idx=None, x_name=None, y_name=None, size=FIGSIZE):
     plt.xlabel(x_name)
     plt.ylabel(y_name)
     # m.parent_stack.meta['r_val']
-    #plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
+    # plt.title("{0} (r_est={1:.3f}, r_val={2:.3f})".format(m.name,m.parent_stack.meta['r_est'],m.parent_stack.meta['r_val']))
 
 
 def pred_act_scatter_smooth(m, idx=None, size=FIGSIZE):
@@ -172,7 +174,7 @@ def state_act_scatter_smooth(m, idx=None, size=FIGSIZE):
         ymax = ymin + 1
     if xmin == xmax:
         xmax = xmin + 1
-    #print("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
+    # print("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
     plt.text(xmin + (xmax - xmin) / 50, ymax - (ymax - ymin) / 20, t,
              verticalalignment='top')
 
@@ -188,7 +190,7 @@ def pred_act_psth(m, size=FIGSIZE, idx=None):
     pred, = plt.plot(tt, s, label='Predicted')
     act, = plt.plot(tt, r, 'r', label='Actual')
     plt.legend(handles=[pred, act])
-    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    # plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Time (s)')
     plt.ylabel('Firing rate (unitless)')
 
@@ -208,7 +210,7 @@ def pred_act_psth_smooth(m, size=FIGSIZE, idx=None):
     pred, = plt.plot(s, label='Predicted')
     act, = plt.plot(r, 'r', label='Actual')
     plt.legend(handles=[pred, act])
-    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    # plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
@@ -240,7 +242,7 @@ def pred_act_psth_all(m, size=FIGSIZE, idx=None):
     else:
         plt.legend(handles=[pred, act])
 
-    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    # plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
@@ -262,7 +264,7 @@ def pre_post_psth(m, size=FIGSIZE, idx=None):
     pre, = plt.plot(s1, label='Pre-nonlinearity')
     post, = plt.plot(s2, 'r', label='Post-nonlinearity')
     plt.legend(handles=[pre, post])
-    #plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
+    # plt.title("{0} (data={1}, stim={2})".format(m.name,m.parent_stack.plot_dataidx,m.parent_stack.plot_stimidx))
     plt.xlabel('Time Step')
     plt.ylabel('Firing rate (unitless)')
 
@@ -344,15 +346,15 @@ def raster_data(data, pres, dura, posts, fr):
         spost = 0
         for j in range(0, s[1]):
             ypre[i, spre:(spre + pres)] = (j + 1) * \
-                np.clip(data[:pres, j, i], 0, 1)
+                                          np.clip(data[:pres, j, i], 0, 1)
             xpre[i, spre:(spre + pres)
-                 ] = np.divide(np.array(list(range(0, pres))), fr)
+            ] = np.divide(np.array(list(range(0, pres))), fr)
             ydur[i, sdur:(sdur + dura)] = (j + 1) * \
-                np.clip(data[pres:(pres + dura), j, i], 0, 1)
+                                          np.clip(data[pres:(pres + dura), j, i], 0, 1)
             xdur[i, sdur:(
                 sdur + dura)] = np.divide(np.array(list(range(pres, (pres + dura)))), fr)
             ypost[i, spost:(spost + posts)] = (j + 1) * \
-                np.clip(data[(pres + dura):(pres + dura + posts), j, i], 0, 1)
+                                              np.clip(data[(pres + dura):(pres + dura + posts), j, i], 0, 1)
             xpost[i, spost:(spost + posts)] = np.divide(
                 np.array(list(range((pres + dura), (pres + dura + posts)))), fr)
             spre += pres
@@ -361,7 +363,7 @@ def raster_data(data, pres, dura, posts, fr):
     ypre[ypre == 0] = None
     ydur[ydur == 0] = None
     ypost[ypost == 0] = None
-    return(xpre, ypre, xdur, ydur, xpost, ypost)
+    return (xpre, ypre, xdur, ydur, xpost, ypost)
 
 
 def raster_plot(m, idx=None, size=(12, 6)):
@@ -375,7 +377,7 @@ def raster_plot(m, idx=None, size=(12, 6)):
     dur = m.parent_stack.unresampled['duration']
     post = m.parent_stack.unresampled['poststim']
     freq = m.parent_stack.unresampled['respFs']
-    #print("{}/{}/{} fs {}".format(pre,dur,post,freq))
+    # print("{}/{}/{} fs {}".format(pre,dur,post,freq))
     total_bins = (pre + dur + post) * freq.astype(int)
     # print(total_bins)
     if resp.shape[0] < total_bins:
@@ -575,32 +577,105 @@ def plot_ssa_idx(m, idx=None, size=FIGSIZE,
     axes[1].set_ylim(axes[0].get_ylim())
 
 
-def plot_ssa_timing(m, idx=None, size=FIGSIZE,
-                    figure=None, outer=None, error=False):
+def plot_stp(m, idx=None, size=FIGSIZE, figure=None, outer=None, error=False):
     '''
-    specific plotting function for the ssa_index module, plots each response size against the preceding time interval
+    specific plotting function for the stp module, creates a standarized two tone stimulus and evaluates
+    it with the fitted stp parameters i.e. Tau and U. Plots the response and displays Tau, U and SI
 
     '''
     if idx:
         figure = plt.figure(num=idx, figsize=size)
 
     if isinstance(outer, gridspec.SubplotSpec):
-        inner = gridspec.GridSpecFromSubplotSpec(
-            1, 2, subplot_spec=outer)  # ,wspace=0.1, hspace=0.1)
-    elif figure is None:
+        inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer)  # ,wspace=0.1, hspace=0.1)
+    elif outer == None:
         figure = plt.figure(num=idx, figsize=size)
         inner = gridspec.GridSpec(1, 2)
     else:
         raise (
             '"outer" has to be an instance of gridspec.GridSpecFromSubplotSpec or None (default)')
 
-    has_pred = m.has_pred
+    # creates a two tone paradigm with varying interval
+    pair_cout = 5  # number of pairs to be analized
+    toneLen = 0.100  # tone length in seconds
+    isi = toneLen  # in seconds
+    flanks = toneLen * 2  # silences flanking the stimulus  in seconds
 
-    resp = m.resp_tone_act[m.parent_stack.plot_stimidx]
-    intervals = m.intervals[m.parent_stack.plot_stimidx]
+    amplitude = np.nanmax(
+        m.d_in[0]['stim'])  # TODO change to have the same amplitude as the stated in the experiment parameters
+    sf = m.d_in[0]['stimFs']
 
-    if has_pred:
-        pred = m.pred_tone_act[m.parent_stack.plot_stimidx]
+    stims = list()
+    for ii in range(0, pair_cout + 1):
+        pair_pulse = np.zeros([2, np.int(pair_cout * sf * (toneLen + isi) + sf * flanks * 2)])
+        pair_pulse[:, int(sf * flanks): np.int(sf * (flanks + toneLen))] = amplitude  # defines the first tone
+        if ii == 0:
+            # first trial only has the first tone
+            stims.append(pair_pulse)
+        else:
+            start = np.int(sf * (flanks + ii * (toneLen + isi)))
+            end = np.int(sf * (flanks + ii * (toneLen + isi) + toneLen))
+            pair_pulse[:, start: end] = amplitude  # defines the second tone
+            stims.append(pair_pulse)
+
+    stims = np.asarray(stims)
+    stims = stims.swapaxes(0, 1)  # dim0: streams, dim1: trials, dim2: time
+
+    # Here just paste the stp module my_eval, dont know how to be more elegant.
+    s = stims.shape
+    tstim = (stims > 0) * stims
+    Y = np.zeros([0, s[1], s[2]])
+    di = np.ones(s)
+    for j in range(0, m.num_channels):  # not sure what channels are these
+
+        ui = np.absolute(m.u[:, j])  # force only depression, no facilitation
+        # convert tau units from sec to bins
+        taui = np.absolute(m.tau[:, j]) * m.d_in[0]['fs']
+
+        # go through each stimulus channel
+        for i in range(0, s[0]):
+
+            for tt in range(1, s[2]):
+                td = di[i, :, tt - 1]  # previous time bin depression
+                if ui[i] > 0:
+                    delta = (1 - td) / taui[i] - ui[i] * td * tstim[i, :, tt - 1]
+                    td = td + delta
+                    td[td < 0] = 0
+                else:
+                    delta = (1 - td) / taui[i] - ui[i] * td * tstim[i, :, tt - 1]
+                    td = td + delta
+                    td[td < 1] = 1
+                di[i, :, tt] = td
+
+        Y = np.append(Y, di * stims, 0)
+
+    # does the plotting
+
+    axes = [plt.Subplot(figure, ax) for ax in inner]
+    # for test purposes
+    '''
+    fig, axes = plt.subplots(2,1, sharex=True, sharey=True)
+    axes = np.ravel(axes)
+    '''
+
+    xtime = np.arange(s[2]) / sf
+
+    for ii in range(s[1]):
+        plot_offset = 1.5
+        # uses legend for Tau and U notation once
+        if ii == 0:
+            axes[0].plot(xtime, Y[0, ii, :], color='C0',
+                         label='Tau = {:.3f}, U = {:.3f}'.format(m.tau[0][0], m.u[0][0]))
+            axes[1].plot(xtime, Y[1, ii, :], color='C1',
+                         label='Tau = {:.3f}, U = {:.3f}'.format(m.tau[1][0], m.u[1][0]))
+        else:
+            axes[0].plot(xtime, Y[0, ii, :], color='C0', alpha=0.5)
+            axes[1].plot(xtime, Y[1, ii, :], color='C1', alpha=0.5)
+    for ax in axes:
+        ax.set_xlabel('seconds')
+        ax.set_ylabel('activity, AU')
+        ax.legend()
+        figure.add_subplot(ax)
 
 
 #
@@ -608,7 +683,6 @@ def plot_ssa_timing(m, idx=None, size=FIGSIZE,
 #
 
 def shrinkage(mH, eH, sigrat=1, thresh=0):
-
     smd = np.abs(mH) / (eH + np.finfo(float).eps * (eH == 0)) / sigrat
 
     if thresh:
@@ -633,10 +707,10 @@ def concatenate_helper(stack, start=1, **kwargs):
     except BaseException:
         end = len(stack.data)
     for k in range(start, end):
-        #print('start loop 1')
+        # print('start loop 1')
         # print(len(stack.data[k]))
         for n in range(0, len(stack.data[k])):
-            #print('start loop 2')
+            # print('start loop 2')
             if stack.data[k][n]['est'] is False:
                 # print('concatenating')
                 if stack.data[k][n]['stim'][0].ndim == 3:
@@ -735,14 +809,14 @@ def stretch_trials(data):
     replist = np.repeat(lis, s[1], axis=1)
     replist = np.reshape(replist.transpose(), (-1, 1))
 
-#    Y=data['stim'][:,0,:]
-#    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
-#    for i in range(1,s[2]):
-#        Y=data['stim'][:,i,:]
-#        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
-#        stim=np.append(stim,Y,axis=1)
-#    lis=[]
-#    for i in range(0,r.shape[0]):
-#        lis.extend([i]*data['repcount'][i])
-#    replist=np.array(lis)
+    #    Y=data['stim'][:,0,:]
+    #    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)
+    #    for i in range(1,s[2]):
+    #        Y=data['stim'][:,i,:]
+    #        Y=np.repeat(Y[:,np.newaxis,:],r[i],axis=1)
+    #        stim=np.append(stim,Y,axis=1)
+    #    lis=[]
+    #    for i in range(0,r.shape[0]):
+    #        lis.extend([i]*data['repcount'][i])
+    #    replist=np.array(lis)
     return stim, resp, pupil, replist
