@@ -284,7 +284,7 @@ class load_gen(nems_module):
         self.fs = fs
         self.avg_resp = avg_resp
         self.auto_plot = False
-
+        
     def evaluate(self):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
