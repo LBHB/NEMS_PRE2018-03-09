@@ -29,6 +29,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 import pandas as pd
 import scipy.io as io
+import copy
 
 def getCellTypes(fn = None, animal=None, automerged=True):
     '''
@@ -90,6 +91,22 @@ def getCellTypes(fn = None, animal=None, automerged=True):
     return classifiers
 
         
-        
-        
+def align_waveforms(meanwaveforms):
+    mwfs = meanwaveforms.values
+    print(len(mwfs))
+    # align to first waveform (arbitrary)
+    align_ind = np.argwhere(meanwaveforms[0]==min(meanwaveforms[0][~np.isnan(meanwaveforms[0])]))
+    for i, mwf in enumerate(meanwaveforms):
+        min_ind = np.argwhere(mwf == min(mwf[~np.isnan(mwf)]))
+    
+        diff = int(min_ind[0] - align_ind[0])
+        print(i)
+        n_mwf = np.roll(mwf,-diff)
+        if diff < 0:
+            n_mwf[:-diff]=np.nan
+        elif diff > 0:
+            n_mwf[-diff:]=np.nan
+        mwfs[i] = n_mwf
+    print(len(mwfs))
+    return mwfs
         

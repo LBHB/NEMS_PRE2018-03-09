@@ -102,6 +102,7 @@ ENV/
 saved_analysis/
 saved_images/
 saved_models/
+signals/
 *~
 .DS_Store
 @eaDir

@@ -55,7 +55,10 @@ def get_weight_mat(r, lag=1, fs=1):
         Css = np.matmul(r_temp.T, r_temp)/len(r_temp)
         for j in range(0, lags):
             Csr = np.matmul(r_temp.T, np.roll(neuron, j))/len(r_temp)
-            h_temp = np.matmul(la.inv(Css).T, Csr)
+            try:
+                h_temp = np.matmul(la.inv(Css).T, Csr)
+            except:
+                h_temp = np.matmul(la.pinv(Css).T, Csr)
             h[i,j,:] = np.concatenate((h_temp[0:i], h_temp[i:len(h_temp)]))
 
     return np.squeeze(h)
@@ -118,7 +121,7 @@ def get_PSTH(r):
             psth[:,stim, cell] = np.squeeze(np.mean(r[:,:,stim, cell],1))
     return psth
 
-def NRF_fit(r, r0_strf=None, cv_count=10, lag=1, fs=1, single_lag=False, model=None, spontonly=None, shuffle=True):
+def NRF_fit(r, r0_strf=None, cv_count=10, lag=1, fs=1, single_lag=False, model=None, spontonly=None, shuffle=True,shuffle_trials=None):
     '''
     Function fits full model (rN + r0), rN only, or r0 only and returns the
     array of predicted responses for the model of choice.
@@ -209,6 +212,12 @@ def NRF_fit(r, r0_strf=None, cv_count=10, lag=1, fs=1, single_lag=False, model=N
                 r0 = r0.reshape(bincount*len(test_idx[i])*stimcount, cellcount)
                 r_train = r[:,train_idx[i],:,:] - r0_strf[:,train_idx[i],:,:]
                 r_test = r[:,test_idx[i],:,:] - r0_strf[:,test_idx[i],:,:]
+                if shuffle_trials is not None:
+                        shuff_inds = np.arange(0, len(test_idx[i]))
+                        np.random.shuffle(shuff_inds)
+                        while np.all(shuff_inds==np.arange(0,len(test_idx[i]))):
+                            np.random.shuffle(shuff_inds)
+                        r_test = r_test[:,shuff_inds,:,:]
                 if single_lag:
                     h = get_single_lag_wm(r_train,lag=lag,fs=fs)
                 else:
@@ -222,6 +231,10 @@ def NRF_fit(r, r0_strf=None, cv_count=10, lag=1, fs=1, single_lag=False, model=N
                 r0 = r0_strf.reshape(bincount*repcount, cellcount)
                 r_train = r[:,train_idx[i],:] - r0_strf[:,train_idx[i],:]
                 r_test = r[:,test_idx[i],:] - r0_strf[:,test_idx[i],:]
+                if shuffle_trials is not None:
+                        shuff_inds = np.range(0,len(test_idx[i]))
+                        np.random.shuffle(shuff_inds)
+                        r_test = r_test[:,shuff_inds,:]
                 h = get_weight_mat(r_train,lag=lag,fs=fs)
                 for neuron in range(0, cellcount):
                     stim = r_test.reshape(bincount*len(test_idx[i]), cellcount)
@@ -319,7 +332,9 @@ def plt_perf_by_trial(r, r1, r2, combine_stim=False, a_p=None, r1name='Network',
         cellname: string (optional, will be title of graph if included)
         kwargs:
             pupil: numpy array, pupil matrix (optional)
-            pop_state: string ('PCA', 'NNMF') - dimensionality reduction. 
+            pop_state: dict
+                method: ('PCA', 'NNMF') - dimensionality reduction. 
+                dims: int - number of dimensions
             If it exists, compare state variables with pupil (if exists) and model performance
             
     Output - none
@@ -463,7 +478,7 @@ def plt_perf_by_trial(r, r1, r2, combine_stim=False, a_p=None, r1name='Network',
                 U,S,V = np.linalg.svd(resp_pca,full_matrices=False)
                 
                 if combine_stim:
-                    pcs_reshaped=np.nanmean(np.nanmean(U.reshape(r.shape[0],r.shape[1],r.shape[2],r.shape[-1]),0),2)
+                    pcs_reshaped=np.nanmean(np.nanmean(U.reshape(r.shape[0],r.shape[1],r.shape[2],r.shape[-1]),0),1)
                 else:
                     pcs_reshaped=np.nanmean(U.reshape(r.shape[0],r.shape[1]*r.shape[2],r.shape[-1]),0)
         
@@ -477,9 +492,12 @@ def plt_perf_by_trial(r, r1, r2, combine_stim=False, a_p=None, r1name='Network',
             for i in range(0,dims):
                 pup_corr.append(np.corrcoef((pcs_reshaped[:,i],pupil))[0][1])
                 mod_corr.append(np.corrcoef((pcs_reshaped[:,i],r1_perf-r2_perf))[0][1])
-                beh_corr.append(np.corrcoef((pcs_reshaped[:,i],a_p))[0][1])
-                legend.append('LV'+str(i+1)+',   pup: '+str(round(pup_corr[i],2))+',  model: ' + str(round(mod_corr[i],2))+',  behavior: ' 
-                              +str(round(beh_corr[i],2)))
+                if a_p is not None:
+                    beh_corr.append(np.corrcoef((pcs_reshaped[:,i],a_p))[0][1])
+                    legend.append('LV'+str(i+1)+',   pup: '+str(round(pup_corr[i],2))+',  model: ' + str(round(mod_corr[i],2))+',  behavior: ' 
+                                  +str(round(beh_corr[i],2)))
+                else:
+                    legend.append('LV'+str(i+1)+',   pup: '+str(round(pup_corr[i],2))+',  model: ' + str(round(mod_corr[i],2)))
             #plt.legend(legend,loc='upper right')
             plt.suptitle('Principle components')
             
@@ -495,7 +513,8 @@ def plt_perf_by_trial(r, r1, r2, combine_stim=False, a_p=None, r1name='Network',
             plt.title('Behavior')
             plt.ylabel('Corr coef')
             plt.xlabel('LVs')
-            plt.bar(range(0,dims),abs(np.array(beh_corr)))
+            if a_p is not None:
+                plt.bar(range(0,dims),abs(np.array(beh_corr)))
         
         
         elif method=='NNMF':
@@ -526,9 +545,12 @@ def plt_perf_by_trial(r, r1, r2, combine_stim=False, a_p=None, r1name='Network',
             for i in range(0,dims):
                 pup_corr.append(np.corrcoef((W_reshaped[:,i],pupil))[0][1])
                 mod_corr.append(np.corrcoef((W_reshaped[:,i],r1_perf-r2_perf))[0][1])
-                beh_corr.append(np.corrcoef((W_reshaped[:,i],a_p))[0][1])
-                legend.append('LV'+str(i+1)+',   pup: '+str(round(pup_corr[i],2))+',  model: ' + str(round(mod_corr[i],2))+',  behavior: ' 
-                              +str(round(beh_corr[i],2)))
+                if a_p is not None:
+                    beh_corr.append(np.corrcoef((W_reshaped[:,i],a_p))[0][1])
+                    legend.append('LV'+str(i+1)+',   pup: '+str(round(pup_corr[i],2))+',  model: ' + str(round(mod_corr[i],2))+',  behavior: ' 
+                                  +str(round(beh_corr[i],2)))
+                else:
+                    legend.append('LV'+str(i+1)+',   pup: '+str(round(pup_corr[i],2))+',  model: ' + str(round(mod_corr[i],2)))
             #plt.legend(legend,loc='upper right')
             plt.suptitle('Non-negative matrix factorization')
             
@@ -543,7 +565,8 @@ def plt_perf_by_trial(r, r1, r2, combine_stim=False, a_p=None, r1name='Network',
             plt.subplot(nplots1,nplots2,6)
             plt.title('Behavior')
             plt.ylabel('Corr coef')
-            plt.bar(range(0,dims),abs(np.array(beh_corr)))
+            if a_p is not None:
+                plt.bar(range(0,dims),abs(np.array(beh_corr)))
     
 
     return fig

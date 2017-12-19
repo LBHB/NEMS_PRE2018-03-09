@@ -12,9 +12,9 @@ def web_print(s):
     if use_app:
         s = s.replace('\n', '<br>')
         socketio.emit(
-                'console_update',
-                {'data':s},
-                namespace='/py_console',
-                )
+            'console_update',
+            {'data': s},
+            namespace='/py_console',
+        )
     else:
         print(s)

@@ -59,7 +59,8 @@ class mean_square_error(nems_module):
                     print('no data in range?')
                 P = np.mean(np.square(X2[bounds[ii]:bounds[ii + 1]]))
                 if P > 0:
-                    E[ii] = np.mean(np.square(X1[bounds[ii]:bounds[ii + 1]] - X2[bounds[ii]:bounds[ii + 1]])) / P
+                    E[ii] = np.mean(
+                        np.square(X1[bounds[ii]:bounds[ii + 1]] - X2[bounds[ii]:bounds[ii + 1]])) / P
                 else:
                     E[ii] = 1
             # E=E/P
@@ -75,7 +76,8 @@ class mean_square_error(nems_module):
 
             if mE < 1:
                 # apply shrinkage filter to 1-E with factors self.shrink
-                mse = 1 - nems.utilities.utils.shrinkage(1 - mE, sE, self.shrink)
+                mse = 1 - \
+                    nems.utilities.utils.shrinkage(1 - mE, sE, self.shrink)
             else:
                 mse = mE
 
@@ -136,7 +138,8 @@ class mean_square_error(nems_module):
         if est:
             return self.mse_est
         else:
-            # placeholder for something that can distinguish between est and val
+            # placeholder for something that can distinguish between est and
+            # val
             return self.mse_val
 
 
@@ -199,7 +202,8 @@ class likelihood_poisson(nems_module):
         if est:
             return self.ll_est
         else:
-            # placeholder for something that can distinguish between est and val
+            # placeholder for something that can distinguish between est and
+            # val
             return self.ll_val
 
 
@@ -209,15 +213,15 @@ class pseudo_huber_error(nems_module):
     ouliers than simple mean square error. Approximates L1 error at large
     values of error, and MSE at low error values. Has the additional benefit (unlike L1)
     of being convex and differentiable at all places.
-    
+
     Pseudo-huber equation taken from Hartley & Zimmerman, "Multiple View Geometry
     in Computer Vision," (Cambridge University Press, 2003), p619
-    
+
     C(delta)=2(b^2)(sqrt(1+(delta/b)^2)-1)
-    
+
     b mediates the value of error at which the the error is penalized linearly or quadratically.
     Note that setting b=1 is the soft l1 loss
-    
+
     @author: shofer, June 30 2017
     """
     # I think this is working (but I'm not positive). When fitting with a pseudo-huber
@@ -226,10 +230,10 @@ class pseudo_huber_error(nems_module):
     # This makes sense in that the huber error penalizes outliers, and could be
     # potentially useful, depending on what is being fit? --njs, June 30 2017
 
-
     name = 'metrics.pseudo_huber_error'
     user_editable_fields = ['input1', 'input2', 'b']
-    plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_scatter]
+    plot_fns = [nems.utilities.plot.pred_act_psth,
+                nems.utilities.plot.pred_act_scatter]
     input1 = 'pred'
     input2 = 'resp'
     b = 0.9  # sets the value of error where fall-off goes from linear to quadratic\
@@ -250,8 +254,10 @@ class pseudo_huber_error(nems_module):
             self.d_out.append(d.copy())
 
         for f in self.d_out:
-            delta = np.divide(np.sum(f[self.input1] - f[self.input2], axis=1), np.sum(f[self.input2], axis=1))
-            C = np.sum(2 * np.square(self.b) * (np.sqrt(1 + np.square(np.divide(delta, self.b))) - 1))
+            delta = np.divide(
+                np.sum(f[self.input1] - f[self.input2], axis=1), np.sum(f[self.input2], axis=1))
+            C = np.sum(2 * np.square(self.b) *
+                       (np.sqrt(1 + np.square(np.divide(delta, self.b))) - 1))
             C = np.array([C])
         self.huber_est = C
 
@@ -335,7 +341,8 @@ class correlation(nems_module):
                 rf[rr], p = spstats.pearsonr(X1[n1], X2[n2])
             rf = np.sort(rf[np.isfinite(rf)], 0)
             if len(rf):
-                self.parent_stack.meta['r_floor'] = [rf[np.int(len(rf) * 0.95)]]
+                self.parent_stack.meta['r_floor'] = [
+                    rf[np.int(len(rf) * 0.95)]]
             else:
                 self.parent_stack.meta['r_floor'] = 0
 
@@ -371,7 +378,7 @@ class ssa_index(nems_module):
 
     name = 'metrics.ssa_index'
     user_editable_fields = ['input1', 'input2', 'baseline', 'window']
-    plot_fns = [nems.utilities.plot.plot_ssa_idx, nems.utilities.plot.plot_ssa_timing]
+    plot_fns = [nems.utilities.plot.plot_ssa_idx]
     input1 = 'stim'
     input2 = 'resp'
     window = 'start'
@@ -385,7 +392,8 @@ class ssa_index(nems_module):
     resp_tone_act = list()
     pred_tone_act = list()
 
-    def my_init(self, input1='stim', input2='resp', window='start', z_score='bootstrap', significant_bins='window'):
+    def my_init(self, input1='stim', input2='resp', window='start',
+                z_score='bootstrap', significant_bins='window'):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         self.input1 = input1
@@ -436,15 +444,24 @@ class ssa_index(nems_module):
         # get the data, then slice the tones and asign to the right bin
         for ii, b in enumerate(blocks):
 
-            stim = b['stim']  # input 3d array: 0d #streasm ; 1d #trials; 2d time
-            stim = stim.astype(np.int16)  # input stim is in uint8 which is problematic for diff
+            # input 3d array: 0d #streasm ; 1d #trials; 2d time
+            stim = b['stim']
+            # forces stim to binary by making anything greater than zero into
+            # one
+            stim = (stim > 0).astype(np.int16)
+            # input stim is in uint8 which is problematic for diff
+            stim = stim.astype(np.int16)
+
             resp = b['resp'].squeeze()  # input 2d array: 0d #trials ; 1d time
             if self.has_pred:
                 pred = b['pred'].squeeze()  # same shape as resp
 
-            diff = np.diff(stim, axis=2)  # transform the binary stim into an edge array for easy onset/offset location
+            # transform the binary stim into an edge array for easy
+            # onset/offset location
+            diff = np.diff(stim, axis=2)
 
-            # initializes dictionaries to store all tone typed for both actual and predicted response.
+            # initializes dictionaries to store all tone typed for both actual
+            # and predicted response.
             resp_slice_dict = {'stream0Std': list(),
                                'stream0Dev': list(),
                                'stream0Ons': list(),
@@ -470,7 +487,8 @@ class ssa_index(nems_module):
 
             # define the length of the tones, assumes all tones are equal. defines flanking silences as with the same
             # length as the tone
-            # this infers the tone length from the envelope shape, overlaping tones will give problems.
+            # this infers the tone length from the envelope shape, overlaping
+            # tones will give problems.
             adiff = diff[0, 0, :]
             IdxStrt = np.where(adiff == 1)[0][0]
             IdxEnd = np.where(adiff == -1)[0][0]
@@ -483,7 +501,8 @@ class ssa_index(nems_module):
                 where0 = np.where(diff[0, trialcounter, :] == 1)[0] + 1
                 where1 = np.where(diff[1, trialcounter, :] == 1)[0] + 1
 
-                # calculates the time interval between consecutive tones of the same type
+                # calculates the time interval between consecutive tones of the
+                # same type
                 time0 = where0.copy()
                 time1 = where1.copy()
                 time0[1:] = np.diff(time0)
@@ -493,12 +512,12 @@ class ssa_index(nems_module):
                 # so the other stream necessarily has the onset.
                 try:
                     first0 = where0[0]
-                except:
+                except BaseException:
                     first0 = stim.shape[2]
 
                 try:
                     first1 = where1[0]
-                except:
+                except BaseException:
                     first1 = stim.shape[2]
 
                 # slices both streams
@@ -532,7 +551,8 @@ class ssa_index(nems_module):
                     for ii in where0:
                         single_tone = np.empty(toneLen * 3)
                         single_tone[:] = np.NAN
-                        tone = pred[trialcounter, ii - toneLen: ii + (toneLen * 2)]
+                        tone = pred[trialcounter, ii -
+                                    toneLen: ii + (toneLen * 2)]
                         single_tone[0:len(tone)] = tone
                         predstream0.append(single_tone)
 
@@ -540,15 +560,18 @@ class ssa_index(nems_module):
                     for ii in where1:
                         single_tone = np.empty(toneLen * 3)
                         single_tone[:] = np.NAN
-                        tone = pred[trialcounter, ii - toneLen: ii + (toneLen * 2)]
+                        tone = pred[trialcounter, ii -
+                                    toneLen: ii + (toneLen * 2)]
                         single_tone[0:len(tone)] = tone
                         predstream1.append(single_tone)
 
-                # checks which comes first and extract onset and preceding silence for spontaneous activity cuantification
+                # checks which comes first and extract onset and preceding
+                # silence for spontaneous activity cuantification
 
                 if first0 < first1:
                     # Onset is in stream 0
-                    resp_slice_dict['stream0Ons'] = resp_slice_dict['stream0Ons'] + [respstream0[0]]
+                    resp_slice_dict['stream0Ons'] = resp_slice_dict['stream0Ons'] + \
+                        [respstream0[0]]
                     respstream0 = respstream0[1:]
                     interval_dict['stream0Ons'].append(time0[0])
                     time0 = time0[1:]
@@ -556,14 +579,16 @@ class ssa_index(nems_module):
                     resp_spont.append(resp[trialcounter, :where0[0]])
 
                     if self.has_pred:
-                        pred_slice_dict['stream0Ons'] = pred_slice_dict['stream0Ons'] + [predstream0[0]]
+                        pred_slice_dict['stream0Ons'] = pred_slice_dict['stream0Ons'] + [
+                            predstream0[0]]
                         predstream0 = predstream0[1:]
                         # predicted silence to onset
                         pred_spont.append(pred[trialcounter, :where0[0]])
 
                 elif first0 > first1:
                     # Onset in in stream 1
-                    resp_slice_dict['stream1Ons'] = resp_slice_dict['stream1Ons'] + [respstream1[0]]
+                    resp_slice_dict['stream1Ons'] = resp_slice_dict['stream1Ons'] + \
+                        [respstream1[0]]
                     respstream1 = respstream1[1:]
                     interval_dict['stream1Ons'].append(time1[0])
                     time1 = time1[1:]
@@ -571,7 +596,8 @@ class ssa_index(nems_module):
                     resp_spont.append(resp[trialcounter, :where1[0]])
 
                     if self.has_pred:
-                        pred_slice_dict['stream1Ons'] = pred_slice_dict['stream1Ons'] + [predstream1[0]]
+                        pred_slice_dict['stream1Ons'] = pred_slice_dict['stream1Ons'] + [
+                            predstream1[0]]
                         predstream1 = predstream1[1:]
                         # predicted silence to onset
                         pred_spont.append(pred[trialcounter, :where1[0]])
@@ -579,7 +605,8 @@ class ssa_index(nems_module):
                 # Count tones by integration
                 tone_count = np.nansum(stim[:, trialcounter, :], axis=1)
 
-                # Check which stream is standard and appends slices and intervals in the right list
+                # Check which stream is standard and appends slices and
+                # intervals in the right list
                 if tone_count[0] > tone_count[1]:
                     # stream 0 is standard, stream 1 is deviant
                     resp_slice_dict['stream0Std'] = resp_slice_dict['stream0Std'] + respstream0
@@ -603,7 +630,8 @@ class ssa_index(nems_module):
                         pred_slice_dict['stream1Std'] = pred_slice_dict['stream1Std'] + predstream1
                         pred_slice_dict['stream0Dev'] = pred_slice_dict['stream0Dev'] + predstream0
 
-            # transforms the spontaneous activity list of heterogeneous lists into a 2d array padded with nan
+            # transforms the spontaneous activity list of heterogeneous lists
+            # into a 2d array padded with nan
             def aspadedarray(v, fillval=np.nan):
                 lens = np.array([len(item) for item in v])
                 mask = lens[:, None] > np.arange(lens.max())
@@ -627,57 +655,73 @@ class ssa_index(nems_module):
                 ardata = np.array(data)
                 bootindexes = [np.random.randint(ardata.shape[0], size=ardata.shape[0]) for _ in
                                range(n_samples)]
-                stat = np.array([np.nanmean(ardata[indexes]) for indexes in bootindexes])
+                stat = np.array([np.nanmean(ardata[indexes])
+                                 for indexes in bootindexes])
                 stat.sort(axis=0)
                 nvals = np.round((n_samples - 1) * alpha)
                 nvals = np.nan_to_num(nvals).astype('int')
                 return stat[nvals]
 
             # defines confidence intervals for the spontaneous activity.
-            resp_flat_spont = resp_spont.flatten()[~np.isnan(resp_spont.flatten())]
+            resp_flat_spont = resp_spont.flatten(
+            )[~np.isnan(resp_spont.flatten())]
             resp_spont_ci = my_bootstrap(resp_flat_spont)
             if self.has_pred:
-                pred_flat_spont = pred_spont.flatten()[~np.isnan(pred_spont.flatten())]
+                pred_flat_spont = pred_spont.flatten(
+                )[~np.isnan(pred_spont.flatten())]
                 pred_spont_ci = my_bootstrap(pred_flat_spont)
 
             # Defines window to be used for SI and SIpval calculations
             all_cell = np.concatenate(
                 [np.asarray(resp_slice_dict['stream0Std']), np.asarray(resp_slice_dict['stream1Std'])], axis=0)
             if self.significant_bins == 'mean_streams':
-                # find bins with stream mean activity significantly different of spontaneous activity level
-                all_cell_CI = np.asarray([my_bootstrap(all_cell[:, bb]) for bb in range(toneLen, all_cell.shape[1], 1)])
+                # find bins with stream mean activity significantly different
+                # of spontaneous activity level
+                all_cell_CI = np.asarray(
+                    [my_bootstrap(all_cell[:, bb]) for bb in range(toneLen, all_cell.shape[1], 1)])
                 # creates a mask for bins to consider for SI calculations
                 selected_bins = np.asarray([True if np.min(ci) > np.max(resp_spont_ci) else False for ci in all_cell_CI]
                                            ).astype(bool)
-                # set false to the bins coresponding to the interval previous the tone
-                selected_bins = np.concatenate([np.full((toneLen), False, dtype=bool), selected_bins])
+                # set false to the bins coresponding to the interval previous
+                # the tone
+                selected_bins = np.concatenate(
+                    [np.full((toneLen), False, dtype=bool), selected_bins])
             elif self.significant_bins == 'per_stream':
-                # find bins with stream0 activity significantly different of spontaneous activity level
+                # find bins with stream0 activity significantly different of
+                # spontaneous activity level
                 stream0 = np.asarray(resp_slice_dict['stream0Std'])
-                stream0_CI = np.asarray([my_bootstrap(stream0[:, bb]) for bb in range(toneLen, stream0.shape[1], 1)])
+                stream0_CI = np.asarray(
+                    [my_bootstrap(stream0[:, bb]) for bb in range(toneLen, stream0.shape[1], 1)])
                 # repeats for stream1
                 stream1 = np.asarray(resp_slice_dict['stream1Std'])
-                stream1_CI = np.asarray([my_bootstrap(stream1[:, bb]) for bb in range(toneLen, stream1.shape[1], 1)])
+                stream1_CI = np.asarray(
+                    [my_bootstrap(stream1[:, bb]) for bb in range(toneLen, stream1.shape[1], 1)])
                 # creates a mask for bins to consider for SI calculations
                 selected_bins = np.asarray(
                     [True if ((np.min(ci0) > np.max(resp_spont_ci)) | (np.min(ci1) > np.max(resp_spont_ci)))
                      else False for ci0, ci1 in zip(stream0_CI, stream1_CI)]
-                    ).astype(bool)
-                # set false to the bins coresponding to the interval previous the tone
-                selected_bins = np.concatenate([np.full((toneLen), False, dtype=bool), selected_bins])
+                ).astype(bool)
+                # set false to the bins coresponding to the interval previous
+                # the tone
+                selected_bins = np.concatenate(
+                    [np.full((toneLen), False, dtype=bool), selected_bins])
             elif self.significant_bins == 'window':
                 # considers all point from the tone onset to the slice end
                 selected_bins = np.ones(all_cell.shape[1])
                 selected_bins[:toneLen] = 0
                 selected_bins = selected_bins.astype(bool)
             else:
-                raise ValueError("significant_bins method '{0}' is not supported.".format(self.significant_bins))
+                raise ValueError("significant_bins method '{0}' is not supported.".format(
+                    self.significant_bins))
 
             # calculates activity for each slice pool: first averages across trials, then integrates from the start
-            # of the tone to the end of the slice. Organizes in an Activity dictionary with the same keys
+            # of the tone to the end of the slice. Organizes in an Activity
+            # dictionary with the same keys
 
-            all_resp_tone_types = resp_slice_dict.copy()  # holds a copy por all activity calculation
-            resp_slice_dict = {key: np.asarray(value) for key, value in resp_slice_dict.items()}
+            # holds a copy por all activity calculation
+            all_resp_tone_types = resp_slice_dict.copy()
+            resp_slice_dict = {key: np.asarray(
+                value) for key, value in resp_slice_dict.items()}
             resp_tone_act_dict = {key: np.nansum(value[:, selected_bins], axis=1)  # for t-test and adaptation plotting
                                   for key, value in resp_slice_dict.items()}
             resp_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[selected_bins])
@@ -685,20 +729,27 @@ class ssa_index(nems_module):
 
             # repeats the same as last for predicted responses if any
             if self.has_pred:
-                all_pred_tone_types = pred_slice_dict.copy()  # holds a copy por all activity calculation
-                pred_slice_dict = {key: np.asarray(value) for key, value in pred_slice_dict.items()}
+                # holds a copy por all activity calculation
+                all_pred_tone_types = pred_slice_dict.copy()
+                pred_slice_dict = {key: np.asarray(
+                    value) for key, value in pred_slice_dict.items()}
                 pred_tone_act_dict = {key: np.nansum(value[:, selected_bins], axis=1)
                                       for key, value in pred_slice_dict.items()}
                 pred_act_dict = {key: np.nansum(np.nanmean(value, axis=0)[selected_bins])
                                  for key, value in pred_slice_dict.items()}
 
-            # calculates the response ssa index  values for each stream and cell and organizes in a dictionary
+            # calculates the response ssa index  values for each stream and
+            # cell and organizes in a dictionary
             resp_SI_dict = {
-                'stream0': (resp_act_dict['stream0Dev'] - resp_act_dict['stream0Std']) /  # dev - std over...
-                           (resp_act_dict['stream0Dev'] + resp_act_dict['stream0Std']),  # dev + std
+                # dev - std over...
+                'stream0': (resp_act_dict['stream0Dev'] - resp_act_dict['stream0Std']) /
+                (resp_act_dict['stream0Dev'] + \
+                 resp_act_dict['stream0Std']),  # dev + std
 
-                'stream1': (resp_act_dict['stream1Dev'] - resp_act_dict['stream1Std']) /  # dev - std over...
-                           (resp_act_dict['stream1Dev'] + resp_act_dict['stream1Std']),  # dev + std
+                # dev - std over...
+                'stream1': (resp_act_dict['stream1Dev'] - resp_act_dict['stream1Std']) /
+                (resp_act_dict['stream1Dev'] + \
+                 resp_act_dict['stream1Std']),  # dev + std
 
                 'cell': (resp_act_dict['stream0Dev'] + resp_act_dict['stream1Dev'] -  # dev + dev minus
                          resp_act_dict['stream0Std'] - resp_act_dict['stream1Std']) /  # std - std over
@@ -707,20 +758,27 @@ class ssa_index(nems_module):
             # does the same as last for predicted responses if any
             if self.has_pred:
                 pred_SI_dict = {
-                    'stream0': (pred_act_dict['stream0Dev'] - pred_act_dict['stream0Std']) /  # dev - std over...
-                               (pred_act_dict['stream0Dev'] + pred_act_dict['stream0Std']),  # dev + std
+                    # dev - std over...
+                    'stream0': (pred_act_dict['stream0Dev'] - pred_act_dict['stream0Std']) /
+                    (pred_act_dict['stream0Dev'] + \
+                     pred_act_dict['stream0Std']),  # dev + std
 
-                    'stream1': (pred_act_dict['stream1Dev'] - pred_act_dict['stream1Std']) /  # dev - std over...
-                               (pred_act_dict['stream1Dev'] + pred_act_dict['stream1Std']),  # dev + std
+                    # dev - std over...
+                    'stream1': (pred_act_dict['stream1Dev'] - pred_act_dict['stream1Std']) /
+                    (pred_act_dict['stream1Dev'] + \
+                     pred_act_dict['stream1Std']),  # dev + std
 
                     'cell': (pred_act_dict['stream0Dev'] + pred_act_dict['stream1Dev'] -  # dev + dev minus
                              pred_act_dict['stream0Std'] - pred_act_dict['stream1Std']) /  # std - std over
                             (pred_act_dict['stream0Dev'] + pred_act_dict['stream1Dev'] +  # dev + dev plus
                              pred_act_dict['stream0Std'] + pred_act_dict['stream1Std'])}  # std + std
 
-            # calculates significance (t-test) between standard and deviant for each response stream
-            allstd = np.concatenate([resp_tone_act_dict['stream0Std'], resp_tone_act_dict['stream1Std']])
-            alldev = np.concatenate([resp_tone_act_dict['stream0Dev'], resp_tone_act_dict['stream1Dev']])
+            # calculates significance (t-test) between standard and deviant for
+            # each response stream
+            allstd = np.concatenate(
+                [resp_tone_act_dict['stream0Std'], resp_tone_act_dict['stream1Std']])
+            alldev = np.concatenate(
+                [resp_tone_act_dict['stream0Dev'], resp_tone_act_dict['stream1Dev']])
 
             resp_t = {'stream0': spstats.ttest_ind(resp_tone_act_dict['stream0Std'], resp_tone_act_dict['stream0Dev']),
                       'stream1': spstats.ttest_ind(resp_tone_act_dict['stream1Std'], resp_tone_act_dict['stream1Dev']),
@@ -729,8 +787,10 @@ class ssa_index(nems_module):
             resp_t = {key: value.pvalue for key, value in resp_t.items()}
             # also calculates significance for predicted streams.
             if self.has_pred:
-                allstd = np.concatenate([pred_tone_act_dict['stream0Std'], pred_tone_act_dict['stream1Std']])
-                alldev = np.concatenate([pred_tone_act_dict['stream0Dev'], resp_tone_act_dict['stream1Dev']])
+                allstd = np.concatenate(
+                    [pred_tone_act_dict['stream0Std'], pred_tone_act_dict['stream1Std']])
+                alldev = np.concatenate(
+                    [pred_tone_act_dict['stream0Dev'], resp_tone_act_dict['stream1Dev']])
 
                 pred_t = {
                     'stream0': spstats.ttest_ind(pred_tone_act_dict['stream0Std'], pred_tone_act_dict['stream0Dev']),
@@ -741,7 +801,8 @@ class ssa_index(nems_module):
 
             # organizes the ssa index data into a dictionary containing the SI of the response and of the prediction in
             # corresponding keys, then append to the block list.
-            # also append block dependent calculations into lists for such elements across all blocks of one cell.
+            # also append block dependent calculations into lists for such
+            # elements across all blocks of one cell.
 
             block_SI_dict = dict()
             block_SI_T_dict = dict()
@@ -750,7 +811,8 @@ class ssa_index(nems_module):
             block_SI_T_dict['resp'] = resp_t
             folded_resp.append(resp_slice_dict)
             resp_tone_act.append(resp_tone_act_dict)
-            interval_dict = {key: np.asarray(value) for key, value in interval_dict.items()}
+            interval_dict = {key: np.asarray(value)
+                             for key, value in interval_dict.items()}
             intervals.append(interval_dict)
             cell_resp_spont.append(resp_spont)
 
@@ -767,7 +829,8 @@ class ssa_index(nems_module):
             # calculates cell activity level as z-score of significant time bins, this is done for each stream and
             # their mean.
 
-            # pools all the tones into the respective stream, regardless onset, standard or deviant.
+            # pools all the tones into the respective stream, regardless onset,
+            # standard or deviant.
             all_resp_act = [list(), list()]
             for key, value in all_resp_tone_types.items():
                 if key[-3:] == 'Std':
@@ -786,37 +849,47 @@ class ssa_index(nems_module):
                     all_resp_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(resp_flat_spont)) / (
                         np.nanstd(np.nanmean(stream[:, toneLen:], axis=1)))
                 elif self.z_score == 'bootstrap':
-                    binCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
+                    binCI = [my_bootstrap(stream[:, bb]) for bb in range(
+                        int(toneLen), stream.shape[1], 1)]
                     sign_bin_mask = np.asarray([1 if np.min(bb) > np.max(resp_spont_ci) else 0 for bb in binCI]).astype(
                         bool)
-                    sign_bin_mask = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bin_mask])
+                    sign_bin_mask = np.concatenate(
+                        [np.full((toneLen), False, dtype=bool), sign_bin_mask])
                     sign_bins = stream[:, sign_bin_mask]
 
                     if sign_bins.shape[1] == 0:
                         all_resp_act[ii] = 0
                     elif sign_bins.shape[1] >= 1:
                         binzcore = np.asarray([(np.mean(sign_bins[:, tt]) - np.nanmean(resp_flat_spont)) /
-                                               np.nanstd(np.concatenate([sign_bins[:, tt], resp_flat_spont]))
+                                               np.nanstd(np.concatenate(
+                                                   [sign_bins[:, tt], resp_flat_spont]))
                                                for tt in range(sign_bins.shape[1])])
                         all_resp_act[ii] = np.nanmean(binzcore)
 
                 elif self.z_score == 'bootstrap2':
-                    # calculates the bootstrap confidence interval of the mean of each time bin
-                    binmeanCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
-                    # Compares reponse CI vs spontaneous activity CI to define bins with significant difference.
+                    # calculates the bootstrap confidence interval of the mean
+                    # of each time bin
+                    binmeanCI = [my_bootstrap(stream[:, bb]) for bb in range(
+                        int(toneLen), stream.shape[1], 1)]
+                    # Compares reponse CI vs spontaneous activity CI to define
+                    # bins with significant difference.
                     sign_bins = np.asarray([1 if np.min(bb) > np.max(resp_spont_ci) else 0 for bb in binmeanCI]).astype(
                         bool)
-                    sign_bins = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bins])
-                    # if there are significant bins, calculate the z_score of such bins. otherwise force value to 0
+                    sign_bins = np.concatenate(
+                        [np.full((toneLen), False, dtype=bool), sign_bins])
+                    # if there are significant bins, calculate the z_score of
+                    # such bins. otherwise force value to 0
                     if True in sign_bins:
                         sample = stream[:, sign_bins].flatten()
                         population = np.concatenate([sample, resp_flat_spont])
-                        z_score = (np.nanmean(sample) - np.nanmean(resp_flat_spont)) / (np.nanstd(population))
+                        z_score = (np.nanmean(
+                            sample) - np.nanmean(resp_flat_spont)) / (np.nanstd(population))
                         all_resp_act[ii] = z_score
                     else:
                         all_resp_act[ii] = 0
                 else:
-                    raise ValueError("z-score method '{0}' is not supported.".format(self.z_score))
+                    raise ValueError(
+                        "z-score method '{0}' is not supported.".format(self.z_score))
 
             # creates a dictionary and appends it to the block list
             if 0 in [np.min(all_resp_act), np.max(all_resp_act)]:
@@ -828,7 +901,8 @@ class ssa_index(nems_module):
                                  'ratio': actv_ratio,
                                  'mean': np.nanmean(all_resp_act[0:2])}
 
-            # also calculates activity in the same way for the predicted responses.
+            # also calculates activity in the same way for the predicted
+            # responses.
             if self.has_pred:
 
                 all_pred_act = [list(), list()]
@@ -849,38 +923,49 @@ class ssa_index(nems_module):
                         all_pred_act[ii] = ((np.nanmean(stream[:, toneLen:])) - np.nanmean(pred_flat_spont)) / (
                             np.nanstd(np.nanmean(stream[:, toneLen:], axis=1)))
                     elif self.z_score == 'bootstrap':
-                        binCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
+                        binCI = [my_bootstrap(stream[:, bb]) for bb in range(
+                            int(toneLen), stream.shape[1], 1)]
                         sign_bin_mask = np.asarray(
                             [1 if np.min(bb) > np.max(pred_spont_ci) else 0 for bb in binCI]).astype(
                             bool)
-                        sign_bin_mask = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bin_mask])
+                        sign_bin_mask = np.concatenate(
+                            [np.full((toneLen), False, dtype=bool), sign_bin_mask])
                         sign_bins = stream[:, sign_bin_mask]
 
                         if sign_bins.shape[1] == 0:
                             all_pred_act[ii] = 0
                         elif sign_bins.shape[1] >= 1:
                             binzcore = np.asarray([(np.mean(sign_bins[:, tt]) - np.nanmean(pred_flat_spont)) /
-                                                   np.nanstd(np.concatenate([sign_bins[:, tt], pred_flat_spont]))
+                                                   np.nanstd(np.concatenate(
+                                                       [sign_bins[:, tt], pred_flat_spont]))
                                                    for tt in range(sign_bins.shape[1])])
                             all_pred_act[ii] = np.nanmean(binzcore)
                     elif self.z_score == 'bootstrap2':
-                        # calculates the bootstrap confidence interval of the mean of each time bin
-                        binmeanCI = [my_bootstrap(stream[:, bb]) for bb in range(int(toneLen), stream.shape[1], 1)]
-                        # Compares reponse CI vs spontaneous activity CI to define bins with significant difference.
+                        # calculates the bootstrap confidence interval of the
+                        # mean of each time bin
+                        binmeanCI = [my_bootstrap(stream[:, bb]) for bb in range(
+                            int(toneLen), stream.shape[1], 1)]
+                        # Compares reponse CI vs spontaneous activity CI to
+                        # define bins with significant difference.
                         sign_bins = np.asarray(
                             [1 if np.min(bb) > np.max(pred_spont_ci) else 0 for bb in binmeanCI]).astype(
                             bool)
-                        sign_bins = np.concatenate([np.full((toneLen), False, dtype=bool), sign_bins])
-                        # if there are significant bins, calculate the z_score of such bins. otherwise force value to 0
+                        sign_bins = np.concatenate(
+                            [np.full((toneLen), False, dtype=bool), sign_bins])
+                        # if there are significant bins, calculate the z_score
+                        # of such bins. otherwise force value to 0
                         if True in sign_bins:
                             sample = stream[:, sign_bins].flatten()
-                            population = np.concatenate([sample, pred_flat_spont])
-                            z_score = (np.nanmean(sample) - np.nanmean(pred_flat_spont)) / (np.nanstd(population))
+                            population = np.concatenate(
+                                [sample, pred_flat_spont])
+                            z_score = (np.nanmean(
+                                sample) - np.nanmean(pred_flat_spont)) / (np.nanstd(population))
                             all_pred_act[ii] = z_score
                         else:
                             all_pred_act[ii] = 0
                     else:
-                        raise ValueError("z-score method '{0}' is not supported.".format(self.z_score))
+                        raise ValueError(
+                            "z-score method '{0}' is not supported.".format(self.z_score))
 
                 # creates a dictionary and appends it to the block list
                 if 0 in [np.min(all_pred_act), np.max(all_pred_act)]:
