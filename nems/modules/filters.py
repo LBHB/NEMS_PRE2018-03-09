@@ -30,7 +30,7 @@ class weight_channels(nems_module):
     num_chans=1
     parm_fun=None
     parm_type=None
-    def my_init(self, num_dims=0, num_chans=1, baseline=[[0]], 
+    def my_init(self, num_dims=0, num_chans=1, baseline=0, 
                 fit_fields=None, parm_type=None, parm_fun=None, phi=[[0]]):
         self.field_dict=locals()
         self.field_dict.pop('self',None)
@@ -38,7 +38,7 @@ class weight_channels(nems_module):
             num_dims=self.d_in[0][self.input_name].shape[0]
         self.num_dims=num_dims
         self.num_chans=num_chans
-        self.baseline=np.array(baseline)
+        self.baseline=np.ones([num_chans,1])*baseline
         self.fit_fields=fit_fields
         if parm_type:
             if parm_type=='gauss':
@@ -86,7 +86,7 @@ class weight_channels(nems_module):
             
         s=X.shape
         X=np.reshape(X,[s[0],-1])
-        X=np.matmul(coefs,X)
+        X=np.matmul(coefs,X)+self.baseline
         s=list(s)
         s[0]=self.num_chans
         Y=np.reshape(X,s)
@@ -100,15 +100,16 @@ class fir(nems_module):
     offset, and outputs a 2D stim array (stims,time).
     """
     name='filters.fir'
-    user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_coefs','coefs','baseline','random_init']
+    user_editable_fields=['input_name','output_name','fit_fields','num_dims','num_coefs','coefs','baseline','random_init','bank_count']
     plot_fns=[nems.utilities.plot.plot_strf, nems.utilities.plot.plot_spectrogram]
     coefs=None
     baseline=np.zeros([1,1])
     num_dims=0
     random_init=False
     num_coefs=20
+    bank_count=1
     
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False, coefs=None):
+    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=['baseline','coefs'],random_init=False, coefs=None, bank_count=1):
         """
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
@@ -121,8 +122,14 @@ class fir(nems_module):
         if self.d_in and not(num_dims):
             num_dims=self.d_in[0][self.input_name].shape[0]
         self.num_dims=num_dims
-        self.num_coefs=num_coefs
+        
+        if bank_count<=1:
+            self.bank_count=1
+        else:
+            self.bank_count=bank_count
+            
         self.baseline[0]=baseline
+        self.num_coefs=num_coefs
         self.random_init=random_init
         if coefs:
             self.coefs=coefs
@@ -132,6 +139,7 @@ class fir(nems_module):
             self.coefs=np.zeros([num_dims,num_coefs])
         self.fit_fields=fit_fields
         self.do_trial_plot=self.plot_fns[0]
+
         
     def my_eval(self,X):
         s=X.shape
@@ -139,9 +147,16 @@ class fir(nems_module):
         for i in range(0,s[0]):
             y=np.convolve(X[i,:],self.coefs[i,:])
             X[i,:]=y[0:X.shape[1]]
+            
+        if self.bank_count:
+            # reshape inputs so that filter is summed separately across each bank
+            ts0=np.int(s[0]/self.bank_count)
+            ts1=self.bank_count
+            X=np.reshape(X,[ts0,ts1,-1])
+            
         X=X.sum(0)+self.baseline
         s=list(s)
-        s[0]=1
+        s[0]=self.bank_count
         Y=np.reshape(X,s)
         return Y
     

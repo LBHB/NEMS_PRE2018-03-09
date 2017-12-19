@@ -440,11 +440,15 @@ class fit_iteratively(nems_fitter):
     name='fit_iteratively'
     sub_fitter=None
     max_iter=5
+    module_sets=[]
     
     def my_init(self,sub_fitter=basic_min,max_iter=5,min_kwargs={'routine':'L-BFGS-B','maxit':10000}):
         self.sub_fitter=sub_fitter(self.stack,**min_kwargs)
         self.max_iter=max_iter
-
+        self.module_sets=[]
+        for i in self.fit_modules:
+            self.module_sets=self.module_sets + [i]
+        
     def do_fit(self):
         self.sub_fitter.tolerance=self.tolerance
         itr=0
@@ -452,9 +456,9 @@ class fit_iteratively(nems_fitter):
         this_itr=0
         while itr<self.max_iter:
             this_itr+=1
-            for i in self.fit_modules:
-                print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i].name,itr,self.sub_fitter.tolerance))
-                self.sub_fitter.fit_modules=[i]
+            for i in self.module_sets:
+                print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i[0]].name,itr,self.sub_fitter.tolerance))
+                self.sub_fitter.fit_modules=i
                 new_err=self.sub_fitter.do_fit()
             if err-new_err<self.sub_fitter.tolerance:
                 print("")
