@@ -18,7 +18,7 @@ def wc(stack, output_channels):
     output_channels : int
         Number of filters to apply to input stream.
     '''
-    stack.append(filters.weight_channels, num_chans=output_channels)
+    stack.append(filters.WeightChannels, num_chans=output_channels)
 
 
 def wc_gaussian(stack, output_channels):
@@ -30,7 +30,7 @@ def wc_gaussian(stack, output_channels):
     output_channels : int
         Number of filters to apply to input stream.
     '''
-    stack.append(filters.weight_channels, num_chans=output_channels,
+    stack.append(filters.WeightChannels, num_chans=output_channels,
                  parm_type='gauss')
 
 
@@ -41,7 +41,7 @@ def fir(stack, n_coefs, random):
     as such, or as the temporal filter in the factorized STRF if used in
     conjuction with the weight channel spectral filter.
     """
-    stack.append(filters.fir, num_coefs=n_coefs, random_init=random)
+    stack.append(filters.FIR, num_coefs=n_coefs, random_init=random)
 
 
 def stp(n_channels=1, u=None, tau=None, normalize=False):

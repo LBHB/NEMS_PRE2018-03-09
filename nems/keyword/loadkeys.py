@@ -270,11 +270,9 @@ def fb18ch100(stack):
         chancount=18)
 
     print("Initializing load_mat with file {0}".format(filename))
-    module = nm.loaders.load_mat(parent_stack=stack, est_files=[filename],
-                                 fs=100, avg_resp=True)
-    stack.append(module)
-    module = nm.est_val.standard(parent_stack=stack)
-    stack.append(module)
+    stack.append(nm.loaders.load_mat, est_files=[filename], fs=100,
+                 avg_resp=True)
+    stack.append(nm.est_val.standard)
 
 
 def fb18ch100pt(stack):

@@ -321,3 +321,54 @@ class dummy_data(nems_module):
         self.d_out[0]['resp'] = self.d_out[0]['stim'][0, :, :] * 2 + 1
         self.d_out[0]['repcount'] = np.sum(
             np.isnan(self.d_out[0]['resp']) == False, axis=0)
+
+class load_signals(load_mat):
+
+    def my_init(self, signals=[]):
+        self.signals = signals
+
+    def evaluate(self, **kwargs):
+        del self.d_out[:]
+
+        stims = [s for s in self.signals if 'stim' in s.name]
+        resps = [s for s in self.signals if 'resp' in s.name]
+        pupils = [s for s in self.signals if 'pupil' in s.name]
+
+        # TODO: Think of more intelligent ways of combining multiple signals
+        # At the moment, it dies if there are >1 signals of these types:
+        #    stim
+        #    resp
+        #    pupil
+        # In the future, we could make this smarter (concatenate automatically?)
+
+        if (len(stims) > 1 or len(resps) > 1 or len(pupils) > 1):
+            raise ValueError(["Cannot determine stim/resp name; if you want "
+                              "to combine multiple stims or responses you "
+                              "need to do that manually first. "])
+
+        stim = stims[0]
+        resp = resps[0]
+        pupil = pupils[0] if pupils else None
+
+        data = {}
+        data['stim'] = stim.as_old_matlab_format()
+        data['resp'] = resp.as_old_matlab_format()
+        data['stimFs'] = stim.fs
+        data['respFs'] = resp.fs
+        data['isolation'] = resp.meta['isolation']
+        data['prestim'] = stim.meta['prestim']
+        data['poststim'] = stim.meta['poststim']
+        data['duration'] = stim.meta['duration']
+        data['pupil'] = pupil.as_old_matlab_format()
+        data['filestate'] = 0
+
+        # DELETED: Resampling stuff.
+        # fund number of reps of each stimulus
+        # data['repcount'] = np.sum(np.isfinite(data['resp'][0,:,:]),axis=0)
+        # data['avg_resp'] = ...
+
+        #data['behavior_condition'] = np.ones(data['resp'].shape)*(data['filestate']>0)
+        #data['behavior_condition'][np.isnan(data['resp'])]=np.nan
+
+        print('Exiting load_mat_hacked ')
+        self.d_out.append(data)

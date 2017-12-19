@@ -99,6 +99,13 @@ class nems_stack:
         # self.valfrac=0.05 #Fraction of the data used to create each
         # validation nest
 
+    def get_phi(self):
+        return [module.get_phi() for module in self.modules]
+
+    def set_phi(self, phi):
+        for p, m in zip(phi, self.modules):
+            m.set_phi(p)
+
     def evaluate(self, start=0):
         """
         Evaluate modules in stack, starting at module # start. When stack is
@@ -460,10 +467,8 @@ class nems_stack:
                 # if the module specific plotting uses an inner subplot grid, passes the outer grid
                 # this implementation is quite nasty since it relies on an error to choose between cases
                 # although passing the handlers of figure and outer grid to the plotting function
-                # seems overall much more cleaner.
-                # , wspace=0.2, hspace=0.2)
-                self.modules[idx].do_plot(
-                    self.modules[idx], figure=fig, outer=outer[sp])
+                # seems to be what matplotlib wants us to do .
+                self.modules[idx].do_plot(self.modules[idx], figure = fig ,outer=outer[sp]) #, wspace=0.2, hspace=0.2)
             except BaseException:
                 mod_ax = plt.Subplot(fig, outer[sp])
                 fig.add_subplot(mod_ax)

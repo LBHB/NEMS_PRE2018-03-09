@@ -10,7 +10,6 @@ Created on Fri Aug 11 11:14:52 2017
 
 import nems.modules as nm
 import nems.fitters
-from nems.utilities.utils import create_parmlist
 
 from .registry import keyword_registry
 
@@ -30,7 +29,6 @@ def fit00(stack):
     stack.fitter = nems.fitters.fitters.basic_min(stack)
     stack.fitter.tolerance = 0.001
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fit01(stack):
@@ -47,7 +45,6 @@ def fit01(stack):
     stack.fitter = nems.fitters.fitters.basic_min(stack)
     stack.fitter.tolerance = 0.00000001
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fit02(stack):
@@ -64,7 +61,6 @@ def fit02(stack):
     stack.fitter = nems.fitters.fitters.basic_min(stack, routine='SLSQP')
     stack.fitter.tolerance = 0.000001
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fit03(stack):
@@ -81,7 +77,6 @@ def fit03(stack):
     stack.fitter = nems.fitters.fitters.basic_min(stack)
     stack.fitter.tolerance = 0.000000001
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fit04(stack):
@@ -98,7 +93,6 @@ def fit04(stack):
     stack.fitter = nems.fitters.fitters.basic_min(stack)
     stack.fitter.tolerance = 0.0000001
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fit00h1(stack):
@@ -115,7 +109,6 @@ def fit00h1(stack):
     stack.fitter = nems.fitters.fitters.basic_min(stack)
     stack.fitter.tol = 0.001
     stack.fitter.do_fit()
-    create_parmlist(stack)
     stack.popmodule()
     stack.append(nm.metrics.mean_square_error)
 
@@ -141,7 +134,6 @@ def fitannl00(stack):
         stack, anneal_iter=50, stop=5, up_int=10, bounds=None)
     stack.fitter.tol = 0.001
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fitannl01(stack):
@@ -165,7 +157,6 @@ def fitannl01(stack):
         stack, anneal_iter=100, stop=10, up_int=5, bounds=None)
     stack.fitter.tol = 0.000001
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fititer00(stack):
@@ -188,7 +179,6 @@ def fititer00(stack):
     stack.fitter.sub_fitter.step_init = 0.05
 
     stack.fitter.do_fit()
-    create_parmlist(stack)
 
 
 def fititer01(stack):
@@ -208,16 +198,6 @@ def fititer01(stack):
     stack.fitter.sub_fitter = nems.fitters.fitters.basic_min(stack)
 
     stack.fitter.do_fit()
-    create_parmlist(stack)
-
-# def adadelta00(stack):
-#    """
-#    Very unoperational attempt at using tensorflow
-#    """
-#    stack.fitter=ntf.ADADELTA_min(stack)
-#   stack.fitter.do_fit()
-#    create_parmlist(stack)
-#    stack.append(nm.mean_square_error)
 
 
 for k, v in list(locals().items()):

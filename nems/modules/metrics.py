@@ -356,8 +356,7 @@ class ssa_index(nems_module):
 
     name = 'metrics.ssa_index'
     user_editable_fields = ['input1', 'input2', 'baseline', 'window']
-    plot_fns = [nems.utilities.plot.plot_ssa_idx,
-                nems.utilities.plot.plot_ssa_timing]
+    plot_fns = [nems.utilities.plot.plot_ssa_idx]
     input1 = 'stim'
     input2 = 'resp'
     window = 'start'
