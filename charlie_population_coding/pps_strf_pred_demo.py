@@ -71,7 +71,8 @@ rvals = []
 for i, cellid in enumerate(cellids):
     #cellid='BOL005c-18-1'
     cellid = cellid[0]
-    sys.exit()
+    
+    #sys.exit()
     batch=293
     modelname= "parm50_wcg02_fir10_dexp_fit01_nested5" #"parm50_wcg02_fir10_pupgainctl_fit01_nested5"
     
@@ -95,14 +96,14 @@ for i, cellid in enumerate(cellids):
     #p=m.d_out[val_file_idx]['pred'].copy()
     #r=m.d_out[val_file_idx]['resp'].copy()
     
-    p = stack.data[-1][0]['pred'].copy()
-    r = stack.data[-1][0]['resp'].copy()
+    p = stack.data[-1][0]['pred'].squeeze().copy()
+    r = stack.data[-1][0]['resp'].squeeze().copy()
     pup = stack.data[-1][0]['pupil'].copy()
     pup = pup.T
     
     if i == 0:
-        pred = np.empty((r.shape[1], r.shape[0], len(cellids)))
-        resp = np.empty((r.shape[1], r.shape[0], len(cellids)))
+        pred = np.empty((r.shape[-1], r.shape[0], len(cellids)))
+        resp = np.empty((r.shape[-1], r.shape[0], len(cellids)))
         
     #pup=m.d_out[val_file_idx]['pupil'].copy().T
     #fir_coefs=m.coefs
@@ -134,7 +135,7 @@ plt.plot(np.nanmean(cc_r0,1), '-o', color='b')
 plt.ylabel('pearsons corr coef')
 plt.xlabel('pip trial')
 plt.legend(['rN', 'r0 (strf)'])
-pup_m = np.mean(pup,0)/2
+pup_m = np.squeeze(np.mean(pup,0)/2)
 plt.title('rN vs. pupil: %s, r0 vs. pupil: %s' 
           %(np.corrcoef(np.nanmean(cc_rN,1), pup_m)[0][1], np.corrcoef(np.nanmean(cc_r0,1), pup_m)[0][1]))
 
