@@ -440,9 +440,9 @@ def fchan100(stack):
     site=stack.meta['site']
     resp_channels=stack.meta['resp_channels']
     stimfile=ut.baphy.get_celldb_file(batch,tcellid,fs=fs,stimfmt=stimfmt,chancount=chancount)
-    datapath='/auto/users/svd/docs/current/grant/crcns_array/Stimulus_Subspace/'
-    #datapath='/auto/users/hellerc/Stimulus_Subspace/'
-    respfile="{0}{1}_10.mat".format(datapath,site)
+    #datapath='/auto/users/svd/docs/current/grant/crcns_array/Stimulus_Subspace/'
+    datapath='/auto/users/hellerc/Stimulus_Subspace/'
+    respfile="{0}{1}_10>84.mat".format(datapath,site)
 
     stack.append(nm.loaders.load_gen, load_fun='load_factor', stimfile=stimfile,
                  respfile=respfile,resp_channels=resp_channels)
