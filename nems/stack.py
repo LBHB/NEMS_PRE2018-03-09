@@ -556,3 +556,19 @@ class nems_stack:
                 raise e
 
         return filename
+
+    def find_modules(self, module_name=None, output_name=None):
+        def match(module):
+            if module_name is not None and module.name != module_name:
+                return False
+            if output_name is not None and module.output_name != output_name:
+                return False
+        return [m for m in stack.modules if match(m)]
+
+    def find_module(self, *args, **kwargs):
+        modules = self.find_modules(*args, **kwargs)
+        if len(module) > 1:
+            raise ValueError('More than one module matches criteria')
+        elif len(module) < 1:
+            raise ValueError('No module matches criteria')
+        return modules[0]
