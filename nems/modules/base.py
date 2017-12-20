@@ -162,7 +162,7 @@ class nems_module:
                 d[name] = np.reshape(X[:, 0:n], s2)
                 X = X[:, n:]
 
-    def evaluate(self, nest=0):
+    def evaluate_deprecated(self, nest=0):
         """
         General evaluate function, for both nested and non-nested crossval. Creates
         a copy of the d_in dataframe and places it in the next position in stack.data.
@@ -201,6 +201,35 @@ class nems_module:
                     del_idx.append(i)
             for i in sorted(del_idx, reverse=True):
                 del self.d_out[i]
+                
+    def evaluate(self, nest=0):
+        """
+        General evaluate function, for both nested and non-nested crossval. Creates
+        a copy of the d_in dataframe and places it in the next position in stack.data.
+        Then calls the module specific my_eval, and replaces d_out[output_name] with
+        the output of my_eval.
+        """
+        del self.d_out[:]
+        # create a copy of each input variable
+        for i, d in enumerate(self.d_in):
+            # self.d_out.append(copy.deepcopy(d))
+            # TODO- make it so don't deepcopy eveything. deal with nesting!
+            self.d_out.append(copy.copy(d))
+
+        for f_in, f_out in zip(self.d_in, self.d_out):
+            # don't need to eval the est data for each nest, just the first
+            # one
+            X = copy.deepcopy(f_in[self.input_name])
+            f_out[self.output_name] = self.my_eval(X)
+
+        if hasattr(self, 'state_mask'):
+            del_idx = []
+            for i in range(0, len(self.d_out)):
+                if not self.d_out[i]['filestate'] in self.state_mask:
+                    del_idx.append(i)
+            for i in sorted(del_idx, reverse=True):
+                del self.d_out[i]
+
 
     def my_init(self, **xargs):
         """

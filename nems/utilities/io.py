@@ -442,10 +442,10 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
             else:
                 data['state'] = data['behavior_condition']
     
-            return data
+    return data
 
 
-def load_ecog(stack, fs=25):
+def load_ecog(stack, fs=25, avg_resp=True, stimfile=None, respfile=None, resp_channels=None):
     """
     special hard-coded loader from ECOG data from Sam
     """
@@ -455,10 +455,10 @@ def load_ecog(stack, fs=25):
 
     stimfile = '/auto/data/daq/ecog/coch.mat'
     respfile = '/auto/data/daq/ecog/reliability0.1.mat'
-
+    
     stimdata = h5py.File(stimfile, 'r')
     respdata = h5py.File(respfile, 'r')
-
+    
     data = {}
     for name, d in respdata.items():
         #print (name)
@@ -491,25 +491,19 @@ def load_ecog(stack, fs=25):
 
     return data
 
-def load_factor(site, factor_range=[0], fs=100, stimfmt='ozgf', chancount=18, avg_resp=True):
+def load_factor(stack=None, fs=100, avg_resp=True, stimfile=None, respfile=None, resp_channels=None):
     
-    batch=271 #A1
-    tcellid='TAR010c-02-1'
-
-    file=ut.baphy.get_celldb_file(batch,tcellid,fs=fs,stimfmt=stimfmt,chancount=chancount)
-    print("Loading stim data from file {0}".format(file))
-    
-    data=load_baphy_data(est_files=[file], fs=fs, avg_resp=avg_resp)
+    print("Loading stim data from file {0}".format(stimfile))
+    data=load_baphy_data(est_files=[stimfile], fs=fs, avg_resp=avg_resp)
     
     # response data to paste into a "standard" data object
-    datapath='/auto/users/svd/docs/current/grant/crcns_array/Stimulus_Subspace/'
-    respfile="{0}{1}_10.mat".format(datapath,site)
-    
+    print("Loading resp data from file {0}".format(respfile))
     matdata = ut.io.get_mat_file(respfile)
     
-    resp=matdata['lat_vars'][:,:,factor_range]
+    resp=matdata['lat_vars'][:,:,resp_channels]
+    print(resp.shape)
     resp=np.transpose(resp,[2,1,0])
-    data[0]['resp']=resp
+    data['resp']=resp
     
     return data
   
