@@ -233,30 +233,12 @@ class FIR(Module):
         return fir_filter(x, self.coefs, self.baseline, bank_count=self.bank_count)
 
     def get_strf(self):
+        wc = self.parent_stack \
+            .find_module('filters.weight_channels', self.output_name)
+        w = wc.get_coefs()
         h = self.coefs
+        return w.T @ h
 
-        # if weight channels exist and dimensionality matches, generate a full
-        # STRF
-        try:
-            wcidx = nems.utilities.utils.find_modules(self.parent_stack, "filters.weight_channels")
-            if len(wcidx) > 0 and self.parent_stack.modules[wcidx[0]].output_name == self.output_name:
-                wcidx = wcidx[0]
-            elif len(wcidx) > 1 and self.parent_stack.modules[wcidx[1]].output_name == self.output_name:
-                wcidx = wcidx[1]
-            else:
-                wcidx = -1
-        except BaseException:
-            wcidx = -1
-
-        if self.name == "filters.fir" and wcidx >= 0:
-            w = self.parent_stack.modules[wcidx].coefs
-            if w.shape[0] == h.shape[0]:
-                h = np.matmul(w.transpose(), h)
-
-        return h
-
-class fir(FIR): #clone of FIR
-    pass
 
 ################################################################################
 # Short-term plasticity
