@@ -222,17 +222,10 @@ class basic_min(nems_fitter):
         # Below here are the general need for a nems_fitter object.
         self.phi0 = self.stack.get_phi(self.fit_modules)
         self.counter = 0
-<<<<<<< HEAD
-        log.info("basic_min: phi0 initialized (fitting {0} parameters)".format(
-            len(self.phi0)))
-        #log.info("maxiter: {0}".format(opt['maxiter']))
-        sp.optimize.minimize(self.cost_fn, self.phi0, method=self.routine,
-=======
         vector = phi_to_vector(self.phi0)
-        print("basic_min: phi0 initialized (fitting {0} parameters)" \
-              .format(len(vector)))
+        log.info("basic_min: phi0 initialized (fitting {0} parameters)"
+                 .format(len(vector)))
         sp.optimize.minimize(self.cost_fn, vector, method=self.routine,
->>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
                              constraints=cons, options=opt, tol=self.tolerance)
         log.info("Final {0}: {1}".format(
             self.stack.modules[-1].name, self.stack.error()))
@@ -324,8 +317,6 @@ class anneal_min(nems_fitter):
         log.info('           ')
         return(self.stack.error())
 
-
-<<<<<<< HEAD
 """
 Tried using skopt package. Did not go super well, only used pupil data though.
 Will try again later with different data (i.e. more estimation data) --njs, June 29 2017
@@ -382,9 +373,6 @@ class forest_min(nems_fitter):
         return(self.stack.error())
 """
 
-
-=======
->>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
 class coordinate_descent(nems_fitter):
     """
     coordinate descent - step one parameter at a time
@@ -479,14 +467,9 @@ class coordinate_descent(nems_fitter):
             s = s_new[x_opt]
 
         # save final parameters back to model
-<<<<<<< HEAD
         log.info("done CD: step size: {0:.6f} steps: {1}".format(step_size, n))
-        self.phi_to_fit(x)
-=======
-        print("done CD: step size: {0:.6f} steps: {1}".format(step_size, n))
         phi = vector_to_phi(x, self.phi0)
         stack.set_phi(phi)
->>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
 
         #log.info("Final MSE: {0}".format(s))
         return(s)
@@ -517,16 +500,10 @@ class fit_iteratively(nems_fitter):
         this_itr = 0
         while itr < self.max_iter:
             this_itr += 1
-<<<<<<< HEAD
-            for i in self.fit_modules:
-                log.info("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(
-                    self.stack.modules[i].name, itr, self.sub_fitter.tolerance))
-                self.sub_fitter.fit_modules = [i]
-=======
+
             for i in self.module_sets:
-                print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i[0]].name,itr,self.sub_fitter.tolerance))
+                log.info("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i[0]].name,itr,self.sub_fitter.tolerance))
                 self.sub_fitter.fit_modules = i
->>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
                 new_err = self.sub_fitter.do_fit()
             if err - new_err < self.sub_fitter.tolerance:
                 log.info("")
