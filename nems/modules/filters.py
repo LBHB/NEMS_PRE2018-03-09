@@ -8,7 +8,7 @@ from scipy import signal
 ################################################################################
 # Channel weighting
 ################################################################################
-def weight_channels(x, weights, baseline=None):
+def weight_channels_local(x, weights, baseline=None):
     '''
     Parameters
     ----------
@@ -118,8 +118,10 @@ class WeightChannels(Module):
             coefs = self.coefs
         else:
             coefs = self.coefs
-        return weight_channels(x, coefs)
+        return weight_channels_local(x, coefs)
 
+class weight_channels(WeightChannels):
+    pass
 
 ################################################################################
 # FIR filtering
@@ -161,10 +163,12 @@ def fir_filter(x, coefficients, baseline=None, pad=False, bank_count=1):
     if bank_count>1:
         # reshape inputs so that filter is summed separately across each bank
         # need to test this!
-        s=result.shape
+        s=list(result.shape)
+        #print(s)
         ts0=np.int(s[-3]/bank_count)
         ts1=bank_count
-        result.np.reshape(result,s[:-4]+[ts0,ts1]+s[-2:])
+        #print("{0},{1}".format(ts0,ts1))
+        result=np.reshape(result,s[:-4]+[ts0,ts1]+s[-2:])
         result = np.sum(result, axis=-4)
     else:
         result = np.sum(result, axis=-3, keepdims=True)
@@ -251,6 +255,8 @@ class FIR(Module):
 
         return h
 
+class fir(FIR): #clone of FIR
+    pass
 
 ################################################################################
 # Short-term plasticity

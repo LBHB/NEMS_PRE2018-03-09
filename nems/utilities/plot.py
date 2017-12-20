@@ -283,12 +283,10 @@ def plot_stim_psth(m, idx=None, size=FIGSIZE):
         
     
 def plot_strf(m, idx=None, size=FIGSIZE):
-    try:
-        if m.bank_count>1:
-           plot_strf_bank(m,idx,size)
-    except:
-        pass
-
+    if 'bank_count' in dir(m) and m.bank_count>1:
+        plot_strf_bank(m,idx,size)
+        return
+ 
     if idx:
         plt.figure(num=idx, figsize=size)
     h = m.coefs
