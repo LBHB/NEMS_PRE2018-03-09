@@ -102,6 +102,22 @@ class nems_stack:
         # self.valfrac=0.05 #Fraction of the data used to create each
         # validation nest
 
+    def get_phi(self, module_subset=None):
+        if module_subset:
+            phi=[]
+            for ii in range(0,len(self.modules)):
+                if ii in module_subset:
+                    phi.append(self.modules[ii].get_phi())
+                else:
+                    phi.append({})
+            return phi
+        else:
+            return [module.get_phi() for module in self.modules]
+
+    def set_phi(self, phi):
+        for p, m in zip(phi, self.modules):
+            m.set_phi(p)
+
     def evaluate(self, start=0):
         """
         Evaluate modules in stack, starting at module # start. When stack is

@@ -16,6 +16,7 @@ import nems.fitters as nf
 import nems.keyword as nk
 import nems.utilities as ut
 import nems.stack as ns
+from nems.keyword.registry import keyword_registry
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -50,7 +51,7 @@ def dexp_fn(phi,X):
     Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
     return(Y)
 
-doval=0
+doval=1
 
 if 0:
     """ RDT """
@@ -66,10 +67,10 @@ if 1:
     #batch=291  # IC
     
     #cellid="bbl031f-a1"
-    cellid="chn020f-b1"
+    cellid="eno052b-c1"
     batch=271 #A1
-    #modelname="fb18ch100_wcg01_fir15_dexp_fit01"
-    modelname="ctx100ch100_dlog_wc02_fir15_fit01"
+    modelname="fb18ch100_wcg01_fir15_fit01"
+    #modelname="ctx100ch100_dlog_wc02_fir15_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
     #modelname="fb93ch100_dlog2_wcg02_fir15_fit01"
     #modelname="fb18ch100_wc01_fir15_fit01"
@@ -157,21 +158,22 @@ if 0:
 else:
     stack=ns.nems_stack(cellid=cellid,batch=batch,modelname=modelname)
     stack.valmode=False
-    stack.keyfuns=nk.keyfuns
+    #stack.keyfuns=nk.keyfuns
     
     # extract keywords from modelname, look up relevant functions in nk and save
     # so they don't have to be found again.
     
     # evaluate the stack of keywords    
-    if 'nest' in stack.keywords[-1]:
-        # special case if last keyword contains "nested". TODO: better imp!
-        print('Evaluating stack using nested cross validation. May be slow!')
-        k=stack.keywords[-1]
-        stack.keyfuns[k](stack)
+    if 'nested' in stack.keywords[-1]:
+        # special case for nested keywords. Stick with this design?
+        print('Using nested cross-validation, fitting will take longer!')
+        k = stack.keywords[-1]
+        keyword_registry[k](stack)
     else:
-        print('Evaluating stack')
+        print('Using standard est/val conditions')
         for k in stack.keywords:
-            stack.keyfuns[k](stack)
+            print(k)
+            keyword_registry[k](stack)
 
     if doval:
         # validation stuff

@@ -273,28 +273,41 @@ class load_gen(nems_module):
     """
     name = 'loaders.load_gen'
     user_editable_fields = ['output_name',
-                            'stimfile', 'respfile', 'fs', 'avg_resp']
+                            'stimfile', 'respfile', 'fs', 'avg_resp', 'resp_channels']
     plot_fns = [nems.utilities.plot.plot_spectrogram,
                 nems.utilities.plot.raster_plot]
     stimfile = None
     respfile = None
     fs = 100
     avg_resp = True
-
+    resp_channels=[0]
+    
     def my_init(self, stimfile=None, respfile=None, fs=100,
-                avg_resp=True, load_fun='load_ecog'):
+                avg_resp=True, load_fun='load_ecog', resp_channels=[0]):
         self.stimfile = stimfile
         self.respfile = respfile
         self.fs = fs
         self.avg_resp = avg_resp
         self.auto_plot = False
-
+        self.resp_channels = resp_channels
+        self.load_fun = load_fun
+        
     def evaluate(self):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
-        self.d_out[0] = nems.utilities.io.load_ecog(
-            stack=self.parent_stack, fs=self.fs)
+        if self.load_fun=='load_ecog':
+            self.d_out[0] = nems.utilities.io.load_ecog(
+                    stack=self.parent_stack, fs=self.fs, 
+                    avg_resp=self.avg_resp, respfile=self.respfile,
+                    stimfile=self.stimfile, resp_channels=self.resp_channels)
+        elif self.load_fun=='load_factor':
+            self.d_out[0] = nems.utilities.io.load_factor(
+                    stack=self.parent_stack, fs=self.fs, 
+                    avg_resp=self.avg_resp, respfile=self.respfile,
+                    stimfile=self.stimfile, resp_channels=self.resp_channels)
+        else:
+            raise ValueError('Unsupported load_fun')
 
 
 class dummy_data(nems_module):

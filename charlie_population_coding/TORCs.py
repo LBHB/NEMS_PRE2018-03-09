@@ -420,7 +420,7 @@ c_ids = [x[8:] for x in cellids]
 
 Vmax = np.nanmax(np.concatenate((mw_act.flatten(), mw_pass.flatten(), mw_spont_act.flatten(), mw_spont_act.flatten()))) 
 Vmin =np.nanmin(np.concatenate((mw_act.flatten(), mw_pass.flatten(), mw_spont_act.flatten(), mw_spont_act.flatten()))) 
-plt.figure()
+plt.figure(20)
 ax = plt.subplot(231)
 plt.imshow(mw_act, vmin=Vmin, vmax = Vmax,cmap='jet')
 plt.colorbar()

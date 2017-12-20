@@ -66,11 +66,11 @@ if spontonly:
     r, p = pu.get_spont_data(r, data['pupil'], data['prestim'], data['respFs'])
 
 #use scipy's resample which uses fft and low pass FIR filtering (faster))
-fs = 10
+#fs = 10
 
-samps = int(round(fs*(r.shape[0]/100.0)))
-r = ss.resample(r, samps)
-p = ss.resample(p, samps)
+#samps = int(round(fs*(r.shape[0]/100.0)))
+#r = ss.resample(r, samps)
+#p = ss.resample(p, samps)
 
 # z-score spikes and pupil
 r = pu.whiten(r)
@@ -148,6 +148,10 @@ x = np.linspace(-1,1,3)
 ncols = np.ceil(repcount/7)
 nrows = 7
 color = np.arange(cellcount)
+try:
+    fs
+except:    
+    fs = 100
 for stim in range(0, stimcount):
     fig = plt.figure()
     for rep in range(0, repcount):

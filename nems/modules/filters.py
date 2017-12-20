@@ -11,7 +11,7 @@ from scipy import signal
 ################################################################################
 # Channel weighting
 ################################################################################
-def weight_channels(x, weights, baseline=None):
+def weight_channels_local(x, weights, baseline=None):
     '''
     Parameters
     ----------
@@ -73,7 +73,7 @@ class WeightChannels(Module):
             num_dims = self.d_in[0][self.input_name].shape[0]
         self.num_dims = num_dims
         self.num_chans = num_chans
-        self.baseline = np.array(baseline)
+        self.baseline=np.ones([num_chans,1])*baseline
         self.fit_fields = fit_fields
         if parm_type:
             if parm_type == 'gauss':
@@ -121,8 +121,10 @@ class WeightChannels(Module):
             coefs = self.coefs
         else:
             coefs = self.coefs
-        return weight_channels(x, coefs)
+        return weight_channels_local(x, coefs)
 
+class weight_channels(WeightChannels):
+    pass
 
 ################################################################################
 # FIR filtering
@@ -138,12 +140,12 @@ def get_zi(b, x):
     return signal.lfilter(b, [1], null_data, zi=zi)[1]
 
 
-def fir_filter(x, coefficients, baseline=None, pad=False):
+def fir_filter(x, coefficients, baseline=None, pad=False, bank_count=1):
     if pad:
         # TODO: This may become a moot option after Ivar's revamp of the data
         # loading system.
-        pad_width = coefs.shape[-1] * 2
-        padding = [(0, 0)] * X.ndim
+        pad_width = coefficients.shape[-1] * 2
+        padding = [(0, 0)] * x.ndim
         padding[-1] = (0, pad_width)
         x = np.pad(x, padding, mode='constant')
 
@@ -161,11 +163,22 @@ def fir_filter(x, coefficients, baseline=None, pad=False):
     if pad:
         result = result[..., :-pad_width]
 
-    result = np.sum(result, axis=-3, keepdims=True)
+    if bank_count>1:
+        # reshape inputs so that filter is summed separately across each bank
+        # need to test this!
+        s=list(result.shape)
+        #print(s)
+        ts0=np.int(s[-3]/bank_count)
+        ts1=bank_count
+        #print("{0},{1}".format(ts0,ts1))
+        result=np.reshape(result,s[:-4]+[ts0,ts1]+s[-2:])
+        result = np.sum(result, axis=-4)
+    else:
+        result = np.sum(result, axis=-3, keepdims=True)
 
     if baseline is not None:
         result += baseline
-
+        
     return result
 
 
@@ -175,9 +188,10 @@ class FIR(Module):
     (channels,stims,time), convolves with FIR coefficients, applies a baseline DC
     offset, and outputs a 2D stim array (stims,time).
     """
+
     name = 'filters.fir'
-    user_editable_fields = ['input_name', 'output_name', 'fit_fields',
-                            'num_dims', 'num_coefs', 'coefs', 'baseline', 'random_init']
+    user_editable_fields = ['input_name','output_name','fit_fields',
+                            'num_dims','num_coefs','coefs','baseline','random_init','bank_count']
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
     coefs = None
@@ -185,9 +199,10 @@ class FIR(Module):
     num_dims = 0
     random_init = False
     num_coefs = 20
+    bank_count=1
 
     def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=[
-                'baseline', 'coefs'], random_init=False, coefs=None):
+                'baseline', 'coefs'], random_init=False, coefs=None, bank_count=1):
         """
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
@@ -200,6 +215,10 @@ class FIR(Module):
         if self.d_in and not(num_dims):
             num_dims = self.d_in[0][self.input_name].shape[0]
         self.num_dims = num_dims
+        if bank_count<=1:
+            self.bank_count=1
+        else:
+            self.bank_count=bank_count
         self.num_coefs = num_coefs
         self.baseline[0] = baseline
         self.random_init = random_init
@@ -214,7 +233,7 @@ class FIR(Module):
         self.do_trial_plot = self.plot_fns[0]
 
     def my_eval(self, x):
-        return fir_filter(x, self.coefs, self.baseline)
+        return fir_filter(x, self.coefs, self.baseline, bank_count=self.bank_count)
 
     def get_strf(self):
         h = self.coefs
@@ -222,10 +241,8 @@ class FIR(Module):
         # if weight channels exist and dimensionality matches, generate a full
         # STRF
         try:
-            wcidx = nems.utilities.utils.find_modules(
-                self.parent_stack, "filters.weight_channels")
-            if len(
-                    wcidx) > 0 and self.parent_stack.modules[wcidx[0]].output_name == self.output_name:
+            wcidx = nems.utilities.utils.find_modules(self.parent_stack, "filters.weight_channels")
+            if len(wcidx) > 0 and self.parent_stack.modules[wcidx[0]].output_name == self.output_name:
                 wcidx = wcidx[0]
             elif len(wcidx) > 1 and self.parent_stack.modules[wcidx[1]].output_name == self.output_name:
                 wcidx = wcidx[1]
@@ -241,6 +258,8 @@ class FIR(Module):
 
         return h
 
+class fir(FIR): #clone of FIR
+    pass
 
 ################################################################################
 # Short-term plasticity

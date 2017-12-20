@@ -220,22 +220,6 @@ def mini_fit(stack, mods=['filters.weight_channels',
     stack.popmodule()
 
 
-def create_parmlist(stack):
-    """
-    Helper function that assigns all fitted parameters for a model to a single (n,)
-    phi vector and accociates it to the stack.parm_fits object
-    """
-    stack.fitted_modules = []
-    phi = []
-    for idx, m in enumerate(stack.modules):
-        this_phi = m.parms2phi()
-        if this_phi.size:
-            stack.fitted_modules.append(idx)
-            phi.append(this_phi)
-    phi = np.concatenate(phi)
-    stack.parm_fits.append(phi)
-
-
 def nest_helper(stack, nests=20):
     """
     Helper function for implementing nested cross-validation. Essentially sets up

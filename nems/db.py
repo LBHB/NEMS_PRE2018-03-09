@@ -575,16 +575,37 @@ def _fetch_attr_value(stack, k, default=0.0):
 
 def get_batch_cells(batch=None, cellid=None):
     # eg, sql="SELECT * from NarfBatches WHERE batch=301"
-
-    sql = "SELECT * FROM NarfBatches WHERE 1"
+    params=()
+    sql="SELECT * FROM NarfBatches WHERE 1"
     if not batch is None:
-        sql += " AND batch={}".format(batch)
-
+        sql+=" AND batch=%s"
+        params=params+(batch,)
+        
     if not cellid is None:
-        sql += " AND cellid like '{}'".format(cellid)
+       sql+=" AND cellid like %s"
+       params=params+(cellid+"%",)
+    print(sql)
+    print(params)
+    d=pd.read_sql(sql=sql,con=engine, params=params)
+    
+    return d
 
-    d = pd.read_sql(sql=sql, con=engine)
+def get_batches(name=None):
+    # eg, sql="SELECT * from NarfBatches WHERE batch=301"
+    params=()
+    sql="SELECT *,id as batch FROM sBatch WHERE 1"
+    if not name is None:
+        sql+=" AND name like %s"
+        params=params+("%"+name+"%",)
+    d=pd.read_sql(sql=sql,con=engine, params=params)
+    
+    return d
 
+def list_batches(name=None):
+    d=get_batches(name)
+    for x in range(0,len(d)):
+        print("{} {}".format(d['batch'][x],d['name'][x]))
+    
     return d
 
 

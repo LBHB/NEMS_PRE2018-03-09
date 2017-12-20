@@ -84,8 +84,8 @@ def fit_single_model(cellid, batch, modelname,
         stack.plot_dataidx = valdata[0]
     else:
         stack.plot_dataidx = 0
-    phi = stack.fitter.fit_to_phi()
-    stack.meta['n_parms'] = len(phi)
+    #phi = stack.fitter.fit_to_phi()
+    #stack.meta['n_parms'] = len(phi)
 
     # edit: added autoplot kwarg for option to disable auto plotting
     #       -jacob, 6/20/17

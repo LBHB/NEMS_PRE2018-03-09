@@ -83,28 +83,12 @@ class nems_module:
         # not sure that this is a complete list
         # self.user_editable_fields=['input_name','output_name']+list(self.field_dict.keys())
 
-    def parms2phi(self):
-        """
-        parms2phi - extract all parameter values contained in properties
-        listed in self.fit_fields so that they can be passed to fit routines.
-        """
-        phi = np.empty(shape=[0, 1])
-        for k in self.fit_fields:
-            phi = np.append(phi, getattr(self, k).flatten())
-        return phi
+    def get_phi(self):
+        return {k: getattr(self, k) for k in self.fit_fields}
 
-    def phi2parms(self, phi=[]):
-        """
-        phi2parms - import fit parameter values from a vector provided by a
-        fit routine
-        """
-        os = 0
-        # log.info(phi)
-        for k in self.fit_fields:
-            s = getattr(self, k).shape
-            # phi=np.array(phi)
-            setattr(self, k, phi[os:(os + np.prod(s))].reshape(s))
-            os += np.prod(s)
+    def set_phi(self, phi):
+        for k, v in phi.items():
+            setattr(self, k, v)
 
     def get_user_fields(self):
         f = {}
@@ -180,7 +164,7 @@ class nems_module:
                 d[name] = np.reshape(X[:, 0:n], s2)
                 X = X[:, n:]
 
-    def evaluate(self, nest=0):
+    def evaluate_deprecated(self, nest=0):
         """
         General evaluate function, for both nested and non-nested crossval. Creates
         a copy of the d_in dataframe and places it in the next position in stack.data.
@@ -220,9 +204,35 @@ class nems_module:
             for i in sorted(del_idx, reverse=True):
                 del self.d_out[i]
 
-    #
-    # customizable functions
-    #
+    def evaluate(self, nest=0):
+        """
+        General evaluate function, for both nested and non-nested crossval. Creates
+        a copy of the d_in dataframe and places it in the next position in stack.data.
+        Then calls the module specific my_eval, and replaces d_out[output_name] with
+        the output of my_eval.
+        """
+        del self.d_out[:]
+        # create a copy of each input variable
+        for i, d in enumerate(self.d_in):
+            # self.d_out.append(copy.deepcopy(d))
+            # TODO- make it so don't deepcopy eveything. deal with nesting!
+            self.d_out.append(copy.copy(d))
+
+        for f_in, f_out in zip(self.d_in, self.d_out):
+            # don't need to eval the est data for each nest, just the first
+            # one
+            X = copy.deepcopy(f_in[self.input_name])
+            f_out[self.output_name] = self.my_eval(X)
+
+        if hasattr(self, 'state_mask'):
+            del_idx = []
+            for i in range(0, len(self.d_out)):
+                if not self.d_out[i]['filestate'] in self.state_mask:
+                    del_idx.append(i)
+            for i in sorted(del_idx, reverse=True):
+                del self.d_out[i]
+
+
     def my_init(self, **xargs):
         """
         Placeholder for module specific initialization. my_init is defined for each

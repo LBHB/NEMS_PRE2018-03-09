@@ -9,24 +9,74 @@ Created on Fri Jun 16 05:20:07 2017
 import logging
 log = logging.getLogger(__name__)
 
+import os
 import scipy as sp
 import numpy as np
-#import sys
 
-try:
-    import nems.db as nd
-    db_exists = True
-except Exception as e:
-    # If there's an error import nems.db, probably missing database
-    # dependencies. So keep going but don't do any database stuff.
-    log.warn("Problem importing nems.db")
-    db_exists = False
 
-import os
+def phi_to_vector(phi):
+    '''
+    Convert a list of dictionaries where the values are scalars or array-like to
+    a single vector.
 
-# sys.path.append('/auto/users/shofer/scikit-optimize')
-#import skopt.optimizer.gbrt as skgb
-#import skopt.optimizer.gp as skgp
+    This is a helper function for fitters that use scipy.optimize. The scipy
+    optimizers require phi to be a single vector; however, it's more intuitive
+    for us to return a list of dictionaries (where each dictionary in the list
+    contains the values to be fitted.
+
+    >>> phi = [{'baseline': 0, 'coefs': [32, 41]}, {}, {'a': 1, 'b': 15.1}]
+    >>> phi_to_vector(phi)
+    [0, 32, 41, 1, 15.1]
+
+    >>> phi = [{'coefs': [[1, 2], [3, 4], [5, 6]]}, {'a': 32}]
+    >>> phi_to_vector(phi)
+    [1, 2, 3, 4, 5, 6, 32]
+    '''
+    vector = []
+    for p in phi:
+        for k in sorted(p.keys()):
+            value = p[k]
+            if np.isscalar(value):
+                vector.append(value)
+            else:
+                flattened_value = np.asanyarray(value).ravel()
+                vector.extend(flattened_value)
+    return vector
+
+
+def vector_to_phi(vector, phi_template):
+    '''
+    Convert vector back to a list of dictionaries given a template for phi
+
+    >>> phi_template = [{'baseline': 0, 'coefs': [0, 0]}, {}, {'a': 0, 'b': 0}]
+    >>> vector = [0, 32, 41, 1, 15.1]
+    >>> vector_to_phi(vector, phi_template)
+    [{'baseline': 0, 'coefs': array([32, 41])}, {}, {'a': 1, 'b': 15.1}]
+
+    >>> phi_template = [{'coefs': [[0, 0], [0, 0], [0, 0]]}, {'a': 0}]
+    >>> vector = [1, 2, 3, 4, 5, 6, 32]
+    >>> vector_to_phi(vector, phi_template)
+    [{'coefs': array([[1, 2], [3, 4], [5, 6]])}, {'a': 32}]
+    '''
+    # TODO: move this to a unit test instead?
+    offset = 0
+    phi = []
+    for p_template in phi_template:
+        p = {}
+        for k in sorted(p_template.keys()):
+            value_template = p_template[k]
+            if np.isscalar(value_template):
+                value = vector[offset]
+                offset += 1
+            else:
+                value_template = np.asarray(value_template)
+                size = value_template.size
+                value = np.asarray(vector[offset:offset+size])
+                value.shape = value_template.shape
+                offset += size
+            p[k] = value
+        phi.append(p)
+    return phi
 
 
 class nems_fitter:
@@ -35,10 +85,11 @@ class nems_fitter:
     Generic NEMS fitter object
 
     """
-
-    # common properties for all modules
-    name = 'default'
+    # Initial values of phi. This will be kept as the template to properly
+    # reconstruct phi following each iteration of the eval.
     phi0 = None
+
+    name = 'default'
     counter = 0
     fit_modules = []
     tolerance = 0.0001
@@ -51,8 +102,7 @@ class nems_fitter:
         if not fit_modules:
             self.fit_modules = []
             for idx, m in enumerate(self.stack.modules):
-                this_phi = m.parms2phi()
-                if this_phi.size:
+                if m.fit_fields:
                     self.fit_modules.append(idx)
         else:
             self.fit_modules = fit_modules
@@ -60,29 +110,6 @@ class nems_fitter:
 
     def my_init(self, **xargs):
         pass
-
-    def fit_to_phi(self):
-        """
-        Converts fit parameters to a single vector, to be used in fitting
-        algorithms.
-        """
-        phi = []
-        for k in self.fit_modules:
-            g = self.stack.modules[k].parms2phi()
-            phi = np.append(phi, g)
-        return(phi)
-
-    def phi_to_fit(self, phi):
-        """
-        Converts single fit vector back to fit parameters so model can be calculated
-        on fit update steps.
-        """
-        st = 0
-        for k in self.fit_modules:
-            phi_old = self.stack.modules[k].parms2phi()
-            s = phi_old.shape
-            self.stack.modules[k].phi2parms(phi[st:(st + np.prod(s))])
-            st += np.prod(s)
 
     # create fitter, this should be turned into an object in the nems_fitters
     # libarry
@@ -99,7 +126,8 @@ class nems_fitter:
         # run the fitter
         self.counter = 0
         # pull out current phi as initial conditions
-        self.phi0 = self.stack.modules[1].parms2phi()
+        self.phi0 = self.stack.get_phi()
+        vector = phi_to_vector(self.phi0)
         phi = sp.optimize.fmin(self.test_cost, self.phi0, maxiter=1000)
         return phi
 
@@ -149,7 +177,7 @@ class basic_min(nems_fitter):
         self.routine = routine
         self.tolerance = tolerance
 
-    def cost_fn(self, phi):
+    def cost_fn(self, vector):
         """
         The cost function is the function that the fitting algorithm minimizes
         by changing the module parameters. This function takes in the vector of
@@ -158,7 +186,8 @@ class basic_min(nems_fitter):
         called error (usually mean squared error, but sometimes other functions
         such as huber loss).
         """
-        self.phi_to_fit(phi)
+        phi = vector_to_phi(vector, self.phi0)
+        self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
@@ -191,12 +220,19 @@ class basic_min(nems_fitter):
         cons = ()
 
         # Below here are the general need for a nems_fitter object.
-        self.phi0 = self.fit_to_phi()
+        self.phi0 = self.stack.get_phi(self.fit_modules)
         self.counter = 0
+<<<<<<< HEAD
         log.info("basic_min: phi0 initialized (fitting {0} parameters)".format(
             len(self.phi0)))
         #log.info("maxiter: {0}".format(opt['maxiter']))
         sp.optimize.minimize(self.cost_fn, self.phi0, method=self.routine,
+=======
+        vector = phi_to_vector(self.phi0)
+        print("basic_min: phi0 initialized (fitting {0} parameters)" \
+              .format(len(vector)))
+        sp.optimize.minimize(self.cost_fn, vector, method=self.routine,
+>>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
                              constraints=cons, options=opt, tol=self.tolerance)
         log.info("Final {0}: {1}".format(
             self.stack.modules[-1].name, self.stack.error()))
@@ -258,7 +294,8 @@ class anneal_min(nems_fitter):
         self.verb = verb
 
     def cost_fn(self, phi):
-        self.phi_to_fit(phi)
+        phi = vector_to_phi(vector, self.phi0)
+        stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
@@ -273,7 +310,7 @@ class anneal_min(nems_fitter):
         opt['eps'] = 1e-7
         min_kwargs = dict(method=self.min_method,
                           tolerance=self.tolerance, bounds=self.bounds, options=opt)
-        self.phi0 = self.fit_to_phi()
+        self.phi0 = self.stack.get_phi()
         self.counter = 0
         log.info("anneal_min: phi0 intialized (fitting {0} parameters)".format(
             len(self.phi0)))
@@ -288,6 +325,7 @@ class anneal_min(nems_fitter):
         return(self.stack.error())
 
 
+<<<<<<< HEAD
 """
 Tried using skopt package. Did not go super well, only used pupil data though.
 Will try again later with different data (i.e. more estimation data) --njs, June 29 2017
@@ -345,6 +383,8 @@ class forest_min(nems_fitter):
 """
 
 
+=======
+>>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
 class coordinate_descent(nems_fitter):
     """
     coordinate descent - step one parameter at a time
@@ -365,7 +405,8 @@ class coordinate_descent(nems_fitter):
         self.verbose = verbose
 
     def cost_fn(self, phi):
-        self.phi_to_fit(phi)
+        phi = vector_to_phi(vector, self.phi0)
+        stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         mse = self.stack.error()
         self.counter += 1
@@ -374,8 +415,8 @@ class coordinate_descent(nems_fitter):
         return(mse)
 
     def do_fit(self):
-
-        self.phi0 = self.fit_to_phi()
+        raise NotImplementedError
+        self.phi0 = self.stack.get_phi()
         self.counter = 0
         n_params = len(self.phi0)
 
@@ -438,8 +479,14 @@ class coordinate_descent(nems_fitter):
             s = s_new[x_opt]
 
         # save final parameters back to model
+<<<<<<< HEAD
         log.info("done CD: step size: {0:.6f} steps: {1}".format(step_size, n))
         self.phi_to_fit(x)
+=======
+        print("done CD: step size: {0:.6f} steps: {1}".format(step_size, n))
+        phi = vector_to_phi(x, self.phi0)
+        stack.set_phi(phi)
+>>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
 
         #log.info("Final MSE: {0}".format(s))
         return(s)
@@ -453,11 +500,15 @@ class fit_iteratively(nems_fitter):
     name = 'fit_iteratively'
     sub_fitter = None
     max_iter = 5
+    module_sets=[]
 
     def my_init(self, sub_fitter=basic_min, max_iter=5, min_kwargs={
                 'routine': 'L-BFGS-B', 'maxit': 10000}):
         self.sub_fitter = sub_fitter(self.stack, **min_kwargs)
         self.max_iter = max_iter
+        self.module_sets=[]
+        for i in self.fit_modules:
+            self.module_sets=self.module_sets + [i]
 
     def do_fit(self):
         self.sub_fitter.tolerance = self.tolerance
@@ -466,10 +517,16 @@ class fit_iteratively(nems_fitter):
         this_itr = 0
         while itr < self.max_iter:
             this_itr += 1
+<<<<<<< HEAD
             for i in self.fit_modules:
                 log.info("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(
                     self.stack.modules[i].name, itr, self.sub_fitter.tolerance))
                 self.sub_fitter.fit_modules = [i]
+=======
+            for i in self.module_sets:
+                print("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i[0]].name,itr,self.sub_fitter.tolerance))
+                self.sub_fitter.fit_modules = i
+>>>>>>> ac035734c7f8925dfb8b4b4fd49cae86d8761717
                 new_err = self.sub_fitter.do_fit()
             if err - new_err < self.sub_fitter.tolerance:
                 log.info("")

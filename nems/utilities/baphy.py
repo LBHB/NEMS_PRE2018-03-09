@@ -37,6 +37,7 @@ def load_baphy_file(filepath, level=0):
     data = dict.fromkeys(['stim', 'resp', 'pupil'])
     matdata = si.loadmat(filepath, chars_as_strings=True)
     s = matdata['data'][0][level]
+    print(s['fn_spike'])
     try:
         data = {}
         data['resp'] = s['resp_raster']
@@ -48,6 +49,9 @@ def load_baphy_file(filepath, level=0):
         data['prestim'] = s['tags'][0]['PreStimSilence'][0][0][0]
         data['poststim'] = s['tags'][0]['PostStimSilence'][0][0][0]
         data['duration'] = s['tags'][0]['Duration'][0][0][0]
+        
+        data['cellids']=s['cellids'][0]
+        data['resp_fn']=s['fn_spike']
     except BaseException:
         data['raw_stim'] = s['stim'].copy()
         data['raw_resp'] = s['resp'].copy()
