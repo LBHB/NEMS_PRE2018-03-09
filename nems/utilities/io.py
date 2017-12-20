@@ -6,6 +6,9 @@ Created on Thu Sep  7 14:39:05 2017
 @author: svd
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import scipy
 import numpy as np
 import pickle
@@ -24,7 +27,7 @@ try:
     import nems_config.Storage_Config as sc
     AWS = sc.USE_AWS
 except Exception as e:
-    print(e)
+    log.info(e)
     from nems_config.defaults import STORAGE_DEFAULTS
     sc = STORAGE_DEFAULTS
     AWS = False
@@ -55,8 +58,8 @@ def load_single_model(cellid, batch, modelname, evaluate=True):
             stack.evaluate()
 
         except Exception as e:
-            print("Error evaluating stack")
-            print(e)
+            log.info("Error evaluating stack")
+            log.info(e)
 
             # TODO: What to do here? Is there a special case to handle, or
             #       did something just go wrong?
@@ -117,7 +120,7 @@ def save_model(stack, file_path):
             os.mkdir(directory)
 
         if os.path.isfile(file_path):
-            print("Removing existing model at: {0}".format(file_path))
+            log.info("Removing existing model at: {0}".format(file_path))
             os.remove(file_path)
 
         try:
@@ -126,13 +129,13 @@ def save_model(stack, file_path):
                 pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
         except FileExistsError:
             # delete pkl file first and try again
-            print("Removing existing model at: {0}".format(file_path))
+            log.info("Removing existing model at: {0}".format(file_path))
             os.remove(file_path)
             with open(file_path, 'wb') as handle:
                 pickle.dump(stack2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         os.chmod(file_path, 0o666)
-        print("Saved model to {0}".format(file_path))
+        log.info("Saved model to {0}".format(file_path))
 
 
 def save_model_dict(stack, filepath=None):
@@ -207,7 +210,7 @@ def load_model(file_path):
             # Load data (deserialize)
             with open(file_path, 'rb') as handle:
                 stack = pickle.load(handle)
-            print('stack successfully loaded')
+            log.info('stack successfully loaded')
 
             if not stack.data:
                 raise Exception("Loaded stack from pickle, but data is empty")
@@ -217,7 +220,7 @@ def load_model(file_path):
             # TODO: need to do something else here maybe? removed return stack
             #       at the end b/c it was being returned w/o assignment when
             #       open file failed.
-            print("error loading {0}".format(file_path))
+            log.info("error loading {0}".format(file_path))
             raise e
 
 
@@ -247,7 +250,7 @@ def get_mat_file(filename, chars_as_strings=True):
     try:
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
     except Exception as e:
-        print("File not found on S3: {0}".format(key))
+        log.info("File not found on S3: {0}".format(key))
         raise e
 
     data = scipy.io.loadmat(

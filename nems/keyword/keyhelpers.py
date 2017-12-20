@@ -8,6 +8,9 @@ Created on Fri Aug 11 10:39:17 2017
 @author: shofer
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import nems.utilities as ut
 
 

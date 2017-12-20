@@ -8,6 +8,10 @@ Created on Fri Aug  4 13:29:30 2017
 
 @author: shofer
 """
+
+import logging
+log = logging.getLogger(__name__)
+
 from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
@@ -27,7 +31,7 @@ class model(nems_module):
     """
 
     def my_init(self):
-        print('Replacing stimulus with averaged response raster')
+        log.info('Replacing stimulus with averaged response raster')
         self.field_dict = locals()
         self.field_dict.pop('self', None)
 
@@ -100,9 +104,9 @@ class pupgain(nems_module):
         if 0:
             s = Xp.shape
             n = np.int(np.ceil(s[0] / 2))
-            # print(s)
-            # print(n)
-            # print(Xp.shape)
+            # log.info(s)
+            # log.info(n)
+            # log.info(Xp.shape)
             Xp = np.roll(Xp, n, 0)
         else:
             # save current random state

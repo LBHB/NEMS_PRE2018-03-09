@@ -5,6 +5,10 @@ Created on Fri Aug  4 13:21:47 2017
 
 @author: shofer
 """
+
+import logging
+log = logging.getLogger(__name__)
+
 from nems.modules.base import nems_module
 import numpy as np
 import copy
@@ -35,7 +39,7 @@ class standard(nems_module):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         self.valfrac = valfrac
-        print('Using standard est/val')
+        log.info('Using standard est/val')
 
     def evaluate(self, **kwargs):
         del self.d_out[:]
@@ -84,14 +88,14 @@ class standard(nems_module):
                             d['pupil'][:, estidx, :])
                 except BaseException:
                     pass
-                    #print('No pupil data')
+                    #log.info('No pupil data')
                 try:
                     if d['state'].size:
                         d_est['state'] = copy.deepcopy(
                             d['state'][:, estidx, :])
                 except BaseException:
                     pass
-                    #print('No pupil data')
+                    #log.info('No pupil data')
 
                 d_est['est'] = True
                 # d_val['est']=False
@@ -110,7 +114,7 @@ class standard(nems_module):
                                 d['pupil'][:, validx, :])
                     except BaseException:
                         pass
-                        #print('No pupil data')
+                        #log.info('No pupil data')
 
                     try:
                         if d['state'].size:
@@ -166,7 +170,7 @@ class crossval(nems_module):
             valfrac = 1 / nests
         elif valfrac < 0:
             valfrac = 0.05
-        print("valfrac={0}".format(valfrac))
+        log.info("valfrac={0}".format(valfrac))
         self.valfrac = valfrac
         self.estidx_sets = [[]]
         self.validx_sets = [[]]
@@ -213,8 +217,8 @@ class crossval(nems_module):
                 eidx = self.estidx_sets[fcount][count]
                 vidx = self.validx_sets[fcount][count]
 
-                print("Nest {0}/{1}, File {2} validx:".format(count, nests, i))
-                print(vidx)
+                log.info("Nest {0}/{1}, File {2} validx:".format(count, nests, i))
+                log.info(vidx)
 
                 d_est = d.copy()
                 d_val = d.copy()
@@ -237,11 +241,11 @@ class crossval(nems_module):
                         d_est['pupil'] = copy.deepcopy(d['pupil'][:, eidx, :])
                         d_val['pupil'] = copy.deepcopy(d['pupil'][:, vidx, :])
                     else:
-                        print(d['pupil'].shape)
+                        log.info(d['pupil'].shape)
                         d_est['pupil'] = copy.deepcopy(d['pupil'][:, :, eidx])
                         d_val['pupil'] = copy.deepcopy(d['pupil'][:, :, vidx])
                 except BaseException:
-                    #print('No pupil data')
+                    #log.info('No pupil data')
                     d_est['pupil'] = []
                     d_val['pupil'] = []
 
@@ -263,11 +267,11 @@ class crossval(nems_module):
                         d_est['state'] = copy.deepcopy(d['state'][:, eidx, :])
                         d_val['state'] = copy.deepcopy(d['state'][:, vidx, :])
                     else:
-                        print(d['state'].shape)
+                        log.info(d['state'].shape)
                         d_est['state'] = copy.deepcopy(d['state'][:, :, eidx])
                         d_val['state'] = copy.deepcopy(d['state'][:, :, vidx])
                 except BaseException:
-                    #print('No state data')
+                    #log.info('No state data')
                     d_est['state'] = []
                     d_val['state'] = []
 
@@ -278,13 +282,13 @@ class crossval(nems_module):
                         d_val['behavior_condition'] = copy.deepcopy(
                             d['behavior_condition'][:, vidx, :])
                     else:
-                        print(d['behavior_condition'].shape)
+                        log.info(d['behavior_condition'].shape)
                         d_est['behavior_condition'] = copy.deepcopy(
                             d['behavior_condition'][:, :, eidx])
                         d_val['behavior_condition'] = copy.deepcopy(
                             d['behavior_condition'][:, :, vidx])
                 except BaseException:
-                    #print('No state data')
+                    #log.info('No state data')
                     d_est['behavior_condition'] = []
                     d_val['behavior_condition'] = []
 
@@ -361,7 +365,7 @@ class crossval_old(nems_module):
         self.interleave_valtrials = interleave_valtrials
         self.val_mult_repeats = val_mult_repeats
         self.cv_counter = self.parent_stack.cv_counter
-        print("Creating crossval, cv_counter={0}".format(
+        log.info("Creating crossval, cv_counter={0}".format(
             self.parent_stack.cv_counter))
 
     def evaluate(self, nest=0):
@@ -390,8 +394,8 @@ class crossval_old(nems_module):
                     interleave_valtrials=self.interleave_valtrials)
                 nidx = self.validx_sets[count]
 
-                print("Nest {0}/{1}, File {2} validx:".format(count, nests, i))
-                print(nidx)
+                log.info("Nest {0}/{1}, File {2} validx:".format(count, nests, i))
+                log.info(nidx)
 
                 d_est = d.copy()
 
@@ -402,7 +406,7 @@ class crossval_old(nems_module):
                     try:
                         d_est['pupil'] = np.delete(d['pupil'], np.s_[nidx], 2)
                     except TypeError:
-                        print('No pupil data')
+                        log.info('No pupil data')
                         d_est['pupil'] = []
                     d_est['repcount'] = np.delete(
                         d['repcount'], np.s_[nidx], 0)
@@ -410,7 +414,7 @@ class crossval_old(nems_module):
                     try:
                         d_est['pupil'] = np.delete(d['pupil'], np.s_[nidx], 0)
                     except TypeError:
-                        print('No pupil data')
+                        log.info('No pupil data')
                         d_est['pupil'] = []
                     try:
                         d_est['replist'] = np.delete(
@@ -439,16 +443,16 @@ class crossval_old(nems_module):
                     for count in range(0, self.parent_stack.nests):
 
                         nidx = self.validx_sets[count]
-                        print(
+                        log.info(
                             "V nest {0}/{1}, File {2} validx:".format(count, nests, i))
-                        print(nidx)
+                        log.info(nidx)
 
                         if avg_resp:
                             try:
                                 d_val['pupil'].append(
                                     copy.deepcopy(d['pupil'][:, :, nidx]))
                             except TypeError:
-                                #print('No pupil data')
+                                #log.info('No pupil data')
                                 d_val['pupil'] = []
                             d_val['repcount'].append(
                                 copy.deepcopy(d['repcount'][nidx]))
@@ -457,7 +461,7 @@ class crossval_old(nems_module):
                                 d_val['pupil'].append(
                                     copy.deepcopy(d['pupil'][nidx, :]))
                             except TypeError:
-                                #print('No pupil data')
+                                #log.info('No pupil data')
                                 d_val['pupil'] = []
                             d_val['replist'].append(
                                 copy.deepcopy(d['replist'][nidx]))
@@ -491,7 +495,7 @@ class crossval_old(nems_module):
                         self.parent_stack.nests-=1
                         s=d_val['stim'][-1].shape
                         sr=d_val['resp'][-1].shape
-                        print('Final nest has no stimuli, updating to have {0} nests'.format(
+                        log.info('Final nest has no stimuli, updating to have {0} nests'.format(
                                 self.parent_stack.nests))
                     """
                     self.d_out.append(d_val)

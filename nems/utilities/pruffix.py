@@ -5,7 +5,6 @@ abbreviated strings with a common prefix and/or suffix.
 
 """
 
-
 def find_prefix(s_list):
     """Given a list of strings, returns the common prefix to nearest _."""
     prefix = ''
@@ -64,7 +63,7 @@ def find_common(s_list, pre=True, suf=True):
     returns a 3-tuple containing:
         index 0, a new list with prefixes and suffixes removed
         index 1, the prefix that was found.
-        index 2, the suffix tha was found.
+        index 2, the suffix that was found.
     Takes s_list as list of strings (required), and pre and suf as Booleans
     (optional) to indicate whether prefix and suffix should be found. Both are
     set to True by default.

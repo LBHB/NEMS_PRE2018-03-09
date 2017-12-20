@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger(__name__)
+
 import re
 import nems.modules as nm
 from .registry import keyword_registry

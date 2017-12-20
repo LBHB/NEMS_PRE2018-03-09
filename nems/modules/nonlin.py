@@ -7,6 +7,10 @@ Created on Fri Aug  4 13:39:49 2017
 
 @author: shofer
 """
+
+import logging
+log = logging.getLogger(__name__)
+
 from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
