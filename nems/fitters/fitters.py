@@ -216,7 +216,9 @@ class basic_min(nems_fitter):
         cons = ()
 
         # Below here are the general need for a nems_fitter object.
-        self.phi0 = self.stack.get_phi(self.fit_modules)
+        phi = self.stack.get_phi()
+        self.phi0 = [p if i in self.fit_modules else {} for i, p in enumerate(phi)]
+
         self.counter = 0
         vector = phi_to_vector(self.phi0)
         print("basic_min: phi0 initialized (fitting {0} parameters)" \
