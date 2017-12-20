@@ -8,7 +8,7 @@ from scipy import signal
 ################################################################################
 # Channel weighting
 ################################################################################
-def weight_channels(x, weights, baseline=None):
+def weight_channels_local(x, weights, baseline=None):
     '''
     Parameters
     ----------
@@ -118,8 +118,10 @@ class WeightChannels(Module):
             coefs = self.coefs
         else:
             coefs = self.coefs
-        return weight_channels(x, coefs)
+        return weight_channels_local(x, coefs)
 
+class weight_channels(WeightChannels):
+    pass
 
 ################################################################################
 # FIR filtering
@@ -253,6 +255,8 @@ class FIR(Module):
 
         return h
 
+class fir(FIR): #clone of FIR
+    pass
 
 ################################################################################
 # Short-term plasticity
