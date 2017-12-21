@@ -242,22 +242,23 @@ def get_mat_file(filename, chars_as_strings=True):
     """
     # If the file exists on the standard filesystem, just load from that.
     if os.path.exists(filename):
+        log.info("Local file {0} existed, loading...".format(filename))
         return scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
 
     # Else, retrieve it from the default
     s3_client = boto3.client('s3')
     key = filename[len(sc.DIRECTORY_ROOT):]
     try:
+        log.info("File not found locally, checking s3...".format(filename))
         fileobj = s3_client.get_object(Bucket=sc.PRIMARY_BUCKET, Key=key)
+        data = scipy.io.loadmat(
+                io.BytesIO(fileobj['Body'].read()),
+                chars_as_strings=chars_as_strings
+                )
+        return data
     except Exception as e:
-        log.info("File not found on S3: {0}".format(key))
+        log.error("File not found on S3 or local storage: {0}".format(key))
         raise e
-
-    data = scipy.io.loadmat(
-        io.BytesIO(fileobj['Body'].read()),
-        chars_as_strings=chars_as_strings
-    )
-    return data
 
 def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
     """ load data from baphy export file. current "standard" data format
@@ -267,10 +268,10 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
     # load contents of Matlab data file and save in data list
     for f in est_files:
         matdata = get_mat_file(f)
-    
+
         # go through each entry in structure array 'data'
         for s in matdata['data'][0]:
-    
+
             data = {}
             if 'stimids' in s.dtype.names:
                 # new format: stimulus events logged in stimids and
@@ -292,11 +293,11 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                         stim[:, startbin:stopbin, stimtrials[ii] -
                              1] = tstim[:, :, stimids[ii] - 1]
                 data['stim'] = stim
-    
+
             else:
                 # old format, stimulus saved as raster aligned with spikes
                 data['stim'] = s['stim']
-    
+
             try:
                 data['resp'] = s['resp_raster']
                 data['respFs'] = s['respfs'][0][0]
@@ -321,7 +322,7 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
             except BaseException:
                 data['state'] = None
             # data['tags']=s.get('tags',None)
-    
+
             try:
                 if s['estfile']:
                     data['est'] = True
@@ -334,7 +335,7 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                 data['filestate'] = s['filestate'][0][0]
             except BaseException:
                 data['filestate'] = 0
-    
+
             # deal with extra dimensions in RDT data
             if data['stim'].ndim > 3:
                 data['stim1'] = data['stim'][:, :, :, 1]
@@ -343,34 +344,34 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                 stimvars = ['stim', 'stim1', 'stim2']
             else:
                 stimvars = ['stim']
-    
+
             # resample if necessary
             data['fs'] = fs
             noise_thresh = 0.05
             stim_resamp_factor = int(data['stimFs'] / data['fs'])
             resp_resamp_factor = int(data['respFs'] / data['fs'])
-            
+
             if parent_stack:
                 parent_stack.unresampled = {'resp': data['resp'], 'respFs': data['respFs'], 'duration': data['duration'],
                                              'poststim': data['poststim'], 'prestim': data['prestim'], 'pupil': data['pupil']}
-    
+
             for sname in stimvars:
                 # reshape stimulus to be channel X time
                 data[sname] = np.transpose(data[sname], (0, 2, 1))
-    
+
                 if stim_resamp_factor in np.arange(0, 10):
                     print("stim bin resamp factor {0}".format(
                         stim_resamp_factor))
                     data[sname] = ut.utils.bin_resamp(
                         data[sname], stim_resamp_factor, ax=2)
-    
+
                 elif stim_resamp_factor != 1:
                     data[sname] = ut.utils.thresh_resamp(
                         data[sname], stim_resamp_factor, thresh=noise_thresh, ax=2)
-    
+
             # resp time (axis 0) should be resampled to match stim time
             # (axis 1)
-    
+
             # Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
             #-njs June 16, 2017
             if resp_resamp_factor in np.arange(0, 10):
@@ -384,7 +385,7 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                     # save raw pupil-- may be somehow transposed
                     # differently than resp_raw
                     data['pupil_raw'] = data['pupil'].copy()
-    
+
             elif resp_resamp_factor != 1:
                 data['resp'] = ut.utils.thresh_resamp(
                     data['resp'], resp_resamp_factor, thresh=noise_thresh)
@@ -394,23 +395,23 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                     # save raw pupil-- may be somehow transposed
                     # differently than resp_raw
                     data['pupil_raw'] = data['pupil'].copy()
-    
+
             # fund number of reps of each stimulus
             data['repcount'] = np.sum(
                 np.isfinite(data['resp'][0, :, :]), axis=0)
-            
+
             if parent_stack:
                 parent_stack.unresampled['repcount'] = data['repcount']
-    
+
             # average across trials
             # TODO - why does this execute(and produce a warning?)
             if data['resp'].shape[1] > 1:
                 data['avgresp'] = np.nanmean(data['resp'], axis=1)
             else:
                 data['avgresp'] = np.squeeze(data['resp'], axis=1)
-    
+
             data['avgresp'] = np.transpose(data['avgresp'], (1, 0))
-    
+
             if avg_resp is True:
                 data['resp_raw'] = data['resp'].copy()
                 data['resp'] = data['avgresp']
@@ -418,15 +419,15 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                 data['stim'], data['resp'], data['pupil'], data['replist'] = ut.utils.stretch_trials(
                     data)
                 data['resp_raw'] = data['resp']
-    
+
             # new: add extra first dimension to resp/pupil (and eventually pred)
             # resp,pupil,state,pred now channel X stim/trial X time
             data['resp'] = data['resp'][np.newaxis, :, :]
-    
+
             data['behavior_condition'] = np.ones(
                 data['resp'].shape) * (data['filestate'] > 0)
             data['behavior_condition'][np.isnan(data['resp'])] = np.nan
-    
+
             if data['pupil'] is not None:
                 if data['pupil'].ndim == 3:
                     data['pupil'] = np.transpose(data['pupil'], (1, 2, 0))
@@ -435,16 +436,16 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                                                         data['behavior_condition']), 0)
                     else:
                         data['state'] = data['behavior_condition']
-    
+
                 elif data['pupil'].ndim == 2:
                     data['pupil'] = data['pupil'][np.newaxis, :, :]
                     # add file state as second dimension to pupil
                     data['state'] = np.concatenate((data['pupil'],
                                                     data['behavior_condition']), axis=0)
-    
+
             else:
                 data['state'] = data['behavior_condition']
-    
+
     return data
 
 
@@ -458,10 +459,10 @@ def load_ecog(stack, fs=25, avg_resp=True, stimfile=None, respfile=None, resp_ch
 
     stimfile = '/auto/data/daq/ecog/coch.mat'
     respfile = '/auto/data/daq/ecog/reliability0.1.mat'
-    
+
     stimdata = h5py.File(stimfile, 'r')
     respdata = h5py.File(respfile, 'r')
-    
+
     data = {}
     for name, d in respdata.items():
         #print (name)
@@ -495,23 +496,23 @@ def load_ecog(stack, fs=25, avg_resp=True, stimfile=None, respfile=None, resp_ch
     return data
 
 def load_factor(stack=None, fs=100, avg_resp=True, stimfile=None, respfile=None, resp_channels=None):
-    
+
     print("Loading stim data from file {0}".format(stimfile))
     data=load_baphy_data(est_files=[stimfile], fs=fs, avg_resp=avg_resp)
-    
+
     # response data to paste into a "standard" data object
     print("Loading resp data from file {0}".format(respfile))
     matdata = ut.io.get_mat_file(respfile)
-    
+
     resp=matdata['lat_vars'][:,:,resp_channels]
     print(resp.shape)
     resp=np.transpose(resp,[2,1,0])
     data['resp']=resp
-    
+
     return data
-  
-    
-    
+
+
+
 def load_nat_cort(fs=100, prestimsilence=0.5, duration=3, poststimsilence=0.5):
     """
     special hard-coded loader for cortical filtered version of NAT
