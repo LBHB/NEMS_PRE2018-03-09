@@ -10,6 +10,7 @@ import logging
 log = logging.getLogger(__name__)
 
 import os
+from time import time
 import scipy as sp
 import numpy as np
 
@@ -193,6 +194,9 @@ class basic_min(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
+        if self.counter % 200 == 0:
+            log.debug("Eval # {0}, phi vector is now: \n{1}"
+                      .format(self.counter, vector))
         if self.counter % 1000 == 0:
             log.info('Eval #' + str(self.counter))
             log.info('Error=' + str(err))
@@ -231,13 +235,25 @@ class basic_min(nems_fitter):
         vector = phi_to_vector(self.phi0)
         log.info("basic_min: phi0 initialized (fitting {0} parameters)"
                  .format(len(vector)))
-        result = sp.optimize.minimize(
+        # TODO: Currently phi0 is almost all zeroes. Is this intended,
+        #       or have initial guesses just not been added yet?
+        log.debug("phi0 vector: \n{0}".format(vector))
+
+        start = time()
+        res = sp.optimize.minimize(
                 self.cost_fn, vector, method=self.routine,
                 constraints=cons, options=opt, tol=self.tolerance
                 )
-        log.debug("Minimization terminated. \nSuccess: {0}. \nReason: {1}"
-                 .format(result.success, result.message))
-        log.debug("Optimized vector: {0}".format(result.x))
+        end = time()
+        elapsed = end-start
+        log.debug("Minimization terminated\n"
+                  "on eval #: {0}\n"
+                  "after {1} seconds.\n"
+                  "Success: {2}.\n"
+                  "Reason: {3}\n"
+                  "Optimized vector: {4}\n"
+                  .format(self.counter, elapsed, res.success, res.message,
+                          res.x))
         # stack.modules[-1] should be a metrics/error module,
         log.info("Final {0}: {1}\n"
                  .format(self.stack.modules[-1].name, self.stack.error()))
@@ -303,9 +319,9 @@ class anneal_min(nems_fitter):
         self.step = stepsize
         self.verb = verb
 
-    def cost_fn(self, phi):
+    def cost_fn(self, vector):
         phi = vector_to_phi(vector, self.phi0)
-        stack.set_phi(phi)
+        self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
@@ -318,20 +334,24 @@ class anneal_min(nems_fitter):
         opt = dict.fromkeys(['maxiter'])
         opt['maxiter'] = int(self.maxiter)
         opt['eps'] = 1e-7
-        min_kwargs = dict(method=self.min_method,
-                          tolerance=self.tolerance, bounds=self.bounds, options=opt)
+        min_kwargs = dict(
+                method=self.min_method, tolerance=self.tolerance,
+                bounds=self.bounds, options=opt,
+                )
         self.phi0 = self.stack.get_phi()
         self.counter = 0
-        log.info("anneal_min: phi0 intialized (fitting {0} parameters)".format(
-            len(self.phi0)))
+        log.info("anneal_min: phi0 intialized (fitting {0} parameters)"
+                 .format(len(self.phi0)))
         #log.info("maxiter: {0}".format(opt['maxiter']))
-        opt_res = sp.optimize.basinhopping(self.cost_fn, self.phi0, niter=self.anneal_iter,
-                                           T=self.temp, stepsize=self.step, minimizer_kwargs=min_kwargs,
-                                           interval=self.up_int, disp=self.verb, niter_success=self.stop)
+        opt_res = sp.optimize.basinhopping(
+                self.cost_fn, self.phi0, niter=self.anneal_iter,
+                T=self.temp, stepsize=self.step, minimizer_kwargs=min_kwargs,
+                interval=self.up_int, disp=self.verb, niter_success=self.stop
+                )
         phi_final = opt_res.lowest_optimization_result.x
         self.cost_fn(phi_final)
-        log.info("Final MSE: {0}".format(self.stack.error()))
-        log.info('           ')
+        log.info("Final {0}: {1}\n"
+                 .format(self.stack.modules[-1].name, self.stack.error()))
         return(self.stack.error())
 
 """
@@ -409,9 +429,9 @@ class coordinate_descent(nems_fitter):
         self.tolerance = tolerance
         self.verbose = verbose
 
-    def cost_fn(self, phi):
+    def cost_fn(self, vector):
         phi = vector_to_phi(vector, self.phi0)
-        stack.set_phi(phi)
+        self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         mse = self.stack.error()
         self.counter += 1
