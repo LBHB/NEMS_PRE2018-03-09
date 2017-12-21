@@ -114,6 +114,7 @@ class LOGGING_DEFAULTS():
 
     # directory to store log files in
     log_root = '~/nemslogs/'
+
     logging_config = {
             'version': 1,
             'formatters': {
