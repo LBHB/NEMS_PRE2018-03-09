@@ -8,6 +8,9 @@ Created on Fri Aug  4 14:00:03 2017
 @author: shofer
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import numpy as np
 import copy
 

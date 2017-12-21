@@ -5,6 +5,10 @@ Created on Sun Jun 18 20:16:37 2017
 
 @author: svd
 """
+
+import logging
+log = logging.getLogger(__name__)
+
 import nems.modules as nm
 import nems.stack as ns
 import nems.utilities
@@ -44,24 +48,27 @@ def fit_single_model(cellid, batch, modelname,
     dataset contains all the data, while the estimation dataset is just the estimation
     data that was fitted last (i.e. on the last nest)
     """
+
+    log.info("Creating empty stack object")
     stack = ns.nems_stack()
 
     stack.meta['batch'] = batch
     stack.meta['cellid'] = cellid
     stack.meta['modelname'] = modelname
+    log.info("Stack.meta information added: {0}".format(stack.meta))
     stack.valmode = False
     stack.keywords = modelname.split("_")
 
     # evaluate the stack of keywords
     if 'nested' in stack.keywords[-1]:
         # special case for nested keywords. Stick with this design?
-        print('Using nested cross-validation, fitting will take longer!')
+        log.info('Using nested cross-validation, fitting will take longer!')
         k = stack.keywords[-1]
         keyword_registry[k](stack)
     else:
-        print('Using standard est/val conditions')
+        log.info('Using standard est/val conditions')
         for k in stack.keywords:
-            print(k)
+            log.info("Adding keyword: {0}".format(k))
             keyword_registry[k](stack)
 
     # measure performance on both estimation and validation data
@@ -70,7 +77,7 @@ def fit_single_model(cellid, batch, modelname,
 
     stack.append(nm.metrics.correlation)
 
-    print("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
+    log.info("mse_est={0}, mse_val={1}, r_est={2}, r_val={3}".format(stack.meta['mse_est'],
                                                                   stack.meta['mse_val'], stack.meta['r_est'], stack.meta['r_val']))
     valdata = [i for i, d in enumerate(stack.data[-1]) if not d['est']]
     if valdata:

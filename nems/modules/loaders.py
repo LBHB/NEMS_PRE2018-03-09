@@ -8,6 +8,10 @@ Created on Fri Aug  4 13:14:24 2017
 
 @author: shofer
 """
+
+import logging
+log = logging.getLogger(__name__)
+
 from nems.modules.base import nems_module
 import numpy as np
 import scipy.io
@@ -119,7 +123,7 @@ class load_mat(nems_module):
                     data['poststim'] = s['tags'][0]['PostStimSilence'][0][0][0]
                     data['duration'] = s['tags'][0]['Duration'][0][0][0]
                 except BaseException:
-                    print("load_mat: alternative load. does this ever execute?")
+                    log.info("load_mat: alternative load. does this ever execute?")
                     data = scipy.io.loadmat(f, chars_as_strings=True)
                     data['raw_stim'] = data['stim'].copy()
                     data['raw_resp'] = data['resp'].copy()
@@ -140,7 +144,7 @@ class load_mat(nems_module):
                         data['est'] = False
                 except ValueError:
                     pass
-                    #print("Est/val conditions not flagged in datafile")
+                    #log.info("Est/val conditions not flagged in datafile")
                 try:
                     data['filestate'] = s['filestate'][0][0]
                 except BaseException:
@@ -169,8 +173,6 @@ class load_mat(nems_module):
                     data[sname] = np.transpose(data[sname], (0, 2, 1))
 
                     if stim_resamp_factor in np.arange(0, 10):
-                        print("stim bin resamp factor {0}".format(
-                            stim_resamp_factor))
                         data[sname] = nems.utilities.utils.bin_resamp(
                             data[sname], stim_resamp_factor, ax=2)
 
@@ -184,7 +186,7 @@ class load_mat(nems_module):
                 # Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
                 if resp_resamp_factor in np.arange(0, 10):
-                    print("resp bin resamp factor {0}".format(
+                    log.info("resp bin resamp factor {0}".format(
                         resp_resamp_factor))
                     data['resp'] = nems.utilities.utils.bin_resamp(
                         data['resp'], resp_resamp_factor, ax=0)
@@ -255,7 +257,7 @@ class load_mat(nems_module):
 
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
-                #print('load_mat: appending {0} to d_out stack'.format(f))
+                #log.info('load_mat: appending {0} to d_out stack'.format(f))
                 self.d_out.append(data)
 
         # Raises error if d_out is an empty list
@@ -269,28 +271,41 @@ class load_gen(nems_module):
     """
     name = 'loaders.load_gen'
     user_editable_fields = ['output_name',
-                            'stimfile', 'respfile', 'fs', 'avg_resp']
+                            'stimfile', 'respfile', 'fs', 'avg_resp', 'resp_channels']
     plot_fns = [nems.utilities.plot.plot_spectrogram,
                 nems.utilities.plot.raster_plot]
     stimfile = None
     respfile = None
     fs = 100
     avg_resp = True
-
+    resp_channels=[0]
+    
     def my_init(self, stimfile=None, respfile=None, fs=100,
-                avg_resp=True, load_fun='load_ecog'):
+                avg_resp=True, load_fun='load_ecog', resp_channels=[0]):
         self.stimfile = stimfile
         self.respfile = respfile
         self.fs = fs
         self.avg_resp = avg_resp
         self.auto_plot = False
-
+        self.resp_channels = resp_channels
+        self.load_fun = load_fun
+        
     def evaluate(self):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
-        self.d_out[0] = nems.utilities.io.load_ecog(
-            stack=self.parent_stack, fs=self.fs)
+        if self.load_fun=='load_ecog':
+            self.d_out[0] = nems.utilities.io.load_ecog(
+                    stack=self.parent_stack, fs=self.fs, 
+                    avg_resp=self.avg_resp, respfile=self.respfile,
+                    stimfile=self.stimfile, resp_channels=self.resp_channels)
+        elif self.load_fun=='load_factor':
+            self.d_out[0] = nems.utilities.io.load_factor(
+                    stack=self.parent_stack, fs=self.fs, 
+                    avg_resp=self.avg_resp, respfile=self.respfile,
+                    stimfile=self.stimfile, resp_channels=self.resp_channels)
+        else:
+            raise ValueError('Unsupported load_fun')
 
 
 class dummy_data(nems_module):
@@ -370,5 +385,5 @@ class load_signals(load_mat):
         #data['behavior_condition'] = np.ones(data['resp'].shape)*(data['filestate']>0)
         #data['behavior_condition'][np.isnan(data['resp'])]=np.nan
 
-        print('Exiting load_mat_hacked ')
+        log.info('Exiting load_mat_hacked ')
         self.d_out.append(data)

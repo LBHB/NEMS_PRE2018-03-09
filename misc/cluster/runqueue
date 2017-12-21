@@ -40,7 +40,7 @@ DBPASSWORD="nine1997"
 
 export QUEUEOUTPATH
 
-if [ ! -d "$QUEUEOUTPATH/$QUEUEIDROUNDED" ] 
+if [ ! -d "$QUEUEOUTPATH/$QUEUEIDROUNDED" ]
 then
     mkdir -p "$QUEUEOUTPATH/$QUEUEIDROUNDED"
     chmod a+wrx "$QUEUEOUTPATH/$QUEUEIDROUNDED"
@@ -56,7 +56,7 @@ export QUEUEPARMS
 mysql --host=$DBSERVER --user=$DBUSER --password=$DBPASSWORD --port=$DBPORT --database=cell --execute="UPDATE tQueue SET complete=-1,pid=$QPID WHERE id=$1"
 
 # run the queued command
-# pop first arg (QUEUEID), use rest of 
+# pop first arg (QUEUEID), use rest of
 # command line as program to run
 shift
 DEBUGLOG="$QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out"
@@ -89,7 +89,7 @@ echo "about to check for jerb stuff, should be commented out right now" >> $DEBU
 #        jerb init nems
 #        cd nems
 #        jerb merge ../nemsjerb.jerb
-#    
+#
 #        #call shift command again to remove $1 which is currently the path to
 #        #nems_fit_single in the main nems directory
 #        shift
@@ -108,12 +108,12 @@ echo "about to check for jerb stuff, should be commented out right now" >> $DEBU
 #fi
 
 echo "about to check for codehash stuff" >> $DEBUGLOG
-# check if codehash returned empty and jerb wasn't used
+# check if codehash returned non-empty and jerb wasn't used
 if [ "$DEFAULTNEMS" -eq 1 ] && [ "$CODEHASH" != "master" ]
 then
     echo "making temp directory" >> $DEBUGLOG
     TMPDIR="tempnems$QUEUEID"
-    echo TMPDIR
+    export TMPDIR
     mkdir -p $TMPDIR
     cd $TMPDIR
     echo "cloning repo..." >> $DEBUGLOG
@@ -130,13 +130,13 @@ then
         echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
         echo "COMMAND: nice -n19 $1 /auto/users/nems/$TMPDIR/nems_fit_single.py $3 $4 $5" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
         exec nice -n19 $1 nems_fit_single.py $3 $4 $5 >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out 2>&1
-	
+
         echo "cleaning up temporary files..." >> $DEBUGLOG
         #delete the temporary files
         cd /auto/users/nems
         rm -rf $TMPDIR
         DEFAULTNEMS=0
-        export DEFAULTNEMS        
+        export DEFAULTNEMS
     else
         echo "git checkout returned an error, cleaning up files..." >> $DEBUGLOG
         cd /auto/users/nems

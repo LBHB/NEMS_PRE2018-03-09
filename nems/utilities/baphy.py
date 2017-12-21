@@ -6,15 +6,17 @@ Created on Wed Jun 14 09:33:47 2017
 @author: svd, changes added by njs
 """
 
-import os.path
+import logging
+log = logging.getLogger(__name__)
 
+import os.path
 import scipy.io as si
 import numpy as np
 
 try:
     import nems_config.Storage_Config as sc
 except Exception as e:
-    print(e)
+    log.info(e)
     from nems_config.defaults import STORAGE_DEFAULTS
     sc = STORAGE_DEFAULTS
 
@@ -63,7 +65,7 @@ def load_baphy_file(filepath, level=0):
         else:
             data['est'] = False
     except ValueError:
-        print("Est/val conditions not flagged in datafile")
+        log.info("Est/val conditions not flagged in datafile")
     return(data)
 
 

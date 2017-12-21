@@ -7,6 +7,10 @@ Created on Fri Aug 11 11:08:54 2017
 
 @author: shofer
 """
+
+import logging
+log = logging.getLogger(__name__)
+
 import nems.modules as nm
 from nems.utilities.utils import mini_fit
 import nems.utilities as ut
@@ -24,7 +28,7 @@ def perfectpupil100(stack):
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
     file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
-    print("Initializing load_mat with file {0}".format(file))
+    log.info("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=100,avg_resp=False)
     stack.append(nm.est_val.crossval)
     stack.append(nm.pupil.model)
@@ -37,7 +41,7 @@ def perfectpupil50(stack):
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
     file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
-    print("Initializing load_mat with file {0}".format(file))
+    log.info("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval)
     stack.append(nm.pupil.model)
@@ -50,7 +54,7 @@ def perfectpupil50x(stack):
     and generates the model. It should be used with pupgain and a fitter keyword.
     """
     file=ub.get_celldb_file(stack.meta['batch'],stack.meta['cellid'],fs=200,stimfmt='ozgf',chancount=24)
-    print("Initializing load_mat with file {0}".format(file))
+    log.info("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat,est_files=[file],fs=50,avg_resp=False)
     stack.append(nm.est_val.crossval2)
     stack.append(nm.pupil.model)
@@ -77,7 +81,7 @@ def pupgainctl(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
-    print(stack.modules[-1].theta)
+    log.info(stack.modules[-1].theta)
 
 def pupgain(stack):
     """
@@ -88,7 +92,7 @@ def pupgain(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
-    print(stack.modules[-1].theta)
+    log.info(stack.modules[-1].theta)
 
 def stategainctl(stack):
     """
@@ -99,7 +103,7 @@ def stategainctl(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',state_var='state',fit_fields=['theta'],theta=[0,1,0,0,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
-    print(stack.modules[-1].theta)
+    log.info(stack.modules[-1].theta)
 
 def stategain(stack):
     """
@@ -110,7 +114,7 @@ def stategain(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',state_var='state',fit_fields=['theta'],theta=[0,1,0,0,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
-    print(stack.modules[-1].theta)
+    log.info(stack.modules[-1].theta)
 
 def behgainctl(stack):
     """
@@ -121,7 +125,7 @@ def behgainctl(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',state_var='behavior_condition',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
-    print(stack.modules[-1].theta)
+    log.info(stack.modules[-1].theta)
 
 def behgain(stack):
     """
@@ -132,7 +136,7 @@ def behgain(stack):
     """
     stack.append(nm.pupil.pupgain,gain_type='linpupgain',state_var='behavior_condition',fit_fields=['theta'],theta=[0,1,0,0])
     mini_fit(stack,mods=['pupil.pupgain'])
-    print(stack.modules[-1].theta)
+    log.info(stack.modules[-1].theta)
 
 def polypupgain04(stack):#4th degree polynomial gain fn
     """

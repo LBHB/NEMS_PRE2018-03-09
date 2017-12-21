@@ -6,6 +6,10 @@ Modules for computing scores/ assessing model performance
 Created on Fri Aug  4 13:44:42 2017
 
 s"""
+
+import logging
+log = logging.getLogger(__name__)
+
 from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
@@ -42,6 +46,10 @@ class mean_square_error(nems_module):
 
         X1 = self.unpack_data(self.input1, est=True)
         X2 = self.unpack_data(self.input2, est=True)
+        
+        X1=np.reshape(X1,[1,-1])
+        X2=np.reshape(X2,[1,-1])
+        
         keepidx = np.isfinite(X1) * np.isfinite(X2)
         X1 = X1[keepidx]
         X2 = X2[keepidx]
@@ -52,7 +60,7 @@ class mean_square_error(nems_module):
 
             for ii in range(0, 10):
                 if bounds[ii] == bounds[ii + 1]:
-                    print('no data in range?')
+                    log.info('no data in range?')
                 P = np.mean(np.square(X2[bounds[ii]:bounds[ii + 1]]))
                 if P > 0:
                     E[ii] = np.mean(
@@ -65,10 +73,10 @@ class mean_square_error(nems_module):
             sE = E.std()
 
             if self.parent_stack.valmode:
-                print(E)
-                print(mE)
-                print(sE)
-                print("MSE shrink: {0}".format(self.shrink))
+                log.info(E)
+                log.info(mE)
+                log.info(sE)
+                log.info("MSE shrink: {0}".format(self.shrink))
 
             if mE < 1:
                 # apply shrinkage filter to 1-E with factors self.shrink
@@ -90,7 +98,7 @@ class mean_square_error(nems_module):
             #                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
             #                P+=np.sum(np.square(f[self.input2]))
             #                #except TypeError:
-            #                    #print('error eval')
+            #                    #log.info('error eval')
             #                    #nems.utilities.utils.concatenate_helper(self.parent_stack)
             #                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
             #                    #P+=np.sum(np.square(f[self.input2]))
@@ -271,9 +279,11 @@ class correlation(nems_module):
                 nems.utilities.plot.pred_act_scatter_smooth]
     input1 = 'pred'
     input2 = 'resp'
-    r_est = np.ones([1, 1])
-    r_val = np.ones([1, 1])
-
+    r_est = np.zeros([1, 1])
+    r_val = np.zeros([1, 1])
+    r_est_perunit=np.zeros([0,0])
+    r_val_perunit=np.zeros([0,0])
+    
     def my_init(self, input1='pred', input2='resp', norm=True):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
@@ -281,6 +291,16 @@ class correlation(nems_module):
         self.input2 = input2
         self.do_plot = self.plot_fns[1]
 
+    def do_corr(self,X1,X2):
+        keepidx = np.isfinite(X1) * np.isfinite(X2)
+        tX1 = X1[keepidx]
+        tX2 = X2[keepidx]
+        if not tX1.sum() or not tX2.sum():
+            r = 0
+        else:
+            r, p = spstats.pearsonr(tX1, tX2)
+        return r
+        
     def evaluate(self, **kwargs):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
@@ -288,29 +308,35 @@ class correlation(nems_module):
 
         X1 = self.unpack_data(self.input1, est=True)
         X2 = self.unpack_data(self.input2, est=True)
-        keepidx = np.isfinite(X1) * np.isfinite(X2)
-        X1 = X1[keepidx]
-        X2 = X2[keepidx]
-        if not X1.sum() or not X2.sum():
-            r_est = 0
-        else:
-            r_est, p = spstats.pearsonr(X1, X2)
-        self.r_est = r_est
-        self.parent_stack.meta['r_est'] = [r_est]
-
+        self.r_est = self.do_corr(X1,X2)
+        self.parent_stack.meta['r_est'] = [self.r_est]
+        
+        unit_count=X1.shape[0]
+        if unit_count>1:
+            self.r_est_perunit=np.zeros([unit_count,1])
+            for i in range(0,unit_count):
+                tX1=X1[i:(i+1),:]
+                tX2=X2[i:(i+1),:]
+                self.r_est_perunit[i,:]=self.do_corr(tX1,tX2)
+                
         X1 = self.unpack_data(self.input1, est=False)
         if X1.size:
             X2 = self.unpack_data(self.input2, est=False)
+            self.r_val = self.do_corr(X1,X2)
+            self.parent_stack.meta['r_val'] = [self.r_val]
+            
+            unit_count=X1.shape[0]
+            if unit_count>1:
+                self.r_val_perunit=np.zeros([unit_count,1])
+                for i in range(0,unit_count):
+                    tX1=X1[i:(i+1),:]
+                    tX2=X2[i:(i+1),:]
+                    self.r_val_perunit[i,:]=self.do_corr(tX1,tX2)
+                    
             keepidx = np.isfinite(X1) * np.isfinite(X2)
             X1 = X1[keepidx]
             X2 = X2[keepidx]
-            if not X1.sum() or not X2.sum():
-                r_val = 0
-            else:
-                r_val, p = spstats.pearsonr(X1, X2)
-            self.r_val = r_val
-            self.parent_stack.meta['r_val'] = [r_val]
-
+            
             # if running validation test, also measure r_floor
             rf = np.zeros([1000, 1])
             for rr in range(0, len(rf)):
@@ -324,9 +350,9 @@ class correlation(nems_module):
             else:
                 self.parent_stack.meta['r_floor'] = 0
 
-            return [r_val]
+            return [self.r_val]
         else:
-            return [r_est]
+            return [self.r_est]
 
 
 class ssa_index(nems_module):

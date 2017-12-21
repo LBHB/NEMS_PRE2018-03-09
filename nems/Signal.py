@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger(__name__)
+
 import os
 import json
 import pandas as pd   # Pulled in for fast CSV i/o
@@ -132,7 +135,7 @@ class Signal():
         TODO: anything else needed here?
         """
         return self.__matrix__
-    
+
     def as_single_trial(self):
         """ Return the data by concatenating all reps one after another
         so that it appears to be a single, long trial. (i.e. 1 repetition)  """
@@ -209,8 +212,8 @@ class Signal():
         have zero mean and unity variance on each channel."""
         # TODO
         # p = self.as_single_trial()
-        # chan_means = 
-        # chan_variances = 
+        # chan_means =
+        # chan_variances =
         # m = self.__matrix__
         # obj = Signal(matrix=m)
         # return obj
@@ -258,7 +261,7 @@ def list_signals_in_dir(dirpath):
     just_fileroot = lambda f: os.path.splitext(os.path.basename(f))[0]
     csvs = [just_fileroot(f) for f in files if f.endswith('.csv')]
     jsons = [just_fileroot(f) for f in files if f.endswith('.json')]
-    # print(csvs, jsons)
+    # log.info(csvs, jsons)
     overlap = set.intersection(set(csvs), set(jsons))
     return overlap
 

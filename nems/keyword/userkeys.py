@@ -8,6 +8,9 @@ Created on Fri Aug 11 11:18:34 2017
 @author: shofer
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import nems.modules as nm
 
 
@@ -17,7 +20,7 @@ def jitterload(stack):
     project, and downsamples to 500 Hz. Applies a 5% estimation/validation split.
     """
     filepath='/auto/users/shofer/data/batch296mateo/'+str(stack.meta['cellid'])+'_b'+str(stack.meta['batch'])+'_envelope_fs1000.mat'
-    print("Initializing load_mat with file {0}".format(filepath))
+    log.info("Initializing load_mat with file {0}".format(filepath))
     stack.append(ud.load_baphy_ssa.load_baphy_ssa,file=filepath,fs=500)
     stack.append(nm.est_val.crossval,valfrac=stack.valfrac)
 

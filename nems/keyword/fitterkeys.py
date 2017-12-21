@@ -8,6 +8,9 @@ Created on Fri Aug 11 11:14:52 2017
 @author: shofer
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import nems.modules as nm
 import nems.fitters
 

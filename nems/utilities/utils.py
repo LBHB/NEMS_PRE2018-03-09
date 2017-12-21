@@ -6,6 +6,9 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import scipy.signal as sps
 import scipy
 import numpy as np
@@ -49,12 +52,12 @@ def concatenate_helper(stack, start=1, **kwargs):
     except BaseException:
         end = len(stack.data)
     for k in range(start, end):
-        # print('start loop 1')
-        # print(len(stack.data[k]))
+        # log.info('start loop 1')
+        # log.info(len(stack.data[k]))
         for n in range(0, len(stack.data[k])):
-            # print('start loop 2')
+            # log.info('start loop 2')
             if stack.data[k][n]['est'] is False:
-                # print('concatenating')
+                # log.info('concatenating')
                 if stack.data[k][n]['stim'][0].ndim == 3:
                     stack.data[k][n]['stim'] = np.concatenate(
                         stack.data[k][n]['stim'], axis=1)
@@ -113,8 +116,8 @@ def bin_resamp(data, resamp_factor, ax=0):
     s = np.array(data.shape)
     snew = np.concatenate(
         (s[0:ax], [resamp_factor], [s[ax] / resamp_factor], s[(ax + 1):]))
-    # print(s)
-    # print(snew)
+    # log.info(s)
+    # log.info(snew)
     d = np.reshape(data, snew.astype(int), order='F')
     d = np.mean(d, ax)
     return d
@@ -228,7 +231,7 @@ def nest_helper(stack, nests=20):
     # stack.nests=nests
 
     while stack.meta['cv_counter'] < nests:
-        print('Nest #' + str(stack.meta['cv_counter']))
+        log.info('Nest #' + str(stack.meta['cv_counter']))
         stack.clear()
 
         stack.valmode = False

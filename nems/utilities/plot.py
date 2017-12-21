@@ -8,6 +8,9 @@ Created on Sep 7 2017
 @author: svd
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import scipy.signal as sps
 import scipy
 import numpy as np
@@ -78,7 +81,7 @@ def plot_stim(m, idx=None, size=FIGSIZE):
     # scl=int(h[0]/c)
     s2 = np.squeeze(out1[m.output_name]
                     [:, m.parent_stack.plot_stimidx, :]).transpose()
-    print(s2.shape)
+    log.info(s2.shape)
     plt.plot(s2)
     # plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
 
@@ -101,7 +104,7 @@ def pred_act_scatter(m, idx=None, size=FIGSIZE):
         ymax = ymin + 1
     if xmin == xmax:
         xmax = xmin + 1
-    # print("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
+    # log.info("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
     plt.text(xmin + (xmax - xmin) / 50, ymax - (ymax - ymin) / 20,
              "r_est={0:.3f}\nr_val={1:.3f}".format(m.parent_stack.meta['r_est'][0], m.parent_stack.meta['r_val'][0]),
              verticalalignment='top')
@@ -174,7 +177,7 @@ def state_act_scatter_smooth(m, idx=None, size=FIGSIZE):
         ymax = ymin + 1
     if xmin == xmax:
         xmax = xmin + 1
-    # print("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
+    # log.info("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
     plt.text(xmin + (xmax - xmin) / 50, ymax - (ymax - ymin) / 20, t,
              verticalalignment='top')
 
@@ -279,10 +282,14 @@ def plot_stim_psth(m, idx=None, size=FIGSIZE):
     s2 = out1[m.output_name][m.parent_stack.plot_stimidx, :]
     resp, = plt.plot(s2, 'r', label='Post-' + m.name)
     plt.legend(handles=[resp])
-    # plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
-
-
+    #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
+        
+    
 def plot_strf(m, idx=None, size=FIGSIZE):
+    if 'bank_count' in dir(m) and m.bank_count>1:
+        plot_strf_bank(m,idx,size)
+        return
+ 
     if idx:
         plt.figure(num=idx, figsize=size)
     h = m.coefs
@@ -291,8 +298,7 @@ def plot_strf(m, idx=None, size=FIGSIZE):
     try:
         wcidx = nems.utilities.utils.find_modules(
             m.parent_stack, "filters.weight_channels")
-        if len(
-                wcidx) > 0 and m.parent_stack.modules[wcidx[0]].output_name == m.output_name:
+        if len(wcidx) > 0 and m.parent_stack.modules[wcidx[0]].output_name == m.output_name:
             wcidx = wcidx[0]
         elif len(wcidx) > 1 and m.parent_stack.modules[wcidx[1]].output_name == m.output_name:
             wcidx = wcidx[1]
@@ -302,7 +308,7 @@ def plot_strf(m, idx=None, size=FIGSIZE):
         wcidx = -1
 
     if m.name == "filters.fir" and wcidx >= 0:
-        # print(m.name)
+        # log.info(m.name)
         w = m.parent_stack.modules[wcidx].coefs
         if w.shape[0] == h.shape[0]:
             h = np.matmul(w.transpose(), h)
@@ -321,9 +327,60 @@ def plot_strf(m, idx=None, size=FIGSIZE):
         plt.ylabel('Channel out')  # or kHz?
     else:
         pass
-        # plt.xlabel('Channel') #or kHz?
-        # plt.ylabel('Latency')
+        #plt.xlabel('Channel') #or kHz?
+        #plt.ylabel('Latency')
 
+def plot_strf_bank(m,idx=None,size=FIGSIZE):
+    if idx:
+        plt.figure(num=idx,figsize=size)
+    h=m.coefs
+    
+    stepsize=int(h.shape[0]/m.bank_count)
+    
+    # if weight channels exist and dimensionality matches, generate a full STRF
+    try:
+        wcidx=nems.utilities.utils.find_modules(m.parent_stack,"filters.weight_channels")
+        if len(wcidx)>0 and m.parent_stack.modules[wcidx[0]].output_name==m.output_name:
+            wcidx=wcidx[0]
+        elif len(wcidx)>1 and m.parent_stack.modules[wcidx[1]].output_name==m.output_name:
+            wcidx=wcidx[1]
+        else:
+            wcidx=-1
+    except:
+        wcidx=-1
+        
+    if m.name=="filters.fir" and wcidx>=0:
+        #print(m.name)
+        w=m.parent_stack.modules[wcidx].coefs
+        
+        h_set=np.zeros([w.shape[1],h.shape[1],m.bank_count])
+        for i in range(0,m.bank_count):
+            idx=np.arange(stepsize*i,stepsize*(i+1))
+            h_set[:,:,i]=np.matmul(w[idx,:].T, h[idx,:])
+    else:
+        h_set=np.reshape(h,[stepsize,m.bank_count,h.shape[1]])
+        h_set=np.transpose(h_set,[0,2,1])
+        
+    h=np.reshape(h_set,[h_set.shape[0],-1],order='F')
+
+    mmax=np.max(np.abs(h.reshape(-1)))
+    plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
+    plt.clim(-mmax,mmax)
+    for i in range(0,m.bank_count+1):
+        plt.plot(i*h_set.shape[1]-0.5*np.array([1,1]),[-0.5,h_set.shape[0]-0.5],'k-')
+    cbar = plt.colorbar()
+    cbar.set_label('gain')
+    if m.name=="filters.fir":
+        plt.xlabel('Latency')
+        plt.ylabel('Channel') #or kHz?
+    elif m.name=="filters.weight_channels":
+        plt.xlabel('Channel in')
+        plt.ylabel('Channel out') #or kHz?
+    else:
+        pass
+        #plt.xlabel('Channel') #or kHz?
+        #plt.ylabel('Latency')
+   
 
 def non_plot(m):
     pass
@@ -377,15 +434,15 @@ def raster_plot(m, idx=None, size=(12, 6)):
     dur = m.parent_stack.unresampled['duration']
     post = m.parent_stack.unresampled['poststim']
     freq = m.parent_stack.unresampled['respFs']
-    # print("{}/{}/{} fs {}".format(pre,dur,post,freq))
+    # log.info("{}/{}/{} fs {}".format(pre,dur,post,freq))
     total_bins = (pre + dur + post) * freq.astype(int)
-    # print(total_bins)
+    # log.info(total_bins)
     if resp.shape[0] < total_bins:
         d = total_bins - resp.shape[0]
         s = list(resp.shape)
         s[0] = d
         resp = np.concatenate((resp, np.zeros(s)), axis=0)
-    # print(resp.shape)
+    # log.info(resp.shape)
     reps = m.parent_stack.unresampled['repcount']
     ids = m.parent_stack.plot_stimidx
     r = reps.shape[0]
@@ -707,12 +764,12 @@ def concatenate_helper(stack, start=1, **kwargs):
     except BaseException:
         end = len(stack.data)
     for k in range(start, end):
-        # print('start loop 1')
-        # print(len(stack.data[k]))
+        # log.info('start loop 1')
+        # log.info(len(stack.data[k]))
         for n in range(0, len(stack.data[k])):
-            # print('start loop 2')
+            # log.info('start loop 2')
             if stack.data[k][n]['est'] is False:
-                # print('concatenating')
+                # log.info('concatenating')
                 if stack.data[k][n]['stim'][0].ndim == 3:
                     stack.data[k][n]['stim'] = np.concatenate(
                         stack.data[k][n]['stim'], axis=1)
