@@ -194,12 +194,14 @@ class basic_min(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
-        if self.counter % 200 == 0:
+        if (self.counter % 200 == 0) and (self.counter < 1000):
             log.debug("Eval # {0}, phi vector is now: \n{1}"
                       .format(self.counter, vector))
         if self.counter % 1000 == 0:
             log.info('Eval #' + str(self.counter))
             log.info('Error=' + str(err))
+            log.debug("Eval # {0}, phi vector is now: \n{1}"
+                      .format(self.counter, vector))
             self.tick_queue()  # Update the progress indicator
         return(err)
 
@@ -325,12 +327,14 @@ class anneal_min(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
-        if self.counter % 200 == 0:
+        if (self.counter % 200 == 0) and (self.counter < 1000):
             log.debug("Eval # {0}, phi vector is now: \n{1}"
                       .format(self.counter, vector))
         if self.counter % 1000 == 0:
             log.info('Eval #' + str(self.counter))
             log.info('Error=' + str(err))
+            log.debug("Eval # {0}, phi vector is now: \n{1}"
+                      .format(self.counter, vector))
         return(err)
 
     def do_fit(self):
