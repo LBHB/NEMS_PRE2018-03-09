@@ -71,7 +71,9 @@ class LOGGING_DEFAULTS():
     NEMSLOGPATH environment variables.
 
     Example Logging_Config contents:
-        Copy the whole class, then make tweaks as desired:
+        Copy & paste the whole class, then make tweaks as desired
+        (log_root doesn't have to be included if the default is acceptable,
+        but keeping the full logging_config dict as a scaffold is recommended):
             log_root = 'my/file/path'
 
             logging_config = {
@@ -132,7 +134,7 @@ class LOGGING_DEFAULTS():
                     'console': {
                             'class': 'logging.StreamHandler',
                             'formatter': 'short',
-                            'level': 'DEBUG',
+                            'level': 'INFO',
                             #'stream': 'ext://sys.stdout',
                             },
                     },
