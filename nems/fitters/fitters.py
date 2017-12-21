@@ -325,6 +325,9 @@ class anneal_min(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
+        if self.counter % 200 == 0:
+            log.debug("Eval # {0}, phi vector is now: \n{1}"
+                      .format(self.counter, vector))
         if self.counter % 1000 == 0:
             log.info('Eval #' + str(self.counter))
             log.info('Error=' + str(err))
@@ -335,19 +338,30 @@ class anneal_min(nems_fitter):
         opt['maxiter'] = int(self.maxiter)
         opt['eps'] = 1e-7
         min_kwargs = dict(
-                method=self.min_method, tolerance=self.tolerance,
+                method=self.min_method, tol=self.tolerance,
                 bounds=self.bounds, options=opt,
                 )
-        self.phi0 = self.stack.get_phi()
+        self.phi0 = self.stack.get_phi(self.fit_modules)
+        vector = phi_to_vector(self.phi0)
         self.counter = 0
         log.info("anneal_min: phi0 intialized (fitting {0} parameters)"
-                 .format(len(self.phi0)))
-        #log.info("maxiter: {0}".format(opt['maxiter']))
+                 .format(len(vector)))
+        log.debug("phi0 vector: \n{0}".format(vector))
+        log.debug("maxiter: {0}".format(opt['maxiter']))
+
+        start = time()
         opt_res = sp.optimize.basinhopping(
-                self.cost_fn, self.phi0, niter=self.anneal_iter,
+                self.cost_fn, vector, niter=self.anneal_iter,
                 T=self.temp, stepsize=self.step, minimizer_kwargs=min_kwargs,
                 interval=self.up_int, disp=self.verb, niter_success=self.stop
                 )
+        end = time()
+        elapsed = end-start
+        log.debug("Minimization terminated\n"
+                  "on eval #: {0}\n"
+                  "after {1} seconds.\n"
+                  "Reason: {2}\n"
+                  .format(self.counter, elapsed, opt_res.message))
         phi_final = opt_res.lowest_optimization_result.x
         self.cost_fn(phi_final)
         log.info("Final {0}: {1}\n"
