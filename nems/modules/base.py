@@ -9,6 +9,8 @@ Created on Fri Aug  4 12:49:40 2017
 @author: shofer
 """
 
+import logging
+log = logging.getLogger(__name__)
 
 import numpy as np
 import copy
@@ -58,7 +60,7 @@ class nems_module:
         Also configures default plotter and calls self.my_init(), which can
         optionally be defined to perform module-specific initialization.
         """
-        print("creating module " + self.name)
+        log.info("creating module " + self.name)
         if parent_stack is None:
             self.d_in = []
         else:
@@ -90,7 +92,7 @@ class nems_module:
 
     def get_user_fields(self):
         f = {}
-        print(self.user_editable_fields)
+        log.info(self.user_editable_fields)
         for k in self.user_editable_fields:
             t = getattr(self, k)
             if isinstance(t, np.ndarray):
@@ -183,7 +185,7 @@ class nems_module:
                 # duplicate placeholder list in case output_name is a new
                 # variable
                 if nest == 0:
-                    print("nest={0} deep copying in[{1}] to out[{2}]".format(
+                    log.info("nest={0} deep copying in[{1}] to out[{2}]".format(
                         nest, self.input_name, self.output_name))
                     f_out[self.output_name] = copy.deepcopy(
                         f_in[self.input_name])
@@ -201,7 +203,7 @@ class nems_module:
                     del_idx.append(i)
             for i in sorted(del_idx, reverse=True):
                 del self.d_out[i]
-                
+
     def evaluate(self, nest=0):
         """
         General evaluate function, for both nested and non-nested crossval. Creates

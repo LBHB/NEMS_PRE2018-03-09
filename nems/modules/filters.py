@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger(__name__)
+
 from nems.modules.base import nems_module as Module
 import nems.utilities.utils
 
@@ -281,8 +284,8 @@ class stp(Module):
     dep_only=False
     num_channels=1
     num_dims=1
-    
-    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, 
+
+    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None,
                 crosstalk=0, fit_fields=['tau','u']):
 
         """

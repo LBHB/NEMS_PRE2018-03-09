@@ -6,6 +6,10 @@ Modules for computing scores/ assessing model performance
 Created on Fri Aug  4 13:44:42 2017
 
 s"""
+
+import logging
+log = logging.getLogger(__name__)
+
 from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
@@ -56,7 +60,7 @@ class mean_square_error(nems_module):
 
             for ii in range(0, 10):
                 if bounds[ii] == bounds[ii + 1]:
-                    print('no data in range?')
+                    log.info('no data in range?')
                 P = np.mean(np.square(X2[bounds[ii]:bounds[ii + 1]]))
                 if P > 0:
                     E[ii] = np.mean(
@@ -69,10 +73,10 @@ class mean_square_error(nems_module):
             sE = E.std()
 
             if self.parent_stack.valmode:
-                print(E)
-                print(mE)
-                print(sE)
-                print("MSE shrink: {0}".format(self.shrink))
+                log.info(E)
+                log.info(mE)
+                log.info(sE)
+                log.info("MSE shrink: {0}".format(self.shrink))
 
             if mE < 1:
                 # apply shrinkage filter to 1-E with factors self.shrink
@@ -94,7 +98,7 @@ class mean_square_error(nems_module):
             #                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
             #                P+=np.sum(np.square(f[self.input2]))
             #                #except TypeError:
-            #                    #print('error eval')
+            #                    #log.info('error eval')
             #                    #nems.utilities.utils.concatenate_helper(self.parent_stack)
             #                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
             #                    #P+=np.sum(np.square(f[self.input2]))

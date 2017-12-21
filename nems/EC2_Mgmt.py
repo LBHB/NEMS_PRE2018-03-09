@@ -4,6 +4,8 @@ from sqlalchemy.sql import not_
 import nems_config.Storage_Config as sc
 from nems.db import Session, tQueue, tComputer
 
+# Not currently used, just sketched out ideas for auto-scaling number of
+# ec2 instances
 
 def check_instance_count():
     session = Session()

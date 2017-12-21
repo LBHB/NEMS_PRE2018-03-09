@@ -6,6 +6,9 @@ Created on Fri Jul 14 15:54:26 2017
 @author: shofer
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import nems.utilities as ut
@@ -22,7 +25,6 @@ except BaseException:
     from nems_config.defaults import STORAGE_DEFAULTS
     sc = STORAGE_DEFAULTS
     AWS = False
-
 
 class nems_stack:
 
@@ -65,7 +67,7 @@ class nems_stack:
     keyfuns = []  # to be populated from nems.keywords.keyfuns - dumb hack
 
     def __init__(self, cellid="X", batch=0, modelname="X"):
-        print("Creating new stack")
+        log.info("Creating new stack")
         self.modules = []
         self.mod_names = []
         self.data = []
@@ -73,13 +75,14 @@ class nems_stack:
         self.data[0].append({})  # Also this?
         self.data[0][0]['resp'] = []  # Do we need these?
         self.data[0][0]['stim'] = []  # This one too?
-
+        log.debug("Stack.data structure created: {0}".format(self.data))
         self.meta = {}  # Dictionary that will contain cellid, batch, modelname
         self.meta['cellid'] = cellid
         self.meta['batch'] = batch
         self.meta['modelname'] = modelname
         self.meta['nests'] = 0
         self.meta['cv_counter'] = 0
+        log.debug("Stack.meta information added: {0}".format(self.meta))
 
         # extract keywords from modelname
         self.keywords = modelname.split("_")
@@ -133,7 +136,7 @@ class nems_stack:
             # evaluate using the old nesting scheme devised by Noah
             # this section is deprecated and should be deleted
 
-            print('Evaluating nested validation data')
+            log.info('Evaluating nested validation data')
             mse_idx = ut.utils.find_modules(self, 'metrics.mean_square_error')
             mse_idx = int(mse_idx[0])
             try:
@@ -149,7 +152,7 @@ class nems_stack:
             start = xval_idx + 1
             for ii in range(start, mse_idx):
                 for cv_counter in range(0, self.nests):
-                    print("Eval {0} in valmode, nest={1}".format(
+                    log.info("Eval {0} in valmode, nest={1}".format(
                         ii, cv_counter))
                     st = 0
                     for m in self.fitted_modules:
@@ -186,14 +189,14 @@ class nems_stack:
             except BaseException:
                 mse_idx = len(self.modules)
 
-            print("Evaluating nested validation data: xvidx={0} mseidx={1}".format(
-                xval_idx, mse_idx))
+            log.info("Evaluating nested validation data: xvidx={0} mseidx={1}"
+                     .format(xval_idx, mse_idx))
 
             # evaluate up to xval module (if necessary)
             if start > xval_idx:
                 start = xval_idx
             for ii in range(start, xval_idx):
-                print("eval {0} in valmode".format(ii))
+                log.info("eval {0} in valmode".format(ii))
                 stack.modules[ii].evaluate()
 
             # go through each nest and evaluate stack, saving data stack to
@@ -222,8 +225,8 @@ class nems_stack:
                 # evaluate stack for this nest up to before error metric
                 # modules
                 for ii in range(xval_idx, mse_idx):
-                    print("nest={0}, eval {1} in valmode".format(
-                        cv_counter, ii))
+                    log.info("nest={0}, eval {1} in valmode"
+                             .format(cv_counter, ii))
                     stack.modules[ii].evaluate()
 
                     # append data from this (nest,module) onto d_save
@@ -232,7 +235,7 @@ class nems_stack:
                         include_keys[ii] = stack.modules[ii].d_out[0].keys(
                         ) - exclude_keys
                         d_save[ii] = copy.deepcopy(stack.modules[ii].d_out)
-                        print(include_keys[ii])
+                        log.info(include_keys[ii])
                     for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
                         if not d['est'] and cv_counter > 0:
                             for k in include_keys[ii]:
@@ -270,7 +273,7 @@ class nems_stack:
 
             # continue standard evaluation of later stack elements
             for ii in range(mse_idx, len(self.modules)):
-                print("eval {0} in valmode".format(ii))
+                log.info("eval {0} in valmode".format(ii))
                 self.modules[ii].evaluate()
 
         else:
@@ -387,7 +390,7 @@ class nems_stack:
         if mod and not idx:
             idx = ut.utils.find_modules(self, mod.name)
             if not idx:
-                print("Module does not exist in stack.")
+                log.warn("Module does not exist in stack.")
                 return
             if not all_idx:
                 # Only remove the instance with the highest index
@@ -468,7 +471,7 @@ class nems_stack:
         # this is for old subplot handling, since they have 1 based indexing.
         spidx = 1
         for sp, idx in enumerate(plot_set):
-            print("quick_plot: {}".format(self.modules[idx].name))
+            log.info("quick_plot: {}".format(self.modules[idx].name))
 
             # plt.subplot(len(plot_set),1,spidx)   <- this is to work without
             # grispec
@@ -521,7 +524,7 @@ class nems_stack:
         for idx, m in enumerate(self.modules):
             # skip first module
             if idx > 0:
-                print(self.mod_names[idx])
+                log.info(self.mod_names[idx])
                 plt.subplot(len(self.modules) - 1, 1, idx)
                 m.do_plot(m)
         plt.tight_layout()
@@ -554,14 +557,13 @@ class nems_stack:
             try:
                 fig.savefig(filename)
             except Exception as e:
-                print("Bad file extension for figure or couldn't save")
-                print(e)
+                log.warn("Bad file extension for figure or couldn't save")
                 raise e
 
             try:
                 os.chmod(filename, 0o666)
             except Exception as e:
-                print("Couldn't modify file permissions for figure")
+                log.warn("Couldn't modify file permissions for figure")
                 raise e
 
         return filename

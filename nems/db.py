@@ -9,6 +9,9 @@ Created on Fri Jun 16 05:20:07 2017
 @author: svd
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import os
 import sys
 import datetime
@@ -29,7 +32,7 @@ try:
     # if AWS:
     #from nems.EC2_Mgmt import check_instance_count
 except Exception as e:
-    print(e)
+    log.info(e)
     sc = nems_config.defaults.STORAGE_DEFAULTS
     AWS = False
 
@@ -47,21 +50,21 @@ try:
         db.user, db.passwd, db.host, db.database
     )
 except Exception as e:
-    print('No database info detected')
-    print(e)
+    log.info('No database info detected')
+    log.info(e)
     path = os.path.dirname(nems_config.defaults.__file__)
     i = path.find('nems/nems_config')
     db_path = (path[:i + 5] + 'nems_sample/demo_db.db')
     db_uri = 'sqlite:///' + db_path + '?check_same_thread=False'
     nems_config.defaults.DEMO_MODE = True
-    print('Using demo mode: {0}'.format(nems_config.defaults.DEMO_MODE))
+    log.info('Using demo mode: {0}'.format(nems_config.defaults.DEMO_MODE))
 
 try:
     import nems_config.Cluster_Database_Info as clst_db
     # format:      dialect+driver://username:password@host:port/database
     # to-do default port = 3306
     if not hasattr(clst_db, 'port'):
-        print("No port specified for cluster db info, using default port")
+        log.info("No port specified for cluster db info, using default port")
         port = 3306
     else:
         port = clst_db.port
@@ -72,8 +75,8 @@ try:
     )
 
 except Exception as e:
-    print('No cluster database info detected')
-    print(e)
+    log.info('No cluster database info detected')
+    log.info(e)
     path = os.path.dirname(nems_config.defaults.__file__)
     i = path.find('nems/nems_config')
     db_path = (path[:i + 5] + 'nems_sample/demo_db.db')
@@ -184,7 +187,7 @@ def enqueue_models(
                 )
 
     # Can return pass_fail instead if prefer to do something with it in views
-    print('\n'.join(pass_fail))
+    log.info('\n'.join(pass_fail))
 
     session.close()
     cluster_session.close()
@@ -229,7 +232,7 @@ def _enqueue_single_model(
         .first()
     )
     if result and not force_rerun:
-        web_print(
+        web_log.info(
             "Entry in NarfResults already exists for: %s, skipping.\n" %
             note)
         session.close()
@@ -380,8 +383,8 @@ def update_job_complete(queueid):
     if not qdata:
         # Something went wrong - either no matching id, no matching note,
         # or mismatch between id and note
-        print("Invalid query result when checking for queueid & note match")
-        print("/n for queueid: %s"%queueid)
+        log.info("Invalid query result when checking for queueid & note match")
+        log.info("/n for queueid: %s"%queueid)
     else:
         qdata.complete = 1
         cluster_session.commit()
@@ -616,7 +619,7 @@ def get_data_parms(rawid=None, parmfile=None):
     elif parmfile is not None:
         sql = "SELECT gData.* FROM gData INNER JOIN gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.parmfile = '{0}'".format(
             parmfile)
-        print(sql)
+        log.info(sql)
     else:
         pass
 

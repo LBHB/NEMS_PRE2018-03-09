@@ -6,6 +6,9 @@ Created on Mon Jul 31 17:03:32 2017
 @author: shofer
 """
 
+import logging
+log = logging.getLogger(__name__)
+
 import numpy as np
 import scipy as sp
 import tensorflow as tf
@@ -74,7 +77,7 @@ class tf_nems_fitter:
         self.stack.evaluate(1)
         self.counter += 1
         if self.counter % 100 == 0:
-            print('Eval #{0}. MSE={1}'.format(
+            log.info('Eval #{0}. MSE={1}'.format(
                 self.counter, self.stack.error()))
         return self.stack.error()
 
@@ -104,7 +107,7 @@ class ADADELTA_min(tf_nems_fitter):
 
     def my_init(self, iters=3000):
         self.iters = iters
-        print('Initializing ADADELTA fitter')
+        log.info('Initializing ADADELTA fitter')
 
     def update(self, phi, ticker):
         s = phi.shape
@@ -134,7 +137,7 @@ class ADADELTA_min(tf_nems_fitter):
                 if i % 1000 == 0:
                     current_err = cost.eval(feed_dict={resp: self.stack.data[-1][0]['resp'],
                                                        ticker: list(range(0, len(self.stack.data[-1])))})
-                    print('Iteration {0}, Error={2}'.format(i, current_err))
+                    log.info('Iteration {0}, Error={2}'.format(i, current_err))
                 train_step.run(feed_dict={resp: self.stack.data[-1][0]['resp'],
                                           ticker: list(range(0, len(self.stack.data[-1])))})
             phi_final = sess.run(phi)

@@ -7,6 +7,10 @@ Created on Fri Aug 11 11:08:08 2017
 
 @author: shofer
 """
+
+import logging
+log = logging.getLogger(__name__)
+
 from functools import partial
 
 import numpy as np
@@ -71,7 +75,7 @@ def dexp(stack):
     meanr = np.nanmean(resp)
     stdr = np.nanstd(resp)
     phi = [meanr + stdr * 4, stdr * 8, np.std(pred) / 10, np.mean(pred)]
-    print(phi)
+    log.info(phi)
     stack.append(nm.nonlin.gain, nltype='dexp', fit_fields=['phi'], phi=phi)
     mini_fit(stack, mods=['nonlin.gain'])
 
