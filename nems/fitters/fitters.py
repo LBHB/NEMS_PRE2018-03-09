@@ -195,13 +195,13 @@ class basic_min(nems_fitter):
         err = self.stack.error()
         self.counter += 1
         if (self.counter % 200 == 0) and (self.counter < 1000):
-            log.debug("Eval # {0}, phi vector is now: \n{1}"
-                      .format(self.counter, vector))
+            log.debug("Eval # %d, phi vector is now: \n%s",
+                      self.counter, str(vector))
         if self.counter % 1000 == 0:
-            log.info('Eval #' + str(self.counter))
-            log.info('Error=' + str(err))
-            log.debug("Eval # {0}, phi vector is now: \n{1}"
-                      .format(self.counter, vector))
+            log.info('Eval # %d', self.counter)
+            log.info('Error=%.02f', err)
+            log.debug("Eval # %d, phi vector is now: \n%s",
+                      self.counter, str(vector))
             self.tick_queue()  # Update the progress indicator
         return(err)
 
