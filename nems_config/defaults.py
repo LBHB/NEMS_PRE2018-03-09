@@ -8,11 +8,9 @@ on the results table or what minimum SNR to require for plots by default.
 """
 
 import logging
-# Logging level for this module should only be set to debug if... well,
-# if this specific code needs to be debugged. Otherwise should be kept at info
-# or above to avoid excessive log statements every time this module is imported
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+# Used 'root' instead of __name__ because the pre-configuration logging
+# would not show up otherwise.
+log = logging.getLogger('root')
 
 from pathlib import Path
 import importlib
@@ -23,15 +21,16 @@ import traceback
 import errno
 import logging.config
 import datetime as dt
-import nems_sample as ns
 import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
-sample_path = os.path.dirname(os.path.abspath(ns.__file__))
 
+import nems_sample as ns
+import nems_logs
+SAMPLE_PATH = os.path.dirname(os.path.abspath(ns.__file__))
+NEMS_LOGS_PATH = os.path.dirname(os.path.abspath(nems_logs.__file__))
 # stays false unless changed by db.py if database info is missing
 DEMO_MODE = False
-# sets to true after configure_logging call completes without error
 
 class UI_OPTIONS():
     cols = ['r_test', 'r_fit', 'n_parms']
@@ -54,7 +53,7 @@ class UI_OPTIONS():
     snri = 0
 
 class STORAGE_DEFAULTS():
-    DIRECTORY_ROOT = sample_path
+    DIRECTORY_ROOT = SAMPLE_PATH
     USE_AWS = False
 
 class FLASK_DEFAULTS():
@@ -68,7 +67,15 @@ class LOGGING_DEFAULTS():
     nems_config directory with the same structure as this class. Alternatively,
     if a different log file is desired but all  other settings can remain the
     same, the filepath and/or log name can be specified in the NEMSLOG and
-    NEMSLOGPATH environment variables.
+    NEMSLOGPATH environment variables. Similarly, the logging levels for
+    the console and file handlers can be overriden with variables
+    NEMSLVLCON and NEMSLVLFILE, respectively.
+
+    Order of precendence when settings conflict between environment variables,
+    top-level config file variables, and dictionary values:
+        1st: Environment Variables
+        2nd: Top-level Variables
+        3rd: Dictionary Value
 
     Example Logging_Config contents:
         Copy & paste the whole class, then make tweaks as desired
@@ -97,25 +104,35 @@ class LOGGING_DEFAULTS():
 
     Example environment variable specifications:
     #1) Specify exact file name:
-        NEMSLOG = '/my/file/path/log_name.log'
+        NEMSLOG='/my/file/path/log_name.log'
         export NEMSLOG
         nems-fit-single . . .
 
     #2) Specify directory root, but let nems decide the file name:
-        NEMSLOGPATH = '/my/file/path/'
+        NEMSLOGPATH='/my/file/path/'
         export NEMSLOGPATH
         nems-fit-single . . .
 
+    #3) Specify different log levels for the console and file handlers:
+        NEMSLVLFILE='INFO'
+        NEMSLVLCON='WARNING'
+        export NEMSLVLFILE NEMSLVLCON
+        nems-fit-single . . .
+
     NOTES: -If NEMSLOG is specified, it will override NEMSLOGPATH.
-           -A formatter named 'basic' must be present, as it is currently
-            used by code for adding the FileHandler. The format of basic can
-            be changed, but it must be present and its format will be used
-            for the log file.
+           -The top-level log_root variable overrides any filename specified
+            within the config dictionary, so it should be reassigned to a blank
+            string (i.e. '') if a filename specified in the dictionary
+            is desired.
 
     """
 
     # directory to store log files in
-    log_root = '~/nemslogs/'
+    log_root = NEMS_LOGS_PATH
+    # log levels for the respective handlers
+    # note: these levels will override values in the dictionary if specified.
+    console_level = 'INFO'
+    file_level = 'DEBUG'
 
     logging_config = {
             'version': 1,
@@ -135,10 +152,22 @@ class LOGGING_DEFAULTS():
                             'class': 'logging.StreamHandler',
                             'formatter': 'short',
                             'level': 'INFO',
-                            #'stream': 'ext://sys.stdout',
                             },
+                    'file': {
+                            'class': 'logging.FileHandler',
+                            'formatter': 'basic',
+                            'encoding': 'UTF-8',
+                            'filename': '',
+                            'mode': 'a',
+                            # 0: none, 10: DEBUG, 20: INFO, 30: WARNING,
+                            # 40: ERROR, 50: CRITICAL
+                            'level': 'DEBUG',
+                            }
                     },
             'loggers': {
+                    # This level should be left at DEBUG;
+                    # to adjust message display, change logging level for
+                    # console and/or file handlers as needed
                     'nems': {'level': 'DEBUG'},
                     },
             'root': {
@@ -146,9 +175,8 @@ class LOGGING_DEFAULTS():
                     },
             }
 
-sample_i = sample_path.find('/nems_sample')
-db_path = sample_path[:sample_i] + '/nems_sample/demo_db.db'
-log.info(db_path)
+db_path = os.path.join(SAMPLE_PATH, 'demo_db.db')
+log.debug("db_path for demo ended up being: {0}".format(db_path))
 db_obj = Path(db_path)
 # Check if sample database exists. If it doesn't, get it from the public s3
 if not db_obj.exists():
@@ -166,10 +194,6 @@ if not db_obj.exists():
         log.info("Demo database written to: ")
         log.info(db_path)
 
-# TODO: Any way to put this outside of the config file and still guarantee
-#       that it gets run?
-#       Can put it in app initialization for web app, but some modules use
-#       these settings w/o ever launching the app.
 def update_settings(module_name, default_class):
     """ Overwrites contents of default_class with contents of the specified
     config module. Only attributes specified in the config module will be
@@ -197,7 +221,11 @@ update_settings("Logging_Config", LOGGING_DEFAULTS)
 
 def configure_logging():
     logging_config = LOGGING_DEFAULTS.logging_config
-    filename = None
+    console_level = LOGGING_DEFAULTS.console_level
+    file_level = LOGGING_DEFAULTS.file_level
+    log_root = LOGGING_DEFAULTS.log_root
+    # filename should be an empty string unless added by user
+    filename = logging_config['handlers']['file']['filename']
 
     # filename specified by environment variable will take precedence
     try:
@@ -206,49 +234,73 @@ def configure_logging():
         log.debug("No filename specified in OS environment, trying file"
                   "specified in Logging_Config or LOGGING_DEFAULTS")
         try:
+            # root directory in environment variables takes precedence
             log_root = os.environ['NEMSLOGPATH']
         except:
             log.debug("No fileroot specified in OS environment, trying"
                       "path specified in Logging_Config or LOGGING_DEFAULTS")
-            log_root = LOGGING_DEFAULTS.log_root
-        timestamp = dt.datetime.now().strftime('%Y-%m-%d')
-        file = 'nemslog_{0}.log'.format(timestamp)
-        filename = os.path.join(log_root, file)
+        if log_root:
+            # if log_root wasn't removed by user, set log file to
+            # time-based filename inside that directory
+            timestamp = dt.datetime.now().strftime('%Y-%m-%d')
+            file = 'nemslog_{0}.log'.format(timestamp)
+            filename = os.path.join(log_root, file)
+            try:
+                os.makedirs(log_root)
+            except OSError as e:
+                # check if error was because directory already exists
+                if e.errno != errno.EEXIST:
+                    log.debug("Log file directory could not be created: {0} --"
+                              "\nError: {1}"
+                              .format(log_root, e))
+                    filename = None
+                else:
+                    pass
+
+    if filename:
+        # if log_root wasn't specified, but a filename was, try
+        # creating directory from filename instead.
+        # find the last / in filename, and chop off the rest to get root
+        root_idx = filename.rfind('/')
+        file_root = filename[:root_idx+1]
         try:
-            os.makedirs(log_root)
+            os.makedirs(file_root)
         except OSError as e:
-            # check if error was because directory already exists
             if e.errno != errno.EEXIST:
                 log.debug("Log file directory could not be created: {0} --"
-                      "Outputting logs to console only."
-                      .format(log_root))
+                          "\nError: {1}"
+                          .format(file_root, e))
                 filename = None
             else:
-                # if that was the case, no problem
                 pass
 
+    # levels specified in environment variables will take precedence
+    try:
+        console_level = os.environ['NEMSLVLCON']
+    except:
+        pass
+    try:
+        file_level = os.environ['NEMSLVLFILE']
+    except:
+        pass
+
     log.debug("log filename ended up being: %s"%filename)
-    if filename:
-        logging_config['handlers']['file'] = {
-                'class': 'logging.FileHandler',
-                'formatter': 'basic',
-                'filename': filename,
-                'encoding': 'UTF-8',
-                'mode': 'a',
-                # 0: none, 10: DEBUG, 20: INFO, 30: WARNING,
-                # 40: ERROR, 50: CRITICAL
-                'level': logging.DEBUG,
-                }
+    # if file handler was'nt removed by user and filename isn't blank,
+    # configure the relevant keys and add the file handler to the root.
+    if filename and 'file' in logging_config['handlers']:
+        logging_config['handlers']['file']['filename'] = filename
+        logging_config['handlers']['file']['level'] = file_level
         logging_config['root']['handlers'].append('file')
+    logging_config['handlers']['console']['level'] = console_level
     log.debug("logging_config dict ended up being: %s"%logging_config)
     logging.config.dictConfig(logging_config)
 
 try:
     configure_logging()
-    LOGGING_CONFIGURED = True
     log.debug("logging successfully configured.")
 except Exception as e:
-    log.warn("Attempt to configure logging resulted in error: {0}".format(e))
+    log.warning("Attempt to configure logging resulted in error: {0}"
+                .format(e))
 
 # send uncaught exceptions to log file if file handler is set up.
 # will also go to console as normal.
