@@ -7,14 +7,24 @@ on the results table or what minimum SNR to require for plots by default.
 
 """
 
+import sys
 import logging
 # Used 'root' instead of __name__ because the pre-configuration logging
 # would not show up otherwise.
-log = logging.getLogger('root')
+# And then root stopped showing up too...
+# TODO: Figure out best way to get log statements in this module
+#       to show up with the others.
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s : %(levelname)s : %(name)s, "
+                              "line %(lineno)s:\n%(message)s\n")
+ch = logging.StreamHandler(stream=sys.stdout)
+ch.setFormatter(formatter)
+ch.setLevel(logging.DEBUG)
+log.addHandler(ch)
 
 from pathlib import Path
 import importlib
-import sys
 import os
 import warnings
 import traceback
@@ -169,30 +179,12 @@ class LOGGING_DEFAULTS():
                     # to adjust message display, change logging level for
                     # console and/or file handlers as needed
                     'nems': {'level': 'DEBUG'},
+                    'nems_config': {'level': 'DEBUG'},
                     },
             'root': {
                     'handlers': ['console'],
                     },
             }
-
-db_path = os.path.join(SAMPLE_PATH, 'demo_db.db')
-log.debug("db_path for demo ended up being: {0}".format(db_path))
-db_obj = Path(db_path)
-# Check if sample database exists. If it doesn't, get it from the public s3
-if not db_obj.exists():
-    log.info("Demo database not found, retrieving....")
-    s3_client = boto3.client(
-            's3',
-            #aws_access_key_id='dummyid', aws_secret_access_key='dummykey',
-            #aws_session_token='dummytoken',
-            #config=Config(signature_version=UNSIGNED),
-            )
-    key = "demodb/demo_db.db"
-    fileobj = s3_client.get_object(Bucket='nemspublic', Key=key)
-    with open(db_path, 'wb+') as f:
-        f.write(fileobj['Body'].read())
-        log.info("Demo database written to: ")
-        log.info(db_path)
 
 def update_settings(module_name, default_class):
     """ Overwrites contents of default_class with contents of the specified
@@ -298,6 +290,8 @@ def configure_logging():
 try:
     configure_logging()
     log.debug("logging successfully configured.")
+    # reconfigure logger for this module after settings applied
+    log = logging.getLogger(__name__)
 except Exception as e:
     log.warning("Attempt to configure logging resulted in error: {0}"
                 .format(e))
@@ -314,3 +308,22 @@ def uncaught_exception_handler(type, value, tb):
     for i, tb in enumerate(tblist):
         exlog.exception(str(i) + ": " + tb)
 sys.excepthook = uncaught_exception_handler
+
+db_path = os.path.join(SAMPLE_PATH, 'demo_db.db')
+log.debug("db_path for demo ended up being: {0}".format(db_path))
+db_obj = Path(db_path)
+# Check if sample database exists. If it doesn't, get it from the public s3
+if not db_obj.exists():
+    log.info("Demo database not found, retrieving....")
+    s3_client = boto3.client(
+            's3',
+            #aws_access_key_id='dummyid', aws_secret_access_key='dummykey',
+            #aws_session_token='dummytoken',
+            #config=Config(signature_version=UNSIGNED),
+            )
+    key = "demodb/demo_db.db"
+    fileobj = s3_client.get_object(Bucket='nemspublic', Key=key)
+    with open(db_path, 'wb+') as f:
+        f.write(fileobj['Body'].read())
+        log.info("Demo database written to: ")
+        log.info(db_path)
