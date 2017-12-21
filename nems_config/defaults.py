@@ -13,13 +13,6 @@ import logging
 # or above to avoid excessive log statements every time this module is imported
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-#ch = logging.StreamHandler()
-#ch.setLevel(logging.DEBUG)
-#fm = logging.Formatter(
-#        '%(asctime)s -- %(name)s --  %(levelname)s : %(message)s'
-#        )
-#ch.setFormatter(fm)
-#log.addHandler(ch)
 
 from pathlib import Path
 import importlib
@@ -78,17 +71,19 @@ class LOGGING_DEFAULTS():
     NEMSLOGPATH environment variables.
 
     Example Logging_Config contents:
-    #1) Copy the whole class, then make tweaks as desired:
+        Copy the whole class, then make tweaks as desired:
             log_root = 'my/file/path'
-            shortened_format = '%(asctime)s -- %(message)s'
 
             logging_config = {
             'version': 1,
             'formatters': {
-                    'my_formatter': {'format': shortened_format},
+                    'basic': {'format': '}
+                    'my_formatter': {'format': '%(asctime)s -- %(message)s'},
                     },
             'handlers': {
-                    ... [abbreviated]
+                    'console':
+                        ... [abbreviated],
+                        'formatter': 'my_formatter',
                     },
             'loggers': {
                     ... [abbreviated]
@@ -97,12 +92,6 @@ class LOGGING_DEFAULTS():
                     'handlers': ['console'],
                     },
             }
-
-    #2) Only specifying attributes to replace (or new ones to add):
-            basic_format = '%(name)s -- %(message)s'
-            new_format = '%(levelname)s -- %(message)s'
-            logging_config['handlers']['console']['level'] = 'INFO'
-            (unspecified values are left unchanged)
 
     Example environment variable specifications:
     #1) Specify exact file name:
@@ -115,22 +104,25 @@ class LOGGING_DEFAULTS():
         export NEMSLOGPATH
         nems-fit-single . . .
 
-    NOTE: If NEMSLOG is specified, it will override NEMSLOGPATH
+    NOTES: -If NEMSLOG is specified, it will override NEMSLOGPATH.
+           -A formatter named 'basic' must be present, as it is currently
+            used by code for adding the FileHandler. The format of basic can
+            be changed, but it must be present and its format will be used
+            for the log file.
 
     """
 
     # directory to store log files in
-    log_root = '/auto/data/code/nemslogs/'
-    # formatting of logging messages
-    basic_format = ("%(asctime)s : %(levelname)s : %(name)s, "
-                    "line %(lineno)s:\n%(message)s\n")
-    short_format = "%(name)s : %(message)s\n"
-
+    log_root = '~/nemslogs/'
     logging_config = {
             'version': 1,
             'formatters': {
-                    'basic': {'format': basic_format},
-                    'short': {'format': short_format},
+                    'basic': {'format': (
+                                "%(asctime)s : %(levelname)s : %(name)s, "
+                                "line %(lineno)s:\n%(message)s\n"
+                                )
+                        },
+                    'short': {'format': "%(name)s, %(lineno)s : %(message)s\n"},
                     },
             'handlers': {
                     # only console logger included by default,
@@ -145,9 +137,6 @@ class LOGGING_DEFAULTS():
                     },
             'loggers': {
                     'nems': {'level': 'DEBUG'},
-                    #'exception_logger': {'level': 'DEBUG',
-                    #                     'handlers': ['console'],
-                    #                     },
                     },
             'root': {
                     'handlers': ['console'],
