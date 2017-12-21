@@ -58,21 +58,29 @@ def plot_weights_64D(h, cellids,cbar=True):
     c_id = np.zeros(len(cellids))
     for i in range(0, len(cellids)):
         electrodes[i] = int(cellids[i][0][-4:-2])
-    electrodes = np.unique(electrodes)
+    electrodes = np.unique(electrodes)-1
     
     # move units when there are >1 on same electrode
     for i, weight in enumerate(h):
-        c_id[i] = int(cellids[i][0][-4:-2])
+        c_id[i] = int(cellids[i][0][-4:-2])-1
         tf =1
         while tf==1:
-             if int(cellids[i][0][-1])>1:
+             if (int(cellids[i][0][-1])>1 and int(c_id[i]+1) <64):
                  c_id[i] = int(c_id[i]+1)
+                 if sum(c_id[i] == electrodes)>0:
+                     tf=1
+                 else:
+                     tf = 0
+             elif (int(cellids[i][0][-1])>1 and int(c_id[i]+1) >= 64):
+                 print('im using the 2nd option')
+                 c_id[i] = int(c_id[i]-1)
                  if sum(c_id[i] == electrodes)>0:
                      tf=1
                  else:
                      tf = 0
              else:
                  tf = 0
+    
     import matplotlib
     
     mappable = matplotlib.cm.ScalarMappable()
@@ -83,3 +91,24 @@ def plot_weights_64D(h, cellids,cbar=True):
                           c=colors,vmin=-10,vmax=10,s=40,edgecolor='none')
     if cbar is True:
         plt.colorbar(mappable)
+        
+        
+        
+# plotting utils fro 128ch 4-shank depth
+
+def plot_weights_128D(h, cellids):
+    # get gemoetry from Luke's baphy function probe_128D
+    
+    channels = np.arange(0,128,1)
+    x = loadmat('probe_128D/x_positions.mat')['x_128']
+    y = loadmat('probe_128D/z_positions.mat')['z_128']
+    
+    locations=np.hstack((x,y))
+    plt.scatter(locations[:,0],locations[:,1])
+    plt.axis('scaled')
+
+    
+    
+    
+    
+    
