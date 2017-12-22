@@ -24,7 +24,7 @@ def plot_from_mat(h_filename, ids_filename, lv):
 
     plot_weights_64D(h[:,lv].squeeze(), cellids[0])
 
-def plot_weights_64D(h, cellids,cbar=True):
+def plot_weights_64D(h, cellids,vmin, vmax,cbar=True):
     
     '''
     given a weight vector, h, plot the weights on the appropriate electrode channel
@@ -49,7 +49,7 @@ def plot_weights_64D(h, cellids,cbar=True):
     c_col = np.vstack((np.zeros(22),center_col))
     locations = np.hstack((l_col,c_col,r_col))[:,sort_inds]
     #plt.figure()
-    plt.scatter(locations[0,:],locations[1,:],facecolor='none',edgecolor='k',s=40)
+    plt.scatter(locations[0,:],locations[1,:],facecolor='none',edgecolor='k',s=70)
     plt.axis('scaled')
     plt.xlim(-.5,.5)
     
@@ -82,13 +82,14 @@ def plot_weights_64D(h, cellids,cbar=True):
                  tf = 0
     
     import matplotlib
-    
-    mappable = matplotlib.cm.ScalarMappable()
+    norm =matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+    cmap = matplotlib.cm.jet
+    mappable = matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap)
     mappable.set_array(h)
-    mappable.set_cmap('jet')
+    #mappable.set_cmap('jet')
     colors = mappable.to_rgba(h)
     plt.scatter(locations[:,(c_id.astype(int))][0,:],locations[:,c_id.astype(int)][1,:],
-                          c=colors,vmin=-10,vmax=10,s=40,edgecolor='none')
+                          c=colors,vmin=vmin,vmax=vmax,s=70,edgecolor='none')
     if cbar is True:
         plt.colorbar(mappable)
         
