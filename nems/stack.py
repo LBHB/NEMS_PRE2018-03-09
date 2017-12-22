@@ -466,7 +466,7 @@ class nems_stack:
                 plot_set.append(idx)
         # outer grid corresponding to a subplot for each of the modules.
         outer = gridspec.GridSpec(len(plot_set), 1)
-
+        
         # this is for old subplot handling, since they have 1 based indexing.
         spidx = 1
         for sp, idx in enumerate(plot_set):

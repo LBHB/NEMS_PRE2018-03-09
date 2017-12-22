@@ -16,7 +16,6 @@ import os
 import copy
 import io
 import json
-import pprint
 import h5py
 
 import nems.utilities as ut
@@ -53,9 +52,10 @@ def load_single_model(cellid, batch, modelname, evaluate=True):
     stack = load_model(filename)
 
     if evaluate:
+        stack.valmode = True
+        stack.evaluate()
         try:
-            stack.valmode = True
-            stack.evaluate()
+            pass
 
         except Exception as e:
             log.info("Error evaluating stack")
@@ -263,6 +263,9 @@ def get_mat_file(filename, chars_as_strings=True):
 def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
     """ load data from baphy export file. current "standard" data format
         for LBHB
+        
+        TODO: support for multiple data[] entries??  right now just 
+        returns a single data dictionary
     """
 
     # load contents of Matlab data file and save in data list
@@ -309,7 +312,7 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                 data['poststim'] = s['tags'][0]['PostStimSilence'][0][0][0]
                 data['duration'] = s['tags'][0]['Duration'][0][0][0]
             except BaseException:
-                print("load_mat: alternative load. does this ever execute?")
+                log.info("load_mat: alternative load. does this ever execute?")
                 data = scipy.io.loadmat(f, chars_as_strings=True)
                 data['raw_stim'] = data['stim'].copy()
                 data['raw_resp'] = data['resp'].copy()
@@ -360,8 +363,6 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
                 data[sname] = np.transpose(data[sname], (0, 2, 1))
 
                 if stim_resamp_factor in np.arange(0, 10):
-                    print("stim bin resamp factor {0}".format(
-                        stim_resamp_factor))
                     data[sname] = ut.utils.bin_resamp(
                         data[sname], stim_resamp_factor, ax=2)
 
@@ -375,8 +376,6 @@ def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
             # Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
             #-njs June 16, 2017
             if resp_resamp_factor in np.arange(0, 10):
-                print("resp bin resamp factor {0}".format(
-                    resp_resamp_factor))
                 data['resp'] = ut.utils.bin_resamp(
                     data['resp'], resp_resamp_factor, ax=0)
                 if data['pupil'] is not None:
@@ -497,20 +496,41 @@ def load_ecog(stack, fs=25, avg_resp=True, stimfile=None, respfile=None, resp_ch
 
 def load_factor(stack=None, fs=100, avg_resp=True, stimfile=None, respfile=None, resp_channels=None):
 
-    print("Loading stim data from file {0}".format(stimfile))
+    log.info("Loading stim data from file {0}".format(stimfile))
     data=load_baphy_data(est_files=[stimfile], fs=fs, avg_resp=avg_resp)
 
     # response data to paste into a "standard" data object
-    print("Loading resp data from file {0}".format(respfile))
+    log.info("Loading resp data from file {0}".format(respfile))
     matdata = ut.io.get_mat_file(respfile)
 
     resp=matdata['lat_vars'][:,:,resp_channels]
-    print(resp.shape)
     resp=np.transpose(resp,[2,1,0])
     data['resp']=resp
 
     return data
 
+
+def load_site_data(stack=None, fs=100, avg_resp=True, stimfile=None, respfile=None, resp_channels=None):
+    
+    d=stack.meta['d']
+    batch=stack.meta['batch']
+    cellcount=len(d)
+    
+    """ load all the data for this site """
+    cellid=d['cellid'][0]
+    file=ut.baphy.get_celldb_file(batch,cellid,fs=fs,stimfmt='ozgf',chancount=18)
+    log.info("Initializing site data with file {0}".format(file))
+    
+    data=load_baphy_data(est_files=[file], fs=fs, parent_stack=stack, avg_resp=avg_resp)
+    
+    for ii in range(1,cellcount):
+        cellid=d['cellid'][ii]
+        file=ut.baphy.get_celldb_file(batch,cellid,fs=fs,stimfmt='ozgf',chancount=18)
+        log.info("Loading response: {0}".format(file))
+        data2=load_baphy_data(est_files=[file], fs=fs, parent_stack=stack, avg_resp=avg_resp)
+        data['resp']=np.concatenate((data['resp'],data2['resp']),axis=0)
+        
+    return data
 
 
 def load_nat_cort(fs=100, prestimsilence=0.5, duration=3, poststimsilence=0.5):

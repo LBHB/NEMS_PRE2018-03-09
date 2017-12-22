@@ -186,8 +186,8 @@ class load_mat(nems_module):
                 # Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
                 if resp_resamp_factor in np.arange(0, 10):
-                    log.info("resp bin resamp factor {0}".format(
-                        resp_resamp_factor))
+                    #log.info("resp bin resamp factor {0}".format(
+                    #    resp_resamp_factor))
                     data['resp'] = nems.utilities.utils.bin_resamp(
                         data['resp'], resp_resamp_factor, ax=0)
                     if data['pupil'] is not None:
@@ -304,8 +304,13 @@ class load_gen(nems_module):
                     stack=self.parent_stack, fs=self.fs, 
                     avg_resp=self.avg_resp, respfile=self.respfile,
                     stimfile=self.stimfile, resp_channels=self.resp_channels)
+        elif self.load_fun=='load_site_data':
+            self.d_out[0] = nems.utilities.io.load_site_data(
+                    stack=self.parent_stack, fs=self.fs, 
+                    avg_resp=self.avg_resp, respfile=self.respfile,
+                    stimfile=self.stimfile, resp_channels=self.resp_channels)
         else:
-            raise ValueError('Unsupported load_fun')
+            raise ValueError('Unsupported load_fun {0}'.format(self.load_fun))
 
 
 class dummy_data(nems_module):
