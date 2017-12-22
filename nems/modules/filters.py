@@ -121,7 +121,13 @@ class WeightChannels(Module):
             coefs = self.coefs
         else:
             coefs = self.coefs
-        return weight_channels_local(x, coefs)
+        if np.sum(np.abs(self.baseline[:]))>0:
+            baseline=self.baseline
+        else:
+            baseline=None
+            
+        return weight_channels_local(x, coefs, baseline)
+        
 
 class weight_channels(WeightChannels):
     pass
@@ -232,8 +238,27 @@ class FIR(Module):
         self.fit_fields = fit_fields
         self.do_trial_plot = self.plot_fns[0]
 
-    def my_eval(self, x):
+    def my_eval_old(self, x):
         return fir_filter(x, self.coefs, self.baseline, bank_count=self.bank_count)
+
+    def my_eval(self,X):
+        s=X.shape
+        X=np.reshape(X,[s[0],-1])
+        for i in range(0,s[0]):
+            y=np.convolve(X[i,:],self.coefs[i,:])
+            X[i,:]=y[0:X.shape[1]]
+            
+        if self.bank_count:
+            # reshape inputs so that filter is summed separately across each bank
+            ts0=np.int(s[0]/self.bank_count)
+            ts1=self.bank_count
+            X=np.reshape(X,[ts1,ts0,-1])
+            
+        X=X.sum(1)+self.baseline
+        s=list(s)
+        s[0]=self.bank_count
+        Y=np.reshape(X,s)
+        return Y
 
     def get_strf(self):
         h = self.coefs
