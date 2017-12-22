@@ -10,14 +10,15 @@ import logging
 log = logging.getLogger(__name__)
 
 import os
+from time import time
 import scipy as sp
 import numpy as np
 
 
 def phi_to_vector(phi):
     '''
-    Convert a list of dictionaries where the values are scalars or array-like to
-    a single vector.
+    Convert a list of dictionaries where the values are scalars or array-like
+    to a single vector.
 
     This is a helper function for fitters that use scipy.optimize. The scipy
     optimizers require phi to be a single vector; however, it's more intuitive
@@ -141,14 +142,14 @@ class basic_min(nems_fitter):
     """
     The basic fitting routine used to fit a model. This function defines a cost
     function that evaluates the moduels being fit using the current parameters
-    and outputs the current mean square error (mse). The cost function is evaulated
-    by the scipy optimize.minimize routine, which seeks to minimize the mse by
-    changing the function parameters.
+    and outputs the current mean square error (mse). The cost function is
+    evaulated by the scipy optimize.minimize routine, which seeks to minimize
+    the mse by changing the function parameters.
 
     Scipy optimize.minimize is set to use the minimization algorithm 'L-BFGS-B'
-    as a default, as this is memory efficient for large parameter counts and seems
-    to produce good results. However, there are many other potential algorithms
-    detailed in the documentation for optimize.minimize
+    as a default, as this is memory efficient for large parameter counts and
+    seems to produce good results. However, there are many other potential
+    algorithms detailed in the documentation for optimize.minimize
 
     """
 
@@ -160,18 +161,19 @@ class basic_min(nems_fitter):
         """
         Initializes the fitter.
 
-        routine: the algorithm that scipy.optimize.minimize should use. L-BFGS-B
-                and SLSQP tend to work very well, while Nelder-Mead, Powell, and
-                BFGS work, but not as well. The documentation for
+        routine: the algorithm that scipy.optimize.minimize should use.
+                L-BFGS-B and SLSQP tend to work very well, while Nelder-Mead,
+                Powell, and BFGS work, but not as well. The documentation for
                 scipy.optimize.minimize has more details on algorithms that can
-                be used
-
+                be used.
         maxit: maximum number of iterations for the fitter to use. Different
-                than number of function evaluations
-        tolerance: the "accuracy" to which the cost function is fit. E.g., if we
-                have a tolerance of 0.001, the fitter will fit until the value of
-                the cost function is stable at the third decimal place
+                than number of function evaluations.
+        tolerance: the "accuracy" to which the cost function is fit. E.g.,
+                if we have a tolerance of 0.001, the fitter will fit until the
+                value of the cost function is stable at the third decimal place.
+
         """
+
         log.info("initializing basic_min")
         self.maxit = maxit
         self.routine = routine
@@ -186,15 +188,21 @@ class basic_min(nems_fitter):
         called error (usually mean squared error, but sometimes other functions
         such as huber loss).
         """
+
         phi = vector_to_phi(vector, self.phi0)
         self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
+        if (self.counter % 200 == 0) and (self.counter < 1000):
+            log.debug("Eval # %d, phi vector is now: \n%s",
+                      self.counter, str(vector))
         if self.counter % 1000 == 0:
-            log.info('Eval #' + str(self.counter))
-            log.info('Error=' + str(err))
-            self.tick_queue()  # This just updates the prgress indicator
+            log.info('Eval # %d', self.counter)
+            log.info('Error=%.02f', err)
+            log.debug("Eval # %d, phi vector is now: \n%s",
+                      self.counter, str(vector))
+            self.tick_queue()  # Update the progress indicator
         return(err)
 
     def do_fit(self):
@@ -213,56 +221,82 @@ class basic_min(nems_fitter):
         don't need to do anything else other than retun the final error (with the
         exception of simulated annealing).
         """
+
         opt = dict.fromkeys(['maxiter'])
         opt['maxiter'] = int(self.maxit)
         if self.routine == 'L-BFGS-B':
             opt['eps'] = 1e-7
+        # TODO: Are there any modules with parameters that need constraints?
+        #       Could add constraints per-module then extract
+        #       similar to get_phi
         cons = ()
 
-        # Below here are the general need for a nems_fitter object.
+        # Initial guess = vector of current module parameter values
         self.phi0 = self.stack.get_phi(self.fit_modules)
         self.counter = 0
         vector = phi_to_vector(self.phi0)
         log.info("basic_min: phi0 initialized (fitting {0} parameters)"
                  .format(len(vector)))
-        sp.optimize.minimize(self.cost_fn, vector, method=self.routine,
-                             constraints=cons, options=opt, tol=self.tolerance)
-        log.info("Final {0}: {1}".format(
-            self.stack.modules[-1].name, self.stack.error()))
-        log.info('           ')
+        # TODO: Currently phi0 is almost all zeroes. Is this intended,
+        #       or have initial guesses just not been added yet?
+        log.debug("phi0 vector: \n{0}".format(vector))
+
+        start = time()
+        res = sp.optimize.minimize(
+                self.cost_fn, vector, method=self.routine,
+                constraints=cons, options=opt, tol=self.tolerance
+                )
+        end = time()
+        elapsed = end-start
+        log.debug("Minimization terminated\n"
+                  "on eval #: {0}\n"
+                  "after {1} seconds.\n"
+                  "Success: {2}.\n"
+                  "Reason: {3}\n"
+                  "Optimized vector: {4}\n"
+                  .format(self.counter, elapsed, res.success, res.message,
+                          res.x))
+        # stack.modules[-1] should be a metrics/error module,
+        log.info("Final {0}: {1}\n"
+                 .format(self.stack.modules[-1].name, self.stack.error()))
         return(self.stack.error())
 
 
 class anneal_min(nems_fitter):
-    """
-    A simulated annealing method to find the ~global~ minimum of your parameters.
+    """ A simulated annealing method to find the ~global~ minimum of your
+    parameters.
 
-    This fitter uses scipy.optimize.basinhopping, which is scipy's built-in annealing
-    routine. Essentially, this routine uses scipy.optimize.minimize to minimize the
-    function, then randomly perturbs the function and reminimizes it. It will continue
-    this procedure until either the maximum number of iterations had been exceed or
-    the minimum remains constant for a specified number of iterations.
+    This fitter uses scipy.optimize.basinhopping, which is scipy's built-in
+    annealing routine. Essentially, this routine uses scipy.optimize.minimize
+    to minimize the function, then randomly perturbs the function and
+    reminimizes it. It will continue this procedure until either the maximum
+    number of iterations had been exceed or the minimum remains constant for
+    a specified number of iterations.
 
-    anneal_iter=number of annealing iterations to perform
-    stop=number of iterations after which to stop annealing if global min remains the same
-    up_int=update step size every up_int iterations
-    maxiter=maximum iterations for each round of minimization
-    tolerance=tolerance for each round of minimization
-    min_method=method used for each round of minimization. 'L-BFGS-B' works well
+    anneal_iter = number of annealing iterations to perform
+    stop = number of iterations after which to stop annealing if global min
+         remains the same
+    up_int = update step size every up_int iterations
+    maxiter = maximum iterations for each round of minimization
+    tolerance = tolerance for each round of minimization
+    min_method = method used for each round of minimization. 'L-BFGS-B'
+                 works well
     bounds should be [(xmin,xmax),(ymin,ymax),(zmin,zmax),etc]
 
-    WARNING: this fitter takes a ~~long~~ time. It is usually better to try basic_min
-    first, and then use this method if basic_min fails.
+    WARNING: this fitter takes a ~~long~~ time. It is usually better to
+    try basic_min first, and then use this method if basic_min fails.
 
-    Also, note that since basinhopping (at least as implemented here) uses random jumps,
-    the results my not be exactly the same every time, and the annealing may take a
-    different number of iterations each time it is called
+    Also, note that since basinhopping (at least as implemented here) uses
+    random jumps, the results my not be exactly the same every time, and the
+    annealing may take a different number of iterations each time it is called
     @author: shofer, 30 June 2017
 
-    Further note: this is currently set up to take small jumps, as might be useful
-    for fitting FIR filters or small nonlinearities. To use this fitter effectively,
-    the "expected" value of the coefficients must be taken into account.
+    Further note: this is currently set up to take small jumps, as might be
+    useful for fitting FIR filters or small nonlinearities. To use this fitter
+    effectively, the "expected" value of the coefficients must be taken into
+    account.
     --njs, 5 July 2017
+
     """
 
     name = 'anneal_min'
@@ -273,7 +307,8 @@ class anneal_min(nems_fitter):
     maxiter = 10000
     tolerance = 0.01
 
-    def my_init(self, min_method='L-BFGS-B', anneal_iter=100, stop=5, maxiter=10000, up_int=10, bounds=None,
+    def my_init(self, min_method='L-BFGS-B', anneal_iter=100, stop=5,
+                maxiter=10000, up_int=10, bounds=None,
                 temp=0.01, stepsize=0.01, verb=False):
         log.info("initializing anneal_min")
         self.anneal_iter = anneal_iter
@@ -286,35 +321,55 @@ class anneal_min(nems_fitter):
         self.step = stepsize
         self.verb = verb
 
-    def cost_fn(self, phi):
+    def cost_fn(self, vector):
         phi = vector_to_phi(vector, self.phi0)
-        stack.set_phi(phi)
+        self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
+        if (self.counter % 200 == 0) and (self.counter < 1000):
+            log.debug("Eval # {0}, phi vector is now: \n{1}"
+                      .format(self.counter, vector))
         if self.counter % 1000 == 0:
             log.info('Eval #' + str(self.counter))
             log.info('Error=' + str(err))
+            log.debug("Eval # {0}, phi vector is now: \n{1}"
+                      .format(self.counter, vector))
         return(err)
 
     def do_fit(self):
         opt = dict.fromkeys(['maxiter'])
         opt['maxiter'] = int(self.maxiter)
         opt['eps'] = 1e-7
-        min_kwargs = dict(method=self.min_method,
-                          tolerance=self.tolerance, bounds=self.bounds, options=opt)
-        self.phi0 = self.stack.get_phi()
+        min_kwargs = dict(
+                method=self.min_method, tol=self.tolerance,
+                bounds=self.bounds, options=opt,
+                )
+        self.phi0 = self.stack.get_phi(self.fit_modules)
+        vector = phi_to_vector(self.phi0)
         self.counter = 0
-        log.info("anneal_min: phi0 intialized (fitting {0} parameters)".format(
-            len(self.phi0)))
-        #log.info("maxiter: {0}".format(opt['maxiter']))
-        opt_res = sp.optimize.basinhopping(self.cost_fn, self.phi0, niter=self.anneal_iter,
-                                           T=self.temp, stepsize=self.step, minimizer_kwargs=min_kwargs,
-                                           interval=self.up_int, disp=self.verb, niter_success=self.stop)
+        log.info("anneal_min: phi0 intialized (fitting {0} parameters)"
+                 .format(len(vector)))
+        log.debug("phi0 vector: \n{0}".format(vector))
+        log.debug("maxiter: {0}".format(opt['maxiter']))
+
+        start = time()
+        opt_res = sp.optimize.basinhopping(
+                self.cost_fn, vector, niter=self.anneal_iter,
+                T=self.temp, stepsize=self.step, minimizer_kwargs=min_kwargs,
+                interval=self.up_int, disp=self.verb, niter_success=self.stop
+                )
+        end = time()
+        elapsed = end-start
+        log.debug("Minimization terminated\n"
+                  "on eval #: {0}\n"
+                  "after {1} seconds.\n"
+                  "Reason: {2}\n"
+                  .format(self.counter, elapsed, opt_res.message))
         phi_final = opt_res.lowest_optimization_result.x
         self.cost_fn(phi_final)
-        log.info("Final MSE: {0}".format(self.stack.error()))
-        log.info('           ')
+        log.info("Final {0}: {1}\n"
+                 .format(self.stack.modules[-1].name, self.stack.error()))
         return(self.stack.error())
 
 """
@@ -392,9 +447,9 @@ class coordinate_descent(nems_fitter):
         self.tolerance = tolerance
         self.verbose = verbose
 
-    def cost_fn(self, phi):
+    def cost_fn(self, vector):
         phi = vector_to_phi(vector, self.phi0)
-        stack.set_phi(phi)
+        self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         mse = self.stack.error()
         self.counter += 1

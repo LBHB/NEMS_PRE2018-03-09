@@ -4,10 +4,13 @@ log = logging.getLogger(__name__)
 import re
 from functools import partial
 
+import numpy as np
+
 from .registry import keyword_registry
 from nems.utilities.utils import mini_fit
 
 from nems.modules import filters
+from nems.modules import aux
 
 ################################################################################
 # Stack manipulation
@@ -45,11 +48,11 @@ def fir(stack, n_coefs, random):
     conjuction with the weight channel spectral filter.
     """
     stack.append(filters.FIR, num_coefs=n_coefs, random_init=random)
+    mini_fit(stack, mods=['filters.weight_channels','filters.fir','filters.stp'])
 
-
-def stp(n_channels=1, u=None, tau=None, normalize=False):
+def stp(stack, n_channels=1, u=None, tau=None, normalize=False):
     if normalize:
-        stack.append(nm.aux.normalize)
+        stack.append(aux.normalize)
     stack.append(filters.stp, num_channels=n_channels)
     module = stack.modules[-1]
     if u is not None:
@@ -91,5 +94,6 @@ keyword_registry.update({
     re.compile(r'^fir(\d{2})(\w)??$'): parse_fir,
     'stp1pcon': partial(stp, n_channels=1, u=0.1, tau=0.5),
     'stp2pc': partial(stp, n_channels=2, u=[0.01, 0.1]),
-    'stp1pcn': partial(stp, n_channels=1, u=0.01),
+    'stp1pcn': partial(stp, n_channels=1, u=0.01, normalize=True),
+    'stp1pc': partial(stp, n_channels=1, u=0.01),
 })

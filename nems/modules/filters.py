@@ -57,7 +57,8 @@ class WeightChannels(Module):
     """
     name = 'filters.weight_channels'
     user_editable_fields = ['input_name', 'output_name', 'fit_fields',
-                            'num_dims', 'num_chans', 'baseline', 'coefs', 'phi', 'parm_fun']
+                            'num_dims', 'num_chans', 'baseline', 'coefs',
+                            'phi', 'parm_fun']
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
     coefs = None
@@ -184,7 +185,7 @@ def fir_filter(x, coefficients, baseline=None, pad=False, bank_count=1):
 
     if baseline is not None:
         result += baseline
-        
+
     return result
 
 

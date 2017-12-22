@@ -242,7 +242,7 @@ def get_mat_file(filename, chars_as_strings=True):
     """
     # If the file exists on the standard filesystem, just load from that.
     if os.path.exists(filename):
-        log.info("Local file {0} existed, loading...".format(filename))
+        log.info("Local file existed, loading... \n{0}".format(filename))
         return scipy.io.loadmat(filename, chars_as_strings=chars_as_strings)
 
     # Else, retrieve it from the default
