@@ -169,6 +169,7 @@ def pop_factor_strf_fit(stack):
     site=stack.meta['site']
     factorCount=stack.meta['factorCount']
     batch=stack.meta['batch']
+    modelname=stack.meta['modelname']
     
     stack.fitter=nf.fitters.basic_min(stack)
     
@@ -206,7 +207,7 @@ def pop_factor_strf_fit(stack):
     stack.plot_stimidx=0
     stack.quick_plot()
     
-    savefile="/auto/data/code/nems_saved_models/batch{0}/{1}_site_factor{2}_fir15.pkl".format(batch,site,)
+    savefile="/auto/data/code/nems_saved_models/batch{0}/site_{1}_F{2}_{3}.pkl".format(batch,site,factorCount,modelname)
     nu.io.save_model(stack,savefile)
     
     return stack

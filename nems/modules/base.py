@@ -90,6 +90,29 @@ class nems_module:
         for k, v in phi.items():
             setattr(self, k, v)
 
+    def parms2phi(self):
+        """
+        parms2phi - extract all parameter values contained in properties
+        listed in self.fit_fields so that they can be passed to fit routines.
+        """
+        phi=np.empty(shape=[0,1])
+        for k in self.fit_fields:
+            phi=np.append(phi,getattr(self, k).flatten())
+        return phi
+        
+    def phi2parms(self,phi=[]):
+        """
+        phi2parms - import fit parameter values from a vector provided by a 
+        fit routine
+        """
+        os=0;
+        #print(phi)
+        for k in self.fit_fields:
+            s=getattr(self, k).shape
+            #phi=np.array(phi)
+            setattr(self,k,phi[os:(os+np.prod(s))].reshape(s))
+            os+=np.prod(s)
+
     def get_user_fields(self):
         f = {}
         log.info(self.user_editable_fields)
