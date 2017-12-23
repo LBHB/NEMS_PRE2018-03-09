@@ -182,16 +182,26 @@ if 1:
     #  with MSE of 10000000)
     # overall performed equal to scipy at best, and often performed worse.
     # also took much longer to fit.
+    # changing n_calls, xi (~maxit) and kappa settings didn't change
+    # performance, and had little effect on speed.
 
     # gp_minimize: mse 0.505, est 0.501, val 0.616
     # forest_minimize: mse 0.505, est 0.501, val 0.617
+    # gbrt_minimize: mse 0.505, est 0.501, val 0.616
     # fit02: mse 0.504, est 0.501, val 0.616 (and much faster)
-    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit02"
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_skopt02"
     # gp_minimize: MSE 0.615, r_est 0.629, r_val 0.826
     # forest_minimize: mse 0.615, est 0.629, val 0.826
+    # gbrt_minimize: mse 0.6204, est 0.626, val 0.816
     # fit02: mse 0.526, est 0.682, val 0.835 (and much faster)
-    cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_skopt01"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_skopt02"
 
+
+    # trying coordinate descent
+    # performance about the same as basic_min so far, but
+    # *MUCH* faster (about 2.5s w/o pseudo caching, 0.5s w/ compared to 18s)
+    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitcoord00"
+    cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitcoord00"
 
     # fit02 same performance but 3-5x as fast (SQLP)
     # ah.. but seems that was just b/c the tolerance was less precise

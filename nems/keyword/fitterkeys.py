@@ -202,6 +202,20 @@ def fititer01(stack):
 
     stack.fitter.do_fit()
 
+def fitcoord00(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+
+    Cost function uses mean squared error, fitter settings left as defaults.
+    TODO: finish this doc.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(stack)
+    stack.fitter.do_fit()
+
 def skopt00(stack):
     """Fits model parameters using Scikit-Optimize's gp_minimize."""
 
@@ -210,7 +224,7 @@ def skopt00(stack):
     stack.evaluate(2)
 
     stack.fitter = nems.fitters.fitters.SkoptMin(stack)
-    stack.fitter.tolerance = 0.00000001
+    stack.fitter.tolerance = 0.000001
     stack.fitter.do_fit()
 
 def skopt01(stack):
@@ -221,8 +235,20 @@ def skopt01(stack):
     stack.evaluate(2)
 
     stack.fitter = nems.fitters.fitters.SkoptForestMin(stack)
-    stack.fitter.tolerance = 0.00000001
+    stack.fitter.tolerance = 0.000001
     stack.fitter.do_fit()
+
+def skopt02(stack):
+    """Fits model parameters using Scikit-Optimize's gbrt_minimize."""
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter = nems.fitters.fitters.SkoptGbrtMin(stack)
+    stack.fitter.tolerance = 0.000001
+    stack.fitter.do_fit()
+
 
 matches = ['fit', 'skopt']
 
