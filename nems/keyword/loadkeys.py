@@ -452,6 +452,21 @@ def fchan100(stack):
     stack.append(nm.est_val.standard)
     stack.modules[-1].do_plot = ut.plot.plot_spectrogram
 
+def ssfb18ch100(stack):
+
+    batch=stack.meta['batch']
+    tcellid='TAR010c-02-1'
+    stimfmt='ozgf'
+    chancount=18
+    fs=100
+    site=stack.meta['site']
+    stimfile=ut.baphy.get_celldb_file(batch,tcellid,fs=fs,stimfmt=stimfmt,chancount=chancount)
+
+    stack.append(nm.loaders.load_gen, load_fun='load_site_data', stimfile=stimfile,
+                 respfile='X')
+    stack.append(nm.est_val.standard)
+    stack.modules[-1].do_plot = ut.plot.plot_spectrogram
+
 
 
 def loadlocal(stack):
@@ -467,7 +482,7 @@ def loadlocal(stack):
     stack.append(nm.est_val.crossval)
 
 
-matches = ['parm', 'env', 'fb', 'ctx', 'coch', 'ecog', 'load', 'fchan']
+matches = ['parm', 'env', 'fb', 'ctx', 'coch', 'ecog', 'load', 'fchan','ssfb']
 
 for k, v in list(locals().items()):
     # TODO: this is a hack for now.

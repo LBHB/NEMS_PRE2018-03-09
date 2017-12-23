@@ -288,6 +288,7 @@ def plot_stim_psth(m, idx=None, size=FIGSIZE):
 def plot_strf(m, idx=None, size=FIGSIZE):
     if 'bank_count' in dir(m) and m.bank_count>1:
         plot_strf_bank(m,idx,size)
+        #plot_strf_bank(m,idx,size)
         return
  
     if idx:
@@ -313,10 +314,10 @@ def plot_strf(m, idx=None, size=FIGSIZE):
         if w.shape[0] == h.shape[0]:
             h = np.matmul(w.transpose(), h)
 
+    #h=scipy.misc.imresize(h,(h.shape[0],h.shape[1]*3),'bilinear')
     mmax = np.max(np.abs(h.reshape(-1)))
     plt.imshow(h, aspect='auto', origin='lower',
-               cmap=plt.get_cmap('jet'), interpolation='none')
-    plt.clim(-mmax, mmax)
+               clim=[-mmax,mmax],cmap=plt.get_cmap('jet'), interpolation='none')
     cbar = plt.colorbar()
     cbar.set_label('gain')
     if m.name == "filters.fir":
@@ -333,8 +334,26 @@ def plot_strf(m, idx=None, size=FIGSIZE):
 def plot_strf_bank(m,idx=None,size=FIGSIZE):
     if idx:
         plt.figure(num=idx,figsize=size)
-    h=m.coefs
+        
+    ax=plt.gca()
+    b=ax.get_position()
     
+    w=b.width/m.bank_count
+    h=b.height
+    ax.remove()
+    
+    axes = [plt.axes([b.min[0]+i*w, b.min[1], w,h]) for i in range(m.bank_count)]
+
+    # smooths the data, right now deactivated since the import already
+    # downsamples.
+#    smooth = False
+#    if smooth:
+#        box_pts = 20
+#    else:
+#        box_pts = 1
+#    box = np.ones(box_pts) / box_pts
+    
+    h=m.coefs
     stepsize=int(h.shape[0]/m.bank_count)
     
     # if weight channels exist and dimensionality matches, generate a full STRF
@@ -362,14 +381,20 @@ def plot_strf_bank(m,idx=None,size=FIGSIZE):
         h_set=np.transpose(h_set,[0,2,1])
         
     h=np.reshape(h_set,[h_set.shape[0],-1],order='F')
-
     mmax=np.max(np.abs(h.reshape(-1)))
-    plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
-    plt.clim(-mmax,mmax)
-    for i in range(0,m.bank_count+1):
-        plt.plot(i*h_set.shape[1]-0.5*np.array([1,1]),[-0.5,h_set.shape[0]-0.5],'k-')
-    cbar = plt.colorbar()
-    cbar.set_label('gain')
+
+    for ii in range(m.bank_count):
+        mmax = np.max(np.abs(h_set[:,:,ii].reshape(-1)))
+        axes[ii].imshow(h_set[:,:,ii], aspect='auto', origin='lower',clim=[-mmax,mmax],cmap=plt.get_cmap('jet'), interpolation='none')
+        if ii>0:
+            axes[ii].tick_params(labelbottom='off',labelleft='off')
+    #plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
+    #plt.clim(-mmax,mmax)
+    #for i in range(0,m.bank_count+1):
+    #    plt.plot(i*h_set.shape[1]-0.5*np.array([1,1]),[-0.5,h_set.shape[0]-0.5],'k-')
+    #cbar = plt.gcf().colorbar(axes[-1])
+    #cbar.set_label('gain')
+    plt.sca(axes[0])
     if m.name=="filters.fir":
         plt.xlabel('Latency')
         plt.ylabel('Channel') #or kHz?

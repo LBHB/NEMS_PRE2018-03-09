@@ -72,7 +72,6 @@ def plot_weights_64D(h, cellids,vmin, vmax,cbar=True):
                  else:
                      tf = 0
              elif (int(cellids[i][0][-1])>1 and int(c_id[i]+1) >= 64):
-                 print('im using the 2nd option')
                  c_id[i] = int(c_id[i]-1)
                  if sum(c_id[i] == electrodes)>0:
                      tf=1
@@ -97,19 +96,52 @@ def plot_weights_64D(h, cellids,vmin, vmax,cbar=True):
         
 # plotting utils fro 128ch 4-shank depth
 
-def plot_weights_128D(h, cellids):
+def plot_weights_128D(h, cellids,vmin,vmax):
     # get gemoetry from Luke's baphy function probe_128D
     
     channels = np.arange(0,128,1)
-    x = loadmat('probe_128D/x_positions.mat')['x_128']
-    y = loadmat('probe_128D/z_positions.mat')['z_128']
+    x = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/x_positions.mat')['x_128']
+    y = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/z_positions.mat')['z_128']
     
     locations=np.hstack((x,y))
-    plt.scatter(locations[:,0],locations[:,1])
+    plt.scatter(locations[:,0],locations[:,1], s=70,facecolor='none',edgecolor='k')
     plt.axis('scaled')
 
+
+    import matplotlib
+    norm =matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+    cmap = matplotlib.cm.jet
+    mappable = matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap)
+    mappable.set_array(h)
+    #mappable.set_cmap('jet')
+    colors = mappable.to_rgba(h)
     
+    # Now, color appropriately
+    electrodes = np.zeros(len(cellids))
+    c_id = np.zeros(len(cellids))
+    for i in range(0, len(cellids)):
+        electrodes[i] = int(cellids[i][0][-4:-2])
+    electrodes = np.unique(electrodes)-1
     
-    
-    
-    
+       # move units when there are >1 on same electrode
+    for i, weight in enumerate(h):
+        c_id[i] = int(cellids[i][0][-4:-2])-1
+        tf =1
+        while tf==1:
+             if (int(cellids[i][0][-1])>1 and (int(c_id[i]+1) != 32 and int(c_id[i]+1)!=64 and int(c_id[i]+1)!=96 and int(c_id[i]+1)!=128)):
+                 c_id[i] = int(c_id[i]+1)
+                 if sum(c_id[i] == electrodes)>0:
+                     tf=1
+                 else:
+                     tf = 0
+             elif (int(cellids[i][0][-1])>1 and (int(c_id[i]+1) == 32 and int(c_id[i]+1)==64 and int(c_id[i]+1)==96 and int(c_id[i]+1)==128)):
+                 c_id[i] = int(c_id[i]-1)
+                 if sum(c_id[i] == electrodes)>0:
+                     tf=1
+                 else:
+                     tf = 0
+             else:
+                 tf = 0
+                 
+    plt.scatter(locations[(c_id.astype(int)),:][:,0],locations[c_id.astype(int),:][:,1],
+                          c=colors,vmin=vmin,vmax=vmax,s=70,edgecolor='none')

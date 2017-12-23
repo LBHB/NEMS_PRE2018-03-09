@@ -22,21 +22,40 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from sklearn.decomposition import PCA
 import copy
-
+import imp
 
 site='TAR010c16'
+#site='TAR017b10'
+#site='bbl086b09'
 #site='zee015h05'
-doval=1
 batch=271
-modelname="fchan100_wc02_fir15_fit01"
+fmodelname="fchan100_wcg02_fir15_fit01"
+factorCount=5
+
+outpath='/auto/users/svd/docs/current/grant/crcns_array/figures/raw/'
+
+# fit factor STRFS:
+for ii in range(0,factorCount):
+    try:
+        stack=poplib.factor_strf_load(site=site,factorN=ii,modelname=fmodelname)
+        stack.quick_plot()
+    except:
+        stack=poplib.factor_strf_fit(site=site,factorN=ii,modelname=fmodelname)
+    
+    # save factor STRF plots:
+    fig=plt.gcf()
+    mode='pdf'
+    filename = ("{0}{1}_{2}.{3}"
+        .format(outpath, stack.meta['cellid'], fmodelname, mode)) 
+    fig.savefig(filename)
+    
 
 
-stack=poplib.factor_strf_fit(site=site,factorN=0)
-stack=poplib.factor_strf_fit(site=site,factorN=1)
-stack=poplib.factor_strf_fit(site=site,factorN=2)
-stack=poplib.factor_strf_fit(site=site,factorN=3)
+stack=poplib.pop_factor_strf_init(site=site,factorCount=factorCount,batch=batch,fmodelname=fmodelname)
+stack=poplib.pop_factor_strf_fit(stack)
 
-stack=poplib.pop_factor_strf(site=site)
+poplib.pop_factor_strf_eval(stack, base_modelname="fb18ch100_wcg02_fir15_fit01")
+
 
 
 
