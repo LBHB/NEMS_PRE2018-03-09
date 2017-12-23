@@ -27,7 +27,6 @@ except BaseException:
     AWS = False
 
 class nems_stack:
-
     """
     Key components:
         modules: list of nems_modules in sequence of execution

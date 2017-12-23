@@ -13,6 +13,7 @@ import os
 from time import time
 import scipy as sp
 import numpy as np
+import skopt
 
 
 def phi_to_vector(phi):
@@ -190,6 +191,11 @@ class basic_min(nems_fitter):
         """
 
         phi = vector_to_phi(vector, self.phi0)
+        # TODO: Before resetting stack phi, could pull phi from previous
+        #       Iteration to check for params that didn't change. I.e. if
+        #       first fit module takes 4 parameters, and first 4 parameters of
+        #       phi(i) and phi(i-1) are the same, then don't need to evaluate
+        #       that module again. Might save time on iterative fit.
         self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
@@ -372,61 +378,90 @@ class anneal_min(nems_fitter):
                  .format(self.stack.modules[-1].name, self.stack.error()))
         return(self.stack.error())
 
-"""
-Tried using skopt package. Did not go super well, only used pupil data though.
-Will try again later with different data (i.e. more estimation data) --njs, June 29 2017
 
-class forest_min(nems_fitter):
-    name='forest_min'
-    maxit=100
-    routine='skopt_ft'
+class SkoptMin(nems_fitter):
+    """Base class for Scikit-Optimize fit routines.
 
-    def my_init(self,dims,maxit=500):
-        log.info("initializing basic_min")
-        self.maxit=maxit
-        self.dims=dims
+    Fits model parameters using Scikit-Optmize's gp_minimize.
+    TODO: Finish this doc.
 
+    """
 
-    def cost_fn(self,phi):
-        #log.info(phi.shape)
-        phi=np.array(phi)
-        self.phi_to_fit(phi)
+    name = 'skopt_min'
+    n_calls = 100
+    maxit = 10000
+    routine = 'skopt.gp_minimize'
+
+    def my_init(self, dims=None, ncalls=100, maxit=10000):
+        log.info("initializing scikit-optimize minimizer")
+        self.n_calls = ncalls
+        self.maxit = maxit
+        self.dims = dims
+
+    def cost_fn(self, vector):
+        phi = vector_to_phi(vector, self.phi0)
+        self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
-        mse=self.stack.error()
-        self.counter+=1
-        mse=np.asscalar(mse)
-        if self.counter % 100==0:
-            log.info('Eval #'+str(self.counter))
-            log.info('MSE='+str(mse))
-        #log.info(mse)
+        mse = self.stack.error()
+        self.counter += 1
+        if self.counter % 10 == 0:
+            log.info('Eval %d', self.counter)
+            log.info('MSE = %.02f', mse)
+            log.debug('Vector is now: %s', str(vector))
+
         return(mse)
 
-    def do_fit(self):
+    def min_func(self):
+        result = skopt.gp_minimize(
+                    func=self.cost_fn, dimensions=self.dims,
+                    base_estimator=None, n_calls=100, n_random_starts=10,
+                    acq_func='gp_hedge', acq_optimizer='auto', x0=self.x0,
+                    y0=self.y0, random_state=None,
+                    )
+        return result
 
-        opt=dict.fromkeys(['maxiter'])
-        opt['maxiter']=int(self.maxit)
-        opt['eps']=1e-7
-        #if function=='tanhON':
-            #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
-            #routine='COBYLA'
-        #else:
-            #
-        #cons=()
-        self.phi0=np.array(self.fit_to_phi())
-        self.y0=self.cost_fn(self.phi0)
-        self.counter=0
-        log.info("gaussian_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
-        #log.info("maxiter: {0}".format(opt['maxiter']))
-        #sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
-                             #constraints=cons,options=opt,tolerance=self.tolerance)
-        #skgp.gp_minimize(self.cost_fn,self.dims,base_estimator=None, n_calls=100,
-                         #n_random_starts=10, acq_func='gp_hedge', acq_optimizer='auto', x0=self.phi0,
-                         #y0=self.y0, random_state=True, verbose=True)
-        skgb.gbrt_minimize(func=self.cost_fn,dimensions=self.dims,n_calls=self.maxit,x0=self.phi0,
-                         y0=self.y0,random_state=False,verbose=True)
+    def do_fit(self):
+        # get initial guess at parameters
+        self.phi0 = self.stack.get_phi(self.fit_modules)
+        self.x0 = phi_to_vector(self.phi0)
+        # evaluate error at initial guess
+        self.y0 = self.cost_fn(self.x0)
+        # figure out bounds for parameters (pos/neg infinity by default)
+        if self.dims:
+            pass
+        else:
+            # TODO: skopt package was turning the infs into nans, so just use
+            # a big number for now. How big is big enough? seems like most
+            # parms don't get that large, but -10 to 10 was too small.
+            #self.dims = [(np.NINF, np.inf)]*len(vector)
+            self.dims = [(-1000,1000)]*len(self.x0)
+
+        self.counter = 0
+        log.info("SkoptMin: phi0 intialized (fitting %d parameters)",
+                 len(self.x0))
+        log.info("maxiter: %d", self.maxit)
+        log.debug("Intial vector (x0) is: {0}".format(self.x0))
+        result = self.min_func()
+
+        phi = vector_to_phi(result.x, self.phi0)
+        self.stack.set_phi(phi)
+        self.stack.evaluate(self.fit_modules[0])
         log.info("Final MSE: {0}".format(self.stack.error()))
+        log.debug("Optimized vector: {0}".format(result.x))
+
         return(self.stack.error())
-"""
+
+
+class SkoptForestMin(SkoptMin):
+    """Fits model parameters using Scikit-Optimize's forest_minimize."""
+    def min_func(self):
+        result = skopt.forest_minimize(
+                func=self.cost_fn, dimensions=self.dims, base_estimator="RF",
+                n_calls=self.n_calls, n_random_starts=10, acq_func="EI",
+                x0=self.x0, y0=self.y0, n_points=self.maxit, xi=self.tolerance,
+                )
+        return result
+
 
 class coordinate_descent(nems_fitter):
     """

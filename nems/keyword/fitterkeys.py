@@ -202,7 +202,31 @@ def fititer01(stack):
 
     stack.fitter.do_fit()
 
+def skopt00(stack):
+    """Fits model parameters using Scikit-Optimize's gp_minimize."""
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter = nems.fitters.fitters.SkoptMin(stack)
+    stack.fitter.tolerance = 0.00000001
+    stack.fitter.do_fit()
+
+def skopt01(stack):
+    """Fits model parameters using Scikit-Optimize's forest_minimize."""
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter = nems.fitters.fitters.SkoptForestMin(stack)
+    stack.fitter.tolerance = 0.00000001
+    stack.fitter.do_fit()
+
+matches = ['fit', 'skopt']
 
 for k, v in list(locals().items()):
-    if k.startswith('fit') and callable(v):
-        keyword_registry[k] = v
+    for m in matches:
+        if k.startswith(m) and callable(v):
+            keyword_registry[k] = v
