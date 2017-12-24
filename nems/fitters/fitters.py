@@ -480,7 +480,7 @@ class coordinate_descent(nems_fitter):
     """
 
     name = 'coordinate_descent'
-    maxit = 1000
+    maxit = 100
     tolerance = 0.00000001
     step_init = 0.001
     step_change = 0.5
@@ -494,7 +494,7 @@ class coordinate_descent(nems_fitter):
     # TODO: Anneal code "works," but doesn't help fit performance at all.
     anneal = 0  # of times to randomize initial inputs
     max_matches = 10  # stop anneal if error doesn't change
-    randomize_factor = 10.0  # size of interval for random value
+    randomize_factor = 1.0  # size of interval for random value
 
     def my_init(self, tolerance=0.00000001, maxit=1000, verbose=False,
                 pseudo_cache=False, anneal=0, max_matches=10,
@@ -603,7 +603,7 @@ class coordinate_descent(nems_fitter):
                 interval = param_intervals[i]
                 x[i] = np.random.choice(interval)
             x_list.append(x)
-        log.debug("Random vectors assembled: %s", str(x_list))
+        #log.debug("Random vectors assembled: %s", str(x_list))
 
         # Run self.do_fit() once for each anneal count, starting with
         # x0 followed by the randomized vectors.
@@ -635,8 +635,9 @@ class coordinate_descent(nems_fitter):
                     break
 
         log.info("Annealing completed after %d iterations.\n"
-                  "Minimum score was: %.06f",
-                  loops_finished, min_score)
+                  "Minimum score was: %.09f.\n"
+                  "From loop: %d.",
+                  loops_finished, min_score, min_idx)
         min_x = scores[min_idx][1]
         log.debug("Optimized parameters were: %s", str(min_x))
         min_phi = vector_to_phi(min_x, self.phi0)
@@ -658,7 +659,7 @@ class coordinate_descent(nems_fitter):
             lower_bound = p-(p*self.randomize_factor)
             upper_bound = p+(p*self.randomize_factor)
         interval = np.linspace(lower_bound, upper_bound,
-                               num=10*self.randomize_factor)
+                               num=100*self.anneal)
         return interval
 
     def do_fit(self):
@@ -691,7 +692,7 @@ class coordinate_descent(nems_fitter):
         #log.info("{0}: phi0 intialized (start error={1}, {2} parameters)"
         #         .format(self.name,s,len(self.phi0)))
         #log.info(x)
-        log.info("starting CD: step size: {0:.6f} tolerance: {1:.6f}"
+        log.info("starting CD: step size: {0:.9f} tolerance: {1:.9f}"
                  .format(step_size, self.tolerance))
 
         # Iterate until change in error is smaller than tolerance,
@@ -727,21 +728,21 @@ class coordinate_descent(nems_fitter):
             if s_delta < 0:
                 step_size = step_size * self.step_change
                 if self.verbose:
-                    log.info("%d: Backwards (delta=%.06f), "
-                             "adjusting step size to %.06f",
+                    log.info("%d: Backwards (delta=%.09f), "
+                             "adjusting step size to %.09f",
                              n, s_delta, step_size)
                 elif n % 100 == 0:
-                    log.debug("%d: Backwards (delta=%.06f), "
-                             "adjusting step size to %.06f",
+                    log.debug("%d: Backwards (delta=%.09f), "
+                             "adjusting step size to %.09f",
                              n, s_delta, step_size)
 
             elif s_delta < self.tolerance:
                 if self.verbose:
-                    log.info("%d: Error improvement too small (delta=%.06f). "
+                    log.info("%d: Error improvement too small (delta=%.09f). "
                              "Iteration complete.",
                              n, s_delta)
                 elif n % 100 == 0:
-                    log.debug("%d: Error improvement too small (delta=%.06f). "
+                    log.debug("%d: Error improvement too small (delta=%.09f). "
                              "Iteration complete.",
                              n, s_delta)
 
@@ -750,18 +751,18 @@ class coordinate_descent(nems_fitter):
             elif sign_idx:
                 x_save[param_idx] -= step_size
                 if self.verbose:
-                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
+                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
                              n, param_idx, sign_idx, s_new[x_opt], s_delta)
                 elif n % 100 == 0:
-                    log.debug("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
+                    log.debug("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
                              n, param_idx, sign_idx, s_new[x_opt], s_delta)
             else:
                 x_save[param_idx] += step_size
                 if self.verbose is True:
-                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
+                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
                              n, param_idx, sign_idx, s_new[x_opt], s_delta)
                 elif n % 100 == 0:
-                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
+                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
                              n, param_idx, sign_idx, s_new[x_opt], s_delta)
 
             x = x_save.copy()
@@ -782,7 +783,7 @@ class coordinate_descent(nems_fitter):
         # save final parameters back to model
         log.info("Coord. Descent finished:\n"
                  "Reason: {0}\n"
-                 "Step size: {1:.06f}.\n"
+                 "Step size: {1:.09f}.\n"
                  "Steps: {2}.\n"
                  "Time elapsed: {3} seconds."
                  .format(reason, step_size, n, elapsed))
