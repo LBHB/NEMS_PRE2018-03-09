@@ -486,68 +486,193 @@ class coordinate_descent(nems_fitter):
     step_change = 0.5
     step_min = 1e-7
     verbose = True
-    pseudo_cache = True
     # TODO: Leave verbose option in, or just switch to log.debug
     #       for the verbose statements? Both accomplish the same goal,
     #       but log.debug would turn on/off along with the rest of nems
-    #       instead of only for this
+    #       instead of only for this fitter
+    pseudo_cache = False  # skip repeat module evals
+    # TODO: Anneal code "works," but doesn't help fit performance at all.
+    anneal = 0  # of times to randomize initial inputs
+    max_matches = 10  # stop anneal if error doesn't change
+    randomize_factor = 10.0  # size of interval for random value
 
-    def my_init(self, tolerance=0.00000001, maxit=1000, verbose=True,
-                pseudo_cache=False):
-        log.info("initializing basic_min")
+    def my_init(self, tolerance=0.00000001, maxit=1000, verbose=False,
+                pseudo_cache=False, anneal=0, max_matches=10,
+                randomize_factor=10.0):
+        log.info("Initializing Coordinate Descent fitter.")
         self.maxit = maxit
         self.tolerance = tolerance
         self.verbose = verbose
         self.pseudo_cache = pseudo_cache
+        self.anneal = anneal
+        if self.anneal:
+            self.do_anneal = True
+        else:
+            self.do_anneal = False
 
     def cost_fn(self, vector):
-        # Before resetting stack phi, check new parameters against prevoius
-        # set. For each module in the stack, if parameters didn't change,
-        # skip that module in eval unless it comes after a changed module.
-        # ex: if last vector was [0,0,1,1,0]
-        #     and new vector is  [0,0,1,2,0],
-        #     and each module takes 1 parameter so that these vectors
-        #     correspond to 5 modules, then only the 4th and 5th module
-        #     need to be re-evaluated.
-        # TODO: This assumes the modules don't have any random outputs,
-        #       which I'm not 100% sure on. So need to double check that.
+        # If pseudo_cache is enabled, check to see if stack should
+        # skip eval on some modules.
         first_changed_mod = 0
         if self.pseudo_cache:
-            last_phi = self.stack.get_phi()
-            last_vec = phi_to_vector(last_phi)
-            fit_mods_refs = [self.stack.modules[m] for m in self.fit_modules]
-            parm_lens = [len(mod.fit_fields) for mod in fit_mods_refs]
+            first_changed_mod = self._find_first_change(vector)
 
-            v_idx = 0
-            for mod in parm_lens:
-                # Check if every parameter for current module is the same
-                changed = False
-                for i in range(0, mod):
-                    if not (last_vec[v_idx] == vector[v_idx]):
-                        changed = True
-                    v_idx += 1
-                # If so, don't need to re-evaluate this module
-                # unless an earlier module in stack was changed.
-                if changed:
-                    break
-                first_changed_mod += 1
-
-        # Then set stack phi with new vector, evaluate and return error
-        # as usual.
         phi = vector_to_phi(vector, self.phi0)
         self.stack.set_phi(phi)
         # If first_changed_mod ended up going past end of list, nothing
         # changed so don't need to re-eval at all
         # (This shouldn't happen during normal fitting)
-        if not first_changed_mod >= len(self.fit_modules):
+        if not (first_changed_mod >= len(self.fit_modules)):
             self.stack.evaluate(self.fit_modules[first_changed_mod])
         mse = self.stack.error()
+
         return(mse)
 
-    def do_fit(self):
-        #raise NotImplementedError
+    def _find_first_change(self, vector):
+        """Before resetting stack phi, check parameters against previous set.
+
+        For each module in the stack, if parameters didn't change,
+        skip that module in eval unless it comes after a changed module.
+        ex: if last vector was [0,0,1,1,0]
+            and new vector is  [0,0,1,2,0],
+            and each module takes 1 parameter so that these vectors
+            correspond to 5 modules, then only the 4th and 5th module
+            need to be re-evaluated.
+        TODO: This assumes the modules don't have any random outputs,
+              which I'm not 100% sure on. So need to double check that.
+        TODO: Performance starts dropping compared to non-cached on
+              more complicated models, so something isn't quite right with
+              this yet.
+
+        """
+
+        last_phi = self.stack.get_phi()
+        last_vec = phi_to_vector(last_phi)
+        fit_mods_refs = [self.stack.modules[m] for m in self.fit_modules]
+        parm_lens = [len(mod.fit_fields) for mod in fit_mods_refs]
+
+        first_changed_mod = 0
+        v_idx = 0
+        for mod in parm_lens:
+            # Check if every parameter for current module is the same
+            changed = False
+            for i in range(0, mod):
+                if not (last_vec[v_idx] == vector[v_idx]):
+                    changed = True
+                v_idx += 1
+            # If so, don't need to re-evaluate this module
+            # unless an earlier module in stack was changed.
+            if changed:
+                break
+            first_changed_mod += 1
+
+        return first_changed_mod
+
+    def _annealed_fit(self):
+        """Run do_fit on initial parameters as normal, but also start from
+        number of additional inputs equal to anneal count - 1 such that total
+        number of fits equals self.anneal.
+
+        Uses self.randomize_factor to calculate range for each parameter that
+        random values should be picked from.
+        ex: if param = 0.01 and randomize_factor = 10, then random values
+            will be chosen between (0.01 - 10*0.1) and (0.01 + 10*0.01).
+        Special case for param = 0: range between (0-1) and (0+1)
+        TODO: Better way to handle this case?
+
+        """
+
+        log.info("Beginning annealed fit for Coordinate Descent fitter.\n"
+                 "Number of anneals: %d.\n"
+                 "Randomization factor: %d.",
+                 self.anneal, self.randomize_factor)
+        # Get initial parameters from stack and add them as first entry
+        # in list of vectors
         self.phi0 = self.stack.get_phi()
-        self.counter = 0
+        x0 = phi_to_vector(self.phi0)
+        x_list = [x0]
+        # Calculate intervals to choose random values from for each
+        # parameter in x.
+        random_starts = self.anneal-1
+        param_intervals = [self._get_interval(p) for p in x0]
+
+        # Assemble list of randomized vectors
+        for i in range(0, random_starts):
+            x = x0.copy()
+            for i, p in enumerate(x):
+                interval = param_intervals[i]
+                x[i] = np.random.choice(interval)
+            x_list.append(x)
+        log.debug("Random vectors assembled: %s", str(x_list))
+
+        # Run self.do_fit() once for each anneal count, starting with
+        # x0 followed by the randomized vectors.
+        scores = []
+        min_idx = 0
+        min_score = 10e10
+        loops_finished = 0
+        for i in range(0, self.anneal):
+            x = x_list[i]
+            this_phi = vector_to_phi(x, self.phi0)
+            self.stack.set_phi(this_phi)
+            log.info("Anneal # %d, phi vector is: %s", i, str(x))
+            this_score = self.do_fit()
+            scores.append((this_score, x))
+
+            # Update minimum score and its index in scores
+            if this_score < min_score:
+                min_score = this_score
+                min_idx = i
+            loops_finished += 1
+
+            # If the last n scores were the same, stop annealing
+            n = self.max_matches
+            if len(scores) >= n:
+                match_checks = [abs((round(s[0]-this_score)) < self.tolerance)
+                                for s in scores[-n:]]
+                if all(match_checks):
+                    log.info("Last %d scores were the same, stopping fit.", n)
+                    break
+
+        log.info("Annealing completed after %d iterations.\n"
+                  "Minimum score was: %.06f",
+                  loops_finished, min_score)
+        min_x = scores[min_idx][1]
+        log.debug("Optimized parameters were: %s", str(min_x))
+        min_phi = vector_to_phi(min_x, self.phi0)
+        self.stack.set_phi(min_phi)
+        self.stack.evaluate(self.fit_modules[0])
+
+        return min_score
+
+    def _get_interval(self, p):
+        """Returns an array of n = 10*self.randomize_factor
+        uniform values surrounding p.
+
+        """
+
+        if p == 0:
+            lower_bound = -1
+            upper_bound = 1
+        else:
+            lower_bound = p-(p*self.randomize_factor)
+            upper_bound = p+(p*self.randomize_factor)
+        interval = np.linspace(lower_bound, upper_bound,
+                               num=10*self.randomize_factor)
+        return interval
+
+    def do_fit(self):
+        # TODO: Getting very poor performance when mini_fit is not included
+        #       in stack, even for very simple models. But the CD fit does
+        #       still improve from there. Is something not working right, or
+        #       is a good initial guess just super important for CD?
+        #       (Seems like it would be)
+        if self.do_anneal:
+            self.do_anneal = False
+            s = self._annealed_fit()
+            return s
+
+        self.phi0 = self.stack.get_phi()
         n_params = len(self.phi0)
 
 #        if ~options.Elitism
@@ -601,14 +726,22 @@ class coordinate_descent(nems_fitter):
 
             if s_delta < 0:
                 step_size = step_size * self.step_change
-                if self.verbose is True:
+                if self.verbose:
                     log.info("%d: Backwards (delta=%.06f), "
+                             "adjusting step size to %.06f",
+                             n, s_delta, step_size)
+                elif n % 100 == 0:
+                    log.debug("%d: Backwards (delta=%.06f), "
                              "adjusting step size to %.06f",
                              n, s_delta, step_size)
 
             elif s_delta < self.tolerance:
-                if self.verbose is True:
+                if self.verbose:
                     log.info("%d: Error improvement too small (delta=%.06f). "
+                             "Iteration complete.",
+                             n, s_delta)
+                elif n % 100 == 0:
+                    log.debug("%d: Error improvement too small (delta=%.06f). "
                              "Iteration complete.",
                              n, s_delta)
 
@@ -616,12 +749,18 @@ class coordinate_descent(nems_fitter):
             # sign_idx 1 means negative change was better
             elif sign_idx:
                 x_save[param_idx] -= step_size
-                if self.verbose is True:
+                if self.verbose:
                     log.info("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
+                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
+                elif n % 100 == 0:
+                    log.debug("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
                              n, param_idx, sign_idx, s_new[x_opt], s_delta)
             else:
                 x_save[param_idx] += step_size
                 if self.verbose is True:
+                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
+                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
+                elif n % 100 == 0:
                     log.info("%d: best step=(%d,%d) error=%.06f, delta=%.06f",
                              n, param_idx, sign_idx, s_new[x_opt], s_delta)
 
@@ -631,12 +770,22 @@ class coordinate_descent(nems_fitter):
         end = time()
         elapsed = end-start
 
+        if n >= self.maxit:
+            reason = "Maximum iterations exceeded."
+        elif step_size < self.step_min:
+            reason = "Step size smaller than minimum."
+        elif s_delta < self.tolerance:
+            reason = "Error reduction below tolerance."
+        else:
+            reason = "Unknown. Termination conditions not met."
+
         # save final parameters back to model
-        log.info("Coord. Descent complete:\n"
-                 "Step size: {0:.06f}.\n"
-                 "Steps: {1}.\n"
-                 "Time elapsed: {2} seconds."
-                 .format(step_size, n-1, elapsed))
+        log.info("Coord. Descent finished:\n"
+                 "Reason: {0}\n"
+                 "Step size: {1:.06f}.\n"
+                 "Steps: {2}.\n"
+                 "Time elapsed: {3} seconds."
+                 .format(reason, step_size, n, elapsed))
         phi = vector_to_phi(x, self.phi0)
         self.stack.set_phi(phi)
         log.info("Final MSE: {0}".format(s))

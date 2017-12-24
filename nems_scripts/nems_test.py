@@ -198,10 +198,13 @@ if 1:
 
 
     # trying coordinate descent
-    # performance about the same as basic_min so far, but
-    # *MUCH* faster (about 2.5s w/o pseudo caching, 0.5s w/ compared to 18s)
+    # performance about the same as basic_min so far, but usually faster
     cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitcoord00"
-    cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitcoord00"
+    # CD no cache: est 0.647, val 0.853, MSE 0.580, t 66s
+    # CD yes cache: smaller perf, and time different less noticeable
+    #               must be some issue with code, perf shouldn't be different
+    # fit02: est 0.682, val 0.836, MSE 0.526, t 23.5s
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitcoord00"
 
     # fit02 same performance but 3-5x as fast (SQLP)
     # ah.. but seems that was just b/c the tolerance was less precise
