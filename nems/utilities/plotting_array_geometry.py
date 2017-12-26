@@ -96,15 +96,19 @@ def plot_weights_64D(h, cellids,vmin, vmax,cbar=True):
         
 # plotting utils fro 128ch 4-shank depth
 
-def plot_weights_128D(h, cellids,vmin,vmax):
+def plot_weights_128D(h, cellids,vmin,vmax,cbar):
     # get gemoetry from Luke's baphy function probe_128D
     
     channels = np.arange(0,128,1)
     x = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/x_positions.mat')['x_128']
     y = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/z_positions.mat')['z_128']
     
-    locations=np.hstack((x,y))
-    plt.scatter(locations[:,0],locations[:,1], s=70,facecolor='none',edgecolor='k')
+       # scale to get more separtion visuallyu
+    x = (x/100)*4
+    y = (y/100)*2
+    
+    locations=np.hstack((x,y))  
+    plt.scatter(locations[:,0],locations[:,1], s=40,facecolor='none',edgecolor='k')
     plt.axis('scaled')
 
 
@@ -144,4 +148,6 @@ def plot_weights_128D(h, cellids,vmin,vmax):
                  tf = 0
                  
     plt.scatter(locations[(c_id.astype(int)),:][:,0],locations[c_id.astype(int),:][:,1],
-                          c=colors,vmin=vmin,vmax=vmax,s=70,edgecolor='none')
+                          c=colors,vmin=vmin,vmax=vmax,s=40,edgecolor='none')
+    if cbar is True:
+        plt.colorbar(mappable)

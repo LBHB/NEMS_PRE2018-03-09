@@ -17,7 +17,11 @@ modelname= "fb18ch100x_wcg02_fir15_dexp_fit01_nested5"
 d=ndb.get_batch_cells(batch=301)
 cellids=d['cellid']
 resp, pred, pupil, a_p = load_population_stack(modelname=modelname,batch=batch)
-
+pre_stim = 0.35
+post_stim = 0.35
+duration = 0.75
+fs = 100
+stimulus = np.hstack((np.zeros(int(pre_stim*fs)), np.ones(int(duration*fs)), np.zeros(int(post_stim*fs))))
 
 # Dropping any reps in which there were Nans for one or more stimuli (quick way
 # way to deal with nana. This should be improved)
@@ -34,6 +38,7 @@ pred = pred[:,keep_inds,:,:]
 pupil = pupil[:,keep_inds,:]
 a_p=np.array(a_p)[keep_inds]
 pup = pupil
+stim = np.transpose(np.tile(stimulus,[resp.shape[1],resp.shape[2],resp.shape[3],1]),[3, 0, 1, 2])
 
 bincount=resp.shape[0]
 repcount=resp.shape[1]

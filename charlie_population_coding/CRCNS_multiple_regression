@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 22 12:28:05 2017
+
+@author: hellerc
+"""
+
+# CRCNS grant multiple regression predict LVs with pupil, stim, behavior
+
+from pop_utils import load_population_stack
+import numpy as np
+from NRF_tools import NRF_fit, plt_perf_by_trial, eval_fit
+import matplotlib.pyplot as plt
+import nems.db as ndb
+import nems.utilities as ut
+batch=301
+cellid ='TAR010c'
+modelname= "fb18ch100x_wcg02_fir15_dexp_fit01_nested5"
+d=ndb.get_batch_cells(batch=batch,cellid=cellid)
+cellids=d['cellid']
+resp, pred, pupil, a_p = load_population_stack(modelname=modelname,batch=batch)
+pre_stim = 0.35
+post_stim = 0.35
+duration = 0.75
+fs = 100
+stimulus = np.hstack((np.zeros(int(pre_stim*fs)), np.ones(int(duration*fs)), np.zeros(int(post_stim*fs))))
+
+
+
+hack =1 # hack for using factor analysis (load factors from mat)
+
+# Dropping any reps in which there were Nans for one or more stimuli (quick way
+# way to deal with nana. This should be improved)
+
+inds = []
+for ind in np.argwhere(np.isnan(pupil[0,:,:])):
+    inds.append(ind[0])
+inds = np.array(inds)
+drop_inds=np.unique(inds)
+keep_inds=[x for x in np.arange(0,len(resp[0,:,0,0])) if x not in inds]
+
+resp = resp[:,keep_inds,:,:]
+pred = pred[:,keep_inds,:,:]
+pupil = pupil[:,keep_inds,:]
+a_p=np.array(a_p)[keep_inds]
+pup = pupil
+stim = np.transpose(np.tile(stimulus,[resp.shape[1],resp.shape[2],resp.shape[3],1]),[3, 0, 1, 2])
+
+bincount=resp.shape[0]
+repcount=resp.shape[1]
+stimcount=resp.shape[2]
+cellcount=resp.shape[3]
+
+a_p_unwrapped = list(np.tile(a_p, (30,1)).T.reshape(repcount*stimcount))
+pupil_unwrapped = np.nanmean(pupil,0).reshape(repcount*stimcount)
+
+
+from pop_utils import whiten
+import scipy.signal as ss
+fs_new = 10
+fact = fs/fs_new
+resp = ss.resample(resp,round(resp.shape[0]/10))
+resp_PCA = whiten(resp)
+
+bincount=resp.shape[0]
+repcount=resp.shape[1]
+stimcount=resp.shape[2]
+cellcount=resp.shape[3]
+
+import scipy
+if hack==0:
+    resp_PCA = resp_PCA.reshape(bincount*repcount*stimcount, cellcount)
+    U,S,V = np.linalg.svd(resp_PCA,full_matrices=False)
+    S = S**2 # converting to variance explained from sigma
+    PCs = np.mean(U.reshape(bincount, repcount, stimcount, cellcount),0).reshape(repcount*stimcount,cellcount)
+
+elif hack==1:
+    PCs = scipy.io.loadmat('/auto/users/hellerc/Behavior/TAR010c_PTD_10>74_FA.mat')['lat_vars']
+    #PCs = scipy.io.loadmat('/auto/users/hellerc/U_from_matlab.mat')['U']
+    #PCs = PCs.reshape(145,330,28)
+    PCs = np.mean(PCs,0).squeeze()
+    #PCs = PCs.reshape(repcount*stimcount,PCs.shape[-1])
+
+
+
+
+# Multiple regression stuff - predict PCs w/ behavior and pupil
+import statsmodels.api as sm
+import pandas as pd
+
+reg_in = pd.DataFrame(np.vstack((a_p_unwrapped,pupil_unwrapped)).T, columns = ['behavior', 'pupil'])
+
+
+
+X = reg_in[['behavior','pupil']]
+X = sm.add_constant(X)
+b = reg_in['behavior']
+b = sm.add_constant(b)
+p= reg_in['pupil']
+p = sm.add_constant(p)
+p_coef = []
+b_coef=[]
+rsq_full=[]
+rsq_b = []
+rsq_p=[]
+aic_p=[]
+aic_b=[]
+aic_full=[]
+for i in range(0,PCs.shape[-1]):
+    reg_out=pd.DataFrame(PCs[:,i],columns=['pc'+str(i)])
+    y = reg_out['pc'+str(i)] 
+    fullmodel=sm.OLS(y,X).fit()
+    pModel=sm.OLS(y,p).fit()
+    bModel=sm.OLS(y,b).fit()
+    p_coef.append(fullmodel.params['pupil'])
+    b_coef.append(fullmodel.params['behavior'])
+    rsq_full.append(fullmodel.rsquared)
+    rsq_p.append(pModel.rsquared)
+    rsq_b.append(bModel.rsquared)
+    aic_p.append(pModel.bic)
+    aic_full.append(fullmodel.bic)
+    aic_b.append(bModel.bic)
+
+aic_p = np.array(aic_p)
+aic_b = np.array(aic_b)
+aic_full = np.array(aic_full)
+
+
+# Figure of smoothed traces
+from scipy.ndimage.filters import gaussian_filter1d
+kern = 5
+plt.figure(figsize=(20,13))
+plt.subplot(561)
+plt.title('Pupil')
+plt.plot(gaussian_filter1d(pupil_unwrapped,kern))
+plt.axis('off')
+plt.subplot(562)
+plt.title('Behavior')
+plt.plot(a_p_unwrapped)
+plt.axis('off')
+pc = 0
+import pandas as pd
+for i in range(3,PCs.shape[-1]+2):
+     plt.subplot(5,6,i)
+     plt.plot(gaussian_filter1d(PCs[:,pc],kern))
+     ts = pd.Series(PCs[:,pc])
+     plt.plot(ts.rolling(window=10).std(),'k',alpha=0.5)
+     pc+=1
+     plt.title(str(pc))
+     plt.axis('off')
+
+# Subplot? of variance explained by each factor
+if hack ==0:
+  var_ex = []
+  Ua, Sa, Va = np.linalg.svd(resp[:,a_p==1,:,:].reshape(bincount*sum(a_p)*stimcount, cellcount))
+  Up,Sp,Vp = np.linalg.svd(resp[:,a_p==0,:,:].reshape(bincount*sum(a_p==0)*stimcount,cellcount))
+  var_ex_a = []
+  var_ex_p= []
+  Sa = Sa**2
+  Sp=Sp**2
+  for i in range(0,len(S)):
+      var_ex.append(sum(S[0:(i+1)])/sum(S))
+      var_ex_a.append(sum(Sa[0:(i+1)]/sum(Sa)))
+      var_ex_p.append(sum(Sp[0:(i+1)]/sum(Sp)))
+  plt.figure(2)
+  plt.plot(var_ex, '.-k')
+  plt.plot(var_ex_a,'.-r')
+  plt.plot(var_ex_p,'.-b')
+
+  plt.legend(['PCA on all', 'PCA active only', 'PCA passive only'])
+  plt.ylabel('Variance explained')
+  plt.xlabel('Net PCs')
+
+
+# Figure of multiple regression fits
+plt.figure(figsize=(10,5))
+plt.subplot(121)
+plt.plot([1,2,3],[rsq_b,rsq_p,rsq_full],'.-')
+plt.xticks([1,2,3],['Behavior', 'Pupil','Both'])
+plt.ylabel('r^2')
+plt.title('Linear regression - predict latent variables')
+plt.subplot(122)
+plt.plot([1,2],[aic_b-aic_full,aic_p-aic_full],'.-')
+plt.plot([1,2],[0, 0],'--k',lw=3)
+plt.title('Relative AIC')
+plt.xticks([1,2],['Behavior-Both','Pupil-Both'])
+plt.legend(range(0,len(rsq_p)), ncol=3, loc='upper right')
+
+
+
+
