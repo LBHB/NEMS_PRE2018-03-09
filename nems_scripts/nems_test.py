@@ -62,23 +62,8 @@ if 0:
     modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
     batch=269
 
-if 1:
+if 0:
     """ NAT SOUND """
-    # matched np.org:
-    batch = 271
-    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
-    #cellid='chn029d-a1'; modelname="fb18ch100_wc01_fir15_fit01"
-    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
-
-    # possible problems?:
-    # MSE about 10% higher and r values about 10% lower than np version
-    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-    # But this one matched np exactly with same model, diff cell
-    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-    # Mostly the same for this one as well
-    # cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-
-
     #cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
@@ -173,8 +158,85 @@ if 0:
     batch=259
     modelname="env100_fir15_dexp_fit01"
 
+""" Fitter comparisons """
+if 1:
+    # matched np.org:
+    batch = 271
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='chn029d-a1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
+
+    # possible problems?:
+    # MSE about 10% higher and r values about 10% lower than np version
+    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+    # But this one matched np exactly with same model, diff cell
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+    # Mostly the same for this one as well
+    # cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+
+
+    # trying skopt
+    # Looking at the intermediate vector outputs, the skopt fitters seem
+    # to jump to very large values very quickly for some reason, unlike scipy.
+    # (i.e. if phi0 is [0.1, 0.2, 0.1] eval #10 is suddenly [374, -988, 47]
+    #  with MSE of 10000000)
+    # overall performed equal to scipy at best, and often performed worse.
+    # also took much longer to fit.
+    # changing n_calls, xi (~maxit) and kappa settings didn't change
+    # performance, and had little effect on speed.
+
+    # gp_minimize: mse 0.505, est 0.501, val 0.616
+    # forest_minimize: mse 0.505, est 0.501, val 0.617
+    # gbrt_minimize: mse 0.505, est 0.501, val 0.616
+    # fit02: mse 0.504, est 0.501, val 0.616 (and much faster)
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_skopt02"
+    # gp_minimize: MSE 0.615, r_est 0.629, r_val 0.826
+    # forest_minimize: mse 0.615, est 0.629, val 0.826
+    # gbrt_minimize: mse 0.6204, est 0.626, val 0.816
+    # fit02: mse 0.526, est 0.682, val 0.835 (and much faster)
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_skopt02"
+
+
+    # trying coordinate descent
+    # performance about the same as basic_min so far, but usually faster
+    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitcoord00"
+    # CD no cache: est 0.647, val 0.853, MSE 0.580, t 66s
+    # CD yes cache: smaller perf, and time different less noticeable
+    #               must be some issue with code, perf shouldn't be different
+    # fit02: est 0.682, val 0.836, MSE 0.526, t 23.5s
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitcoord00"
+
+    # fit02 same performance but 3-5x as fast (SQLP)
+    # ah.. but seems that was just b/c the tolerance was less precise
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+
+    # 'Nelder-Mead' (temp changed fit02) super duper slow for no performance gain
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+
+    #batch = 259
+    # this one looks normal, but...
+    #cellid='por077a-c1'; modelname='env100e_dlog_stp1pc_fir15_dexp_fit02'
+    # ** issue with this one? plots are screwey. same with both fitters
+    #cellid='chn079d-b1'; modelname='env100e_dlog_stp1pc_fir15_dexp_fit01'
+    # ** same with this one
+    #cellid='sti030b-d1'; modelname='env100e_dlog_stp1pc_fir15_dexp_fit01'
+
+    #batch = 302
+    # can't find data for this
+    #cellid='gus027b-a1'; modelname='parm50pt_wcg02_fir15_dexp_fit01'
+
+
 # following is equivalent of
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
+
 
 if 0:
     stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)

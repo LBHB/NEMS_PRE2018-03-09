@@ -13,6 +13,7 @@ import os
 from time import time
 import scipy as sp
 import numpy as np
+import skopt
 
 
 def phi_to_vector(phi):
@@ -372,80 +373,25 @@ class anneal_min(nems_fitter):
                  .format(self.stack.modules[-1].name, self.stack.error()))
         return(self.stack.error())
 
-"""
-Tried using skopt package. Did not go super well, only used pupil data though.
-Will try again later with different data (i.e. more estimation data) --njs, June 29 2017
 
-class forest_min(nems_fitter):
-    name='forest_min'
-    maxit=100
-    routine='skopt_ft'
+class SkoptMin(nems_fitter):
+    """Base class for Scikit-Optimize fit routines.
 
-    def my_init(self,dims,maxit=500):
-        log.info("initializing basic_min")
-        self.maxit=maxit
-        self.dims=dims
+    Fits model parameters using Scikit-Optmize's gp_minimize.
+    TODO: Finish this doc.
 
-
-    def cost_fn(self,phi):
-        #log.info(phi.shape)
-        phi=np.array(phi)
-        self.phi_to_fit(phi)
-        self.stack.evaluate(self.fit_modules[0])
-        mse=self.stack.error()
-        self.counter+=1
-        mse=np.asscalar(mse)
-        if self.counter % 100==0:
-            log.info('Eval #'+str(self.counter))
-            log.info('MSE='+str(mse))
-        #log.info(mse)
-        return(mse)
-
-    def do_fit(self):
-
-        opt=dict.fromkeys(['maxiter'])
-        opt['maxiter']=int(self.maxit)
-        opt['eps']=1e-7
-        #if function=='tanhON':
-            #cons=({'type':'ineq','fun':lambda x:np.array([x[0]-0.01,x[1]-0.01,-x[2]-1])})
-            #routine='COBYLA'
-        #else:
-            #
-        #cons=()
-        self.phi0=np.array(self.fit_to_phi())
-        self.y0=self.cost_fn(self.phi0)
-        self.counter=0
-        log.info("gaussian_min: phi0 intialized (fitting {0} parameters)".format(len(self.phi0)))
-        #log.info("maxiter: {0}".format(opt['maxiter']))
-        #sp.optimize.minimize(self.cost_fn,self.phi0,method=self.routine,
-                             #constraints=cons,options=opt,tolerance=self.tolerance)
-        #skgp.gp_minimize(self.cost_fn,self.dims,base_estimator=None, n_calls=100,
-                         #n_random_starts=10, acq_func='gp_hedge', acq_optimizer='auto', x0=self.phi0,
-                         #y0=self.y0, random_state=True, verbose=True)
-        skgb.gbrt_minimize(func=self.cost_fn,dimensions=self.dims,n_calls=self.maxit,x0=self.phi0,
-                         y0=self.y0,random_state=False,verbose=True)
-        log.info("Final MSE: {0}".format(self.stack.error()))
-        return(self.stack.error())
-"""
-
-class coordinate_descent(nems_fitter):
-    """
-    coordinate descent - step one parameter at a time
     """
 
-    name = 'coordinate_descent'
-    maxit = 1000
-    tolerance = 0.001
-    step_init = 0.01
-    step_change = 0.5
-    step_min = 1e-7
-    verbose = True
+    name = 'skopt_min'
+    n_calls = 100
+    maxit = 50000
+    routine = 'skopt.gp_minimize'
 
-    def my_init(self, tolerance=0.001, maxit=1000, verbose=True):
-        log.info("initializing basic_min")
+    def my_init(self, dims=None, ncalls=100, maxit=50000):
+        log.info("initializing scikit-optimize minimizer")
+        self.n_calls = ncalls
         self.maxit = maxit
-        self.tolerance = tolerance
-        self.verbose = verbose
+        self.dims = dims
 
     def cost_fn(self, vector):
         phi = vector_to_phi(vector, self.phi0)
@@ -453,14 +399,281 @@ class coordinate_descent(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         mse = self.stack.error()
         self.counter += 1
-        # if self.counter % 100==0:
-        #    log.info('Eval #{0}: Error={1}'.format(self.counter,mse))
+        if self.counter % 10 == 0:
+            log.info('Eval %d', self.counter)
+            log.info('MSE = %.02f', mse)
+            log.debug('Vector is now: %s', str(vector))
+
         return(mse)
 
+    def min_func(self):
+        result = skopt.gp_minimize(
+                    func=self.cost_fn, dimensions=self.dims,
+                    base_estimator=None, n_calls=100, n_random_starts=10,
+                    acq_func='gp_hedge', acq_optimizer='auto', x0=self.x0,
+                    y0=self.y0, random_state=None,
+                    )
+        return result
+
     def do_fit(self):
-        raise NotImplementedError
-        self.phi0 = self.stack.get_phi()
+        # get initial guess at parameters
+        self.phi0 = self.stack.get_phi(self.fit_modules)
+        self.x0 = phi_to_vector(self.phi0)
+        # evaluate error at initial guess
+        self.y0 = self.cost_fn(self.x0)
+        # figure out bounds for parameters (pos/neg infinity by default)
+        if self.dims:
+            pass
+        else:
+            # TODO: skopt package was turning the infs into nans, so just use
+            # a big number for now. How big is big enough? seems like most
+            # parms don't get that large, but -10 to 10 was too small.
+            #self.dims = [(np.NINF, np.inf)]*len(vector)
+            self.dims = [(-1000,1000)]*len(self.x0)
+
         self.counter = 0
+        log.info("SkoptMin: phi0 intialized (fitting %d parameters)",
+                 len(self.x0))
+        log.info("maxiter: %d", self.maxit)
+        log.debug("Intial vector (x0) is: {0}".format(self.x0))
+        result = self.min_func()
+
+        phi = vector_to_phi(result.x, self.phi0)
+        self.stack.set_phi(phi)
+        self.stack.evaluate(self.fit_modules[0])
+        log.info("Final MSE: {0}".format(self.stack.error()))
+        log.debug("Optimized vector: {0}".format(result.x))
+
+        return(self.stack.error())
+
+
+class SkoptForestMin(SkoptMin):
+    """Fits model parameters using Scikit-Optimize's forest_minimize."""
+
+    def min_func(self):
+        result = skopt.forest_minimize(
+                func=self.cost_fn, dimensions=self.dims, base_estimator="RF",
+                n_calls=self.n_calls, n_random_starts=10, acq_func="EI",
+                x0=self.x0, y0=self.y0, n_points=self.maxit, xi=self.tolerance,
+                )
+        return result
+
+class SkoptGbrtMin(SkoptMin):
+    """Fits model parameters using Scikit-Optimize's gprt_minimize."""
+
+    def min_func(self):
+        result = skopt.gbrt_minimize(
+                func=self.cost_fn, dimensions=self.dims, base_estimator=None,
+                n_calls=self.n_calls, n_random_starts=10, acq_func="EI",
+                acq_optimizer="auto", x0=self.x0, y0=self.y0, xi=self.tolerance,
+                kappa=0.001,
+                )
+        return result
+
+
+class coordinate_descent(nems_fitter):
+    """
+    coordinate descent - step one parameter at a time
+
+    TODO: change name to CoordinateDescent to match w/ pep8 guidelines.
+          make sure to change calls elsewhere in code.
+    """
+
+    name = 'coordinate_descent'
+    maxit = 100
+    tolerance = 0.00000001
+    step_init = 0.001
+    step_change = 0.5
+    step_min = 1e-7
+    verbose = True
+    # TODO: Leave verbose option in, or just switch to log.debug
+    #       for the verbose statements? Both accomplish the same goal,
+    #       but log.debug would turn on/off along with the rest of nems
+    #       instead of only for this fitter
+    pseudo_cache = False  # skip repeat module evals
+    # TODO: Anneal code "works," but doesn't help fit performance at all.
+    anneal = 0  # of times to randomize initial inputs
+    max_matches = 10  # stop anneal if error doesn't change
+    randomize_factor = 1.0  # size of interval for random value
+
+    def my_init(self, tolerance=0.00000001, maxit=1000, verbose=False,
+                pseudo_cache=False, anneal=0, max_matches=10,
+                randomize_factor=10.0):
+        log.info("Initializing Coordinate Descent fitter.")
+        self.maxit = maxit
+        self.tolerance = tolerance
+        self.verbose = verbose
+        self.pseudo_cache = pseudo_cache
+        self.anneal = anneal
+        if self.anneal:
+            self.do_anneal = True
+        else:
+            self.do_anneal = False
+
+    def cost_fn(self, vector):
+        # If pseudo_cache is enabled, check to see if stack should
+        # skip eval on some modules.
+        first_changed_mod = 0
+        if self.pseudo_cache:
+            first_changed_mod = self._find_first_change(vector)
+
+        phi = vector_to_phi(vector, self.phi0)
+        self.stack.set_phi(phi)
+        # If first_changed_mod ended up going past end of list, nothing
+        # changed so don't need to re-eval at all
+        # (This shouldn't happen during normal fitting)
+        if not (first_changed_mod >= len(self.fit_modules)):
+            self.stack.evaluate(self.fit_modules[first_changed_mod])
+        mse = self.stack.error()
+
+        return(mse)
+
+    def _find_first_change(self, vector):
+        """Before resetting stack phi, check parameters against previous set.
+
+        For each module in the stack, if parameters didn't change,
+        skip that module in eval unless it comes after a changed module.
+        ex: if last vector was [0,0,1,1,0]
+            and new vector is  [0,0,1,2,0],
+            and each module takes 1 parameter so that these vectors
+            correspond to 5 modules, then only the 4th and 5th module
+            need to be re-evaluated.
+        TODO: This assumes the modules don't have any random outputs,
+              which I'm not 100% sure on. So need to double check that.
+        TODO: Performance starts dropping compared to non-cached on
+              more complicated models, so something isn't quite right with
+              this yet.
+
+        """
+
+        last_phi = self.stack.get_phi()
+        last_vec = phi_to_vector(last_phi)
+        fit_mods_refs = [self.stack.modules[m] for m in self.fit_modules]
+        parm_lens = [len(mod.fit_fields) for mod in fit_mods_refs]
+
+        first_changed_mod = 0
+        v_idx = 0
+        for mod in parm_lens:
+            # Check if every parameter for current module is the same
+            changed = False
+            for i in range(0, mod):
+                if not (last_vec[v_idx] == vector[v_idx]):
+                    changed = True
+                v_idx += 1
+            # If so, don't need to re-evaluate this module
+            # unless an earlier module in stack was changed.
+            if changed:
+                break
+            first_changed_mod += 1
+
+        return first_changed_mod
+
+    def _annealed_fit(self):
+        """Run do_fit on initial parameters as normal, but also start from
+        number of additional inputs equal to anneal count - 1 such that total
+        number of fits equals self.anneal.
+
+        Uses self.randomize_factor to calculate range for each parameter that
+        random values should be picked from.
+        ex: if param = 0.01 and randomize_factor = 10, then random values
+            will be chosen between (0.01 - 10*0.1) and (0.01 + 10*0.01).
+        Special case for param = 0: range between (0-1) and (0+1)
+        TODO: Better way to handle this case?
+
+        """
+
+        log.info("Beginning annealed fit for Coordinate Descent fitter.\n"
+                 "Number of anneals: %d.\n"
+                 "Randomization factor: %d.",
+                 self.anneal, self.randomize_factor)
+        # Get initial parameters from stack and add them as first entry
+        # in list of vectors
+        self.phi0 = self.stack.get_phi()
+        x0 = phi_to_vector(self.phi0)
+        x_list = [x0]
+        # Calculate intervals to choose random values from for each
+        # parameter in x.
+        random_starts = self.anneal-1
+        param_intervals = [self._get_interval(p) for p in x0]
+
+        # Assemble list of randomized vectors
+        for i in range(0, random_starts):
+            x = x0.copy()
+            for i, p in enumerate(x):
+                interval = param_intervals[i]
+                x[i] = np.random.choice(interval)
+            x_list.append(x)
+        #log.debug("Random vectors assembled: %s", str(x_list))
+
+        # Run self.do_fit() once for each anneal count, starting with
+        # x0 followed by the randomized vectors.
+        scores = []
+        min_idx = 0
+        min_score = 10e10
+        loops_finished = 0
+        for i in range(0, self.anneal):
+            x = x_list[i]
+            this_phi = vector_to_phi(x, self.phi0)
+            self.stack.set_phi(this_phi)
+            log.info("Anneal # %d, phi vector is: %s", i, str(x))
+            this_score = self.do_fit()
+            scores.append((this_score, x))
+
+            # Update minimum score and its index in scores
+            if this_score < min_score:
+                min_score = this_score
+                min_idx = i
+            loops_finished += 1
+
+            # If the last n scores were the same, stop annealing
+            n = self.max_matches
+            if len(scores) >= n:
+                match_checks = [abs((round(s[0]-this_score)) < self.tolerance)
+                                for s in scores[-n:]]
+                if all(match_checks):
+                    log.info("Last %d scores were the same, stopping fit.", n)
+                    break
+
+        log.info("Annealing completed after %d iterations.\n"
+                  "Minimum score was: %.09f.\n"
+                  "From loop: %d.",
+                  loops_finished, min_score, min_idx)
+        min_x = scores[min_idx][1]
+        log.debug("Optimized parameters were: %s", str(min_x))
+        min_phi = vector_to_phi(min_x, self.phi0)
+        self.stack.set_phi(min_phi)
+        self.stack.evaluate(self.fit_modules[0])
+
+        return min_score
+
+    def _get_interval(self, p):
+        """Returns an array of n = 10*self.randomize_factor
+        uniform values surrounding p.
+
+        """
+
+        if p == 0:
+            lower_bound = -1
+            upper_bound = 1
+        else:
+            lower_bound = p-(p*self.randomize_factor)
+            upper_bound = p+(p*self.randomize_factor)
+        interval = np.linspace(lower_bound, upper_bound,
+                               num=100*self.anneal)
+        return interval
+
+    def do_fit(self):
+        # TODO: Getting very poor performance when mini_fit is not included
+        #       in stack, even for very simple models. But the CD fit does
+        #       still improve from there. Is something not working right, or
+        #       is a good initial guess just super important for CD?
+        #       (Seems like it would be)
+        if self.do_anneal:
+            self.do_anneal = False
+            s = self._annealed_fit()
+            return s
+
+        self.phi0 = self.stack.get_phi()
         n_params = len(self.phi0)
 
 #        if ~options.Elitism
@@ -469,20 +682,35 @@ class coordinate_descent(nems_fitter):
 #        end
 
         n = 1   # step counter
-        x = self.phi0.copy()  # current phi
+        x = phi_to_vector(self.phi0)  # current phi
         x_save = x.copy()     # last updated phi
         s = self.cost_fn(x)   # current score
         # Improvement of score over the previous step
         s_new = np.zeros([n_params, 2])
         s_delta = np.inf     # Improvement of score over the previous step
         step_size = self.step_init  # Starting step size.
-        #log.info("{0}: phi0 intialized (start error={1}, {2} parameters)".format(self.name,s,len(self.phi0)))
-        # log.info(x)
-        log.info("starting CD: step size: {0:.6f} tolerance: {1:.6f}".format(
-            step_size, self.tolerance))
-        while (s_delta < 0 or s_delta >
-               self.tolerance) and n < self.maxit and step_size > self.step_min:
+        #log.info("{0}: phi0 intialized (start error={1}, {2} parameters)"
+        #         .format(self.name,s,len(self.phi0)))
+        #log.info(x)
+        log.info("starting CD: step size: {0:.9f} tolerance: {1:.9f}"
+                 .format(step_size, self.tolerance))
+
+        # Iterate until change in error is smaller than tolerance,
+        # but stop if max iterations exceeded or minimum step size reached.
+        start = time()
+        while ((s_delta < 0 or s_delta > self.tolerance)
+                and (n < self.maxit)
+                and (step_size > self.step_min)):
             for ii in range(0, n_params):
+                # Alternate adding and subtracting stepsize from each param,
+                # then run cost function on the new x and store
+                # the result in s_new. Reset x in between +/- so that only
+                # one param at a time is changed.
+                # ex: if step size is 1, and x started as [0,0,0],
+                #     then after 3 loops s_new will store:
+                #     ([cf([1,0,0]), cf([0,1,0]) , cf([0,0,1])],
+                #      [cf([-1,0,0]), cf([0,-1,0]), cf([0,0,-1])]),
+                #     where cf abbreviates self.cost_fun
                 for ss in [0, 1]:
                     x[:] = x_save[:]
                     if ss == 0:
@@ -491,42 +719,78 @@ class coordinate_descent(nems_fitter):
                         x[ii] -= step_size
                     s_new[ii, ss] = self.cost_fn(x)
 
-            x_opt = np.unravel_index(s_new.argmin(), (n_params, 2))
-            popt, sopt = x_opt
+            # get the array index in s_new corresponding to the smallest
+            # error returned  by self.cost_fun on the stepped x values.
+            x_opt = np.unravel_index(s_new.argmin(), s_new.shape)
+            param_idx, sign_idx = x_opt
             s_delta = s - s_new[x_opt]
 
             if s_delta < 0:
                 step_size = step_size * self.step_change
-                # if self.verbose is True:
-                log.info("{0}: Backwards (delta={1}), adjusting step size to {2}".format(
-                    n, s_delta, step_size))
+                if self.verbose:
+                    log.info("%d: Backwards (delta=%.09f), "
+                             "adjusting step size to %.09f",
+                             n, s_delta, step_size)
+                elif n % 100 == 0:
+                    log.debug("%d: Backwards (delta=%.09f), "
+                             "adjusting step size to %.09f",
+                             n, s_delta, step_size)
 
             elif s_delta < self.tolerance:
-                if self.verbose is True:
-                    log.info("{0}: Error improvement too small (delta={1}). Iteration complete.".format(
-                        n, s_delta))
+                if self.verbose:
+                    log.info("%d: Error improvement too small (delta=%.09f). "
+                             "Iteration complete.",
+                             n, s_delta)
+                elif n % 100 == 0:
+                    log.debug("%d: Error improvement too small (delta=%.09f). "
+                             "Iteration complete.",
+                             n, s_delta)
 
-            elif sopt:
-                x_save[popt] -= step_size
-                if self.verbose is True:
-                    log.info("{0}: best step={1},{2} error={3}, delta={4}".format(
-                        n, popt, sopt, s_new[x_opt], s_delta))
+            # sign_idx 0 means positive change was better
+            # sign_idx 1 means negative change was better
+            elif sign_idx:
+                x_save[param_idx] -= step_size
+                if self.verbose:
+                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
+                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
+                elif n % 100 == 0:
+                    log.debug("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
+                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
             else:
-                x_save[popt] += step_size
+                x_save[param_idx] += step_size
                 if self.verbose is True:
-                    log.info("{0}: best step={1},{2} error={3}, delta={4}".format(
-                        n, popt, sopt, s_new[x_opt], s_delta))
+                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
+                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
+                elif n % 100 == 0:
+                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
+                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
 
             x = x_save.copy()
             n += 1
             s = s_new[x_opt]
+        end = time()
+        elapsed = end-start
+
+        if n >= self.maxit:
+            reason = "Maximum iterations exceeded."
+        elif step_size < self.step_min:
+            reason = "Step size smaller than minimum."
+        elif s_delta < self.tolerance:
+            reason = "Error reduction below tolerance."
+        else:
+            reason = "Unknown. Termination conditions not met."
 
         # save final parameters back to model
-        log.info("done CD: step size: {0:.6f} steps: {1}".format(step_size, n))
+        log.info("Coord. Descent finished:\n"
+                 "Reason: {0}\n"
+                 "Step size: {1:.09f}.\n"
+                 "Steps: {2}.\n"
+                 "Time elapsed: {3} seconds."
+                 .format(reason, step_size, n, elapsed))
         phi = vector_to_phi(x, self.phi0)
-        stack.set_phi(phi)
+        self.stack.set_phi(phi)
+        log.info("Final MSE: {0}".format(s))
 
-        #log.info("Final MSE: {0}".format(s))
         return(s)
 
 
