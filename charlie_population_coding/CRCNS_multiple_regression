@@ -14,6 +14,8 @@ from NRF_tools import NRF_fit, plt_perf_by_trial, eval_fit
 import matplotlib.pyplot as plt
 import nems.db as ndb
 import nems.utilities as ut
+import seaborn as sns
+import matplotlib.colors
 batch=301
 cellid ='TAR010c'
 modelname= "fb18ch100x_wcg02_fir15_dexp_fit01_nested5"
@@ -127,28 +129,7 @@ aic_b = np.array(aic_b)
 aic_full = np.array(aic_full)
 
 
-# Figure of smoothed traces
-from scipy.ndimage.filters import gaussian_filter1d
-kern = 5
-plt.figure(figsize=(20,13))
-plt.subplot(561)
-plt.title('Pupil')
-plt.plot(gaussian_filter1d(pupil_unwrapped,kern))
-plt.axis('off')
-plt.subplot(562)
-plt.title('Behavior')
-plt.plot(a_p_unwrapped)
-plt.axis('off')
-pc = 0
-import pandas as pd
-for i in range(3,PCs.shape[-1]+2):
-     plt.subplot(5,6,i)
-     plt.plot(gaussian_filter1d(PCs[:,pc],kern))
-     ts = pd.Series(PCs[:,pc])
-     plt.plot(ts.rolling(window=10).std(),'k',alpha=0.5)
-     pc+=1
-     plt.title(str(pc))
-     plt.axis('off')
+
 
 # Subplot? of variance explained by each factor
 if hack ==0:
@@ -174,19 +155,64 @@ if hack ==0:
 
 
 # Figure of multiple regression fits
-plt.figure(figsize=(10,5))
-plt.subplot(121)
-plt.plot([1,2,3],[rsq_b,rsq_p,rsq_full],'.-')
+cm = plt.get_cmap('jet')
+fig = plt.figure(figsize=(10,5))
+sns.set_style("whitegrid",{'axes.grid': False})
+ax = fig.add_subplot(121)
+ax.set_color_cycle([cm(1.*i/11) for i in range(11)])
+ax.plot([1,2,3],[rsq_b[0:11],rsq_p[0:11],rsq_full[0:11]],'.-',)
 plt.xticks([1,2,3],['Behavior', 'Pupil','Both'])
 plt.ylabel('r^2')
 plt.title('Linear regression - predict latent variables')
-plt.subplot(122)
-plt.plot([1,2],[aic_b-aic_full,aic_p-aic_full],'.-')
+ax = fig.add_subplot(122)
+ax.set_color_cycle([cm(1.*i/11) for i in range(10)])
+plt.plot([1,2],[aic_b[0:11]-aic_full[0:11],aic_p[0:11]-aic_full[0:11]],'.-')
 plt.plot([1,2],[0, 0],'--k',lw=3)
 plt.title('Relative AIC')
 plt.xticks([1,2],['Behavior-Both','Pupil-Both'])
-plt.legend(range(0,len(rsq_p)), ncol=3, loc='upper right')
+plt.legend(range(0,len(rsq_p[0:10])), ncol=3, loc='upper right')
+if hack==1:
+    plt.suptitle('Factor Analysis')
+else:
+    plt.suptitle('PCA')
 
 
+# Figure of smoothed traces
+from scipy.ndimage.filters import gaussian_filter1d
+kern = 5
+plt.figure(figsize=(20,13))
+plt.subplot(561)
+plt.title('Pupil')
+plt.plot(gaussian_filter1d(pupil_unwrapped,kern))
+plt.axis('off')
+plt.subplot(562)
+plt.title('Behavior')
+plt.plot(a_p_unwrapped)
+plt.axis('off')
+pc = 0
+import pandas as pd
+for i in range(3,11+2):
+     plt.subplot(3,5,i)
+     plt.plot(gaussian_filter1d(PCs[:,pc],kern),color=cm(1.*pc/11))
+     ts = pd.Series(PCs[:,pc])
+     plt.plot(ts.rolling(window=10).std(),'k',alpha=0.5)
+     pc+=1
+     plt.title(str(pc))
+     plt.axis('off')
+     
+if hack==1:
+    plt.suptitle('Factor Analysis')
+else:
+    plt.suptitle('PCA')
 
+# Try to plot multiple regression results using barplots
 
+pc = range(0,cellcount)
+rsq = pd.DataFrame(data = np.vstack((rsq_p,rsq_b,rsq_full, pc)).T, index = range(0,cellcount), columns=['Pupil', 'Behavior','Both','PC'])
+plt.figure(5)
+plt.subplot(131)
+sns.barplot(x = 'PC',y='Pupil', data =rsq[['Pupil','PC']])
+plt.subplot(132)
+sns.barplot(x = 'PC',y='Behavior', data =rsq[['Behavior','PC']])
+plt.subplot(133)
+sns.barplot(x = ['Pupil','Behavior','Both'], hue = 'PC',y = rsq, data =rsq)

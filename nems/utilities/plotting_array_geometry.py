@@ -100,14 +100,18 @@ def plot_weights_128D(h, cellids,vmin,vmax,cbar):
     # get gemoetry from Luke's baphy function probe_128D
     
     channels = np.arange(0,128,1)
-    x = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/x_positions.mat')['x_128']
-    y = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/z_positions.mat')['z_128']
-    
-       # scale to get more separtion visuallyu
+    #x = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/x_positions.mat')['x_128']
+    #y = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/z_positions.mat')['z_128']
+    x = loadmat('/auto/users/hellerc/x_pos.mat')['x_pos']
+    y = loadmat('/auto/users/hellerc/y_pos.mat')['y_pos']
+    #ch_map = loadmat('/auto/users/hellerc/chan_map_128D.mat')['ch_map_128D']
+    #ch_map = np.array([int(x) for x in ch_map])
+    # scale to get more separtion visuallyu
     x = (x/100)*4
     y = (y/100)*2
     
     locations=np.hstack((x,y))  
+    #locations=locations[np.argsort(ch_map),:]
     plt.scatter(locations[:,0],locations[:,1], s=40,facecolor='none',edgecolor='k')
     plt.axis('scaled')
 
@@ -124,12 +128,13 @@ def plot_weights_128D(h, cellids,vmin,vmax,cbar):
     electrodes = np.zeros(len(cellids))
     c_id = np.zeros(len(cellids))
     for i in range(0, len(cellids)):
-        electrodes[i] = int(cellids[i][0][-4:-2])
+        ind= cellids[i][0].split('-')[1]
+        electrodes[i] = int(ind)
     electrodes = np.unique(electrodes)-1
     
        # move units when there are >1 on same electrode
     for i, weight in enumerate(h):
-        c_id[i] = int(cellids[i][0][-4:-2])-1
+        c_id[i] = int(cellids[i][0].split('-')[1])
         tf =1
         while tf==1:
              if (int(cellids[i][0][-1])>1 and (int(c_id[i]+1) != 32 and int(c_id[i]+1)!=64 and int(c_id[i]+1)!=96 and int(c_id[i]+1)!=128)):
