@@ -485,11 +485,18 @@ class coordinate_descent(nems_fitter):
     step_init = 0.001
     step_change = 0.5
     step_min = 1e-7
-    verbose = True
     # TODO: Leave verbose option in, or just switch to log.debug
     #       for the verbose statements? Both accomplish the same goal,
     #       but log.debug would turn on/off along with the rest of nems
     #       instead of only for this fitter
+    verbose = True
+
+    # TODO: pseudo_cache'd results don't match their non-cached counterparts,
+    #       so either something is wrong with that code or module evals aren't
+    #       returning consistent output for same input and params.
+    # TODO: figure out unit test for some module evals to see if they are
+    #       returning random-ish output, unless that's desired behavior
+    #       (in which case pseudo-cache concept won't work as intended).
     pseudo_cache = False  # skip repeat module evals
     # TODO: Anneal code "works," but doesn't help fit performance at all.
     anneal = 0  # of times to randomize initial inputs
@@ -628,8 +635,10 @@ class coordinate_descent(nems_fitter):
             # If the last n scores were the same, stop annealing
             n = self.max_matches
             if len(scores) >= n:
-                match_checks = [abs((round(s[0]-this_score)) < self.tolerance)
+                match_checks = [abs((round(s[0]-this_score)) > self.tolerance)
                                 for s in scores[-n:]]
+                log.debug("match_checks as intended? should be bool list: %s",
+                          str(match_checks))
                 if all(match_checks):
                     log.info("Last %d scores were the same, stopping fit.", n)
                     break
@@ -639,7 +648,9 @@ class coordinate_descent(nems_fitter):
                   "From loop: %d.",
                   loops_finished, min_score, min_idx)
         min_x = scores[min_idx][1]
+        score_list = [s[0] for s in scores]
         log.debug("Optimized parameters were: %s", str(min_x))
+        log.debug("All scores obtained were: %s", str(score_list))
         min_phi = vector_to_phi(min_x, self.phi0)
         self.stack.set_phi(min_phi)
         self.stack.evaluate(self.fit_modules[0])
@@ -668,6 +679,7 @@ class coordinate_descent(nems_fitter):
         #       still improve from there. Is something not working right, or
         #       is a good initial guess just super important for CD?
         #       (Seems like it would be)
+        # TODO: Often get a true division error
         if self.do_anneal:
             self.do_anneal = False
             s = self._annealed_fit()
@@ -683,6 +695,7 @@ class coordinate_descent(nems_fitter):
 
         n = 1   # step counter
         x = phi_to_vector(self.phi0)  # current phi
+        log.debug("Initial parameters: %s", str(x))
         x_save = x.copy()     # last updated phi
         s = self.cost_fn(x)   # current score
         # Improvement of score over the previous step
@@ -698,7 +711,9 @@ class coordinate_descent(nems_fitter):
         # Iterate until change in error is smaller than tolerance,
         # but stop if max iterations exceeded or minimum step size reached.
         start = time()
-        while ((s_delta < 0 or s_delta > self.tolerance)
+        # TODO: find a cleaner way to code the 'while' conditions,
+        #       starting to get ugly.
+        while (((s_delta < 0) or ((s_delta > self.tolerance) or (s >= 0.95)))
                 and (n < self.maxit)
                 and (step_size > self.step_min)):
             for ii in range(0, n_params):
@@ -787,6 +802,7 @@ class coordinate_descent(nems_fitter):
                  "Steps: {2}.\n"
                  "Time elapsed: {3} seconds."
                  .format(reason, step_size, n, elapsed))
+        log.debug("Optimized parameters: %s", str(x))
         phi = vector_to_phi(x, self.phi0)
         self.stack.set_phi(phi)
         log.info("Final MSE: {0}".format(s))
@@ -804,8 +820,8 @@ class fit_iteratively(nems_fitter):
     max_iter = 5
     module_sets=[]
 
-    def my_init(self, sub_fitter=basic_min, max_iter=5, min_kwargs={
-                'routine': 'L-BFGS-B', 'maxit': 10000}):
+    def my_init(self, sub_fitter=basic_min, max_iter=5,
+                min_kwargs={'routine': 'L-BFGS-B', 'maxit': 10000}):
         self.sub_fitter = sub_fitter(self.stack, **min_kwargs)
         self.max_iter = max_iter
         self.module_sets=[]

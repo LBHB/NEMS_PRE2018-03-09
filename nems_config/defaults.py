@@ -309,6 +309,19 @@ def uncaught_exception_handler(type, value, tb):
         exlog.exception(str(i) + ": " + tb)
 sys.excepthook = uncaught_exception_handler
 
+# TODO: add logger for warnings formatting
+#import sys
+#import warnings
+#import traceback
+#def warn_with_traceback(message, category, filename, lineno, file=None,
+#                        line=None):
+#    log = file if hasattr(file, 'write') else sys.stderr
+#    traceback.print_stack(file=log)
+#    log.write(warnings.formatwarning(message, category, filename,
+#                                     lineno, line))
+#warnings.showwarning = warn_with_traceback
+
+
 db_path = os.path.join(SAMPLE_PATH, 'demo_db.db')
 log.debug("db_path for demo ended up being: {0}".format(db_path))
 db_obj = Path(db_path)

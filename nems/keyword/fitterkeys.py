@@ -204,9 +204,10 @@ def fititer01(stack):
 
 def fitcoord00(stack):
     """Fits model parameters using greedy coordinate desecent algorithm.
-
     Cost function uses mean squared error, fitter settings left as defaults.
-    TODO: finish this doc.
+
+    Note: recommended to use this kw for testing Coordinate Descent, until
+    annealing and pseudo-caching are either fixed or detrimented.
 
     """
 
@@ -214,6 +215,59 @@ def fitcoord00(stack):
     stack.error = stack.modules[-1].error
 
     stack.fitter = nems.fitters.fitters.coordinate_descent(stack)
+    stack.fitter.do_fit()
+
+def fitcoord01(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+    Cost function uses mean squared error.
+    Also enables annealing with anneal count = 30.
+
+    Note: Annealing 'works', but so far hasn't helped performance.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(
+            stack, anneal=30
+            )
+    stack.fitter.do_fit()
+
+def fitcoord02(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+    Cost funciton uses mean squared error.
+    Also enables pseudo-caching of prior module evals.
+
+    Note: Pseudo-caching not yet matching non-cached results.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(
+            stack, pseudo_cache=True,
+            )
+    stack.fitter.do_fit()
+
+def fitcoord03(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+    Cost function uses mean squared error.
+    Also enables pseudo-caching of prior module evals, and
+    enables annealing with anneal count = 30.
+
+    Note: Annealing 'works', but so far hasn't helped performance.
+          Pseudo-caching not yet matching non-cached results.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(
+            stack, pseudo_cache=True, anneal=30,
+            )
     stack.fitter.do_fit()
 
 def skopt00(stack):
