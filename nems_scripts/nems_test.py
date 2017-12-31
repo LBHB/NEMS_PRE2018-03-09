@@ -198,6 +198,9 @@ if 1:
 
 
     # trying coordinate descent
+    # overall: works about the same as basic_min for simple models, but
+    #          basic_min works better for the more complicated models that
+    #          include nonlinearity.
     # performance about the same as basic_min so far, but usually faster
     #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitcoord00"
     # CD no cache: est 0.647, val 0.853, MSE 0.580, t 66s
@@ -205,7 +208,29 @@ if 1:
     #               must be some issue with code, perf shouldn't be different
     # fit02: est 0.682, val 0.836, MSE 0.526, t 23.5s
     #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitcoord00"
-    cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+
+
+    # trying iterative fit
+    # fititer00 (cd): mse: 0.5427, est 0.500, val 0.616
+    # fititer01 (basic_min): mse 0.537322028954, est 0.500, val 0.618
+    # fit02: mse 0.504, est 0.501, val 0.616
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fititer01"
+    # fititer00 (cd): mse: 0.686, est 0.647, val 0.835
+    # fititer01 (basic_min): est 0.672, val 0.814, MSE 0.645
+    # fit02: est 0.682, val 0.836, MSE 0.526, t 23.5s
+    # fit01: same as 02
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fititer00"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+
+
+    # trying fit by type
+    # fittype00: est 0.501, val 0.614, mse 0.504
+    # fit01/02: est 0.501, val 0.616, mse 0.504
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fittype00"
+    # fittype00: est 0.647, val 0.835, mse 0.689
+    # fit01/02: est 0.682, val 0.836, MSE 0.526
+    cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fititer00"
 
 
     # fit02 same performance but 3-5x as fast (SQLP)

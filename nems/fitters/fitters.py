@@ -480,7 +480,7 @@ class coordinate_descent(nems_fitter):
     """
 
     name = 'coordinate_descent'
-    maxit = 100
+    maxit = 1000
     tolerance = 0.00000001
     step_init = 0.001
     step_change = 0.5
@@ -501,11 +501,31 @@ class coordinate_descent(nems_fitter):
     # TODO: Anneal code "works," but doesn't help fit performance at all.
     anneal = 0  # of times to randomize initial inputs
     max_matches = 10  # stop anneal if error doesn't change
-    randomize_factor = 1.0  # size of interval for random value
+    randomize_factor = 0.5  # size of interval for random value
+
+    # NOTES: Possible improvements?
+    #        Fix anneal and pseudo-cache code (or abandon those approaches).
+    #        Branching version? Instead of deciding on best improvement
+    #            after one change to each param, do n number of steps for
+    #            every option (similar to increasing number of look-aheads
+    #            for game AI).
+    #        Ex: for 4 params, increase and decrease each by step size.
+    #            Then, repeat for each of those 8 results n number of times
+    #            (until there are (2*#params)^n paths that were taken).
+    #            Pick lowest error that results, then repeat.
+    #        Pros: Includes any results that would come from current
+    #            algorithm by definition, but also adds options that
+    #            'greedy' CD wouldn't find.
+    #        Cons: Would get very slow for even a low n
+    #            (more than 3 or 4 would probably be unreasonable).
+    #            Code would also be much more complicated since would need
+    #            to eliminate redunant paths (i.e. no reason to increase
+    #            a param on one step of a branch and then decrease it
+    #            on the next step).
 
     def my_init(self, tolerance=0.00000001, maxit=1000, verbose=False,
                 pseudo_cache=False, anneal=0, max_matches=10,
-                randomize_factor=10.0):
+                randomize_factor=0.5):
         log.info("Initializing Coordinate Descent fitter.")
         self.maxit = maxit
         self.tolerance = tolerance
@@ -711,9 +731,7 @@ class coordinate_descent(nems_fitter):
         # Iterate until change in error is smaller than tolerance,
         # but stop if max iterations exceeded or minimum step size reached.
         start = time()
-        # TODO: find a cleaner way to code the 'while' conditions,
-        #       starting to get ugly.
-        while (((s_delta < 0) or ((s_delta > self.tolerance) or (s >= 0.95)))
+        while (((s_delta < 0) or ((s_delta > self.tolerance))) #or (s >= 1.0)))
                 and (n < self.maxit)
                 and (step_size > self.step_min)):
             for ii in range(0, n_params):
@@ -757,9 +775,10 @@ class coordinate_descent(nems_fitter):
                              "Iteration complete.",
                              n, s_delta)
                 elif n % 100 == 0:
-                    log.debug("%d: Error improvement too small (delta=%.09f). "
-                             "Iteration complete.",
-                             n, s_delta)
+                    log.debug("%d: Error improvement too small (delta=%.09f)\n"
+                             "Old score: %.09f\n"
+                             "New score: %.09f\n",
+                             n, s_delta, s, s_new[x_opt])
 
             # sign_idx 0 means positive change was better
             # sign_idx 1 means negative change was better
@@ -813,63 +832,82 @@ class coordinate_descent(nems_fitter):
 class fit_iteratively(nems_fitter):
     """
     iterate through modules, running fitting each one with sub_fitter()
+
+    TODO: update class name to FitIteratively per pep8 guidelines.
+
     """
 
     name = 'fit_iteratively'
     sub_fitter = None
-    max_iter = 5
+    max_iter = 100
     module_sets=[]
 
-    def my_init(self, sub_fitter=basic_min, max_iter=5,
+    def my_init(self, sub_fitter=basic_min, max_iter=100,
                 min_kwargs={'routine': 'L-BFGS-B', 'maxit': 10000}):
         self.sub_fitter = sub_fitter(self.stack, **min_kwargs)
         self.max_iter = max_iter
-        self.module_sets=[]
-        for i in self.fit_modules:
-            self.module_sets=self.module_sets + [i]
+        self.module_sets = [[i] for i in self.fit_modules]
 
     def do_fit(self):
         self.sub_fitter.tolerance = self.tolerance
         itr = 0
         err = self.stack.error()
         this_itr = 0
+
         while itr < self.max_iter:
             this_itr += 1
 
             for i in self.module_sets:
-                log.info("Begin sub_fitter on mod: {0}; iter {1}; tol={2}".format(self.stack.modules[i[0]].name,itr,self.sub_fitter.tolerance))
+                log.info("Begin sub_fitter on mod: {0}; iter {1}; tol={2}"
+                         .format(self.stack.modules[i[0]].name, itr,
+                                 self.sub_fitter.tolerance))
                 self.sub_fitter.fit_modules = i
                 new_err = self.sub_fitter.do_fit()
             if err - new_err < self.sub_fitter.tolerance:
-                log.info("")
-                log.info("error improvement less than tol, starting new outer iteration")
+                log.info("\nError improvement less than tol,"
+                         "starting new outer iteration")
                 itr += 1
                 self.sub_fitter.tolerance = self.sub_fitter.tolerance / 2
                 this_itr = 0
             elif this_itr > 20:
-                log.info("")
-                log.info("too many loops at this tolerance, stuck?")
+                log.info("\nToo many loops at this tolerance, stuck?")
                 itr += 1
                 self.sub_fitter.tolerance = self.sub_fitter.tolerance / 2
                 this_itr = 0
 
             err = new_err
 
-        return(self.stack.error())
+        # Fit all params together aferward. If iterative fit did its job,
+        # this should be a very short operation.
+        # May only be useful for testing.
+        log.debug("Subfitting complete, beginning whole-model fit...")
+        self.sub_fitter.fit_modules = self.fit_modules
+        err = self.sub_fitter.do_fit()
+
+        # These should match
+        log.debug("self.stack.error() is: {0}\n"
+                  "local err variable is: {1}\n"
+                  .format(self.stack.error(), err))
+
+        #return(self.stack.error())
+        return err
 
 
 class fit_by_type(nems_fitter):
     """
     Iterate through modules, fitting each module with a different sub fitter
-    that depends on the type of each module, i.e. if it is a nonlinearity, fir filter,
-    etc...
+    that depends on the type of each module, i.e. if it is a nonlinearity,
+    fir filter, etc...
 
     min_kwargs should be a dictionary of dictionaries:
-        min_kwargs={'basic_min':{'routine':'L-BFGS','maxit':10000},'anneal_min':
-            {'min_method':'L-BFGS-B','anneal_iter':100,'stop':5,'maxiter':10000,'up_int':10,'bounds':None,
-                'temp':0.01,'stepsize':0.01}, etc...}
-    Note that all of these fields need not be filled out, but if this is the case the
-    subfitters will use their default settings.
+        min_kwargs={'basic_min':{'routine':'L-BFGS','maxit':10000},
+                    'anneal_min':{'min_method':'L-BFGS-B','anneal_iter':100,
+                                  'stop':5,'maxiter':10000,'up_int':10,
+                                  'bounds':None, 'temp':0.01,'stepsize':0.01},
+                    etc...}
+    Note that all of these fields need not be filled out, but if this is the
+    case the subfitters will use their default settings.
+
     """
 
     name = 'fit_by_type'
@@ -878,6 +916,26 @@ class fit_by_type(nems_fitter):
     nonlinearity_sfit = None
     weight_channels_sfit = None
     state_gain_sfit = None
+
+    # NOTES: Possible improvements?
+    #        Could start with a rough fit on each module with different sub
+    #           fitters to find the one that performs best, instead of
+    #           hardcoding the subfitters for each module.
+    #           (Can still leave in the option to override).
+    #        Ex: pass in a dict of sub fitters and their args
+    #           for each module, fit only those module params (like iter fit)
+    #           using each sub_fitter specified and a small number of
+    #           iterations. keep the one with the best
+    #           score for that module.
+    #           After optimal sub fitter found for each module, do full
+    #           iterative fit.
+    #        Pros: removes need to establish relationship between
+    #           module type and fitter, and always finds th best sub fitter
+    #           instead of relying on user to know which one is best.
+    #        Cons: Fit will take a bit longer since it has to do several
+    #           mini fits before doing the existing routine. However, this
+    #           shouldn't add *that* much time as long as the smaller iter
+    #           count is reasonable.
 
     def my_init(self, fir_filter_sfit=basic_min, nonlinearity_sfit=anneal_min, weight_channels_sfit=basic_min,
                 state_gain_sfit=basic_min, maxiter=5, min_kwargs={'basic_min': {'routine': 'L-BFGS-B', 'maxit': 10000}, 'anneal_min':
@@ -893,6 +951,13 @@ class fit_by_type(nems_fitter):
             self.stack, **min_kwargs[state_gain_sfit.name])
         self.maxiter = maxiter
 
+        self.modname_to_fitter = {
+                'filters.fir': self.fir_filter_sfit,
+                'nonlin.gain': self.nonlinearity_sfit,
+                'filters.weight_channels': self.weight_channels_sfit,
+                'pupil.pupgain': self.state_gain_sfit,
+                }
+
     def do_fit(self):
         itr = 0
         err = self.stack.error()
@@ -901,19 +966,35 @@ class fit_by_type(nems_fitter):
             self.nonlinearity_sfit.tolerance = self.tolerance
             self.weight_channels_sfit.tolerance = self.tolerance
             self.state_gain_sfit.tolerance = self.tolerance
+
+            # More or less the same as iterative fit except for
+            # changing the sub_fitter.
             for i in self.fit_modules:
                 name = self.stack.modules[i].name
-                log.info('Sub-fitting on {0} module with {1}'.format(name,
-                                                                  getattr(getattr(self, name + '_sfit'), 'name')))
-                log.info('Current iter: {0}'.format(itr))
-                log.info('Current tolerance: {0}'.format(self.tolerance))
-                setattr(getattr(self, name + '_sfit'), 'fit_modules', [i])
-                new_err = getattr(self, name + '_sfit').do_fit()
+                try:
+                    sub_fitter = self.modname_to_fitter[name]
+                except:
+                    sub_fitter = self.fir_filter_sfit
+                    log.info("Couldn't find a sub fitter for %s module,"
+                             "using %s instead.",
+                             name, sub_fitter.name
+                             )
+
+                log.info('Sub-fitting on %s module with %s'
+                         .format(name, sub_fitter.name))
+                log.info('Current iter: %d', itr)
+                log.info('Current tolerance: %.09f', self.tolerance)
+                sub_fitter.fit_modules = [i]
+                new_err = sub_fitter.do_fit()
+
             if err - new_err < self.tolerance:
-                log.info("")
-                log.info(
-                    "error improvement less than tolerance, starting new outer iteration")
+                log.info("\nError improvement less than tolerance,"
+                         "starting new outer iteration")
                 itr += 1
-                self.tolerance = self.tolerance / 2
+                self.tolerance = self.tolerance/2
+
             err = new_err
-        return(self.stack.error())
+
+        log.info("Fit by type finished, final error: {0}"
+                 .format(err))
+        return(err)

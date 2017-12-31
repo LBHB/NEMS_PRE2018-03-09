@@ -197,7 +197,7 @@ def fititer01(stack):
     stack.append(nm.metrics.mean_square_error, shrink=0.5)
     stack.error = stack.modules[-1].error
 
-    stack.fitter = nems.fitters.fitters.fit_iteratively(stack, max_iter=5)
+    stack.fitter = nems.fitters.fitters.fit_iteratively(stack, max_iter=10)
     stack.fitter.sub_fitter = nems.fitters.fitters.basic_min(stack)
 
     stack.fitter.do_fit()
@@ -220,7 +220,7 @@ def fitcoord00(stack):
 def fitcoord01(stack):
     """Fits model parameters using greedy coordinate desecent algorithm.
     Cost function uses mean squared error.
-    Also enables annealing with anneal count = 30.
+    Also enables annealing with anneal count = 10.
 
     Note: Annealing 'works', but so far hasn't helped performance.
 
@@ -230,7 +230,7 @@ def fitcoord01(stack):
     stack.error = stack.modules[-1].error
 
     stack.fitter = nems.fitters.fitters.coordinate_descent(
-            stack, anneal=30
+            stack, anneal=10
             )
     stack.fitter.do_fit()
 
@@ -268,6 +268,16 @@ def fitcoord03(stack):
     stack.fitter = nems.fitters.fitters.coordinate_descent(
             stack, pseudo_cache=True, anneal=30,
             )
+    stack.fitter.do_fit()
+
+def fittype00(stack):
+    """Fits individual modules with different fitters based on the
+    module type. """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.fit_by_type(stack)
     stack.fitter.do_fit()
 
 def skopt00(stack):
