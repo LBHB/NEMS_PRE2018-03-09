@@ -1,32 +1,51 @@
+#!/usr/bin/python3
+
 import os
+import sys
 import numpy as np
 import scipy.io
-from nems.Signal import Signal, loadfromcsv
-
-DEFAULT_DIRPATH = '/home/ivar/mat/'
+from nems.Signal import Signal
 
 
 ###############################################################################
 # For unpacking matlab stuff
+
+def print_usage():
+    print("""Usage: mat2csv <MATFILE> [<MATFILE> ...]""")
+
+def unwrap(n):
+    if type(n) == np.ndarray:
+        return n[0]
+    else:
+        return n
+
+def fix_np_type(m):
+    """ Convert 1x1 numpy datatypes into standard python data types. """
+    if isinstance(m, np.str_):
+        return m
+    elif isinstance(m, np.ndarray):
+        if m.shape == (1,1):
+            return fix_np_type(m[0, 0])
+        else:
+            return m
+    elif isinstance(m, np.integer):
+        return int(m)
+    elif isinstance(m, np.floating):
+        return float(m)
+    elif isinstance(m, np.void):
+        return None
+    else:
+        raise ValueError(str("Unhandled type:")+str(type(m)))
 
 def __extract_metadata(matrec):
     """ Extracts metadata from the matlab matrix object matrec. """
     found = set(matrec.dtype.names)
     needed = ['cellid', 'isolation', 'stimfs', 'respfs',
               'stimchancount', 'stimfmt', 'filestate']
-    unwrap = lambda n: n[0] if type(n) == np.ndarray else n
     meta = dict((n, unwrap(matrec[n][0])) for n in needed if n in found)
 
-    # Convert into integers or floats cuz np datatypes are not serializable
     for k, v in meta.items():
-        if isinstance(v, np.str_):
-            next
-        elif isinstance(v, np.integer):
-            meta[k] = int(v)
-        elif isinstance(v, np.floating):
-            meta[k] = float(v)
-        else:
-            print("WARN:", k, 'is', type(v))
+        meta[k] = fix_np_type(v)
 
     meta['cellid'] = str(meta['cellid'])  # Convert numpy string to normal
 
@@ -45,20 +64,34 @@ def __extract_metadata(matrec):
 
     return meta
 
-
 def mat2signals(matfile):
     """ Converts a matlab file into a set of signals. """
     matdata = scipy.io.loadmat(matfile,
                                chars_as_strings=True,
                                squeeze_me=False)
 
-    # Verify that .mat file has no unexpected matrix variables
-    expected_matlab_vars = set(['data', '__globals__', '__version__',
-                                '__header__', 'cellid'])
+    # Remove useless variables
+    del matdata['__header__']
+    del matdata['__globals__']
+    del matdata['__version__']
+
     found_matrices = set(matdata.keys())
+
+    toplevel_matrices = {}
+    for m in sorted(found_matrices):
+        d = matdata[m]
+        if type(d) is np.ndarray and d.shape == (1,1):
+            toplevel_matrices[m] = fix_np_type(d)
+            found_matrices.remove(m)
+
+    for k in found_matrices:
+        print(k, matdata[k].shape, type(matdata[k]))
+
+    # Verify that .mat file has no unexpected matrix variables
+    expected_matlab_vars = set(['data', 'cellid'])
     if not found_matrices == expected_matlab_vars:
         raise ValueError("Unexpected variables found in .mat file: "
-                         + found_matrices)
+                         + str(sorted(found_matrices)))
 
     sigs = []
     for m in matdata['data'][0, :]:
@@ -115,48 +148,16 @@ def mat2signals(matfile):
 ###############################################################################
 # SCRIPT STARTS HERE
 
-matfile = ('/home/ivar/tmp/gus027b-a1_b293_parm_fs200'
-           + '/gus027b-a1_b293_parm_fs200.mat')
+if len(sys.argv) < 2:
+    print_usage()
+    exit(-1)
 
-sigs = mat2signals(matfile)
+matfiles = sys.argv[1:]
 
-print("---")
-for s in sigs:
-    print(s.recording, s.name, s.__matrix__.shape, s.meta)
-    (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
-    q = loadfromcsv(csv, js)
-    print(q.recording, q.name, q.__matrix__.shape, q.meta)
+for f in matfiles:
+    print(f)
+    sigs = mat2signals(f)
+    for s in sigs:
+          print("\t", s.recording, s.name, s.__matrix__.shape, s.meta)
+          (csv, js) = s.savetocsv('./', fmt='%1.5e')
 
-##############################################################################
-
-# A Test of the above
-with open('/tmp/ooo.csv', 'w') as f:
-    n = 0
-    for i in range(200):
-        f.write(str(n))
-        n += 1
-        for j in range(1, 8):
-            f.write(', ')
-            f.write(str(n))
-            n += 1
-        f.write('\n')
-
-q = loadfromcsv('/tmp/ooo.csv', '/tmp/ooo.json')
-q.savetocsv('/tmp/')
-
-assert(q.__matrix__[1,2,3] == 490)
-assert(q.as_average_trial()[3,3] == 747.0)
-
-p = q.jackknifed_by_reps(10, 0)
-assert(np.isnan(p.__matrix__[1,3,0]))
-assert(np.isnan(p.__matrix__[2,5,0]))
-assert(not np.isnan(p.__matrix__[2,5,1]))
-
-r = q.jackknifed_by_time(200, 199)
-assert(np.isnan(r.__matrix__[-1,3,-1]))
-assert(not np.isnan(r.__matrix__[1,3,1]))
-
-#print(r.__matrix__)
-#print(r.as_single_trial())
-
-print("Tests passed")
