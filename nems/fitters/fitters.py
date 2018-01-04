@@ -10,6 +10,7 @@ import logging
 log = logging.getLogger(__name__)
 
 import os
+import random
 from time import time
 import scipy as sp
 import numpy as np
@@ -195,14 +196,14 @@ class basic_min(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
-        if (self.counter % 200 == 0) and (self.counter < 1000):
-            log.debug("Eval # %d, phi vector is now: \n%s",
-                      self.counter, str(vector))
+        #if (self.counter % 200 == 0) and (self.counter < 1000):
+            #log.debug("Eval # %d, phi vector is now: \n%s",
+            #          self.counter, str(vector))
         if self.counter % 1000 == 0:
             log.info('Eval # %d', self.counter)
             log.info('Error=%.02f', err)
-            log.debug("Eval # %d, phi vector is now: \n%s",
-                      self.counter, str(vector))
+            #log.debug("Eval # %d, phi vector is now: \n%s",
+            #          self.counter, str(vector))
             self.tick_queue()  # Update the progress indicator
         return(err)
 
@@ -328,14 +329,14 @@ class anneal_min(nems_fitter):
         self.stack.evaluate(self.fit_modules[0])
         err = self.stack.error()
         self.counter += 1
-        if (self.counter % 200 == 0) and (self.counter < 1000):
-            log.debug("Eval # {0}, phi vector is now: \n{1}"
-                      .format(self.counter, vector))
+        #if (self.counter % 200 == 0) and (self.counter < 1000):
+            #log.debug("Eval # %d, phi vector is now: \n%s",
+            #          self.counter, str(vector))
         if self.counter % 1000 == 0:
             log.info('Eval #' + str(self.counter))
             log.info('Error=' + str(err))
-            log.debug("Eval # {0}, phi vector is now: \n{1}"
-                      .format(self.counter, vector))
+            #log.debug("Eval # %d, phi vector is now: \n%s",
+            #          self.counter, str(vector))
         return(err)
 
     def do_fit(self):
@@ -402,7 +403,7 @@ class SkoptMin(nems_fitter):
         if self.counter % 10 == 0:
             log.info('Eval %d', self.counter)
             log.info('MSE = %.02f', mse)
-            log.debug('Vector is now: %s', str(vector))
+            #log.debug('Vector is now: %s', str(vector))
 
         return(mse)
 
@@ -481,7 +482,7 @@ class coordinate_descent(nems_fitter):
 
     name = 'coordinate_descent'
     maxit = 1000
-    tolerance = 0.00000001
+    tolerance = 0.000001
     step_init = 0.001
     step_change = 0.5
     step_min = 1e-7
@@ -501,7 +502,10 @@ class coordinate_descent(nems_fitter):
     # TODO: Anneal code "works," but doesn't help fit performance at all.
     anneal = 0  # of times to randomize initial inputs
     max_matches = 10  # stop anneal if error doesn't change
-    randomize_factor = 0.5  # size of interval for random value
+    # scales size of interval (uniform) or magnitude of standard deviation
+    # (gaussian) for random values
+    randomize_factor = 0.5
+    random_type = 'gaussian' # can be uniform or gaussian
 
     # NOTES: Possible improvements?
     #        Fix anneal and pseudo-cache code (or abandon those approaches).
@@ -523,9 +527,9 @@ class coordinate_descent(nems_fitter):
     #            a param on one step of a branch and then decrease it
     #            on the next step).
 
-    def my_init(self, tolerance=0.00000001, maxit=1000, verbose=False,
+    def my_init(self, tolerance=0.000001, maxit=1000, verbose=False,
                 pseudo_cache=False, anneal=0, max_matches=10,
-                randomize_factor=0.5):
+                randomize_factor=0.5, random_type='gaussian'):
         log.info("Initializing Coordinate Descent fitter.")
         self.maxit = maxit
         self.tolerance = tolerance
@@ -536,6 +540,7 @@ class coordinate_descent(nems_fitter):
             self.do_anneal = True
         else:
             self.do_anneal = False
+        self.random_type = random_type
 
     def cost_fn(self, vector):
         # If pseudo_cache is enabled, check to see if stack should
@@ -622,13 +627,26 @@ class coordinate_descent(nems_fitter):
         # parameter in x.
         random_starts = self.anneal-1
         param_intervals = [self._get_interval(p) for p in x0]
+        param_distribs = [self._get_distribution(p) for p in x0]
 
         # Assemble list of randomized vectors
         for i in range(0, random_starts):
             x = x0.copy()
             for i, p in enumerate(x):
-                interval = param_intervals[i]
-                x[i] = np.random.choice(interval)
+                # uniform random
+                if self.random_type == 'uniform':
+                    interval = param_intervals[i]
+                    x[i] = np.random.choice(interval)
+                # gaussian random
+                elif self.random_type == 'gaussian':
+                    mu, sigma = param_distribs[i]
+                    randn = (sigma * np.random.randn() + mu)
+                    x[i] = randn
+                else:
+                    log.warning("No random_type specified, or specification"
+                                "was invalid. Using initial param value for"
+                                "i=%d", i)
+                    x[i] = x0[i]
             x_list.append(x)
         #log.debug("Random vectors assembled: %s", str(x_list))
 
@@ -692,6 +710,22 @@ class coordinate_descent(nems_fitter):
         interval = np.linspace(lower_bound, upper_bound,
                                num=100*self.anneal)
         return interval
+
+    def _get_distribution(self, p):
+        """Returns a pair of mu and sigma values for generating a normal
+        distribution around the value p.
+
+        """
+
+        mu = p
+        if p == 0:
+            # TODO: What about params with larger values that started
+            #       at 0?
+            sigma = self.randomize_factor
+        else:
+            sigma = p*self.randomize_factor
+
+        return mu, sigma
 
     def do_fit(self):
         # TODO: Getting very poor performance when mini_fit is not included
@@ -841,6 +875,7 @@ class fit_iteratively(nems_fitter):
     sub_fitter = None
     max_iter = 100
     module_sets=[]
+    tolerance=0.000001
 
     def my_init(self, sub_fitter=basic_min, max_iter=100,
                 min_kwargs={'routine': 'L-BFGS-B', 'maxit': 10000}):
@@ -912,6 +947,7 @@ class fit_by_type(nems_fitter):
 
     name = 'fit_by_type'
     maxiter = 5
+    tolerance=0.000001
     fir_filter_sfit = None
     nonlinearity_sfit = None
     weight_channels_sfit = None
@@ -936,6 +972,8 @@ class fit_by_type(nems_fitter):
     #           mini fits before doing the existing routine. However, this
     #           shouldn't add *that* much time as long as the smaller iter
     #           count is reasonable.
+
+    # Implementing above changes as BestMatch fitter class. -jacob 1/3/2018
 
     def my_init(self, fir_filter_sfit=basic_min, nonlinearity_sfit=anneal_min, weight_channels_sfit=basic_min,
                 state_gain_sfit=basic_min, maxiter=5, min_kwargs={'basic_min': {'routine': 'L-BFGS-B', 'maxit': 10000}, 'anneal_min':
@@ -998,3 +1036,231 @@ class fit_by_type(nems_fitter):
         log.info("Fit by type finished, final error: {0}"
                  .format(err))
         return(err)
+
+class BestMatch(nems_fitter):
+    """Iterate through modules, performing a rough fit on each module
+    using each of the sub fitters specified. Then, iterate once more
+    doing a complete fit for each module using the sub fitter that
+    performed best on the rough fit.
+
+    sub_fitters should be a dictionary of dictionaries:
+        sub_fitters={nems.fitters.basic_min:{'routine':'L-BFGS','maxit':10000},
+                    nems.fitters.anneal_min:{'min_method':'L-BFGS-B',
+                                             'anneal_iter':100, 'stop':5,
+                                             'maxiter':10000,'up_int':10,
+                                             'bounds':None, 'temp':0.01,
+                                             'stepsize':0.01},
+                    nems.fitters.coordinate_descent: {}, #use defaults
+                    etc...}
+
+    """
+
+    name = 'BestMatch'
+    # set at 1 for now for testing to help speed.
+    # but maxiter may not even make sense for this one, since
+    # the full fit should always be done after 1 iteration. If more
+    # iters are desired, can just increase the maxit args passed to each
+    # sub fitter.
+    maxiter = 1
+    tolerance = 0.000001
+    rough_tolerance = 0.001 # Smaller values here may run very slow
+    sub_fitters={
+        basic_min: {'routine': 'L-BFGS-B', 'maxit': 10000},
+        anneal_min: {
+            'min_method': 'L-BFGS-B','anneal_iter': 100, 'stop': 5,
+            'maxiter': 10000, 'up_int': 10, 'bounds': None,
+            'temp': 0.01, 'stepsize': 0.01, 'verb': False
+            }
+        }
+
+    def my_init(self, maxiter=1,
+                sub_fitters={
+                    basic_min: {'routine': 'L-BFGS-B', 'maxit': 10000},
+                    anneal_min: {
+                        'min_method': 'L-BFGS-B','anneal_iter': 100, 'stop': 5,
+                        'maxiter': 10000, 'up_int': 10, 'bounds': None,
+                        'temp': 0.01, 'stepsize': 0.01, 'verb': False
+                        },
+                    coordinate_descent: {}, #use defaults
+                    }):
+
+        self.maxiter = maxiter
+        self.phi0 = self.stack.get_phi()
+        self.sub_fitters = sub_fitters
+        self.sub_fitter_list = []
+        self.best_fitters = {}
+
+    def _set_sub_fitters(self, new_tol):
+        """Convert fitter classes (keys) and kwargs (values) from
+        sub_fitters dict to list of fitter instances, and set new
+        tolerance for each fitter.
+
+        """
+
+        self.sub_fitter_list = [
+                fitter(self.stack, **kwargs)
+                for fitter, kwargs in self.sub_fitters.items()
+                ]
+        for fitter in self.sub_fitter_list:
+            setattr(fitter, 'tolerance', new_tol)
+
+    def do_fit(self):
+        # Find the best fitter for each module
+        for i in self.fit_modules:
+            mod = self.stack.modules[i]
+            scores = []
+            # Reset fitter tolerance and instances in between iterations
+            # incase fitter routines change settings.
+            self._set_sub_fitters(self.rough_tolerance)
+
+            for fitter in self.sub_fitter_list:
+                # Reset stack phi in between fitters. Otherwise,
+                # better fits might get stuck in local mins found by
+                # worse fits.
+                self.stack.set_phi(self.phi0)
+                log.info('Performing rough fit on %s module with %s',
+                         mod.name, fitter.name)
+                log.info('Current tolerance: %.09f', self.rough_tolerance)
+                fitter.fit_modules = [i]
+                score = fitter.do_fit()
+                log.info('Score for %s from %s was: %.09f',
+                         mod.name, fitter.name, score)
+                scores.append(score)
+
+            best_idx = scores.index(min(scores))
+            best_fitter = self.sub_fitter_list[best_idx]
+            log.info('Best fitter for %s was: %s, with a score of: %.09f',
+                     mod.name, best_fitter.name, min(scores))
+            self.best_fitters[mod.name] = best_idx
+
+        # Perform the full fit using the best fitters identified
+        # in previous loop.
+        self.stack.set_phi(self.phi0)
+        self._set_sub_fitters(self.tolerance)
+        err = self.stack.error()
+        itr = 0
+
+        log.info("Beginning full fit, maxiter: %d", self.maxiter)
+        while itr < self.maxiter:
+            for i in self.fit_modules:
+                # Grab best fitter
+                mod = self.stack.modules[i]
+                fitter_idx = self.best_fitters[mod.name]
+                fitter = self.sub_fitter_list[fitter_idx]
+                log.info("Performing full fit on %s with %s",
+                         mod.name, fitter.name)
+                new_err = fitter.do_fit()
+                delta = err - new_err
+                log.info("Score for %s from %s was: %.09f.\n"
+                         "Improvement over last score: %.09f.",
+                         mod.name, fitter.name, new_err, delta
+                         )
+
+                if delta < 0:
+                    log.debug("Something went wrong,"
+                              "error got worse: %.09f to %.09f",
+                              err, new_err)
+                elif delta < self.tolerance:
+                    log.info("\nError improvement less than tolerance,"
+                             "starting new outer iteration")
+                    self.tolerance *= 0.5
+                    break
+
+                err = new_err
+            itr += 1
+
+        log.info("BestMatch fit finished, final error: {0}"
+                 .format(err))
+        for i in self.fit_modules:
+            mod = self.stack.modules[i]
+            fit_idx = self.best_fitters[mod.name]
+            fitter = self.sub_fitter_list[fit_idx]
+            log.debug("Fitter used for %s was: %s",
+                      mod.name, fitter.name)
+        return(err)
+
+
+class SequentialFit(nems_fitter):
+    """Fits each parameter in order, one at a time -- similar to iterative fit,
+    but per parameter instead of per module. Also similar to
+    coordinate descent, but only looks at one parameter instead of all.
+
+    """
+
+    name = 'SequentialFit'
+    maxit = 100
+    tolerance = 0.00000001
+    step_init = 0.1 # values will change by step*value
+    step_change = 0.5
+    step_min = 1e-7
+
+    def my_init(self, tolerance=0.000001, maxit=100):
+        self.maxit = maxit
+        self.tolerance = tolerance
+
+    def cost_fn(self, vector):
+        phi = vector_to_phi(vector, self.phi0)
+        self.stack.set_phi(phi)
+        self.stack.evaluate(self.fit_modules[0])
+        mse = self.stack.error()
+        return(mse)
+
+    def do_fit(self):
+        self.phi0 = self.stack.get_phi()
+        x0 = phi_to_vector(self.phi0)
+        err = self.stack.error()
+        x_saved = x0.copy()
+        itr = 0
+
+        log.info("Entering iterative loop, maxit: %d", self.maxit)
+        while itr < self.maxit:
+            pre_err = err
+            log.info("Beginning iteration # %d", itr)
+            for i, p in enumerate(x0):
+                itr2 = 0
+                direction = 1 # mult step by 1 or -1
+                step = self.step_init
+                while True:
+                    #log.debug("Outer loop # %d", itr)
+                    #log.debug("Inner loop # %d for pameter # %d,\n"
+                    #          "Step size is: %s.\n"
+                    #          "Direction is: %s.\n"
+                    #          "Error is: %s.\n",
+                    #          itr2, i, step, direction, err)
+
+                    # step param in pos or neg direction
+                    param = x_saved[i]
+                    param_new = step*direction*param
+                    x_new = x_saved.copy()
+                    x_new[i] = param_new
+                    new_err = self.cost_fn(x_new)
+                    delta = err - new_err
+                    #log.debug("Delta was: %.09f", delta)
+                    itr2 += 1
+
+                    # If error got worse or didn't change, reduce step
+                    # size and change direction. Continue until min step.
+                    if delta <= 0:
+                        if step <= self.step_min:
+                            log.debug("Error got worse and step is smaller"
+                                     "than minimum, moving to next parameter.")
+                            break
+                        else:
+                            direction *= -1
+                            step *= self.step_change
+                    # Otherwise, keep going in same direction
+                    else:
+                        x_saved[i] = param_new
+                        err = new_err
+
+            itr += 1
+            post_err = err
+            if post_err == pre_err:
+                # If errors were the same, then no change to any parameter
+                # resulted in a better score, so we're finished.
+                log.info("Outer loop # %d, no change in error. Stopping fit.",
+                         itr)
+                break
+
+        log.info("Fit finished, final error: %.09f", err)
+        return err

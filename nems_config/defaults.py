@@ -180,6 +180,7 @@ class LOGGING_DEFAULTS():
                     # console and/or file handlers as needed
                     'nems': {'level': 'DEBUG'},
                     'nems_config': {'level': 'DEBUG'},
+                    'nems_scripts': {'level': 'DEBUG'},
                     },
             'root': {
                     'handlers': ['console'],

@@ -280,6 +280,31 @@ def fittype00(stack):
     stack.fitter = nems.fitters.fitters.fit_by_type(stack)
     stack.fitter.do_fit()
 
+def fitbest00(stack):
+    """Fits individual modules using whichever fitter works best out
+    of those specified.
+    By default: basic_min, anneal_min and coordinate_descent.
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.BestMatch(stack)
+    stack.fitter.do_fit()
+
+def fitseq00(stack):
+    """Fits each parameter in order, one at a time -- similar to iterative fit,
+    but per parameter instead of per module. Also similar to
+    coordinate descent, but only looks at one parameter instead of all.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.SequentialFit(stack)
+    stack.fitter.do_fit()
+
 def skopt00(stack):
     """Fits model parameters using Scikit-Optimize's gp_minimize."""
 

@@ -9,6 +9,7 @@ Created on Mon Apr 17 23:16:23 2017
 import logging
 log = logging.getLogger(__name__)
 
+from time import time
 import imp
 import scipy.io
 import pkgutil as pk
@@ -230,8 +231,33 @@ if 1:
     #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fittype00"
     # fittype00: est 0.647, val 0.835, mse 0.689
     # fit01/02: est 0.682, val 0.836, MSE 0.526
-    cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fititer00"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fititer00"
 
+
+    # triyng new BestMatch fitter (related to fit by type)
+    # fit01/02: est 0.501, val 0.616, mse 0.504
+    # BestMatch: est 0.501, val 0.616, mse 0.504
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitbest00"
+    # BestMatch (limited to 1 iter): est 0.683, val 0.838, mse 0.5241698409...
+    #    fitters used:
+    #       Fitter used for filters.weight_channels was: coordinate_descent
+    #       Fitter used for filters.stp was: anneal_min
+    #       Fitter used for filters.fir was: basic_min
+    #       Fitter used for nonlin.gain was: anneal_min
+    # fit01/02: est 0.682, val 0.835, MSE 0.5257375579...
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitbest00"
+    # Best Match (limited to 1 iter): est 0.711, val 0.812, mse 0.37648381
+        #Fitter used for filters.weight_channels was: anneal_min
+        #Fitter used for filters.fir was: anneal_min
+        #Fitter used for nonlin.gain was: anneal_min
+    # fit01: est 0.711, val 0.812, mse 0.376476
+    #cellid='chn029d-a1'; modelname='fb18ch100_wcg02_fir15_dexp_fit01'
+
+
+    # trying new SequentialFit fitter (related to fit iter and CD)
+    # fitseq: mse 0.505, est 0.501, val 0.617
+    # fit01/02: est 0.501, val 0.616, mse 0.504
+    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitseq00"
 
     # fit02 same performance but 3-5x as fast (SQLP)
     # ah.. but seems that was just b/c the tolerance was less precise
@@ -278,14 +304,19 @@ else:
     # evaluate the stack of keywords
     if 'nested' in stack.keywords[-1]:
         # special case for nested keywords. Stick with this design?
-        log.info('Using nested cross-validation, fitting will take longer!')
+        print('Using nested cross-validation, fitting will take longer!')
         k = stack.keywords[-1]
         keyword_registry[k](stack)
     else:
-        log.info('Using standard est/val conditions')
+        print('Using standard est/val conditions')
         for k in stack.keywords:
             log.info(k)
+            start = time()
             keyword_registry[k](stack)
+            end = time()
+            elapsed = end-start
+            if k == stack.keywords[-1]:
+                print("Time to add and run fit: %s seconds."%elapsed)
 
     if doval:
         # validation stuff
