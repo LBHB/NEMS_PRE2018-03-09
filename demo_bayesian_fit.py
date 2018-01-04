@@ -1,29 +1,21 @@
-#import nems.Model as Model
-#import nems.Module as Module
 from nems.Signal import load_signals_in_dir, split_signals_by_time
-#import nems.metrics.MSE as MSE
 
 
 if __name__ == '__main__':
-
     signals = load_signals_in_dir('signals/gus027b13_p_PPS')
 
     # Use the first 80% as estimation data, and the last 20% as validation
-    (est, val) = split_signals_by_time(signals, 0.8)
+    est, val = split_signals_by_time(signals, 0.8)
 
-    print(est, val)
-
-    #model = Model()
-    # TODO: Fill this out more
-    # model.append(WeightChannelsGaussian(output_channels=2))
-    # model.append(FIR(n_taps=20))
-    # model.append(STP())
-    # model.append(Nonlinearity(shape='double exponential'))    
+    model = Model()
+    model.append(WeightChannelsGaussian(output_channels=2))
+    model.append(FIR(n_taps=20))
+    model.append(Nonlinearity(shape='double exponential'))
 
     # Fitter
-    #eval_fn = partial(model.evaluate, est)
-    #cost_fn = lambda i, o: MSE(i['resp'], o['pred'])
-    #fitter = LinearFitter(cost_fn, eval_fn)
+    eval_fn = partial(model.evaluate, est)
+    cost_fn = lambda i, o: MSE(i['resp'], o['pred'])
+    fitter = LinearFitter(cost_fn, eval_fn)
 
     # The time consuming part
     #phi_distributions = fitter.fit(model)
@@ -46,7 +38,5 @@ if __name__ == '__main__':
 
     # TODO: Measure various other performance metrics and save them
     # performance = {'mse': MSE(val, pred_EV),
-    #                'logl': LogLikelihood(val, pred_EV)}    
+    #                'logl': LogLikelihood(val, pred_EV)}
     # model.save('/yet/another/path.json', phi_distributions, performance)
-
-
