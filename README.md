@@ -57,5 +57,12 @@ FITTERS.  This is the hardest part in my experience and needs the most thought. 
  
 ### Later ###
     - After we have a "toy" version of Bayesian NEMS working, we will talk about how to migrate the modules in master branch over to "dev". At this point we will remove all CV details from modules and generally try to keep "dev" minimalist
+    - Unit tests
+    - Command line arguments
     - Partial-stack optimizations for fitting
     - Ways of queuing fits and saving results
+    - A fitter that uses a custom sub-fitter for each module of a model
+    - Theano module
+    - Supporting "drop-out" of parameters/neurons in a multi-neuron fit
+    - Supporting Cross Validation
+
