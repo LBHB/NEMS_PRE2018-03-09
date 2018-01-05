@@ -22,8 +22,8 @@ import nems.fitters
 #
 def find_modules(stack, mod_name):
     matchidx = [i for i, m in enumerate(stack.modules) if m.name == mod_name]
-    if not matchidx:
-        raise ValueError('Module not present in this stack')
+    #if not matchidx:
+    #    raise ValueError('Module not present in this stack')
     return matchidx
 
 
