@@ -11,7 +11,7 @@ with codecs.open('README.md', encoding='utf-8') as f:
 
 GENERAL_REQUIRES = [
         'numpy', 'scipy', 'matplotlib', 'sqlalchemy', 'pymysql',
-        'mpld3', 'boto3', 'tensorflow',
+        'mpld3', 'boto3', 'tensorflow', 'scikit-optimize',
         ]
 
 setup(
