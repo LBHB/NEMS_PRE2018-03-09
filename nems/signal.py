@@ -7,7 +7,7 @@ import numpy as np
 # NOTE! THIS CODE IN HORRIBLE, UNTRUSTWORTHY FLUX UNTIL: Tues, Jan 9th
 
 class Signal():
-    ''' 
+    '''
     A signal has these required fields:
     .name         The name of the signal, e.g. 'stim' or 'resp-a1' [string]
     .recording    The name of the recording session [string]
@@ -50,16 +50,15 @@ class Signal():
     - [ ] Normalize()
     '''
 
-    def __init__(self, **kwargs):
+    def __init__(self, signal_name, recording, fs, matrix, nreps=None, meta=None):
         # Four required parameters:
-        self.name = kwargs['signal_name']
-        self.recording = kwargs['recording']
-        self.fs = int(kwargs['fs'])
-        self.nreps = int(kwargs['nreps'])
-        self.__matrix__ = kwargs['matrix']
+        self.name = signal_name
+        self.recording = recording
+        self.fs = fs
+        self.nreps = nreps
+        self.__matrix__ = matrix
 
-        # One optional parameter:
-        self.meta = kwargs['meta'] if 'meta' in kwargs else None
+        self.meta = meta
 
         # TODO: More error checking on all of these:
         if type(self.name) is not str:
@@ -81,16 +80,16 @@ class Signal():
         # self.__matrix__.flags.writeable = False  # Make it immutable
 
         # TODO: Rearrange this matrix dimensions; I'm not sure T,C,R is ideal
-        (T, C) = self.__matrix__.shape
+        n_channels, n_time = self.__matrix__.shape
 
-        if T < C:
+        if n_time < n_channels:
             raise ValueError(('Matrix dims weird: (T, C) = '
                               + str((T, C))
                               + '; failing because we expected a long time'
                               + ' series but found T < C'))
 
-        self.nchans = C
-        self.ntimes = T
+        self.nchans = n_channels
+        self.ntimes = n_time
 
     def savetocsv(self, dirpath, fmt=None):
         """ Saves this signal to a CSV as a single long trial. If
@@ -177,7 +176,7 @@ class Signal():
         m = self.as_single_trial()
         split_idx = max(1, int(self.ntimes * fraction))
         left = m[0:split_idx, :]
-        right = m[split_idx:, :]        
+        right = m[split_idx:, :]
         l = Signal(signal_name=self.name,
                    recording=self.recording,
                    nreps=1,
@@ -305,14 +304,15 @@ def load_signals_in_dir(dirpath):
     """ Returns a dict of all CSV/JSON signals found in BASEPATH. """
     files = list_signals_in_dir(dirpath)
     filepaths = [os.path.join(dirpath, f) for f in files]
-    signals = load_signals(filepaths)    
+    signals = load_signals(filepaths)
     signals_dict = {s.name: s for s in signals}
     return signals_dict
+
 
 def split_signals_by_time(signals, fraction):
     """ Splits a dict of signals into two dicts of signals, with
     each signal split at the same point in the the time series. For example,
-    fraction = 0.8 splits 80% of the data into the left, and 20% of the data 
+    fraction = 0.8 splits 80% of the data into the left, and 20% of the data
     into the right signal. Useful for making est/val data splits, or truncating
     the beginning or end of a data set. Note: Trial information is lost!"""
     left = {}
