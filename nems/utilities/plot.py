@@ -342,16 +342,7 @@ def plot_strf_bank(m,idx=None,size=FIGSIZE):
     h=b.height
     ax.remove()
     
-    axes = [plt.axes([b.min[0]+i*w, b.min[1], w,h]) for i in range(m.bank_count)]
-
-    # smooths the data, right now deactivated since the import already
-    # downsamples.
-#    smooth = False
-#    if smooth:
-#        box_pts = 20
-#    else:
-#        box_pts = 1
-#    box = np.ones(box_pts) / box_pts
+    axes = [plt.axes([b.min[0]+i*w, b.min[1], w*0.9,h]) for i in range(m.bank_count)]
     
     h=m.coefs
     stepsize=int(h.shape[0]/m.bank_count)
@@ -369,7 +360,6 @@ def plot_strf_bank(m,idx=None,size=FIGSIZE):
         wcidx=-1
         
     if m.name=="filters.fir" and wcidx>=0:
-        #print(m.name)
         w=m.parent_stack.modules[wcidx].coefs
         
         h_set=np.zeros([w.shape[1],h.shape[1],m.bank_count])
@@ -388,10 +378,6 @@ def plot_strf_bank(m,idx=None,size=FIGSIZE):
         axes[ii].imshow(h_set[:,:,ii], aspect='auto', origin='lower',clim=[-mmax,mmax],cmap=plt.get_cmap('jet'), interpolation='none')
         if ii>0:
             axes[ii].tick_params(labelbottom='off',labelleft='off')
-    #plt.imshow(h, aspect='auto', origin='lower',cmap=plt.get_cmap('jet'), interpolation='none')
-    #plt.clim(-mmax,mmax)
-    #for i in range(0,m.bank_count+1):
-    #    plt.plot(i*h_set.shape[1]-0.5*np.array([1,1]),[-0.5,h_set.shape[0]-0.5],'k-')
     #cbar = plt.gcf().colorbar(axes[-1])
     #cbar.set_label('gain')
     plt.sca(axes[0])

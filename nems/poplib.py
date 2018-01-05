@@ -37,7 +37,7 @@ def factor_strf_fit(site='TAR010c16', factorN=0, batch=271, modelname="fchan100_
     stack.keyfuns=0
 
     stack.valmode=False
-    
+    print(modelname)
     # evaluate the stack of keywords
     if 'nested' in stack.keywords[-1]:
         # special case for nested keywords. Stick with this design?
@@ -82,7 +82,7 @@ def factor_strf_load(site='TAR010c16', factorN=0, batch=271, modelname="fchan100
     return stack
 
 
-def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fchan100_wc02_fir15_fit01"):
+def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fchan100_wc02_fir15_fit01",modelname=None):
 
     # find all cells in site that meet iso criterion
     d=ndb.get_batch_cells(batch=batch,cellid=site[:-2])
@@ -93,12 +93,15 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
     cellcount=len(d['cellid'])
     
     # modelname should be compatible with fmodelname
-    modelname=fmodelname.replace("fchan100","ssfb18ch100")
-    modelname=modelname.replace("_fit01","")
+    if modelname is None:
+        modelname=fmodelname.replace("fchan100","ssfb18ch100")
+        modelname=modelname.replace("_fit01","")
+        
     stack=ns.nems_stack(cellid=site,batch=batch,modelname=modelname)
     stack.meta['site']=site
     stack.meta['d']=d
-    stack.meta['factorCount']=d
+    stack.meta['factorCount']=factorCount
+    stack.meta['mini_fit']=False
     stack.keyfuns=0
     stack.valmode=False
     
@@ -115,7 +118,12 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
             keyword_registry[k](stack)
     
     wc0=nu.utils.find_modules(stack,'filters.weight_channels')[0]
+    try:
+        stp0=nu.utils.find_modules(stack,'filters.stp')[0]
+    except:
+        stp0=0
     fir0=nu.utils.find_modules(stack,'filters.fir')[0]
+    
     stack.modules[fir0].baseline[0,0]=0
     stack.modules[fir0].fit_fields=['coefs']
     
@@ -124,13 +132,24 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
     cellid="{0}-F{1}".format(site,factorN)
     savefile = nu.io.get_file_name(cellid, batch, fmodelname)
     tstack = nu.io.load_model(savefile)
+    try:
+        tstp0=nu.utils.find_modules(tstack,'filters.stp')[0]
+    except:
+        tstp0=0
+    twc0=nu.utils.find_modules(tstack,'filters.weight_channels')[0]
+    tfir0=nu.utils.find_modules(tstack,'filters.fir')[0]
     
-    stack.modules[wc0].phi=tstack.modules[wc0].phi
-    stack.modules[wc0].coefs=tstack.modules[wc0].coefs
-    stack.modules[wc0].baseline=tstack.modules[wc0].baseline
-    stack.modules[wc0].num_chans=stack.modules[wc0].phi.shape[0]
+    stack.modules[wc0].phi=tstack.modules[twc0].phi
+    stack.modules[wc0].coefs=tstack.modules[twc0].coefs
+    stack.modules[wc0].baseline=tstack.modules[twc0].baseline
+    stack.modules[wc0].num_chans=stack.modules[twc0].coefs.shape[0]
+    chans_per_subspace=stack.modules[wc0].num_chans
     
-    stack.modules[fir0].coefs=tstack.modules[fir0].coefs
+    if tstp0:
+        stack.modules[stp0].u=tstack.modules[tstp0].u
+        stack.modules[stp0].tau=tstack.modules[stp0].tau
+
+    stack.modules[fir0].coefs=tstack.modules[tfir0].coefs
     stack.modules[fir0].num_dims=stack.modules[fir0].coefs.shape[0]
     stack.modules[fir0].bank_count=1
     
@@ -140,15 +159,28 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
         tstack = nu.io.load_model(savefile)
         
         stack.modules[wc0].phi=np.concatenate((stack.modules[wc0].phi,
-                     tstack.modules[wc0].phi),axis=0)
+                     tstack.modules[twc0].phi),axis=0)
         stack.modules[wc0].coefs=np.concatenate((stack.modules[wc0].coefs,
-                                                 tstack.modules[wc0].coefs),axis=0)
+                                                 tstack.modules[twc0].coefs),axis=0)
         stack.modules[wc0].baseline=np.concatenate((stack.modules[wc0].baseline,
-                     tstack.modules[wc0].baseline),axis=0)
-        stack.modules[wc0].num_chans=stack.modules[wc0].phi.shape[0]
+                     tstack.modules[twc0].baseline),axis=0)
+        stack.modules[wc0].num_chans=stack.modules[wc0].coefs.shape[0]
         
+        if tstp0:
+            stack.modules[stp0].u=np.concatenate((stack.modules[stp0].u,
+                         tstack.modules[tstp0].u),axis=0)
+            stack.modules[stp0].tau=np.concatenate((stack.modules[stp0].tau,
+                         tstack.modules[stp0].tau),axis=0)
+            
+        elif stp0:
+            #stack.modules[stp0].num_channels=stack.modules[wc0].num_chans
+            stack.modules[stp0].u=np.concatenate((stack.modules[stp0].u,
+                         stack.modules[stp0].u[0:chans_per_subspace,:]),axis=0)
+            stack.modules[stp0].tau=np.concatenate((stack.modules[stp0].tau,
+                         stack.modules[stp0].tau[0:chans_per_subspace,:]),axis=0)
+
         stack.modules[fir0].coefs=np.concatenate((stack.modules[fir0].coefs,
-                     tstack.modules[fir0].coefs),axis=0)
+                     tstack.modules[tfir0].coefs),axis=0)
         stack.modules[fir0].num_dims=stack.modules[fir0].coefs.shape[0]
         stack.modules[fir0].bank_count+=1
     
@@ -175,15 +207,16 @@ def pop_factor_strf_fit(stack):
     
     # first just fit weights at the end
     wcidx=nu.utils.find_modules(stack,'filters.weight_channels')
+    stpidx=nu.utils.find_modules(stack,'filters.stp')
     firidx=nu.utils.find_modules(stack,'filters.fir')
     stack.fitter.fit_modules=[wcidx[1]]
     
-    stack.fitter.tolerance=0.0001
+    stack.fitter.tolerance=0.0005
     stack.fitter.do_fit()
     
     stack.fitter=nf.fitters.fit_iteratively(stack)
-    stack.fitter.module_sets=[[wcidx[0],firidx[0]],[wcidx[1]]]
-    stack.fitter.max_iter=4
+    stack.fitter.module_sets=[[wcidx[0]]+stpidx+[firidx[0]],[wcidx[1]]]
+    stack.fitter.max_iter=5
     stack.fitter.do_fit()
     
     #stack.fitter.tolerance=0.000001
@@ -212,7 +245,15 @@ def pop_factor_strf_fit(stack):
     
     return stack
 
+def pop_factor_strf_load(site="TAR010c16",factorCount=4,batch=271,modelname="ssfb18ch100_wc02_fir15"):
 
+    file="/auto/data/code/nems_saved_models/batch{0}/site_{1}_F{2}_{3}.pkl".format(batch,site,factorCount,modelname)
+    stack=nu.io.load_model(file)
+    stack.evaluate()
+    
+    return stack
+    
+    
 def pop_factor_strf_eval(stack, base_modelname="fb18ch100_wcg02_fir15_fit01"):
     
     d=stack.meta['d']
@@ -240,7 +281,7 @@ def pop_factor_strf_eval(stack, base_modelname="fb18ch100_wcg02_fir15_fit01"):
     iso_rval=np.zeros([cellcount,1])
     for cellnum in range(0,cellcount):
         cellid=d['cellid'][cellnum]
-        tstack=nu.io.load_single_model(cellid=cellid,modelname="fb18ch100_wcg02_fir15_fit01",batch=batch)
+        tstack=nu.io.load_single_model(cellid=cellid,modelname=base_modelname,batch=batch)
         m2=tstack.modules[-1]
         if cellnum==0:
             iso_resp2 = m2.d_in[tstack.plot_dataidx]['resp']
@@ -276,9 +317,12 @@ def pop_factor_strf_eval(stack, base_modelname="fb18ch100_wcg02_fir15_fit01"):
     plt.legend(handles=[hiso,hss])
 
     plt.subplot(3,2,6)
-    plt.plot(np.array([-0.05,0.8]),np.array([-0.05,0.8]),)
+    plt.plot(np.array([-0.05,0.8]),np.array([-0.05,0.8]),'k-')
     plt.axis('equal')
     plt.plot(iso_rval,stack.modules[-1].r_val_perunit,'k.')
+    mean_iso=np.mean(iso_rval)
+    mean_ss=np.mean(stack.modules[-1].r_val_perunit)
+    plt.title("iso: {:3.2f} ss: {:3.2f}".format(mean_iso,mean_ss))
     
     plt.tight_layout()
     return stack

@@ -48,7 +48,10 @@ def fir(stack, n_coefs, random):
     conjuction with the weight channel spectral filter.
     """
     stack.append(filters.FIR, num_coefs=n_coefs, random_init=random)
-    mini_fit(stack, mods=['filters.weight_channels','filters.fir','filters.stp'])
+    if 'mini_fit' in stack.meta.keys() and not stack.meta['mini_fit']:
+        pass
+    else:
+        mini_fit(stack, mods=['filters.weight_channels','filters.fir','filters.stp'])
 
 def stp(stack, n_channels=1, u=None, tau=None, normalize=False):
     if normalize:
