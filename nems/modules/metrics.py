@@ -46,11 +46,16 @@ class mean_square_error(nems_module):
 
         X1 = self.unpack_data(self.input1, est=True)
         X2 = self.unpack_data(self.input2, est=True)
-        
+
         X1=np.reshape(X1,[1,-1])
         X2=np.reshape(X2,[1,-1])
-        
+
         keepidx = np.isfinite(X1) * np.isfinite(X2)
+        if np.all(np.logical_not(keepidx)):
+            # TODO: this would result in 'n' (X1.size) being 0, causing
+            #       division error. Is this what's causing issues with
+            #       some of the fitters?
+            log.debug("All values were NaN or inf in pred and resp")
         X1 = X1[keepidx]
         X2 = X2[keepidx]
         if self.shrink:
@@ -108,6 +113,7 @@ class mean_square_error(nems_module):
                 if P > 0:
                     mse = E / P
                 else:
+                    log.debug("P was less than or equal to zero, MSE=1")
                     mse = 1
             else:
                 mse = E / N
@@ -130,6 +136,7 @@ class mean_square_error(nems_module):
                 if P > 0:
                     mse = E / P
                 else:
+                    log.debug("P was less than or equal to zero, MSE=1")
                     mse = 1
             else:
                 mse = E / N
@@ -283,7 +290,7 @@ class correlation(nems_module):
     r_val = np.zeros([1, 1])
     r_est_perunit=np.zeros([0,0])
     r_val_perunit=np.zeros([0,0])
-    
+
     def my_init(self, input1='pred', input2='resp', norm=True):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
@@ -300,7 +307,7 @@ class correlation(nems_module):
         else:
             r, p = spstats.pearsonr(tX1, tX2)
         return r
-        
+
     def evaluate(self, **kwargs):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
@@ -310,7 +317,7 @@ class correlation(nems_module):
         X2 = self.unpack_data(self.input2, est=True)
         self.r_est = self.do_corr(X1,X2)
         self.parent_stack.meta['r_est'] = [self.r_est]
-        
+
         unit_count=X1.shape[0]
         if unit_count>1:
             self.r_est_perunit=np.zeros([unit_count,1])
@@ -318,13 +325,13 @@ class correlation(nems_module):
                 tX1=X1[i:(i+1),:]
                 tX2=X2[i:(i+1),:]
                 self.r_est_perunit[i,:]=self.do_corr(tX1,tX2)
-                
+
         X1 = self.unpack_data(self.input1, est=False)
         if X1.size:
             X2 = self.unpack_data(self.input2, est=False)
             self.r_val = self.do_corr(X1,X2)
             self.parent_stack.meta['r_val'] = [self.r_val]
-            
+
             unit_count=X1.shape[0]
             if unit_count>1:
                 self.r_val_perunit=np.zeros([unit_count,1])
@@ -332,16 +339,19 @@ class correlation(nems_module):
                     tX1=X1[i:(i+1),:]
                     tX2=X2[i:(i+1),:]
                     self.r_val_perunit[i,:]=self.do_corr(tX1,tX2)
-                    
+
             keepidx = np.isfinite(X1) * np.isfinite(X2)
             X1 = X1[keepidx]
             X2 = X2[keepidx]
-            
+
             # if running validation test, also measure r_floor
             rf = np.zeros([1000, 1])
             for rr in range(0, len(rf)):
                 n1 = (np.random.rand(500, 1) * len(X1)).astype(int)
                 n2 = (np.random.rand(500, 1) * len(X2)).astype(int)
+                # TODO: Getting a true division run time error here on some
+                #       fitters when mini_fit not included.
+                #       Is this an issue, or just means really bad params?
                 rf[rr], p = spstats.pearsonr(X1[n1], X2[n2])
             rf = np.sort(rf[np.isfinite(rf)], 0)
             if len(rf):

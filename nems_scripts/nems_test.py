@@ -9,6 +9,7 @@ Created on Mon Apr 17 23:16:23 2017
 import logging
 log = logging.getLogger(__name__)
 
+from time import time
 import imp
 import scipy.io
 import pkgutil as pk
@@ -62,23 +63,8 @@ if 0:
     modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
     batch=269
 
-if 1:
+if 0:
     """ NAT SOUND """
-    # matched np.org:
-    batch = 271
-    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
-    #cellid='chn029d-a1'; modelname="fb18ch100_wc01_fir15_fit01"
-    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
-
-    # possible problems?:
-    # MSE about 10% higher and r values about 10% lower than np version
-    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-    # But this one matched np exactly with same model, diff cell
-    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-    # Mostly the same for this one as well
-    # cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
-
-
     #cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
@@ -173,8 +159,137 @@ if 0:
     batch=259
     modelname="env100_fir15_dexp_fit01"
 
+""" Fitter comparisons """
+if 1:
+    # matched np.org:
+    batch = 271
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='chn029d-a1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
+
+    # possible problems?:
+    # MSE about 10% higher and r values about 10% lower than np version
+    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+    # But this one matched np exactly with same model, diff cell
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+    # Mostly the same for this one as well
+    # cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+
+
+    # trying skopt
+    # Looking at the intermediate vector outputs, the skopt fitters seem
+    # to jump to very large values very quickly for some reason, unlike scipy.
+    # (i.e. if phi0 is [0.1, 0.2, 0.1] eval #10 is suddenly [374, -988, 47]
+    #  with MSE of 10000000)
+    # overall performed equal to scipy at best, and often performed worse.
+    # also took much longer to fit.
+    # changing n_calls, xi (~maxit) and kappa settings didn't change
+    # performance, and had little effect on speed.
+
+    # gp_minimize: mse 0.505, est 0.501, val 0.616
+    # forest_minimize: mse 0.505, est 0.501, val 0.617
+    # gbrt_minimize: mse 0.505, est 0.501, val 0.616
+    # fit02: mse 0.504, est 0.501, val 0.616 (and much faster)
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_skopt02"
+    # gp_minimize: MSE 0.615, r_est 0.629, r_val 0.826
+    # forest_minimize: mse 0.615, est 0.629, val 0.826
+    # gbrt_minimize: mse 0.6204, est 0.626, val 0.816
+    # fit02: mse 0.526, est 0.682, val 0.835 (and much faster)
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_skopt02"
+
+
+    # trying coordinate descent
+    # overall: works about the same as basic_min for simple models, but
+    #          basic_min works better for the more complicated models that
+    #          include nonlinearity.
+    # performance about the same as basic_min so far, but usually faster
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitcoord00"
+    # CD no cache: est 0.647, val 0.853, MSE 0.580, t 66s
+    # CD yes cache: smaller perf, and time different less noticeable
+    #               must be some issue with code, perf shouldn't be different
+    # fit02: est 0.682, val 0.836, MSE 0.526, t 23.5s
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitcoord00"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+
+
+    # trying iterative fit
+    # fititer00 (cd): mse: 0.5427, est 0.500, val 0.616
+    # fititer01 (basic_min): mse 0.537322028954, est 0.500, val 0.618
+    # fit02: mse 0.504, est 0.501, val 0.616
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fititer01"
+    # fititer00 (cd): mse: 0.686, est 0.647, val 0.835
+    # fititer01 (basic_min): est 0.672, val 0.814, MSE 0.645
+    # fit02: est 0.682, val 0.836, MSE 0.526, t 23.5s
+    # fit01: same as 02
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fititer00"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit01"
+
+
+    # trying fit by type
+    # fittype00: est 0.501, val 0.614, mse 0.504
+    # fit01/02: est 0.501, val 0.616, mse 0.504
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fittype00"
+    # fittype00: est 0.647, val 0.835, mse 0.689
+    # fit01/02: est 0.682, val 0.836, MSE 0.526
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fititer00"
+
+
+    # triyng new BestMatch fitter (related to fit by type)
+    # fit01/02: est 0.501, val 0.616, mse 0.504
+    # BestMatch: est 0.501, val 0.616, mse 0.504
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitbest00"
+    # BestMatch (limited to 1 iter): est 0.683, val 0.838, mse 0.5241698409...
+    #    fitters used:
+    #       Fitter used for filters.weight_channels was: coordinate_descent
+    #       Fitter used for filters.stp was: anneal_min
+    #       Fitter used for filters.fir was: basic_min
+    #       Fitter used for nonlin.gain was: anneal_min
+    # fit01/02: est 0.682, val 0.835, MSE 0.5257375579...
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fitbest00"
+    # Best Match (limited to 1 iter): est 0.711, val 0.812, mse 0.37648381
+        #Fitter used for filters.weight_channels was: anneal_min
+        #Fitter used for filters.fir was: anneal_min
+        #Fitter used for nonlin.gain was: anneal_min
+    # fit01: est 0.711, val 0.812, mse 0.376476
+    #cellid='chn029d-a1'; modelname='fb18ch100_wcg02_fir15_dexp_fit01'
+
+
+    # trying new SequentialFit fitter (related to fit iter and CD)
+    # fitseq: mse 0.505, est 0.501, val 0.617
+    # fit01/02: est 0.501, val 0.616, mse 0.504
+    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitseq00"
+
+    # fit02 same performance but 3-5x as fast (SQLP)
+    # ah.. but seems that was just b/c the tolerance was less precise
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+
+    # 'Nelder-Mead' (temp changed fit02) super duper slow for no performance gain
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='TAR010c-21-1'; modelname="fb18ch100_wc01_fir15_fit01"
+    #cellid='chn029d-a1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='TAR010c-13-1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+    #cellid='eno025c-c1'; modelname="fb18ch100_wcg01_stp1pc_fir15_dexp_fit02"
+
+    #batch = 259
+    # this one looks normal, but...
+    #cellid='por077a-c1'; modelname='env100e_dlog_stp1pc_fir15_dexp_fit02'
+    # ** issue with this one? plots are screwey. same with both fitters
+    #cellid='chn079d-b1'; modelname='env100e_dlog_stp1pc_fir15_dexp_fit01'
+    # ** same with this one
+    #cellid='sti030b-d1'; modelname='env100e_dlog_stp1pc_fir15_dexp_fit01'
+
+    #batch = 302
+    # can't find data for this
+    #cellid='gus027b-a1'; modelname='parm50pt_wcg02_fir15_dexp_fit01'
+
+
 # following is equivalent of
 #stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
+
 
 if 0:
     stack=main.fit_single_model(cellid, batch, modelname,autoplot=False)
@@ -189,14 +304,19 @@ else:
     # evaluate the stack of keywords
     if 'nested' in stack.keywords[-1]:
         # special case for nested keywords. Stick with this design?
-        log.info('Using nested cross-validation, fitting will take longer!')
+        print('Using nested cross-validation, fitting will take longer!')
         k = stack.keywords[-1]
         keyword_registry[k](stack)
     else:
-        log.info('Using standard est/val conditions')
+        print('Using standard est/val conditions')
         for k in stack.keywords:
             log.info(k)
+            start = time()
             keyword_registry[k](stack)
+            end = time()
+            elapsed = end-start
+            if k == stack.keywords[-1]:
+                print("Time to add and run fit: %s seconds."%elapsed)
 
     if doval:
         # validation stuff

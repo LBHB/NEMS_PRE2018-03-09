@@ -72,7 +72,6 @@ def plot_weights_64D(h, cellids,vmin, vmax,cbar=True):
                  else:
                      tf = 0
              elif (int(cellids[i][0][-1])>1 and int(c_id[i]+1) >= 64):
-                 print('im using the 2nd option')
                  c_id[i] = int(c_id[i]-1)
                  if sum(c_id[i] == electrodes)>0:
                      tf=1
@@ -97,19 +96,63 @@ def plot_weights_64D(h, cellids,vmin, vmax,cbar=True):
         
 # plotting utils fro 128ch 4-shank depth
 
-def plot_weights_128D(h, cellids):
+def plot_weights_128D(h, cellids,vmin,vmax,cbar):
     # get gemoetry from Luke's baphy function probe_128D
     
     channels = np.arange(0,128,1)
-    x = loadmat('probe_128D/x_positions.mat')['x_128']
-    y = loadmat('probe_128D/z_positions.mat')['z_128']
+    #x = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/x_positions.mat')['x_128']
+    #y = loadmat('/auto/users/hellerc/nems/nems/utilities/probe_128D/z_positions.mat')['z_128']
+    x = loadmat('/auto/users/hellerc/x_pos.mat')['x_pos']
+    y = loadmat('/auto/users/hellerc/y_pos.mat')['y_pos']
+    #ch_map = loadmat('/auto/users/hellerc/chan_map_128D.mat')['ch_map_128D']
+    #ch_map = np.array([int(x) for x in ch_map])
+    # scale to get more separtion visuallyu
+    x = (x/100)*4
+    y = (y/100)*2
     
-    locations=np.hstack((x,y))
-    plt.scatter(locations[:,0],locations[:,1])
+    locations=np.hstack((x,y))  
+    #locations=locations[np.argsort(ch_map),:]
+    plt.scatter(locations[:,0],locations[:,1], s=40,facecolor='none',edgecolor='k')
     plt.axis('scaled')
 
+
+    import matplotlib
+    norm =matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+    cmap = matplotlib.cm.jet
+    mappable = matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap)
+    mappable.set_array(h)
+    #mappable.set_cmap('jet')
+    colors = mappable.to_rgba(h)
     
+    # Now, color appropriately
+    electrodes = np.zeros(len(cellids))
+    c_id = np.zeros(len(cellids))
+    for i in range(0, len(cellids)):
+        ind= cellids[i][0].split('-')[1]
+        electrodes[i] = int(ind)
+    electrodes = np.unique(electrodes)-1
     
-    
-    
-    
+       # move units when there are >1 on same electrode
+    for i, weight in enumerate(h):
+        c_id[i] = int(cellids[i][0].split('-')[1])
+        tf =1
+        while tf==1:
+             if (int(cellids[i][0][-1])>1 and (int(c_id[i]+1) != 32 and int(c_id[i]+1)!=64 and int(c_id[i]+1)!=96 and int(c_id[i]+1)!=128)):
+                 c_id[i] = int(c_id[i]+1)
+                 if sum(c_id[i] == electrodes)>0:
+                     tf=1
+                 else:
+                     tf = 0
+             elif (int(cellids[i][0][-1])>1 and (int(c_id[i]+1) == 32 and int(c_id[i]+1)==64 and int(c_id[i]+1)==96 and int(c_id[i]+1)==128)):
+                 c_id[i] = int(c_id[i]-1)
+                 if sum(c_id[i] == electrodes)>0:
+                     tf=1
+                 else:
+                     tf = 0
+             else:
+                 tf = 0
+                 
+    plt.scatter(locations[(c_id.astype(int)),:][:,0],locations[c_id.astype(int),:][:,1],
+                          c=colors,vmin=vmin,vmax=vmax,s=40,edgecolor='none')
+    if cbar is True:
+        plt.colorbar(mappable)

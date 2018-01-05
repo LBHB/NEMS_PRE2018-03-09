@@ -197,12 +197,151 @@ def fititer01(stack):
     stack.append(nm.metrics.mean_square_error, shrink=0.5)
     stack.error = stack.modules[-1].error
 
-    stack.fitter = nems.fitters.fitters.fit_iteratively(stack, max_iter=5)
+    stack.fitter = nems.fitters.fitters.fit_iteratively(stack, max_iter=10)
     stack.fitter.sub_fitter = nems.fitters.fitters.basic_min(stack)
 
     stack.fitter.do_fit()
 
+def fitcoord00(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+    Cost function uses mean squared error, fitter settings left as defaults.
+
+    Note: recommended to use this kw for testing Coordinate Descent, until
+    annealing and pseudo-caching are either fixed or detrimented.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(stack)
+    stack.fitter.do_fit()
+
+def fitcoord01(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+    Cost function uses mean squared error.
+    Also enables annealing with anneal count = 10.
+
+    Note: Annealing 'works', but so far hasn't helped performance.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(
+            stack, anneal=10
+            )
+    stack.fitter.do_fit()
+
+def fitcoord02(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+    Cost funciton uses mean squared error.
+    Also enables pseudo-caching of prior module evals.
+
+    Note: Pseudo-caching not yet matching non-cached results.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(
+            stack, pseudo_cache=True,
+            )
+    stack.fitter.do_fit()
+
+def fitcoord03(stack):
+    """Fits model parameters using greedy coordinate desecent algorithm.
+    Cost function uses mean squared error.
+    Also enables pseudo-caching of prior module evals, and
+    enables annealing with anneal count = 30.
+
+    Note: Annealing 'works', but so far hasn't helped performance.
+          Pseudo-caching not yet matching non-cached results.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.coordinate_descent(
+            stack, pseudo_cache=True, anneal=30,
+            )
+    stack.fitter.do_fit()
+
+def fittype00(stack):
+    """Fits individual modules with different fitters based on the
+    module type. """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.fit_by_type(stack)
+    stack.fitter.do_fit()
+
+def fitbest00(stack):
+    """Fits individual modules using whichever fitter works best out
+    of those specified.
+    By default: basic_min, anneal_min and coordinate_descent.
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.BestMatch(stack)
+    stack.fitter.do_fit()
+
+def fitseq00(stack):
+    """Fits each parameter in order, one at a time -- similar to iterative fit,
+    but per parameter instead of per module. Also similar to
+    coordinate descent, but only looks at one parameter instead of all.
+
+    """
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+
+    stack.fitter = nems.fitters.fitters.SequentialFit(stack)
+    stack.fitter.do_fit()
+
+def skopt00(stack):
+    """Fits model parameters using Scikit-Optimize's gp_minimize."""
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter = nems.fitters.fitters.SkoptMin(stack)
+    stack.fitter.tolerance = 0.000001
+    stack.fitter.do_fit()
+
+def skopt01(stack):
+    """Fits model parameters using Scikit-Optimize's forest_minimize."""
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter = nems.fitters.fitters.SkoptForestMin(stack)
+    stack.fitter.tolerance = 0.000001
+    stack.fitter.do_fit()
+
+def skopt02(stack):
+    """Fits model parameters using Scikit-Optimize's gbrt_minimize."""
+
+    stack.append(nm.metrics.mean_square_error)
+    stack.error = stack.modules[-1].error
+    stack.evaluate(2)
+
+    stack.fitter = nems.fitters.fitters.SkoptGbrtMin(stack)
+    stack.fitter.tolerance = 0.000001
+    stack.fitter.do_fit()
+
+
+matches = ['fit', 'skopt']
 
 for k, v in list(locals().items()):
-    if k.startswith('fit') and callable(v):
-        keyword_registry[k] = v
+    for m in matches:
+        if k.startswith(m) and callable(v):
+            keyword_registry[k] = v
