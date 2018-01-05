@@ -16,6 +16,7 @@ import numpy as np
 import nems.modules
 import nems.fitters
 
+from nems.keyword.registry import keyword_registry
 
 #
 # random utilties
@@ -204,6 +205,9 @@ def mini_fit(stack, mods=['filters.weight_channels',
     This function is not appended directly to the stack, but instead is included
     in keywords
     """
+    if 'mini_fit' in stack.meta.keys() and not stack.meta['mini_fit']:
+        return
+    
     stack.append(nems.modules.metrics.mean_square_error, shrink=0.05)
     stack.error = stack.modules[-1].error
     fitidx = []
@@ -237,7 +241,9 @@ def nest_helper(stack, nests=20):
         stack.valmode = False
 
         for i in range(0, len(stack.keywords) - 1):
-            stack.keyfuns[stack.keywords[i]](stack)
+            k = stack.keywords[i]
+            keyword_registry[k](stack)
+            #stack.keyfuns[stack.keywords[i]](stack)
             # if stack.modules[-1].name=="est_val.crossval2":
             #    stack.modules[-1].cv_counter=stack.meta['cv_counter']
             #    stack.modules[-1].evaluate()

@@ -123,6 +123,10 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
     except:
         stp0=0
     fir0=nu.utils.find_modules(stack,'filters.fir')[0]
+    try:
+        gn0=nu.utils.find_modules(stack,'nonlin.gain')[-1]
+    except:
+        gn0=0
     
     stack.modules[fir0].baseline[0,0]=0
     stack.modules[fir0].fit_fields=['coefs']
@@ -138,6 +142,10 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
         tstp0=0
     twc0=nu.utils.find_modules(tstack,'filters.weight_channels')[0]
     tfir0=nu.utils.find_modules(tstack,'filters.fir')[0]
+    try:
+        tgn0=nu.utils.find_modules(tstack,'nonlin.gain')[-1]
+    except:
+        tgn0=0
     
     stack.modules[wc0].phi=tstack.modules[twc0].phi
     stack.modules[wc0].coefs=tstack.modules[twc0].coefs
@@ -153,6 +161,10 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
     stack.modules[fir0].num_dims=stack.modules[fir0].coefs.shape[0]
     stack.modules[fir0].bank_count=1
     
+    if tgn0:
+        stack.modules[gn0].nltype=tstack.modules[tgn0].nltype
+        stack.modules[gn0].phi=tstack.modules[tgn0].phi
+
     for factorN in range(1,factorCount):
         cellid="{0}-F{1}".format(site,factorN)
         savefile = nu.io.get_file_name(cellid, batch, fmodelname)
@@ -184,6 +196,10 @@ def pop_factor_strf_init(site='TAR010c16',factorCount=4,batch=271,fmodelname="fc
         stack.modules[fir0].num_dims=stack.modules[fir0].coefs.shape[0]
         stack.modules[fir0].bank_count+=1
     
+        if tgn0:
+            stack.modules[gn0].phi=np.concatenate((stack.modules[gn0].phi,
+                         tstack.modules[tgn0].phi),axis=0)
+            
     stack.evaluate(1)
     stack.append(nm.filters.WeightChannels,num_chans=cellcount)
     stack.modules[-1].fit_fields=['coefs','baseline']
@@ -209,6 +225,7 @@ def pop_factor_strf_fit(stack):
     wcidx=nu.utils.find_modules(stack,'filters.weight_channels')
     stpidx=nu.utils.find_modules(stack,'filters.stp')
     firidx=nu.utils.find_modules(stack,'filters.fir')
+    nlidx=nu.utils.find_modules(stack,'nonlin.gain')
     stack.fitter.fit_modules=[wcidx[1]]
     
     stack.fitter.tolerance=0.0005

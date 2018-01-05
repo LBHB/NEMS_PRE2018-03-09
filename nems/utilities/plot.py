@@ -113,9 +113,9 @@ def pred_act_scatter(m, idx=None, size=FIGSIZE):
 def io_scatter_smooth(m, idx=None, size=FIGSIZE):
     if idx:
         plt.figure(num=idx, figsize=size)
-    s = m.unpack_data(m.input_name, use_dout=False)
-    r = m.unpack_data(m.output_name, use_dout=True)
-    r2 = m.unpack_data("resp", use_dout=True)
+    s = m.unpack_data(m.input_name, use_dout=False)[:1,:]
+    r = m.unpack_data(m.output_name, use_dout=True)[:1,:]
+    r2 = m.unpack_data("resp", use_dout=True)[:1,:]
     s2 = np.append(s, r, 0)
     s2 = np.append(s2, r2, 0)
     s2 = s2[:, s2[0, :].argsort()]
@@ -446,7 +446,7 @@ def raster_plot(m, idx=None, size=(12, 6)):
     post = m.parent_stack.unresampled['poststim']
     freq = m.parent_stack.unresampled['respFs']
     # log.info("{}/{}/{} fs {}".format(pre,dur,post,freq))
-    total_bins = (pre + dur + post) * freq.astype(int)
+    total_bins = ((pre + dur + post) * freq).astype(int)
     # log.info(total_bins)
     if resp.shape[0] < total_bins:
         d = total_bins - resp.shape[0]

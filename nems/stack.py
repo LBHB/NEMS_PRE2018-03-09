@@ -131,6 +131,120 @@ class nems_stack:
         last dataset fit.
         """
 
+        if self.valmode and self.meta['nests'] > 0:
+            # new nested eval, doesn't require special evaluation procedure
+            # by modules. instead, all the remapping and collecting of val
+            # data from each nest handled inside this evaluation function.
+
+            # 2017-09-08- still something not quite right.
+            # 2017-10-06- working finally. this is new norm for cross-val
+            stack = self
+
+            try:
+                xval_idx = ut.utils.find_modules(stack, 'est_val.crossval')[0]
+            except BaseException:
+                xval_idx = 1
+
+            try:
+                mse_idx = ut.utils.find_modules(stack, 'metrics.mean_square_error')
+                mse_idx = int(mse_idx[0])
+            except BaseException:
+                mse_idx = len(self.modules)
+
+            log.info("Evaluating nested validation data: xvidx={0} mseidx={1}"
+                     .format(xval_idx, mse_idx))
+
+            # evaluate up to xval module (if necessary)
+            if start > xval_idx:
+                start = xval_idx
+            for ii in range(start, xval_idx):
+                log.info("eval {0} in valmode".format(ii))
+                stack.modules[ii].evaluate()
+
+            # go through each nest and evaluate stack, saving data stack to
+            # a placeholder (d_save). copy all keys from data stack except
+            # known metadata listed in exclude_keys. this allows for arbitrary
+            # new data elements to be created (stim2, etc)
+            exclude_keys = ['avgresp', 'poststim', 'fs', 'isolation', 'stimparam', 'filestate',
+                            'prestim', 'duration', 'est', 'stimFs', 'respFs',
+                            'resp_raw', 'pupil_raw']
+            include_keys = {}
+            d_save = {}
+            for cv_counter in range(0, stack.meta['nests']):
+                # for cv_counter in range(0,1):
+                stack.meta['cv_counter'] = cv_counter
+
+                # load in parameters for appropriate nested fit
+                st = 0
+                for midx in stack.fitted_modules:
+                    phi_old = stack.modules[midx].parms2phi()
+                    s = phi_old.shape
+                    # stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
+                    stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st + np.prod(s))])
+                    st += np.prod(s)
+
+                # evaluate stack for this nest up to before error metric
+                # modules
+                for ii in range(xval_idx, mse_idx):
+                    log.info("nest={0}, eval {1} in valmode".format(cv_counter, ii))
+                    stack.modules[ii].evaluate()
+
+                    # append data from this (nest,module) onto d_save
+                    # placeholders:
+                    if cv_counter == 0:
+                        include_keys[ii] = stack.modules[ii].d_out[0].keys() - exclude_keys
+                        d_save[ii] = copy.deepcopy(stack.modules[ii].d_out)
+                        log.info(include_keys[ii])
+                    for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
+                        if not d['est'] and cv_counter > 0:
+                            for k in include_keys[ii]:
+                                if d[k] is None or d[k] == []:
+                                    pass
+                                elif k == 'pupil' and d[k].ndim == 3 and d['resp'].shape[1] != d[k].shape[1]:
+                                    d2[k] = np.append(d2[k], d[k], axis=2)
+                                elif d[k].ndim == 3:
+                                    d2[k] = np.append(d2[k], d[k], axis=1)
+                                else:
+                                    d2[k] = np.append(d2[k], d[k], axis=0)
+
+            # save accumulated data stack back to main data stack
+
+            # figure out mapping to get val data back into original order
+            for ii in range(xval_idx, mse_idx):
+                jj = -1
+                for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
+                    if not d['est']:
+                        jj += 1  # count validation files only
+                        validx = np.concatenate(
+                            stack.modules[xval_idx].validx_sets[jj])
+                        mapidx = np.argsort(validx)
+                        for k in include_keys[ii]:
+                            if d2[k] is None or d[k] == []:
+                                d[k] = d2[k]
+                            elif k == 'pupil' and d[k].ndim == 3 and d2['resp'].shape[1] != d2[k].shape[1]:
+                                d[k] = d2[k][:, :, mapidx]
+                            elif d[k].ndim == 3:
+                                d[k] = d2[k][:, mapidx, :]
+                            elif d[k].ndim == 2:
+                                d[k] = d2[k][mapidx, :]
+                            else:
+                                d[k] = d2[k][mapidx]
+
+            # continue standard evaluation of later stack elements
+            for ii in range(mse_idx, len(self.modules)):
+                log.info("eval {0} in valmode".format(ii))
+                self.modules[ii].evaluate()
+
+        else:
+            # standard evaluation when not using nested cross-validation
+            for ii in range(start, len(self.modules)):
+                self.modules[ii].evaluate()
+
+    def evaluate_old(self, start=0):
+        """
+        DEPRECATED - new evaluate remove old nested code
+        """
+
         if self.valmode and self.nests > 0:
             # evaluate using the old nesting scheme devised by Noah
             # this section is deprecated and should be deleted
@@ -278,7 +392,7 @@ class nems_stack:
             # standard evaluation when not using nested cross-validation
             for ii in range(start, len(self.modules)):
                 self.modules[ii].evaluate()
-
+                
     # create instance of mod and append to stack
     def append(self, mod=None, **xargs):
         """

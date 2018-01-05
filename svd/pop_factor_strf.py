@@ -30,7 +30,7 @@ site='TAR010c16'
 #site='bbl086b09'
 #site='zee015h05'
 batch=271
-fmodelname="fchan100_wc02_stp1pc_fir15_fit01"
+fmodelname="fchan100_wc02_stp1pc_fir15_logsig_fit01"
 factorCount=10
 
 outpath='/auto/users/svd/docs/current/grant/crcns_array/figures/raw2/'
@@ -52,11 +52,11 @@ for ii in range(0,factorCount):
     
 
 plt.close('all')
-factorCount=3
+factorCount=4
 
 #modelname=fmodelname.replace("fchan100","ssfb18ch100")
 #modelname=modelname.replace("_fit01","")
-modelname="ssfb18ch100_wc02_stp1pc_fir15"
+modelname="ssfb18ch100_wc02_stp1pc_fir15_dexp"
 
 # fit the model
 stack=poplib.pop_factor_strf_init(site=site,factorCount=factorCount,batch=batch,fmodelname=fmodelname,modelname=modelname)
@@ -67,7 +67,7 @@ stack=poplib.pop_factor_strf_fit(stack)
 
 plt.close('all')
 
-poplib.pop_factor_strf_eval(stack, base_modelname="fb18ch100_wc02_stp1pc_fir15_fit01")
+poplib.pop_factor_strf_eval(stack, base_modelname="fb18ch100_wc02_stp1pc_fir15_dexp_fit01")
 
 mode='pdf'
 fig=plt.figure(1)

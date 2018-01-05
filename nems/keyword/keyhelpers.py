@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 import nems.utilities as ut
 
+from .registry import keyword_registry
 
 # Nested Crossval
 ###############################################################################
@@ -47,3 +48,14 @@ def nested2(stack):
     MUST be last keyowrd in modelname string. DO NOT include twice.
     """
     ut.utils.nest_helper(stack, nests=2)
+
+
+matches = ['nested']
+
+for k, v in list(locals().items()):
+    # TODO: this is a hack for now.
+    for m in matches:
+        if k.startswith(m):
+            keyword_registry[k] = v
+            continue
+

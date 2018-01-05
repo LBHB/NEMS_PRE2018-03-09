@@ -224,6 +224,22 @@ def parm50a(stack):
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=True)
     stack.append(nm.est_val.crossval, valfrac=0.05)
 
+def parm100a(stack):
+    """
+    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the
+    provided cellid and batch. Averages the response
+    to each stimulus over its respective raster, and applies a 10%
+    estimation/validation split if the est/val datasets are not specified in
+    the file.
+
+    Specifically for batch293 tone-pip data.
+    """
+    file = ut.baphy.get_celldb_file(stack.meta['batch'], stack.meta['cellid'],
+                                    fs=100, stimfmt='parm', chancount=16)
+    log.info("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=True)
+    stack.append(nm.est_val.crossval, valfrac=0.1)
+
 
 def fb24ch200(stack):
     """

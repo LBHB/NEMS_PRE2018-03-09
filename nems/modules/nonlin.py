@@ -64,8 +64,8 @@ class gain(nems_module):
         return(Y)
 
     def dexp_fn(self, X):
-        Y = self.phi[0, 0] - self.phi[0, 1] * \
-            np.exp(-np.exp(self.phi[0, 2] * (X - self.phi[0, 3])))
+        Y = self.phi[:, 0:1] - self.phi[:, 1:2] * \
+            np.exp(-np.exp(self.phi[:, 2:3] * (X - self.phi[:, 3:4])))
         return(Y)
 
     def poly_fn(self, X):
@@ -82,13 +82,31 @@ class gain(nems_module):
 
     def logsig_fn(self, X):
         # from Rabinowitz et al 2011
-        a = self.phi[0, 0]
-        b = self.phi[0, 1]
-        c = self.phi[0, 2]
-        d = self.phi[0, 3]
+        a = self.phi[:, 0:1]
+        b = self.phi[:, 1:2]
+        c = self.phi[:, 2:3]
+        d = self.phi[:, 3:4]
         Y = a + b / (1 + np.exp(-(X - c) / d))
         return(Y)
 
     def my_eval(self, X):
         Z = getattr(self, self.nltype + '_fn')(X)
         return(Z)
+
+    def evaluate(self):
+        del self.d_out[:]
+        # create a copy of each input variable
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+            
+        X=self.unpack_data(self.input_name,est=True)
+        Z = self.my_eval(X)
+        self.pack_data(Z,self.output_name,est=True)
+        
+        if self.parent_stack.valmode:
+            X=self.unpack_data(self.input_name,est=False)
+            Z = self.my_eval(X)
+            self.pack_data(Z,self.output_name,est=False)
+            
+
+
