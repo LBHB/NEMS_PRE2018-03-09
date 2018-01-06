@@ -184,7 +184,7 @@ class likelihood_poisson(nems_module):
         X2 = X2[keepidx]
         X1[X1 < 0.00001] = 0.00001
 
-        ll_est = np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
+        ll_est = np.mean(X2*np.log(X1) - X1) / np.mean(X2)
 
         self.ll_est = ll_est
         self.parent_stack.meta['ll_est'] = [ll_est]
@@ -200,7 +200,7 @@ class likelihood_poisson(nems_module):
             X2 = X2[keepidx]
             X1[X1 < 0.00001] = 0.00001
 
-            ll_val = -np.mean(X2 * np.log(X1) - X1) / np.mean(X2)
+            ll_val = -np.mean(X2*np.log(X1) - X1) / np.mean(X2)
 
             self.ll_val = ll_val
             self.parent_stack.meta['ll_val'] = [ll_val]

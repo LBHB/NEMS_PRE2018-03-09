@@ -10,7 +10,6 @@ import logging
 log = logging.getLogger(__name__)
 
 import os
-import random
 from time import time
 import scipy as sp
 import numpy as np
@@ -385,14 +384,17 @@ class SkoptMin(nems_fitter):
 
     name = 'skopt_min'
     n_calls = 100
-    maxit = 50000
+    maxit = 10000
     routine = 'skopt.gp_minimize'
 
-    def my_init(self, dims=None, ncalls=100, maxit=50000):
+    def my_init(self, dims=None, ncalls=100, maxit=10000):
         log.info("initializing scikit-optimize minimizer")
         self.n_calls = ncalls
         self.maxit = maxit
         self.dims = dims
+        # Can pull after fitting to use some of skopts special
+        # plotting routines, like plot_convergence
+        self.fit_result = None
 
     def cost_fn(self, vector):
         phi = vector_to_phi(vector, self.phi0)
@@ -422,28 +424,35 @@ class SkoptMin(nems_fitter):
         self.x0 = phi_to_vector(self.phi0)
         # evaluate error at initial guess
         self.y0 = self.cost_fn(self.x0)
-        # figure out bounds for parameters (pos/neg infinity by default)
+        # figure out bounds for parameters
         if self.dims:
             pass
         else:
-            # TODO: skopt package was turning the infs into nans, so just use
-            # a big number for now. How big is big enough? seems like most
-            # parms don't get that large, but -10 to 10 was too small.
-            #self.dims = [(np.NINF, np.inf)]*len(vector)
-            self.dims = [(-1000,1000)]*len(self.x0)
+            # TODO: really need better constraints to use for these.
+            #       Ideally, some distribution specified by the module,
+            #       so that constraints can be set to +/- some number of
+            #       standard deviations away from the mean.
+            self.dims = []
+            for param in self.x0:
+                if param == 0:
+                    cons = (-100, 100)
+                else:
+                    cons = (param-3*abs(param), param+3*abs(param))
+                self.dims.append(cons)
+            #log.debug("Dims ended up being: %s", str(self.dims))
 
         self.counter = 0
         log.info("SkoptMin: phi0 intialized (fitting %d parameters)",
                  len(self.x0))
         log.info("maxiter: %d", self.maxit)
         log.debug("Intial vector (x0) is: {0}".format(self.x0))
-        result = self.min_func()
+        self.fit_result = self.min_func()
 
-        phi = vector_to_phi(result.x, self.phi0)
+        phi = vector_to_phi(self.fit_result.x, self.phi0)
         self.stack.set_phi(phi)
         self.stack.evaluate(self.fit_modules[0])
         log.info("Final MSE: {0}".format(self.stack.error()))
-        log.debug("Optimized vector: {0}".format(result.x))
+        log.debug("Optimized vector: {0}".format(self.fit_result.x))
 
         return(self.stack.error())
 
@@ -472,25 +481,20 @@ class SkoptGbrtMin(SkoptMin):
         return result
 
 
-class coordinate_descent(nems_fitter):
+class CoordinateDescent(nems_fitter):
     """
     coordinate descent - step one parameter at a time
 
-    TODO: change name to CoordinateDescent to match w/ pep8 guidelines.
-          make sure to change calls elsewhere in code.
     """
 
-    name = 'coordinate_descent'
+    name = 'CoordinateDescent'
     maxit = 1000
     tolerance = 0.000001
-    step_init = 0.001
+    step_init = 1.0
     step_change = 0.5
     step_min = 1e-7
-    # TODO: Leave verbose option in, or just switch to log.debug
-    #       for the verbose statements? Both accomplish the same goal,
-    #       but log.debug would turn on/off along with the rest of nems
-    #       instead of only for this fitter
-    verbose = True
+    mult_step = False # steps by +/- step*value instead of +/- step
+    dynamic_step_weight = False # weight steps based on prior err improvement
 
     # TODO: pseudo_cache'd results don't match their non-cached counterparts,
     #       so either something is wrong with that code or module evals aren't
@@ -527,13 +531,16 @@ class coordinate_descent(nems_fitter):
     #            a param on one step of a branch and then decrease it
     #            on the next step).
 
-    def my_init(self, tolerance=0.000001, maxit=1000, verbose=False,
+    def my_init(self, tolerance=0.000001, maxit=1000,
+                step_init=1.0, mult_step=True, dynamic_step_weight=False,
                 pseudo_cache=False, anneal=0, max_matches=10,
                 randomize_factor=0.5, random_type='gaussian'):
         log.info("Initializing Coordinate Descent fitter.")
         self.maxit = maxit
         self.tolerance = tolerance
-        self.verbose = verbose
+        self.step_init = step_init
+        self.mult_step = mult_step
+        self.dynamic_step_weight = dynamic_step_weight
         self.pseudo_cache = pseudo_cache
         self.anneal = anneal
         if self.anneal:
@@ -555,12 +562,19 @@ class coordinate_descent(nems_fitter):
         # changed so don't need to re-eval at all
         # (This shouldn't happen during normal fitting)
         if not (first_changed_mod >= len(self.fit_modules)):
+            #log.debug("First module with parameter changes was at idx: %d",
+            #          self.fit_modules[first_changed_mod])
             self.stack.evaluate(self.fit_modules[first_changed_mod])
+        else:
+            log.debug("No changes to parameters detected since"
+                      "last call to cost function, skipping eval."
+                      "This should only happen if step size changed"
+                      "due to insufficient error improvement.")
         mse = self.stack.error()
 
         return(mse)
 
-    def _find_first_change(self, vector):
+    def _find_first_change(self, this_vec):
         """Before resetting stack phi, check parameters against previous set.
 
         For each module in the stack, if parameters didn't change,
@@ -581,16 +595,29 @@ class coordinate_descent(nems_fitter):
         last_phi = self.stack.get_phi()
         last_vec = phi_to_vector(last_phi)
         fit_mods_refs = [self.stack.modules[m] for m in self.fit_modules]
-        parm_lens = [len(mod.fit_fields) for mod in fit_mods_refs]
+        parm_lens = []
+
+        for i, m in enumerate(fit_mods_refs):
+            mod_phi = m.get_phi()
+            mod_vec = []
+            for a in mod_phi:
+                value = getattr(m, a)
+                if np.isscalar(value):
+                    mod_vec.append(value)
+                else:
+                    flattened_value = np.asanyarray(value).ravel()
+                    mod_vec.extend(flattened_value)
+            parm_lens.append(len(mod_vec))
 
         first_changed_mod = 0
         v_idx = 0
+        changed = False
         for mod in parm_lens:
             # Check if every parameter for current module is the same
-            changed = False
             for i in range(0, mod):
-                if not (last_vec[v_idx] == vector[v_idx]):
+                if not (last_vec[v_idx] == this_vec[v_idx]):
                     changed = True
+                    break
                 v_idx += 1
             # If so, don't need to re-evaluate this module
             # unless an earlier module in stack was changed.
@@ -727,21 +754,31 @@ class coordinate_descent(nems_fitter):
 
         return mu, sigma
 
+    def _termination_condition(self, s_delta, step_size, n):
+        stop = False
+
+        if n >= self.maxit:
+            stop = True
+        if step_size <= self.step_min:
+            stop = True
+        if s_delta > 0 and s_delta < self.tolerance:
+            # Normally want to stop at this point, but if step
+            # size hasn't reached minimum then try that first.
+            if step_size > self.step_min:
+                stop = False
+            else:
+                stop = True
+
+        return stop
+
     def do_fit(self):
-        # TODO: Getting very poor performance when mini_fit is not included
-        #       in stack, even for very simple models. But the CD fit does
-        #       still improve from there. Is something not working right, or
-        #       is a good initial guess just super important for CD?
-        #       (Seems like it would be)
-        # TODO: Often get a true division error
         if self.do_anneal:
             self.do_anneal = False
             s = self._annealed_fit()
             return s
 
         self.phi0 = self.stack.get_phi()
-        n_params = len(self.phi0)
-
+        # TODO: Do we need this? Not sure what this corresponds to in matlab.
 #        if ~options.Elitism
 #            options.EliteParams = n_params;
 #            options.EliteSteps = 1;
@@ -749,25 +786,28 @@ class coordinate_descent(nems_fitter):
 
         n = 1   # step counter
         x = phi_to_vector(self.phi0)  # current phi
+        n_params = len(x)
         log.debug("Initial parameters: %s", str(x))
         x_save = x.copy()     # last updated phi
         s = self.cost_fn(x)   # current score
         # Improvement of score over the previous step
         s_new = np.zeros([n_params, 2])
+        # Weights will update after each iteration if dynamic_step_weight on.
+        # Multiplies step amount by the inverse of the ratio of change
+        # in error to step size, so that params with small improvements
+        # try bigger steps and vise versa.
+        param_weights = np.ones([n_params, 2])
         s_delta = np.inf     # Improvement of score over the previous step
         step_size = self.step_init  # Starting step size.
-        #log.info("{0}: phi0 intialized (start error={1}, {2} parameters)"
-        #         .format(self.name,s,len(self.phi0)))
-        #log.info(x)
+        log.info("{0}: phi0 intialized (start error={1}, {2} parameters)"
+                 .format(self.name, s, n_params))
         log.info("starting CD: step size: {0:.9f} tolerance: {1:.9f}"
                  .format(step_size, self.tolerance))
 
         # Iterate until change in error is smaller than tolerance,
         # but stop if max iterations exceeded or minimum step size reached.
         start = time()
-        while (((s_delta < 0) or ((s_delta > self.tolerance))) #or (s >= 1.0)))
-                and (n < self.maxit)
-                and (step_size > self.step_min)):
+        while not self._termination_condition(s_delta, step_size, n):
             for ii in range(0, n_params):
                 # Alternate adding and subtracting stepsize from each param,
                 # then run cost function on the new x and store
@@ -779,12 +819,33 @@ class coordinate_descent(nems_fitter):
                 #      [cf([-1,0,0]), cf([0,-1,0]), cf([0,0,-1])]),
                 #     where cf abbreviates self.cost_fun
                 for ss in [0, 1]:
+
                     x[:] = x_save[:]
+                    change = x[ii]*step_size*param_weights[ii,ss]
                     if ss == 0:
-                        x[ii] += step_size
+                        if self.mult_step:
+                            x[ii] += change
+                        else:
+                            x[ii] += step_size
                     else:
-                        x[ii] -= step_size
-                    s_new[ii, ss] = self.cost_fn(x)
+                        if self.mult_step:
+                            x[ii] -= change
+                        else:
+                            x[ii] -= step_size
+                    err = self.cost_fn(x)
+                    s_new[ii, ss] = err
+
+                    improvement = s-err
+                    if improvement <= 0:
+                        improvement_rate = 1
+                    else:
+                        improvement_rate = improvement/step_size
+                    #log.debug("err was: %.09f", err)
+                    #log.debug("improvement_rate was: %.09f", improvement_rate)
+                    if self.dynamic_step_weight:
+                        param_weights[ii, ss] = 1/improvement_rate
+                        #log.debug("parameter weights are now: %s",
+                        #          str(param_weights))
 
             # get the array index in s_new corresponding to the smallest
             # error returned  by self.cost_fun on the stepped x values.
@@ -794,44 +855,28 @@ class coordinate_descent(nems_fitter):
 
             if s_delta < 0:
                 step_size = step_size * self.step_change
-                if self.verbose:
-                    log.info("%d: Backwards (delta=%.09f), "
-                             "adjusting step size to %.09f",
-                             n, s_delta, step_size)
-                elif n % 100 == 0:
-                    log.debug("%d: Backwards (delta=%.09f), "
-                             "adjusting step size to %.09f",
-                             n, s_delta, step_size)
+                log.debug("%d: Backwards (delta=%.09f), "
+                         "adjusting step size to %.09f",
+                         n, s_delta, step_size)
 
             elif s_delta < self.tolerance:
-                if self.verbose:
-                    log.info("%d: Error improvement too small (delta=%.09f). "
-                             "Iteration complete.",
-                             n, s_delta)
-                elif n % 100 == 0:
-                    log.debug("%d: Error improvement too small (delta=%.09f)\n"
-                             "Old score: %.09f\n"
-                             "New score: %.09f\n",
-                             n, s_delta, s, s_new[x_opt])
+                step_size = step_size * self.step_change
+                log.debug("%d: Error improvement too small (delta=%.09f)\n"
+                         "Old score: %.09f\n"
+                         "New score: %.09f",
+                         n, s_delta, s, s_new[x_opt])
+                log.debug("adjusting step size to %.09f", step_size)
 
             # sign_idx 0 means positive change was better
             # sign_idx 1 means negative change was better
             elif sign_idx:
-                x_save[param_idx] -= step_size
-                if self.verbose:
-                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
-                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
-                elif n % 100 == 0:
-                    log.debug("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
-                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
+                x_save[param_idx] -= x_save[param_idx]*step_size
+                log.debug("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
+                         n, param_idx, sign_idx, s_new[x_opt], s_delta)
             else:
-                x_save[param_idx] += step_size
-                if self.verbose is True:
-                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
-                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
-                elif n % 100 == 0:
-                    log.info("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
-                             n, param_idx, sign_idx, s_new[x_opt], s_delta)
+                x_save[param_idx] += x_save[param_idx]*step_size
+                log.debug("%d: best step=(%d,%d) error=%.06f, delta=%.09f",
+                         n, param_idx, sign_idx, s_new[x_opt], s_delta)
 
             x = x_save.copy()
             n += 1
@@ -841,10 +886,10 @@ class coordinate_descent(nems_fitter):
 
         if n >= self.maxit:
             reason = "Maximum iterations exceeded."
-        elif step_size < self.step_min:
-            reason = "Step size smaller than minimum."
         elif s_delta < self.tolerance:
             reason = "Error reduction below tolerance."
+        elif step_size < self.step_min:
+            reason = "Step size smaller than minimum."
         else:
             reason = "Unknown. Termination conditions not met."
 
@@ -855,7 +900,7 @@ class coordinate_descent(nems_fitter):
                  "Steps: {2}.\n"
                  "Time elapsed: {3} seconds."
                  .format(reason, step_size, n, elapsed))
-        log.debug("Optimized parameters: %s", str(x))
+        #log.debug("Optimized parameters: %s", str(x))
         phi = vector_to_phi(x, self.phi0)
         self.stack.set_phi(phi)
         log.info("Final MSE: {0}".format(s))
@@ -1050,7 +1095,7 @@ class BestMatch(nems_fitter):
                                              'maxiter':10000,'up_int':10,
                                              'bounds':None, 'temp':0.01,
                                              'stepsize':0.01},
-                    nems.fitters.coordinate_descent: {}, #use defaults
+                    nems.fitters.CoordinateDescent: {}, #use defaults
                     etc...}
 
     """
@@ -1081,7 +1126,7 @@ class BestMatch(nems_fitter):
                         'maxiter': 10000, 'up_int': 10, 'bounds': None,
                         'temp': 0.01, 'stepsize': 0.01, 'verb': False
                         },
-                    coordinate_descent: {}, #use defaults
+                    CoordinateDescent: {}, #use defaults
                     }):
 
         self.maxiter = maxiter
@@ -1264,3 +1309,25 @@ class SequentialFit(nems_fitter):
 
         log.info("Fit finished, final error: %.09f", err)
         return err
+
+# Notes for future changes:
+#   -Generic function for reporting fit options might be useful, i.e.
+#        tolerance, max iterations, etc.
+#        Currently have to access fitter object attributes directly, which
+#        might not always be named the same and not all fitters have the
+#        the same relevant attributes.
+#        ex:
+#          self.reported_attrs = ['tolerance', 'maxit', 'my_attr', ...]
+#          def report_attributes(self):
+#              report = [getattr(self, a) for a in self.reported_attrs
+#                        if hasattr(self, a)]
+#              # do fitter specific stuff to gather extra info if needed
+#              # and append info to report
+#              # (maybe not everything is appropriate to define as an attr)
+#              return report
+#        mostly useful for testing/comparing, but would make it easier for
+#        end users to look at fitter settings without having to scroll
+#        through a bunch of code.
+#        (Stuff like tolerance that gets defined in the base class can still
+#        be pulled directly I guess, but most fitters willl likely define
+#        new things too).

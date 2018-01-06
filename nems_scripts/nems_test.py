@@ -190,7 +190,7 @@ if 1:
     # forest_minimize: mse 0.505, est 0.501, val 0.617
     # gbrt_minimize: mse 0.505, est 0.501, val 0.616
     # fit02: mse 0.504, est 0.501, val 0.616 (and much faster)
-    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_skopt02"
+    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
     # gp_minimize: MSE 0.615, r_est 0.629, r_val 0.826
     # forest_minimize: mse 0.615, est 0.629, val 0.826
     # gbrt_minimize: mse 0.6204, est 0.626, val 0.816
@@ -257,7 +257,7 @@ if 1:
     # trying new SequentialFit fitter (related to fit iter and CD)
     # fitseq: mse 0.505, est 0.501, val 0.617
     # fit01/02: est 0.501, val 0.616, mse 0.504
-    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitseq00"
+    #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fitseq00"
 
     # fit02 same performance but 3-5x as fast (SQLP)
     # ah.. but seems that was just b/c the tolerance was less precise
