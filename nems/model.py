@@ -3,6 +3,9 @@ class Model:
     def __init__(self):
         self.modules = []
 
+    def append(self, module):
+        self.modules.append(module)
+
     def get_priors(self, initial_data):
         # Here, we query each module for it's priors. A prior will be a
         # distribution, so we set phi to the mean (i.e., expected value) for
@@ -11,11 +14,16 @@ class Model:
         # transforms that allow the following module to initialize its priors
         # as it sees fit.
         data = initial_data.copy()
+        priors = []
         for module in self.modules:
             module_priors = module.get_priors(data)
-            phi = [p.mean() for p in priors]
+            priors.append(module_priors)
+
+            phi = {k: p.mean() for k, p in module_priors.items()}
             module_output = module.evaluate(data, phi)
             data.update(module_output)
+
+        return priors
 
     def evaluate(self, initial_data, phi, start=0, stop=None):
         '''

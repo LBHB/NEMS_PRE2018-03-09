@@ -1,4 +1,4 @@
-class BaseModule:
+class Module:
 
     def evaluate(self, data, phi):
         raise NotImplementedError
