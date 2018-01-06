@@ -177,7 +177,7 @@ def fititer00(stack):
 
     stack.fitter = nems.fitters.fitters.fit_iteratively(stack, max_iter=5)
     # stack.fitter.sub_fitter=nems.fitters.fitters.basic_min(stack)
-    stack.fitter.sub_fitter = nems.fitters.fitters.coordinate_descent(
+    stack.fitter.sub_fitter = nems.fitters.fitters.CoordinateDescent(
         stack, tolerance=0.001, maxit=10, verbose=False)
     stack.fitter.sub_fitter.step_init = 0.05
 
@@ -214,7 +214,7 @@ def fitcoord00(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error = stack.modules[-1].error
 
-    stack.fitter = nems.fitters.fitters.coordinate_descent(stack)
+    stack.fitter = nems.fitters.fitters.CoordinateDescent(stack)
     stack.fitter.do_fit()
 
 def fitcoord01(stack):
@@ -229,7 +229,7 @@ def fitcoord01(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error = stack.modules[-1].error
 
-    stack.fitter = nems.fitters.fitters.coordinate_descent(
+    stack.fitter = nems.fitters.fitters.CoordinateDescent(
             stack, anneal=10
             )
     stack.fitter.do_fit()
@@ -246,7 +246,7 @@ def fitcoord02(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error = stack.modules[-1].error
 
-    stack.fitter = nems.fitters.fitters.coordinate_descent(
+    stack.fitter = nems.fitters.fitters.CoordinateDescent(
             stack, pseudo_cache=True,
             )
     stack.fitter.do_fit()
@@ -265,7 +265,7 @@ def fitcoord03(stack):
     stack.append(nm.metrics.mean_square_error)
     stack.error = stack.modules[-1].error
 
-    stack.fitter = nems.fitters.fitters.coordinate_descent(
+    stack.fitter = nems.fitters.fitters.CoordinateDescent(
             stack, pseudo_cache=True, anneal=30,
             )
     stack.fitter.do_fit()
@@ -283,7 +283,7 @@ def fittype00(stack):
 def fitbest00(stack):
     """Fits individual modules using whichever fitter works best out
     of those specified.
-    By default: basic_min, anneal_min and coordinate_descent.
+    By default: basic_min, anneal_min and CoordinateDescent.
     """
 
     stack.append(nm.metrics.mean_square_error)
