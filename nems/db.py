@@ -601,6 +601,20 @@ def get_batches(name=None):
     
     return d
 
+def get_cell_files(cellid=None,runclass=None):
+    # eg, sql="SELECT * from sCellFile WHERE cellid like "TAR010c-30-1"
+    params=()
+    sql="SELECT sCellFile.*,gRunClass.name FROM sCellFile INNER JOIN gRunClass on sCellFile.runclassid=gRunClass.id WHERE 1"
+    if not cellid is None:
+        sql+=" AND cellid like %s"
+        params=params+("%"+cellid+"%",)
+    if not runclass is None:
+        sql+=" AND gRunClass.name like %s"
+        params=params+("%"+runclass+"%",)
+    d=pd.read_sql(sql=sql,con=cluster_engine, params=params)
+    
+    return d
+
 def list_batches(name=None):
     d=get_batches(name)
     for x in range(0,len(d)):

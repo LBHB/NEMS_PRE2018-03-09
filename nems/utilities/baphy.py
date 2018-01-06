@@ -9,6 +9,7 @@ Created on Wed Jun 14 09:33:47 2017
 import logging
 log = logging.getLogger(__name__)
 
+import os
 import os.path
 import scipy.io as si
 import numpy as np
@@ -169,3 +170,90 @@ def load_baphy_ssa(filepath):
         datalist.append(data)
 
     return (datalist)
+
+def load_spike_raster(spkfile, options):
+    '''
+    # CRH added 1-5-2018, work in progress - meant to mirror baphy's loadspikeraster
+    
+    inputs:
+        spkfile - name of .spk.mat file generated using meska
+
+        options - structure can contain the following fields:
+            channel - electrode channel (default 1)
+            unit - unit number (default 1)
+            rasterfs in Hz (default 1000)
+            includeprestim - raster includes silent period before stimulus onset
+            tag_masks - cell array of strings to filter tags, eg,
+                {'torc','reference'} or {'target'}.  AND logic.  default ={}
+            psthonly - shape of r (default -1, see below)
+            sorter - preferentially load spikes sorted by sorter.  if not
+                sorted by sorter, just take primary sorting
+            lfpclean - [0] if 1, remove MSE prediction of spikes (single
+                trial) predicted by LFP
+            includeincorrect - if 1, load all trials, not just correct (default 0)
+            runclass - if set, load only data for runclass when multiple runclasses
+                in file
+     outputs:
+         TODO define    
+    '''
+    
+    
+    # ========= This needs to be beefed up to work like loadspikeraster======
+    # parse the input in options
+    try: channel =options['channel']
+    except: channel=1
+    
+    try: unit=options['unit']
+    except: unit=1
+    
+    try: rasterfs=options['rasterfs']
+    except: rasterfs=1000.
+    
+    try: tag_masks=options['tag_masks']; tag_name=tag_masks[0];
+    except: tag_masks=[]; tag_name='Reference';
+    
+    
+    # ========== see if cache file exists =====================
+    need_matlab=0 # if set to 1, use matlab engine to generate the cache file
+    
+    # get path to spkfile
+    if(len(spkfile.split('/'))==1):
+        path_to_spkfile = os.getcwd()   
+    else: 
+        path_to_spkfile = os.path.dirname(spkfile)
+    
+    
+    # define the cache file name
+    spkfile_root_name=os.path.basename(spkfile).split('.')[0];
+    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'.mat'
+    
+    
+    # make cache directory if it doesn't already exist
+    path_to_cacheFile = os.path.join(path_to_spkfile,'cache')
+    cache_file = os.path.join(path_to_cacheFile,cache_fn)
+    print(cache_file)
+    if(os.path.isdir(path_to_cacheFile) and os.path.exists(cache_file)):
+        out = si.loadmat(cache_file)
+        
+    elif(os.path.isdir(path_to_cacheFile)):
+        need_matlab=1        
+    else:
+        need_matlab = 1
+        os.mkdir(path_to_cacheFile)
+    
+
+    # Generate the cache file so that it can be loaded by python
+    if need_matlab:
+        # only start the matlab engine if the cached file doesn't exist
+        import matlab.engine
+        eng = matlab.engine.start_matlab()
+        baphy_util_path = '/auto/users/hellerc/baphy/Utilities'
+        eng.addpath(baphy_util_path,nargout=0)
+        # call matlab function to make the requested array
+        eng.loadspikeraster(spkfile, options, nargout=0)    #TODO figure out a way to specify nargout without returning anything
+        
+        out = si.loadmat(cache_file)
+        
+    return out
+    
+    
