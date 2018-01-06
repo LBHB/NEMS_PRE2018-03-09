@@ -16,6 +16,8 @@ from nems.utilities.utils import mini_fit
 import nems.utilities as ut
 import nems.utilities.baphy as ub
 
+from .registry import keyword_registry
+
 
 # Pupil Model keywords
 ###############################################################################
@@ -289,3 +291,11 @@ def pupslope(stack):
     stack.append(nm.pupil.state_filter,filter_type='slope')
 
 
+matches = ['perfect', 'beh', 'pup', 'state','nopup']
+
+for k, v in list(locals().items()):
+    # TODO: this is a hack for now.
+    for m in matches:
+        if k.startswith(m):
+            keyword_registry[k] = v
+            continue

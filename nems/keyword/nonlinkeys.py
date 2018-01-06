@@ -66,6 +66,8 @@ def dexp(stack):
     """
     resp = stack.modules[-1].unpack_data('resp', use_dout=True)
     pred = stack.modules[-1].unpack_data('pred', use_dout=True)
+    if resp.shape[0]>pred.shape[0]:
+        resp=resp[:pred.shape[0],:]
     keepidx = np.isfinite(resp) * np.isfinite(pred)
     resp = resp[keepidx]
     pred = pred[keepidx]

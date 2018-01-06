@@ -1,3 +1,7 @@
+import logging
+log = logging.getLogger(__name__)
+
+
 from nems.stack import nems_stack
 import collections
 
@@ -25,6 +29,7 @@ class KeywordRegistry(collections.MutableMapping):
             except ValueError:
                 # Keep going. We may eventually find a match in the list.
                 pass
+        log.info("Couldn't find key: {0}".format(key))
         raise KeyError
 
     def __setitem__(self, key, value):
