@@ -425,8 +425,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
-     inkscape:cx="1170.5393"
-     inkscape:cy="1354.3735"
+     inkscape:cx="1162.0042"
+     inkscape:cy="1472.3409"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -448,7 +448,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -851,17 +851,22 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-1371.7871"
-       y="232.11835"
+       x="-1301.0764"
+       y="222.01682"
        id="text11791"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="-1371.7871"
-         y="232.11835"
-         id="tspan11799">(User specs how data should be loaded and split...somehow)</tspan><tspan
+         x="-1301.0764"
+         y="222.01682"
+         id="tspan11799">(User specs how data should be loaded and split)</tspan><tspan
          sodipodi:role="line"
-         x="-1371.7871"
-         y="282.11835"
+         x="-1301.0764"
+         y="272.01682"
+         id="tspan3623"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono'">   nems.signal.split_signals_by_time()</tspan><tspan
+         sodipodi:role="line"
+         x="-1301.0764"
+         y="322.01682"
          id="tspan11803" /></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:3.54330707;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend-3)"
@@ -1111,12 +1116,12 @@
          x="-991.96979"
          y="686.28094"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono'"
-         id="tspan22643" /><tspan
+         id="tspan3633"></tspan><tspan
          sodipodi:role="line"
          x="-991.96979"
          y="723.78094"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono'"
-         id="tspan23001"># Bayesian fitters return n_phi_samps samples of phi_all?</tspan><tspan
+         id="tspan3645"># Bayesian fitters return n_phi_samps samples of phi_all?</tspan><tspan
          sodipodi:role="line"
          x="-991.96979"
          y="761.28094"
