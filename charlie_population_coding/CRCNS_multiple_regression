@@ -145,11 +145,11 @@ if hack ==0:
       var_ex_a.append(sum(Sa[0:(i+1)]/sum(Sa)))
       var_ex_p.append(sum(Sp[0:(i+1)]/sum(Sp)))
   plt.figure(2)
-  plt.plot(var_ex, '.-k')
-  plt.plot(var_ex_a,'.-r')
-  plt.plot(var_ex_p,'.-b')
+  #plt.plot(var_ex, '.-k')
+  plt.plot(var_ex_a,'.-b')
+  plt.plot(var_ex_p,'.-r')
 
-  plt.legend(['PCA on all', 'PCA active only', 'PCA passive only'])
+  plt.legend(['Engaged', 'Passive'])
   plt.ylabel('Variance explained')
   plt.xlabel('Net PCs')
 
@@ -216,3 +216,7 @@ plt.subplot(132)
 sns.barplot(x = 'PC',y='Behavior', data =rsq[['Behavior','PC']])
 plt.subplot(133)
 sns.barplot(x = ['Pupil','Behavior','Both'], hue = 'PC',y = rsq, data =rsq)
+
+# Try plotting AIC as scatter
+plt.figure(9)
+plt.scatter(aic_b-aic_full, aic_p-aic_full)

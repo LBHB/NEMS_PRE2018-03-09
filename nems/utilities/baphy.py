@@ -173,7 +173,8 @@ def load_baphy_ssa(filepath):
 
 def load_spike_raster(spkfile, options):
     '''
-    # CRH added 1-5-2018, work in progress - meant to mirror baphy's loadspikeraster
+    # CRH added 1-5-2018, work in progress - meant to mirror the output of 
+    baphy's loadspikeraster
     
     inputs:
         spkfile - name of .spk.mat file generated using meska
