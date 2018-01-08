@@ -171,7 +171,7 @@ def load_baphy_ssa(filepath):
 
     return (datalist)
 
-def load_spike_raster(spkfile, options):
+def load_spike_raster(spkfile, options, nargout=None):
     '''
     # CRH added 1-5-2018, work in progress - meant to mirror the output of 
     baphy's loadspikeraster
@@ -194,24 +194,51 @@ def load_spike_raster(spkfile, options):
             includeincorrect - if 1, load all trials, not just correct (default 0)
             runclass - if set, load only data for runclass when multiple runclasses
                 in file
+                
+        nargout: number of arguments to return 
+        
      outputs:
-         TODO define    
+        r: spike raster
+        tags:
+        trialset: 
+        exptevents: 
+        sortextras: Not possible right now - not cached
+        options: Not possibel right now - not cached
+        
     '''
     
     
     # ========= This needs to be beefed up to work like loadspikeraster======
     # parse the input in options
-    try: channel =options['channel']
+    try: channel=options['channel']
     except: channel=1
     
     try: unit=options['unit']
     except: unit=1
     
     try: rasterfs=options['rasterfs']
-    except: rasterfs=1000.
+    except: rasterfs=1000.   # must be float for matlab
     
-    try: tag_masks=options['tag_masks']; tag_name=tag_masks[0];
-    except: tag_masks=[]; tag_name='Reference';
+    try: tag_masks=options['tag_masks']; tag_name='tags-'+''.join(tag_masks);
+    except: tag_masks=[]; tag_name='tags-Reference';
+    
+    try: runclass=options['runclass']; run='run-'+runclass;
+    except: run='run-all';
+    
+    if 'includeprestim' in options and type(options['includeprestim'])==int: 
+        prestim='prestim-1'; 
+    elif 'includeprestim' in options: 
+        prestim=str(options['includeprestim'])
+        while ', ' in prestim:
+            prestim=prestim.replace('[','').replace(']','').replace(', ','-')
+        prestim='prestim-'+prestim;
+    else: prestim='prestim-none';
+    
+    try: ic=options['includeincorrect']; ic='allTrials';
+    except: ic='correctTrials';
+    
+    try: psthonly=options['psthonly']; psthonly='_psthonly';
+    except: psthonly='';
     
     
     # ========== see if cache file exists =====================
@@ -226,15 +253,20 @@ def load_spike_raster(spkfile, options):
     
     # define the cache file name
     spkfile_root_name=os.path.basename(spkfile).split('.')[0];
-    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'.mat'
+    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+psthonly+'.mat'
     
     
     # make cache directory if it doesn't already exist
     path_to_cacheFile = os.path.join(path_to_spkfile,'cache')
     cache_file = os.path.join(path_to_cacheFile,cache_fn)
+    print('loading from cache: ')
     print(cache_file)
     if(os.path.isdir(path_to_cacheFile) and os.path.exists(cache_file)):
         out = si.loadmat(cache_file)
+        r = out['r']
+        tags = out['tags']
+        trialset=out['trialset']
+        exptevents=out['exptevents']
         
     elif(os.path.isdir(path_to_cacheFile)):
         need_matlab=1        
@@ -254,7 +286,18 @@ def load_spike_raster(spkfile, options):
         eng.loadspikeraster(spkfile, options, nargout=0)    #TODO figure out a way to specify nargout without returning anything
         
         out = si.loadmat(cache_file)
-        
-    return out
+        r = out['r']
+        tags = out['tags']
+        trialset=out['trialset']
+        exptevents=out['exptevents']
+           
+    if nargout==None or nargout==1:
+        return r
+    elif nargout==2:
+        return r, tags
+    elif nargout==3:
+        return r, tags, trialset
+    else:
+        return r, tags, trialset, exptevents
     
     

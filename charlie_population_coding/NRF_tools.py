@@ -144,7 +144,7 @@ def NRF_fit(r, r0_strf=None, cv_count=10, lag=1, fs=1, single_lag=False, model=N
     '''
     if spontonly==None:
         sys.exit('must specify if spontonly')
-    if model == 'NRF_STRF' and r0_strf == None:
+    if model == 'NRF_STRF' and r0_strf is None:
         sys.exit('must provide null model (strf)')
     bincount = r.shape[0]
     repcount = r.shape[1]
