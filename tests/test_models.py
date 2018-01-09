@@ -81,6 +81,7 @@ modelname="parm100a_wcg02_fir15_fit01wholemodelperbehaviorcondition"
 stack=nems.fit_single_model(cellid, batch, modelname, saveInDB=False)
 
 
+
 # CASE 6 (NOT IMPLEMENTED YET)
 # generic user scheme. load the data and then ask nems to do the fitting
 file=nu.baphy.get_celldb_file(batch, cellid,fs=100, stimfmt='ozgf', chancount=18)
@@ -97,6 +98,23 @@ Y_val=Y[:,3:,:]
 # this is pseudo code, hasn't been written yet!
 stack=fit_dumb_model(stim=X_est,resp=Y_est)
 r=test_dumb_model(stack=stack,stim=X_val,resp=Y_val)
+
+
+# CASE 7 (NOT IMPLEMENTED YET)
+# Relevant to DS's pupil/behavior project
+# 
+# this is similar to CASE 2, but using a "token-based" model rather than STRF.
+# IE, calculate the mean response to each stimulus and then compute a gain 
+# term to account for changes in internal state (pupil in this case)
+# note that as of 2018-01-09, the PsthModel does not compute average response
+# for the same stimulus across files. This is critical, and it sounds like
+# a job for SUPER DATA STRUCTURE!
+cellid="TAR010c-30-1"
+batch=301 # tone detect (PTD) + pupil + behavior
+modelname="parm100_psth_pupgain_fit01"
+
+stack=nems.fit_single_model(cellid, batch, modelname, saveInDB=False)
+
 
 
 
