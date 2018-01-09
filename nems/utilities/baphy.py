@@ -301,12 +301,12 @@ def cache_filename(spkfile,options):
     try: ic=options['includeincorrect']; ic='allTrials';
     except: ic='correctTrials';
     
-    try: psthonly=options['psthonly']; psthonly='_psthonly';
-    except: psthonly='';
+    try: psthonly=options['psthonly']; psthonly=options['psthonly'];
+    except: psthonly=-1;
     
     # define the cache file name
     spkfile_root_name=os.path.basename(spkfile).split('.')[0];
-    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+psthonly+'.mat'
+    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+'psth-'+str(psthonly)+'.mat'
     
     return cache_fn
     
