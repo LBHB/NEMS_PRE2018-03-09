@@ -304,9 +304,14 @@ def cache_filename(spkfile,options):
     try: psthonly=options['psthonly']; psthonly=options['psthonly'];
     except: psthonly=-1;
     
+    if len(str(channel))==1:
+        ch_str='0'+str(channel)
+    else:
+        ch_str=str(channel)
+    
     # define the cache file name
     spkfile_root_name=os.path.basename(spkfile).split('.')[0];
-    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+'psth-'+str(psthonly)+'.mat'
+    cache_fn=spkfile_root_name+'_ch'+ch_str+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+'_psth'+str(psthonly)+'.mat'
     
     return cache_fn
     
