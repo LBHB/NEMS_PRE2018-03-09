@@ -1,10 +1,8 @@
 import os
 import json
-import pandas as pd   # Pulled in for fast CSV i/o
+import pandas as pd
 import numpy as np
 
-
-# NOTE! THIS CODE IN HORRIBLE, UNTRUSTWORTHY FLUX UNTIL: Tues, Jan 9th
 
 class Signal():
     '''
@@ -256,19 +254,61 @@ class Signal():
         pass
 
 
-def load_from_file(basepath):
-    """ Loads the CSV & JSON files and returns a Signal() object.
-    Example: If you want to load
-      /tmp/sigs/gus027b13_p_PPS_resp-a1.csv
-      /tmp/sigs/gus027b13_p_PPS_resp-a1.json
-    then give this function
-      /tmp/sigs/gus027b13_p_PPS_resp-a1"""
-    csvfilepath = basepath + '.csv'
+def load_from_file(basepath, csv_engine='pandas', cache_binary=True):
+    '''
+    Loads signal data from files on disk.
+
+    Signal data is stored as csv and json files on disk. However, for speed
+    purposes, the raw signal data can also be provided as a Numpy binary format
+    (npy). This funtion will check for the npy file first. If it exists, it will
+    use that instead of the csv file.
+
+    Parameters
+    ----------
+    basepath : string
+        Base path to the files (including the first part of the basename sans
+        extensions). See example for details.
+    csv_engine : {'pandas', 'numpy'}
+        Library to use to read CSV files. Typically pandas will be faster than
+        Numpy, but this is not always the case.
+    cache_binary : boolean
+        If True and the Numpy file doesn't exist, the CSV data will be saved
+        back to disk in a binary format (thereby speeding up future loading of
+        the data).
+
+    Returns
+    -------
+    signal : Signal
+        Signal object
+
+    Example
+    -------
+    If you want to load a signal from the following files:
+        signals/gus027b13_p_PPS_resp-a1.csv
+        signals/gus027b13_p_PPS_resp-a1.json
+
+    Then set the basepath to:
+        signals/gus027b13_p_PPS_resp-a1
+
+    Note that you're providing everything except the extension.
+    '''
+    npyfilepath = basepath + '.npy'
+    if os.path.exists(npyfilepath):
+        data = np.load(npyfilepath)
+    else:
+        if csv_engine == 'pandas':
+            csvfilepath = basepath + '.csv'
+            data = pd.read_csv(csvfilepath, header=None).values
+            data = data.astype('float')
+        elif csv_engine == 'numpy':
+            data = np.loadtxt(csvfilepath, delimiter=", ")
+            data = data.astype('float')
+        else:
+            raise ValueError('Unsupported engine')
+        if cache_binary:
+            np.save(npyfilepath, data)
+
     jsonfilepath = basepath + '.json'
-    # Weirdly, numpy is 10x slower than read_csv (pandas):
-    # mat = np.loadtxt(csvfilepath, delimiter=", ")
-    mat = pd.read_csv(csvfilepath, header=None).values
-    mat = mat.astype('float')
     with open(jsonfilepath, 'r') as f:
         js = json.load(f)
         # NOTE: Please also see 'single_to_multi_trial';
@@ -278,7 +318,7 @@ def load_from_file(basepath):
                    fs=js['fs'],
                    nreps=js['nreps'],
                    meta=js['meta'],
-                   matrix=mat)
+                   matrix=data)
     return s
 
 
