@@ -389,3 +389,34 @@ class stp(Module):
             Y = np.append(Y, di * X, 0)
 
         return Y
+
+
+
+class PsthModel(Module):
+    name = 'filters.psthmodel'
+    plot_fns = [nems.utilities.plot.sorted_raster,
+                nems.utilities.plot.raster_plot]
+    """
+    Replaces stim with average resp for each stim (i.e., the PSTH). 
+    This is the 'perfect' model
+    used for comparing different models of pupil state gain.
+    
+    SVD added, pulled out of NS's pupil-specific analysis
+    """
+
+    def my_init(self):
+        log.info('Replacing stimulus with averaged response raster')
+
+    def evaluate(self):
+        del self.d_out[:]
+        # create a copy of pointer to each input variable
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+
+        for f_in, f_out in zip(self.d_in, self.d_out):
+            Xa = f_in['avgresp']
+            R = f_in['replist']
+            X = np.expand_dims(np.squeeze(Xa[R, :]),axis=0)
+            f_out[self.output_name] = X
+            
+            
