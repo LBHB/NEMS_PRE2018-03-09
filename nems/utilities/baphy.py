@@ -208,37 +208,6 @@ def load_spike_raster(spkfile, options, nargout=None):
     '''
     
     
-    # ========= This needs to be beefed up to work like loadspikeraster======
-    # parse the input in options
-    try: channel=options['channel']
-    except: channel=1
-    
-    try: unit=options['unit']
-    except: unit=1
-    
-    try: rasterfs=options['rasterfs']
-    except: rasterfs=1000.   # must be float for matlab
-    
-    try: tag_masks=options['tag_masks']; tag_name='tags-'+''.join(tag_masks);
-    except: tag_masks=[]; tag_name='tags-Reference';
-    
-    try: runclass=options['runclass']; run='run-'+runclass;
-    except: run='run-all';
-    
-    if 'includeprestim' in options and type(options['includeprestim'])==int: 
-        prestim='prestim-1'; 
-    elif 'includeprestim' in options: 
-        prestim=str(options['includeprestim'])
-        while ', ' in prestim:
-            prestim=prestim.replace('[','').replace(']','').replace(', ','-')
-        prestim='prestim-'+prestim;
-    else: prestim='prestim-none';
-    
-    try: ic=options['includeincorrect']; ic='allTrials';
-    except: ic='correctTrials';
-    
-    try: psthonly=options['psthonly']; psthonly='_psthonly';
-    except: psthonly='';
     
     
     # ========== see if cache file exists =====================
@@ -251,15 +220,13 @@ def load_spike_raster(spkfile, options, nargout=None):
         path_to_spkfile = os.path.dirname(spkfile)
     
     
-    # define the cache file name
-    spkfile_root_name=os.path.basename(spkfile).split('.')[0];
-    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+psthonly+'.mat'
-    
+    # define the cache file name using fucntion written below    
+    cache_fn= cache_filename(spkfile,options)
     
     # make cache directory if it doesn't already exist
     path_to_cacheFile = os.path.join(path_to_spkfile,'cache')
     cache_file = os.path.join(path_to_cacheFile,cache_fn)
-    print('loading from cache: ')
+    print('loading from cache:')
     print(cache_file)
     if(os.path.isdir(path_to_cacheFile) and os.path.exists(cache_file)):
         out = si.loadmat(cache_file)
@@ -300,4 +267,46 @@ def load_spike_raster(spkfile, options, nargout=None):
     else:
         return r, tags, trialset, exptevents
     
+def cache_filename(spkfile,options):
+    '''
+    Given the spkfile and options passed to load_spike_raster, generate the filename that 
+    will identify the unique cache file for that cell    
+    '''
+    
+    # parse the input in options
+    try: channel=options['channel']
+    except: channel=1
+    
+    try: unit=options['unit']
+    except: unit=1
+    
+    try: rasterfs=options['rasterfs']
+    except: rasterfs=1000.   # must be float for matlab
+    
+    try: tag_masks=options['tag_masks']; tag_name='tags-'+''.join(tag_masks);
+    except: tag_masks=[]; tag_name='tags-Reference';
+    
+    try: runclass=options['runclass']; run='run-'+runclass;
+    except: run='run-all';
+    
+    if 'includeprestim' in options and type(options['includeprestim'])==int: 
+        prestim='prestim-1'; 
+    elif 'includeprestim' in options: 
+        prestim=str(options['includeprestim'])
+        while ', ' in prestim:
+            prestim=prestim.replace('[','').replace(']','').replace(', ','-')
+        prestim='prestim-'+prestim;
+    else: prestim='prestim-none';
+    
+    try: ic=options['includeincorrect']; ic='allTrials';
+    except: ic='correctTrials';
+    
+    try: psthonly=options['psthonly']; psthonly='_psthonly';
+    except: psthonly='';
+    
+    # define the cache file name
+    spkfile_root_name=os.path.basename(spkfile).split('.')[0];
+    cache_fn=spkfile_root_name+'_ch'+str(channel)+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+psthonly+'.mat'
+    
+    return cache_fn
     
