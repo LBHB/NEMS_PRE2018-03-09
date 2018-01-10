@@ -4,10 +4,6 @@ import pandas as pd
 import numpy as np
 
 
-## WARNING:
-## WARNING: THIS IS UNTESTED. Ivar just wanted to commit it before leaving.
-## WARNING: (He'll fix it on Tues)
-
 class Signal():
 
     def __init__(self, **kwargs):
@@ -81,10 +77,10 @@ class Signal():
         self.recording = kwargs['recording']
         self.chans = kwargs['chans']
         self.fs = kwargs['fs']
-        self.nreps = int(kwargs['nchans']) if 'nchans' in kwargs else 1
+        self.nreps = int(kwargs['nreps']) if 'nreps' in kwargs else 1
         self.meta = kwargs['meta'] if 'meta' in kwargs else None
 
-        (C, T) = self._matrix.shape
+        (T, C) = self._matrix.shape
         if T < C:
             raise ValueError(('Matrix dims incorrect: (T, C) = '
                               + str((T, C))
@@ -107,8 +103,9 @@ class Signal():
             raise ValueError('Name of recording must be a string:'
                              + str(self.recording))
 
-        if type(self.chans) is not list:
-            if not all(c is str for c in self.chans)
+        if self.chans and type(self.chans) is not list:
+            types_are_str = [(True if c is str else False) for c in self.chans]
+            if not all(types_are_str):
                 raise ValueError('Chans must be a list of strings:'
                                  + str(self.chans))
 
@@ -138,15 +135,20 @@ class Signal():
         use optional parameter fmt (for example, fmt='%1.3e') 
         to alter the precision of the floating point matrices.
         '''
-        filename = self.recording + '_' + self.name
-        filepath = os.path.join(dirpath, filename)
-        csvfilepath = filepath + '.csv'
-        jsonfilepath = filepath + '.json'
+        filebase = self.recording + '_' + self.name
+        basepath = os.path.join(dirpath, filebase)
+        csvfilepath = basepath + '.csv'
+        jsonfilepath = basepath + '.json'
         # df = pd.DataFrame(self.as_single_trial())  # 10x slower than savetxt:
-        np.savetxt(csvfilepath,
-                   self.as_single_trial(),
-                   delimiter=", ",
-                   fmt=fmt)        
+        if fmt:
+            np.savetxt(csvfilepath,
+                       self.as_single_trial(),
+                       delimiter=", ",
+                       fmt=fmt)
+        else:
+            np.savetxt(csvfilepath,
+                       self.as_single_trial(),
+                       delimiter=", ")
         obj = {'name': self.name,
                'chans': self.chans,
                'fs': self.fs,
@@ -176,31 +178,45 @@ class Signal():
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)
             s = Signal(name=js['name'],
-                       recording=js['name'],
+                       chans=js['chans'],
+                       recording=js['recording'],
                        fs=js['fs'],
                        nreps=js['nreps'],
                        meta=js['meta'],
                        matrix=mat)
             return s
 
+    @staticmethod
+    def list_signals(directory):
+        '''
+        Returns a list of all CSV/JSON signal files found in DIRECTORY, 
+        Paths are relative, not absolute. 
+        '''
+        files = os.listdir(directory)
+        just_fileroot = lambda f: os.path.splitext(os.path.basename(f))[0]
+        csvs = [just_fileroot(f) for f in files if f.endswith('.csv')]
+        jsons = [just_fileroot(f) for f in files if f.endswith('.json')]
+        overlap = set.intersection(set(csvs), set(jsons))
+        return list(overlap)
+
     def as_single_trial(self):
         '''
-        Returns a numpy matrix of Chans x Time
+        Returns a numpy matrix of Time x Chans
         TODO: kwargs: chans=None, reps
         '''
         return self._matrix.copy()
 
     def as_repetition_matrix(self):
         '''
-        Returns a numpy matrix of Chans x Reps x Time.
+        Returns a numpy matrix of Time x Reps x Chans
         TODO: kwargs: chans=None, reps=None
         '''
         m = self._matrix.copy()
-        return m.reshape(self.nchans, self.nreps, self.ntimes_per_rep)
+        return m.reshape(self.ntimes_per_rep, self.nreps, self.nchans)
 
     def as_average_trial(self):
         '''
-        Returns a matrix of Chans x Time after averaging all of the 
+        Returns a matrix of Time x Chans after averaging all of the 
         repetitions together.
         TODO: kwargs: chans=None
         '''
@@ -212,6 +228,7 @@ class Signal():
         For internal use when making various immutable copies of this signal.
         '''
         new_obj = Signal(name=self.name,
+                         chans=self.chans,
                          recording=self.recording,
                          fs=self.fs,
                          nreps=self.nreps,
@@ -240,12 +257,14 @@ class Signal():
         right = m[:, split_idx:, :]
         l = Signal(name=self.name,
                    recording=self.recording,
+                   chans=self.chans,
                    nreps=1,
                    fs=self.fs,
                    meta=self.meta,
                    matrix=left)
         r = Signal(name=self.name,
                    recording=self.recording,
+                   chans=self.chans,
                    nreps=1,
                    fs=self.fs,
                    meta=self.meta,
@@ -264,12 +283,14 @@ class Signal():
         right = m[split_idx:, :]        
         l = Signal(name=self.name,
                    recording=self.recording,
+                   chans=self.chans,
                    nreps=1,
                    fs=self.fs,
                    meta=self.meta,
                    matrix=left)
         r = Signal(name=self.name,
                    recording=self.recording,
+                   chans=self.chans,
                    nreps=1,
                    fs=self.fs,
                    meta=self.meta,
@@ -333,56 +354,3 @@ class Signal():
         pass
 
 
-# -----------------------------------------------------------------------------
-# Helper functions follow
-
-
-def load_signals(basepaths):
-    '''
-    Returns a list of the Signal objects created by loading the
-    signal files at paths. 
-    '''
-    signals = [Signal.load(f) for f in basepaths]
-    return signals
-
-
-def list_signals_in_dir(dirpath):
-    '''
-    Returns a list of all CSV/JSON signal files found in dirpath, 
-    Paths are relative, not absolute. 
-    '''
-    files = os.listdir(dirpath)
-    just_fileroot = lambda f: os.path.splitext(os.path.basename(f))[0]
-    csvs = [just_fileroot(f) for f in files if f.endswith('.csv')]
-    jsons = [just_fileroot(f) for f in files if f.endswith('.json')]
-    overlap = set.intersection(set(csvs), set(jsons))
-    return overlap
-
-
-def load_signals_in_dir(dirpath):
-    '''
-    Returns a dict of all CSV/JSON signals found in BASEPATH, where
-    keys are the names of the signals and values are the Signal objects.
-    '''
-    files = list_signals_in_dir(dirpath)
-    filepaths = [os.path.join(dirpath, f) for f in files]
-    signals = load_signals(filepaths)    
-    signals_dict = {s.name: s for s in signals}
-    return signals_dict
-
-
-def split_signals_by_time(signals, fraction):
-    '''
-    Splits a dict of signals into two dicts of signals, with
-    each signal split at the same point in the the time series. For example,
-    fraction = 0.8 splits 80% of the data into the left, and 20% of the data 
-    into the right signal. Useful for making est/val data splits, or truncating
-    the beginning or end of a data set. Note: Trial information is lost!
-    '''
-    left = {}
-    right = {}
-    for s in signals.values():
-        (l, r) = s.split_by_time(fraction)
-        left[l.name] = l
-        right[r.name] = r
-    return (left, right)
