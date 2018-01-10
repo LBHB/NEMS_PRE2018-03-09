@@ -13,6 +13,7 @@ import os
 import os.path
 import scipy.io as si
 import numpy as np
+import sys
 
 try:
     import nems_config.Storage_Config as sc
@@ -221,7 +222,7 @@ def load_spike_raster(spkfile, options, nargout=None):
     
     
     # define the cache file name using fucntion written below    
-    cache_fn= cache_filename(spkfile,options)
+    cache_fn= spike_cache_filename(spkfile,options)
     
     # make cache directory if it doesn't already exist
     path_to_cacheFile = os.path.join(path_to_spkfile,'cache')
@@ -267,7 +268,7 @@ def load_spike_raster(spkfile, options, nargout=None):
     else:
         return r, tags, trialset, exptevents
     
-def cache_filename(spkfile,options):
+def spike_cache_filename(spkfile,options):
     '''
     Given the spkfile and options passed to load_spike_raster, generate the filename that 
     will identify the unique cache file for that cell    
@@ -281,7 +282,7 @@ def cache_filename(spkfile,options):
     except: unit=1
     
     try: rasterfs=options['rasterfs']
-    except: rasterfs=1000.   # must be float for matlab
+    except: rasterfs=1000.   # must be float for matlab if matlab engine is called
     
     try: tag_masks=options['tag_masks']; tag_name='tags-'+''.join(tag_masks);
     except: tag_masks=[]; tag_name='tags-Reference';
@@ -312,6 +313,52 @@ def cache_filename(spkfile,options):
     # define the cache file name
     spkfile_root_name=os.path.basename(spkfile).split('.')[0];
     cache_fn=spkfile_root_name+'_ch'+ch_str+'-'+str(unit)+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+'_psth'+str(psthonly)+'.mat'
+    
+    return cache_fn
+    
+def pupil_cache_filename(pupfile, options):
+    # parse the input in options
+    try: pupil=options['pupil']; pupil_str='_pup';
+    except: sys.exit('options does not set pupil=1')
+    
+    try: offset=options['pupil_offset']; offset_str='_offset-'+str(offset);
+    except: offset_str='';
+    
+    try: med=options['pupil_median']; offset_str='_med-'+str(med);
+    except: med_str='';
+    
+    try: rasterfs=options['rasterfs']
+    except: rasterfs=1000.   # must be float for matlab if matlab engine is called
+    
+    try: tag_masks=options['tag_masks']; tag_name='tags-'+''.join(tag_masks);
+    except: tag_masks=[]; tag_name='tags-Reference';
+    
+    try: runclass=options['runclass']; run='run-'+runclass;
+    except: run='run-all';
+    
+    if 'includeprestim' in options and type(options['includeprestim'])==int: 
+        prestim='prestim-1'; 
+    elif 'includeprestim' in options: 
+        prestim=str(options['includeprestim'])
+        while ', ' in prestim:
+            prestim=prestim.replace('[','').replace(']','').replace(', ','-')
+        prestim='prestim-'+prestim;
+    else: prestim='prestim-none';
+    
+    try: ic=options['includeincorrect']; ic='allTrials';
+    except: ic='correctTrials';
+    
+    try: psthonly=options['psthonly']; psthonly=options['psthonly'];
+    except: psthonly=-1;
+    
+    
+   
+    
+    # define the cache file name
+    pupfile_root_name=os.path.basename(pupfile).split('.')[0];
+    
+    
+    cache_fn=pupfile_root_name+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+'_psth'+str(psthonly)+offset_str+med_str+pupil_str+'.mat'
     
     return cache_fn
     
