@@ -89,11 +89,12 @@ class Signal():
         self.nchans = C
         self.ntimes = T
 
-        # Other useful properties to cache
-        self.max = np.nanmax(self._matrix)
-        self.min = np.nanmin(self._matrix)
+        # Cached properties for speed; their use is however optional
+        self.max = np.nanmax(self._matrix, axis=0)
+        self.min = np.nanmin(self._matrix, axis=0)
         self.mean = np.nanmean(self._matrix, axis=0)
         self.var = np.nanvar(self._matrix, axis=0)
+        self.std = np.nanstd(self._matrix, axis=0)
 
         if type(self.name) is not str:
             raise ValueError('Name of signal must be a string:'
@@ -236,13 +237,19 @@ class Signal():
                          matrix=m)
         return new_obj
 
-    def normalized(self):
+    def normalized_by_mean(self):
         """ Returns a new signal, same as this one, but shifted to
         have zero mean and unity variance on each channel."""
-        m = self._matrix.copy()
-        m = m - self.mean
-        m = m / self.var
-        return self._modified_copy(m)
+        m = self._matrix
+        m_normed = (m - m.mean(0)) / m.std(0)
+        return self._modified_copy(m_normed)
+
+    def normalized_by_bounds(self):
+        """ Returns a new signal, same as this one, but shifted so 
+        that the signal will range between 0 and 1 on each channel."""
+        m = self._matrix
+        m_normed = (m - m.min(0)) / m.ptp(0)    
+        return self._modified_copy(m_normed)
 
     def split_by_reps(self, fraction):
         '''
@@ -251,24 +258,26 @@ class Signal():
         samples, and split it at fraction=0.81, this would return (A, B) where
         A is the first eight reps and B are the last two reps.
         '''        
-        split_rep = min(self.nreps - 1, max(1, round(self.ntimes * fraction)))
+        split_rep = min(self.nreps - 1, max(1, round(self.nreps * fraction)))
         m = self.as_repetition_matrix()
-        left = m[:, 0:split_idx, :]
-        right = m[:, split_idx:, :]
+        left = m[:, 0:split_rep, :]
+        (lt, lr, lc) = left.shape
+        right = m[:, split_rep:, :]
+        (rt, rr, rc) = right.shape
         l = Signal(name=self.name,
                    recording=self.recording,
                    chans=self.chans,
-                   nreps=1,
+                   nreps=split_rep,
                    fs=self.fs,
                    meta=self.meta,
-                   matrix=left)
+                   matrix=left.reshape(-1, self.nchans))
         r = Signal(name=self.name,
                    recording=self.recording,
                    chans=self.chans,
-                   nreps=1,
+                   nreps=(self.nreps - split_rep),
                    fs=self.fs,
                    meta=self.meta,
-                   matrix=right)
+                   matrix=right.reshape(-1, self.nchans))
         return (l, r)
 
     def split_by_time(self, fraction):

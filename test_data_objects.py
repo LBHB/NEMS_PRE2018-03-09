@@ -2,6 +2,7 @@ import os
 import json
 import filecmp
 import pytest
+import numpy as np
 from nems.signal import Signal
 # import nems.recording
 
@@ -12,7 +13,7 @@ def generate_dummy_signal_files(tmpdir,
                                 fs=50,
                                 nchans=3,
                                 ntimes=200,
-                                nreps=8):
+                                nreps=10):
     '''
     Generates dummy signal file with a predictable structure (every element
     increases by 1) that is useful for testing. Returns 'basepath' of the 
@@ -25,7 +26,7 @@ def generate_dummy_signal_files(tmpdir,
         for _ in range(ntimes):
             f.write('{:1.3e}'.format(float(n)))
             n += 1
-            for _ in range(nchans):
+            for _ in range(1, nchans):
                 f.write(', {:1.3e}'.format(float(n)))
                 n += 1
             f.write('\n')
@@ -91,39 +92,51 @@ def test_as_single_trial(example_signal_object):
     sig = example_signal_object
     assert(sig.as_single_trial().shape == (200, 3))
 
+
 def test_as_average_trial(example_signal_object):
     sig = example_signal_object
-    assert(sig.as_average_trial().shape == (25, 3))
+    assert(sig.as_average_trial().shape == (20, 3))
+
 
 def test_as_repetition_matrix(example_signal_object):
     sig = example_signal_object
-    assert(sig.as_single_trial().shape == (25, 8, 3))
-
-def test_normalized():
-
-    # m = sig.normalized().as_single_trial()
-    print('Done!')
+    assert(sig.as_repetition_matrix().shape == (20, 10, 3))
 
 
-#@pytest.fixture
-#def test_signal(tmpdir)
+def test_normalized_by_mean(example_signal_object):
+    sig = example_signal_object
+    print("means before:", sig.mean)
+    print("vars before:", sig.var)
+    sn = sig.normalized_by_mean()
+    print("means after:", sn.mean)
+    print("vars after:", sn.var)
+    assert(1.0e-10 > np.abs(sn._matrix.mean()))
+    assert(1.0 == sn._matrix.var())
 
-# +print("---")
-# +for s in sigs:
-# +    print(s.cellid, s.recording, s.name, s.__matrix__.shape, s.meta)
-# +    (csv, js) = s.savetocsv('/home/ivar/sigs/', fmt='%1.5e')
-# +    q = loadfromcsv(csv, js)
-# +    print(q.cellid, q.recording, q.name, q.__matrix__.shape, q.meta)
+
+def test_normalized_by_bounds(example_signal_object):
+    sig = example_signal_object
+    print("mins before:", sig.min)
+    print("maxs before:", sig.max)
+    sn = sig.normalized_by_bounds()
+    print("mins after:", sn.min)
+    print("maxs after:", sn.max)
+    assert(0.0 == sn._matrix.min())
+    assert(1.0 == sn._matrix.max())
+
+
+def test_split_by_reps(example_signal_object):
+    sig = example_signal_object
+    l, r = sig.split_by_reps(0.8)
+    print(sig.as_repetition_matrix().shape)
+    print(l.as_repetition_matrix().shape)
+    print(r.as_repetition_matrix().shape)
+    assert((20, 10, 3) == sig.as_repetition_matrix().shape)
+    assert((20, 8, 3) == l.as_repetition_matrix().shape)
+    assert((20, 2, 3) == r.as_repetition_matrix().shape)
 
 
 
-#  # A Test of the above
-
- 
-# -q = nems.Signal.loadfromcsv('/tmp/ooo.csv', '/tmp/ooo.json')
-# +q = loadfromcsv('/tmp/ooo.csv', '/tmp/ooo.json')
-#  q.savetocsv('/tmp/')
- 
 #  assert(q.__matrix__[1,2,3] == 490)
 # +assert(q.as_average_trial()[3,3] == 747.0)
 # +
