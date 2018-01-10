@@ -136,20 +136,59 @@ def test_split_by_reps(example_signal_object):
     assert((20, 2, 3) == r.as_repetition_matrix().shape)
 
 
+def test_split_by_time(example_signal_object):
+    sig = example_signal_object
+    l, r = sig.split_by_time(0.81)
+    print(sig.as_single_trial().shape)
+    print(l.as_single_trial().shape)
+    print(r.as_single_trial().shape)
+    assert((200, 3) == sig.as_single_trial().shape)
+    assert((162, 3) == l.as_single_trial().shape)
+    assert((38, 3) == r.as_single_trial().shape)
 
-#  assert(q.__matrix__[1,2,3] == 490)
-# +assert(q.as_average_trial()[3,3] == 747.0)
-# +
-# +p = q.jackknifed_by_reps(10, 0)
-# +assert(np.isnan(p.__matrix__[1,3,0]))
-# +assert(np.isnan(p.__matrix__[2,5,0]))
-# +assert(not np.isnan(p.__matrix__[2,5,1]))
-# +
-# +r = q.jackknifed_by_time(200, 199)
-# +assert(np.isnan(r.__matrix__[-1,3,-1]))
-# +assert(not np.isnan(r.__matrix__[1,3,1]))
-# +
-# +#print(r.__matrix__)
-# +#print(r.as_single_trial())
-# +
-# +print("Tests passed")
+
+def test_jackknifed_by_reps(example_signal_object):
+    sig = example_signal_object
+    jsig = sig.jackknifed_by_reps(5, 1)
+    isig = sig.jackknifed_by_time(5, 1, invert=True)
+    print(sig.as_single_trial().shape)
+    print(jsig.as_single_trial().shape)
+    assert((200, 3) == sig.as_single_trial().shape)
+    assert((200, 3) == jsig.as_single_trial().shape)
+    assert(120 == np.sum(np.isnan(jsig.as_single_trial())))  # 3chan x 1/5 * 200
+    assert(480 == np.sum(np.isnan(isig.as_single_trial())))  # 3chan * 4/5 * 200
+
+
+def test_jackknifed_by_time(example_signal_object):
+    sig = example_signal_object
+    jsig = sig.jackknifed_by_time(20, 2)
+    isig = sig.jackknifed_by_time(20, 2, invert=True)
+    print(sig.as_single_trial().shape)
+    print(jsig.as_single_trial().shape)
+    assert((200, 3) == sig.as_single_trial().shape)
+    assert((200, 3) == jsig.as_single_trial().shape)
+    assert(30 == np.sum(np.isnan(jsig.as_single_trial())))
+    assert(570 == np.sum(np.isnan(isig.as_single_trial())))
+
+
+def test_append_signal(example_signal_object):
+    sig1 = example_signal_object
+    sig2 = sig1.jackknifed_by_time(20, 2)
+    sig3 = sig1.append_signal(sig2)
+    print(sig1.as_single_trial().shape)
+    print(sig2.as_single_trial().shape)
+    print(sig3.as_single_trial().shape)
+    assert((200, 3) == sig1.as_single_trial().shape)
+    assert((400, 3) == sig3.as_single_trial().shape)
+
+
+def test_combine_channels(example_signal_object):
+    sig1 = example_signal_object
+    sig2 = sig1.jackknifed_by_time(20, 2)
+    sig3 = sig1.combine_channels(sig2)
+    print(sig1.as_single_trial().shape)
+    print(sig2.as_single_trial().shape)
+    print(sig3.as_single_trial().shape)
+    assert((200, 3) == sig1.as_single_trial().shape)
+    assert((200, 6) == sig3.as_single_trial().shape)
+

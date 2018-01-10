@@ -3,6 +3,20 @@ import json
 import pandas as pd
 import numpy as np
 
+# NOTE: This code is now slightly tested and should be good for alpha tests.
+#
+# An upcoming feature is a way to remove the assumption of identical-length
+# repetitions, allowing us to remove 'nreps' and replace it with annotations
+# of the time series that I am going to call 'segments':
+#    sig = Signal(name='stim', ...)
+#    sig.segments = [['TORC1', 0, 500 ], # Torc 1 is from time 0 to 500 
+#                    ['TORC2', 501, 1000 ], # Torc 2 is from time 501 to 1000 
+#                    ['TORC1', 1001, 1500 ]]) # Torc 1 is from time 1001 to 1500 
+#    gain1 = np.nanmean(sig.select('TORC1'))
+#    gain2 = np.nanmean(sig.select('TORC2'))
+#    def some_scaling_function(x):
+#       ... TODO ...
+#    newsig = sig.apply('TORC1', some_scaling_function)
 
 class Signal():
 
@@ -283,7 +297,7 @@ class Signal():
     def split_by_time(self, fraction):
         '''
         Returns a tuple of 2 new signals; because this may split
-        one of the repetition unevenly, it sets the nreps to 1 in both of
+        one of the repetitions unevenly, it sets the nreps to 1 in both of
         the new signals.
         '''
         m = self.as_single_trial()
@@ -306,60 +320,89 @@ class Signal():
                    matrix=right)
         return (l, r)
 
-    def jackknifed_by_reps(self, nsplits, split_idx):
+    def jackknifed_by_reps(self, nsplits, split_idx, invert=False):
         '''
         Returns a new signal, with entire reps NaN'd out. If nreps is not
         an integer multiple of nsplits, an error is thrown. 
+        Optional argument 'invert' causes everything BUT the jackknife to be NaN.
         '''
         ratio = (self.nreps / nsplits)
-        if ratio != int(ratio):
+        if ratio != int(ratio) or ratio < 1:
             raise ValueError('nreps must be an integer multiple of nsplits:'
                              + str(ratio))
-        m = self._matrix.copy()
-        m[:, :, split_idx] = float('NaN')
-        return self._modified_copy(m)
+        ratio = int(ratio)
+        m = self.as_repetition_matrix()       
+        if not invert:
+            m[:, split_idx:split_idx+ratio, :] = float('NaN')
+        else:
+            mask = np.ones_like(m, np.bool)
+            mask[:, split_idx:split_idx+ratio, :] = 0
+            m[mask] = float('NaN')
+        return self._modified_copy(m.reshape(-1, self.nchans))
 
-    def jackknifed_by_time(self, nsplits, split_idx):
+    def jackknifed_by_time(self, nsplits, split_idx, invert=False):
         '''
         Returns a new signal, with some data NaN'd out based on its position
         in the time stream. split_idx is indexed from 0; if you have 20 splits,
-        the first is #0 and the last is #19. 
+        the first is #0 and the last is #19.
+        Optional argument 'invert' causes everything BUT the jackknife to be NaN.
         '''
-        n_time_elements = self.ntimes * self.nreps
-        splitsize = int(n_time_elements / nsplits)
+        splitsize = int(self.ntimes / nsplits)
         if splitsize < 1:
             raise ValueError('Too many jackknifes? Splitsize was: '
                              + str(splitsize))
         split_start = split_idx * splitsize
         if split_idx == nsplits - 1:
-            split_end = n_time_elements
+            split_end = self.ntimes
         else:
-            split_end = (split_idx + 1) * splitsize
-        m = self.as_single_trial().copy()
-        m[split_start:split_end, :] = float('NaN')
-        return self._modified_copy(self.single_to_multi_trial(m))
+            split_end = (split_idx + 1) * splitsize        
+        m = self.as_single_trial().copy()    
+        if not invert:
+            m[split_start:split_end, :] = float('NaN')
+        else:
+            mask = np.ones_like(m, np.bool)
+            mask[split_start:split_end, :] = 0
+            m[mask] = float('NaN')
+        return self._modified_copy(m.reshape(-1, self.nchans))
 
-    def append_timeseries(self, other):
-        """ TODO """
-        if not type(other) == type(self):
-            raise ValueError('append_timeseries needs another Signal object.')
-        pass
+    def append_signal(self, other_signal):
+        '''
+        Returns a new signal that is a copy of this one with other_signal
+        appended to the end. Requires that other_signal have the 
+        same number of channels, repetition length.
+        '''
+        if not type(other_signal) == type(self):
+            raise ValueError('append_signal needs another Signal object.')
+        if not other_signal.fs == self.fs:
+            raise ValueError('Cannot append signal with different fs.')
+        if not len(other_signal.chans) == len(self.chans):
+            raise ValueError('Cannot append signal with different nchans.')
+        m = np.concatenate((self._matrix, other_signal._matrix), axis=0)    
+        return Signal(name=self.name,
+                      recording=self.recording,
+                      chans=self.chans,
+                      nreps=self.nreps + other_signal.nreps,
+                      fs=self.fs,
+                      meta=self.meta,
+                      matrix=m)
 
-    def append_reps(self, other):
-        """ TODO """
-        if not type(other) == type(self):
-            raise ValueError('append_reps needs another Signal object.')
-        pass
-
-    def append_channels(self, other):
-        """ TODO """
-        if not type(other) == type(self):
-            raise ValueError('append_reps needs another Signal object.')
-
-    def where(self, condition):
-        """Returns a new signal, with data that does not meet the condition
-        NaN'd out."""
-        # TODO
-        pass
-
+    def combine_channels(self, other_signal):
+        ''' 
+        Combines other_signal into this one as a new set of channels.
+        Requires that both signals be from the same recording and have the 
+        same number of time samples. 
+        '''
+        if not type(other_signal) == type(self):
+            raise ValueError('combine_channels needs another Signal object.')
+        if not other_signal.fs == self.fs:
+            raise ValueError('Cannot combine signals with different fs.')
+        if not other_signal.ntimes == self.ntimes:
+            raise ValueError('Cannot combine signals with different ntimes')
+        m = np.concatenate((self._matrix, other_signal._matrix), axis=1)    
+        return Signal(name=self.name,
+                      recording=self.recording,
+                      chans=self.chans + other_signal.chans,
+                      fs=self.fs,
+                      meta=self.meta,
+                      matrix=m)
 
