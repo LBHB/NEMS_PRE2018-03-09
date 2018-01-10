@@ -88,14 +88,15 @@ if 0:
     #cellid="eno052d-a1"
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
-if 0:
+if 1:
     """ TORC-TONE """
     #cellid="bbl074g-a1"
     #batch=303 #PTD IC pupil
-    cellid="TAR010c-24-1"
+    cellid="TAR010c-30-1"
     batch=301 #PTD A1 pupil
-    modelname="parm100pt_wcg02_fir15_behgain_fit01"
+    #modelname="parm100pt_wcg02_fir15_behgain_fit01"
     modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
+    #modelname="parm100_psth_pupgain_fit01"
 
 if 0:
     """ BVT """
@@ -160,7 +161,7 @@ if 0:
     modelname="env100_fir15_dexp_fit01"
 
 """ Fitter comparisons """
-if 1:
+if 0:
     # matched np.org:
     batch = 271
     #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"

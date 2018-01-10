@@ -246,7 +246,9 @@ class nems_module:
             # one
             X = copy.deepcopy(f_in[self.input_name])
             f_out[self.output_name] = self.my_eval(X)
-
+            
+        # state_mask is one way to exclude some subset of the data from
+        # evaluation by this module. Probably should be moved into the data object
         if hasattr(self, 'state_mask'):
             del_idx = []
             for i in range(0, len(self.d_out)):
