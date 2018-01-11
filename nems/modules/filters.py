@@ -58,16 +58,17 @@ class WeightChannels(Module):
     name = 'filters.weight_channels'
     user_editable_fields = ['input_name', 'output_name', 'fit_fields',
                             'num_dims', 'num_chans', 'baseline', 'coefs',
-                            'phi', 'parm_fun']
+                            'phi', 'parm_fun','norm_output']
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
     coefs = None
     num_chans = 1
     parm_fun = None
     parm_type = None
-
+    
     def my_init(self, num_dims=0, num_chans=1, baseline=[[0]],
-                fit_fields=None, parm_type=None, parm_fun=None, phi=[[0]]):
+                fit_fields=None, parm_type=None, parm_fun=None, phi=[[0]],
+                norm_output=False):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         if self.d_in and not(num_dims):
@@ -128,6 +129,29 @@ class WeightChannels(Module):
             baseline=None
             
         return weight_channels_local(x, coefs, baseline)
+
+    def evaluate(self):
+        del self.d_out[:]
+        # create a copy of each input variable
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+            
+        X=self.unpack_data(self.input_name,est=True)
+        Z = self.my_eval(X)
+        if self.norm_output:
+            # compute max(abs()) of est data output and then normalize
+            self.norm_factor=np.max(np.abs(Z),axis=1,keepdims=True)
+            Z=Z/self.norm_factor
+        self.pack_data(Z,self.output_name,est=True)
+        
+        if self.parent_stack.valmode:
+            X=self.unpack_data(self.input_name,est=False)
+            Z = self.my_eval(X)
+            if self.norm_output:
+                # don't recalc. just use factor that normalizes max of
+                # estimation data to be 1
+                Z=Z/self.norm_factor
+            self.pack_data(Z,self.output_name,est=False)
         
 
 class weight_channels(WeightChannels):

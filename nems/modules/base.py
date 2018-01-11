@@ -41,6 +41,9 @@ class nems_module:
     output_name = 'pred'  # name of output matrix in d_out
     state_var = 'pupil'
     parent_stack = None  # pointer to stack instance that owns this module
+    norm_output=False
+    norm_factor=None
+    
     idm = None  # unique name for this module to be referenced from the stack??
     # pointer to input of data stack, ie, for modules[i], parent_stack.d[i]
     d_in = None
@@ -53,7 +56,8 @@ class nems_module:
     #
 
     def __init__(self, parent_stack=None, input_name=None,
-                 output_name=None, state_var=None, **xargs):
+                 output_name=None, state_var=None, norm_output=False,
+                 **xargs):
         """
         Standard initialization for all modules. Sets up next step in data
         stream linking parent_stack.data to self.d_in and self.d_out.
@@ -79,6 +83,12 @@ class nems_module:
         self.auto_plot = True
         self.do_plot = self.plot_fns[0]  # default is first in list
         self.do_trial_plot = self.plot_fns[0]
+        self.norm_output=norm_output
+        try:
+            num_dims = self.d_in[0][self.input_name].shape[0]
+            self.norm_factor=np.ones([num_dims,1])
+        except:
+            pass # maybe the input wasn't set up properly
         self.my_init(**xargs)
         # not sure that this is a complete list
         # self.user_editable_fields=['input_name','output_name']+list(self.field_dict.keys())

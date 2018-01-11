@@ -130,11 +130,19 @@ class gain(nems_module):
             
         X=self.unpack_data(self.input_name,est=True)
         Z = self.my_eval(X)
+        if self.norm_output:
+            # compute max(abs()) of est data output and then normalize
+            self.norm_factor=np.max(np.abs(Z),axis=1,keepdims=True)
+            Z=Z/self.norm_factor
         self.pack_data(Z,self.output_name,est=True)
         
         if self.parent_stack.valmode:
             X=self.unpack_data(self.input_name,est=False)
             Z = self.my_eval(X)
+            if self.norm_output:
+                # don't recalc. just use factor that normalizes max of
+                # estimation data to be 1
+                Z=Z/self.norm_factor
             self.pack_data(Z,self.output_name,est=False)
             
 
