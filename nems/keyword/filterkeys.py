@@ -17,7 +17,7 @@ from nems.modules import aux
 ################################################################################
 def wc(stack, output_channels):
     '''
-    Applies a n-channel spectral filter to the data stream.
+    Applies a n-channel spectral filter to the data stream. Normalize output
 
     Parameters
     ----------

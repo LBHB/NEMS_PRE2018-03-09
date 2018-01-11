@@ -40,9 +40,9 @@ def weight_channels_local(x, weights, baseline=None):
     # so that matmul will work properly (it operates on the last two
     # dimensions of the inputs and treats the rest of the dimensions as
     # stacked matrices).
-    x = np.swapaxes(x, -3, -2)
+    #x = np.swapaxes(x, -3, -2)
     x = weights @ x
-    x = np.swapaxes(x, -3, -2)
+    #x = np.swapaxes(x, -3, -2)
     if baseline is not None:
         x += baseline[..., np.newaxis, np.newaxis]
     return x
@@ -139,8 +139,8 @@ class WeightChannels(Module):
         X=self.unpack_data(self.input_name,est=True)
         Z = self.my_eval(X)
         if self.norm_output:
-            # compute max(abs()) of est data output and then normalize
-            self.norm_factor=np.max(np.abs(Z),axis=1,keepdims=True)
+            # compute std() of est data output and then normalize
+            self.norm_factor=np.std(np.abs(Z),axis=1,keepdims=True)
             Z=Z/self.norm_factor
         self.pack_data(Z,self.output_name,est=True)
         

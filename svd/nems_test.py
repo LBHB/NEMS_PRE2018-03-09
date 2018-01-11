@@ -160,8 +160,8 @@ if 1:
     cellid="eno024d-b1"
     #cellid="por016d-a1"
     batch=259
-    #modelname="env100_stp1pc_wcc02_fir15_dexp_fit01"
-    modelname="env100_dlog_fir15_dexp_fit03"
+    modelname="env100_wcc02_stp1pc_fir15_dexp_fit01"
+    #modelname="env100_dlog_fir15_dexp_fit03"
 
 """ Fitter comparisons """
 if 0:
