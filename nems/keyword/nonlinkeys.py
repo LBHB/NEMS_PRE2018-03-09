@@ -38,7 +38,7 @@ def dlog(stack):
     where x is the input matrix and v1 is a fitted parameter applied to each
     matrix entry (the same across all entries)
     """
-    stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], phi=[1])
+    stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], phi=[-2])
     # stack.append(nm.normalize)
 
 

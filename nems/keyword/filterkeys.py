@@ -31,6 +31,7 @@ def wc_lochan(stack, output_channels):
     '''
     Applies a weight-channel filter to a low-channel count stimulus.
     eg, output_channels ~= input_channels
+    initialize as np.eye or with 1/n_inputs in outputs beyond n_inputs
 
     Parameters
     ----------
@@ -39,8 +40,15 @@ def wc_lochan(stack, output_channels):
     '''
     stack.append(filters.WeightChannels, num_chans=output_channels)
     coefs=stack.modules[-1].coefs
-    n_inputs=coefs.shape[0]
-    
+    n_inputs=coefs.shape[1]
+    n_outputs=coefs.shape[0]
+    if n_inputs<=n_outputs:
+        coefs[0:n_inputs,0:n_inputs]=np.eye(n_inputs)
+        d=n_outputs-n_inputs
+        coefs[-d:,:]=1.0/n_inputs
+    else:
+        coefs[:,:]=1.0/n_inputs
+    stack.modules[-1].coefs=coefs
 
 def wc_gaussian(stack, output_channels):
     '''
