@@ -55,7 +55,7 @@ def dexp_fn(phi,X):
     Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
     return(Y)
 
-doval=0
+doval=1
 
 if 0:
     """ RDT """
@@ -157,9 +157,10 @@ if 0:
 """ SPN test """
 if 1:
     #cellid='gus018d-d1'
-    cellid="eno023c-c1"
+    cellid="eno024d-b1"
     batch=259
-    modelname="env100_wcc02_fir15_dexp"
+    #modelname="env100_stp1pc_wcc02_fir15_dexp_fit01"
+    modelname="env100_dlog_fir15_dexp_fit01"
 
 """ Fitter comparisons """
 if 0:

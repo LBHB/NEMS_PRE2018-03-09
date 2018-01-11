@@ -54,10 +54,39 @@ class gain(nems_module):
 
     def dlog_fn(self, X):
         # threshold input so that minimum of X is 1 and min output is 0
-        s_indices = (X + self.phi[0, 0]) <= 1
-        X[s_indices] = 1 - self.phi[0, 0]
-        Y = np.log(X + self.phi[0, 0])
-        return(Y)
+        offset = self.phi[0,0]
+           
+        # soften effects of more extreme offsets
+        if offset>4:
+            adjoffset=4+(offset-4)/50
+        elif offset<-4:
+            adjoffset=-4+(offset+4)/50
+        else:
+            adjoffset=offset
+        
+        d = 10.0**adjoffset 
+        
+        # Offset from zero
+        if self.phi.shape[0] > 1:
+            zeroer = self.phi[1,:]
+        else:
+            zeroer = 0
+        
+        # Zero below threshold
+        if self.phi.shape[0] > 2:
+            zbt = self.phi[2,:]           
+        else:
+            zbt = 0
+        
+        X[X<zbt] = zbt
+        X = X-zbt
+        
+        Y = np.log((X + d)/d) + zeroer
+        
+        #s_indices = (X + self.phi[0, 0]) <= 1
+        #X[s_indices] = 1 - self.phi[0, 0]
+        #Y = np.log(X + self.phi[0, 0])
+        return Y
 
     def exp_fn(self, X):
         Y = np.exp(self.phi[0, 0] * (X - self.phi[0, 1]))
