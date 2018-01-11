@@ -67,7 +67,8 @@ class standard(nems_module):
                 validx = s == m
                 estidx = s < m
                 if not estidx.sum():
-                    s[-1] += 1
+                    ll=np.int(np.floor(len(s)*0.95))
+                    s[ll:] += 1
                     m = s.max()
                     validx = s == m
                     estidx = s < m

@@ -18,7 +18,7 @@ import nems.modules as nm
 import nems.main as main
 import nems.fitters as nf
 import nems.keyword as nk
-import nems.utilities as ut
+import nems.utilities as nu
 import nems.stack as ns
 from nems.keyword.registry import keyword_registry
 
@@ -30,7 +30,7 @@ imp.reload(nm)
 imp.reload(main)
 imp.reload(nf)
 imp.reload(nk)
-imp.reload(ut)
+imp.reload(nu)
 imp.reload(ns)
 
 try:
@@ -157,7 +157,8 @@ if 0:
 """ SPN test """
 if 1:
     #cellid='gus018d-d1'
-    cellid="eno024d-b1"
+    #cellid="eno024d-b1"
+    cellid="por016d-a1"
     batch=259
     #modelname="env100_stp1pc_wcc02_fir15_dexp_fit01"
     modelname="env100_dlog_fir15_dexp_fit01"
@@ -341,8 +342,8 @@ else:
     stack.quick_plot()
 
     if 0:
-        filename = ut.io.get_file_name(cellid, batch, modelname)
-        ut.io.save_model(stack, filename)
+        filename = nu.io.get_file_name(cellid, batch, modelname)
+        nu.io.save_model(stack, filename)
         preview_file = stack.quick_plot_save(mode="png")
         print("Preview saved to: {0}".format(preview_file))
         if db_exists:
