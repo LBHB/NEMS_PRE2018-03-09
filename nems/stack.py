@@ -81,6 +81,10 @@ class nems_stack:
         self.meta['modelname'] = modelname
         self.meta['nests'] = 0
         self.meta['cv_counter'] = 0
+        try:
+           self.meta['githash'] = os.environ["CODEHASH"]
+        except:
+           pass
         log.debug("Stack.meta information added: {0}".format(self.meta))
 
         # extract keywords from modelname

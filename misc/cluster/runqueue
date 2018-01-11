@@ -148,6 +148,11 @@ echo "about to check if default should be run" >> $DEBUGLOG
 #check if neither jerb nor git hash was used
 if [ "$DEFAULTNEMS" -eq 1 ]
 then
+    # figure out githash for current version (can be added to stack.meta
+    # for saving to NarfResults)
+    pushd /auto/users/nems/nems/
+    export CODEHASH=`git rev-parse HEAD`
+    popd
     echo "PATH: $PATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
     echo "MATLABPATH: $MATLABPATH" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
     echo "COMMAND: nice -n19 $*" >> $QUEUEOUTPATH/$QUEUEIDROUNDED/$QUEUEID.out
