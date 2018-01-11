@@ -45,22 +45,26 @@ class Signal():
 
         DATA SUBSETS:
         You have two choices when creating a data subset:
-        # 1) Get a new signal with the non-matching data excised
+          1) Get a new signal with the non-matching data excised
           .excised(condition_function)
 
-        # 2) NaN out all data that does not meet a particular condition, use:
+          2) NaN out all data that does not meet a particular condition, use:
           .where(condition_function)
 
         MODIFIED SIGNAL CREATION:
         It's very common to want to create a new signal from an existing signal.
         You may do that with the following functions:
 
-        .normalized()         # Create a normalized version of the signal
+        .normalized_by_bounds() 
+        .normalized_by_mean() 
         .split_by_reps(fraction)
         .split_by_time(fraction)
         .jackknifed_by_reps(nsplits, split_idx)
         .jackknifed_by_time(nsplits, split_idx)
 
+        MERGING SIGNALS:
+        .append_signal(other_signal)
+        .combine_channels(other_signal)
 
         FILE FORMAT: 
         A CSV file should have one row per instant in time, and each column
@@ -79,11 +83,10 @@ class Signal():
                        the time series into, if applicable. 
            .meta       A catch-all data structure for anything else you want
         
-        You may also augment this JSON with other information that describes
+        You may augment the .meta with whatever information describes
         the experimental conditions under which that the data was observed.
-        
-        Example: to instantiate a Signal object...
-        TODO      
+
+        TODO: Examples!
         '''
         self._matrix = kwargs['matrix']
         self._matrix.flags.writeable = False  # Make it immutable

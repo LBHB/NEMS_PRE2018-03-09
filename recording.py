@@ -7,17 +7,15 @@ class Recording():
         '''
         A Recording is a collection of signals that were recorded simultaneously,
         such that their time indexes line up (and thus the time dimension of all
-        signals should be the same length and have the same sampling rate).
-
-        TODO:
-
-        Recordings have several useful methods:
-        .split_at_time()
-        .just_interval()
-
-        
+        signals should be the same length and have the same sampling rate).       
         '''
         self.signals = kwargs['signals']
+
+        # Verify that all signals are from the same recording
+        recordings = [s.recording for s in self.signals.values()]
+        if not len(set(recordings)) == 1:
+            raise ValueError('Not all signals are from the same recording!')
+        self.name = recordings[0]
 
     @staticmethod
     def load(directory):
@@ -31,20 +29,38 @@ class Recording():
         signals_dict = {s.name: s for s in signals}
         return Recording(signals=signals_dict)
 
-    def get_interval(self, interval):
+    def save(self, directory, no_subdir=False):
         '''
-        Given an interval tuple ("name", "start", "stop"), returns a new
-        recording object of just the data at that point.
+        Saves all the signals (CSV/JSON pairs) in this recording into
+        DIRECTORY in a new directory named the same as this recording.
+        If optional argument no_subdir=True is provided, it
+        will not create the subdir. 
         '''
+        if not no_subdir:
+            directory = os.path.join(directory, self.name)
+        os.mkdir(directory)
+        for s in self.signals.values():
+            s.save(directory)
         pass
-        
+
+    def split_by_reps(self, fraction):
+        '''
+        Calls split_by_reps() on all signal objects in this recording.
+        '''
+        left = {}
+        right = {}
+        for s in self.signals.values():
+            (l, r) = s.split_by_reps(fraction)
+            left[l.name] = l
+            right[r.name] = r
+        return (Recording(signals=left), Recording(signals=right))
 
     def split_at_time(self, fraction):
         '''
-        Splits a Recording into two Recordings, with each signal being split
-        at the same point in the the time series. For example, fraction = 0.8
-        splits 80% of the data into the left, and 20% of the data 
-        into the right signal. Useful for making est/val data splits, or 
+        Calls split_by_time() on all signal objects in this recording.
+        For example, fraction = 0.8 will result in two recordings,
+        with 80% of the data in the left, and 20% of the data in
+        the right signal. Useful for making est/val data splits, or 
         truncating the beginning or end of a data set. 
         '''
         left = {}
@@ -55,4 +71,40 @@ class Recording():
             right[r.name] = r
         return (Recording(signals=left), Recording(signals=right))
 
+    def jackknifed_by_reps(self, nsplits, split_idx, only_signals=None,
+                           invert=False):
+        '''
+        By default, calls jackknifed_by_reps on all signals and returns a new
+        set of data. If you would only like to jackknife certain signals,
+        provide their names in a list to optional argument 'only_signals'.
+        '''
+        new_sigs = {}
+        for sn in self.signals.keys():
+            if (not only_signals or sn in set(only_signals)):
+                s = sn
+                new_sigs[sn] = s.jackknifed_by_reps(nsplits, split_idx,
+                                                    invert=invert)
+        return Recording(signals=new_sigs)
 
+    def jackknifed_by_time(self, nsplits, split_idx, only_signals=None,
+                           invert=False):
+        '''
+        By default, calls jackknifed_by_time on all signals and returns a new
+        set of data. If you would only like to jackknife certain signals,
+        provide their names in a list to optional argument 'only_signals'.
+        '''
+        new_sigs = {}
+        for sn in self.signals.keys():
+            if (not only_signals or sn in set(only_signals)):
+                s = sn
+                new_sigs[sn] = s.jackknifed_by_time(nsplits, split_idx,
+                                                    invert=invert)
+        return Recording(signals=new_sigs)
+
+
+    # def get_interval(self, interval):
+    #     '''
+    #     Given an interval tuple ("name", "start", "stop"), returns a new
+    #     recording object of just the data at that point.
+    #     '''
+    #     pass
