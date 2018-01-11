@@ -27,6 +27,21 @@ def wc(stack, output_channels):
     stack.append(filters.WeightChannels, num_chans=output_channels)
 
 
+def wc_lochan(stack, output_channels):
+    '''
+    Applies a weight-channel filter to a low-channel count stimulus.
+    eg, output_channels ~= input_channels
+
+    Parameters
+    ----------
+    output_channels : int
+        Number of filters to apply to input stream.
+    '''
+    stack.append(filters.WeightChannels, num_chans=output_channels)
+    coefs=stack.modules[-1].coefs
+    n_inputs=coefs.shape[0]
+    
+
 def wc_gaussian(stack, output_channels):
     '''
     Applies a n-channel spectral filter to the data stream.
@@ -84,6 +99,8 @@ def parse_wc(groups):
         return partial(wc, output_channels=output_channels)
     elif transform == 'g':
         return partial(wc_gaussian, output_channels=output_channels)
+    elif transform == 'c':
+        return partial(wc_lochan, output_channels=output_channels)
     else:
         raise ValueError('Unsupported argument')
 

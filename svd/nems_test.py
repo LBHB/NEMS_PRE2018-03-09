@@ -55,7 +55,7 @@ def dexp_fn(phi,X):
     Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
     return(Y)
 
-doval=1
+doval=0
 
 if 0:
     """ RDT """
@@ -88,7 +88,8 @@ if 0:
     #cellid="eno052d-a1"
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
-if 1:
+    
+if 0:
     """ TORC-TONE """
     #cellid="bbl074g-a1"
     #batch=303 #PTD IC pupil
@@ -154,11 +155,11 @@ if 0:
     #modelname="env100e_fir20_dexp_fit01"
 
 """ SPN test """
-if 0:
+if 1:
     #cellid='gus018d-d1'
     cellid="eno023c-c1"
     batch=259
-    modelname="env100_fir15_dexp_fit01"
+    modelname="env100_wcc02_fir15_dexp"
 
 """ Fitter comparisons """
 if 0:
