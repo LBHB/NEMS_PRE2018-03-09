@@ -56,3 +56,36 @@ class Model:
         # need to figure out a way to properly cache the results of unchanged
         # parameters such as using joblib).
         return data
+
+    def generate_tensor(self, initial_data, phi, start=0, stop=None):
+        '''
+        Evaluate the module given the input data and phi
+
+        Parameters
+        ----------
+        data : dictionary of arrays and/or tensors
+        phi : list of dictionaries
+            Each entry in the list maps to the corresponding module in the
+            model. If a module does not require any input parameters, use a
+            blank dictionary. All elements in phi must be scalars, arrays or
+            tensors.
+        start : integer
+            Module to start evaluation at (note that input data
+
+        Returns
+        -------
+        data : dictionary of Signals
+            dictionary of arrays and/or tensors
+        '''
+        # Loop through each module in the stack and transform the data.
+        modules = self.modules[start:stop]
+        data = initial_data.copy()
+        for module, module_phi in zip(modules, phi):
+            module_output = module.generate_tensor(data, module_phi)
+            data.update(module_output)
+
+        # We're just returning the final output (More memory efficient. If we
+        # get into partial evaluation of a subset of the stack, then we will
+        # need to figure out a way to properly cache the results of unchanged
+        # parameters such as using joblib).
+        return data

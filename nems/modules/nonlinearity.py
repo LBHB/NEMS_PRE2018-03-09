@@ -1,6 +1,7 @@
 import numpy as np
+import pylab as pl
 
-from ..distributions.api import Normal, HalfNormal
+from ..distributions.api import Gamma, HalfNormal
 from .module import Module
 
 
@@ -22,20 +23,13 @@ class DoubleExponential(Nonlinearity):
         self.output_name = output_name
         self.response_name = response_name
 
-    def get_inputs(self):
-        return {
-            self.input_name: (Ellipsis, -1, -1, -1),
-        }
-
-    def get_outputs(self):
-        return {
-            self.output_name: (Ellipsis, -1, -1, -1),
-        }
-
     def get_priors(self, initial_data):
         resp = initial_data[self.response_name]
         pred = initial_data[self.input_name]
+
         base_mu, peak_mu = np.nanpercentile(resp, [2.5, 97.5])
+        base_mu = np.clip(base_mu, 0.01, np.inf)
+
         shift_mu = np.nanmean(pred)
         resp_sd = np.nanstd(resp)
         pred_sd = np.nanstd(pred)
@@ -46,11 +40,12 @@ class DoubleExponential(Nonlinearity):
         pred_lb, pred_ub = np.nanpercentile(pred, [2.5, 97.5])
         kappa_sd = 10/(pred_ub-pred_lb)
 
+
         return {
-            'base': Normal(mu=base_mu, sd=resp_sd),
-            'amplitude': Normal(mu=peak_mu-base_mu, sd=resp_sd),
-            'shift': Normal(mu=shift_mu, sd=pred_sd),
-            'kappa': HalfNormal(sd=kappa_sd),
+            'base': Gamma.from_moments(base_mu, resp_sd*2),
+            'amplitude': Gamma.from_moments(peak_mu-base_mu, resp_sd*2),
+            'shift': Gamma.from_moments(shift_mu, pred_sd*2),
+            'kappa': HalfNormal(kappa_sd),
         }
 
     def evaluate(self, data, phi):
@@ -58,3 +53,16 @@ class DoubleExponential(Nonlinearity):
         return {
             self.output_name: double_exponential(x, **phi)
         }
+
+    def plot_coefficients(self, phi, data=None, axes=None):
+        if data is not None:
+            pred = data[self.input_name]
+            x = np.linspace(pred.min(), pred.max(), 100)
+        else:
+            x = np.linspace(0, 1000, 100)
+
+        if axes is None:
+            ax = pl.gca()
+
+        y = double_exponential(x, **phi)
+        ax.plot(x, y, 'k-')

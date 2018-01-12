@@ -1,8 +1,38 @@
 import numpy as np
 from scipy import stats
 
-from ..distributions.api import Normal, HalfNormal
+from theano import tensor
+
+from ..distributions.api import Beta, HalfNormal
 from .module import Module
+
+
+def plot_probability_distribution(n_outputs):
+    '''
+    Illustrates how the Beta priors for the gaussian weight channel centers work
+    by plotting the probability distribution for each.
+    '''
+    x = np.arange(0, 1, 1000)
+
+    middle_index = (n_outputs-1)/2
+    for i in range(n_outputs):
+        alpha = n_outputs + 1
+        beta = i + 1
+        print(i, (n_outputs-1)/2)
+        if i < (n_outputs-1)/2:
+            alpha = n_outputs + 1
+            beta = i + 1
+        elif i == (n_outputs-1)/2:
+            alpha = n_outputs + 1
+            beta = n_outputs + 1
+        else:
+            beta = n_outputs + 1
+            alpha = n_outputs-i
+
+        y = stats.beta(alpha, beta).pdf(x)
+        pl.plot(x, y, label='Channel ' + str(i))
+
+    pl.legend()
 
 
 def weight_channels(x, weights):
@@ -40,21 +70,25 @@ class BaseWeightChannels(Module):
         self.input_name = input_name
         self.output_name = output_name
 
-    def get_inputs(self):
-        return {
-            self.input_name: (Ellipsis, -1, -1, -1),
-        }
-
-    def get_outputs(self):
-        return {
-            self.output_name: (Ellipsis, self.n_outputs, -1, -1),
-        }
-
     def evaluate(self, data, phi):
         x = data[self.input_name]
-        weights = self.get_weights(x.shape[0], phi)
+        n = x.shape[0]
+        # Add a half step to the array so that x represents the bin "centers".
+        channel_centers = np.arange(n)/n + 0.5/n
+        weights = self.get_weights(channel_centers, phi)
         return {
             self.output_name: weight_channels(x, weights)
+        }
+
+    def generate_tensor(self, data, phi):
+        x = data[self.input_name]
+        n = x.shape[0]
+        # Add a half step to the array so that x represents the bin "centers".
+        #x = np.arange(n)/n + 0.5/n
+        channel_centers = tensor.arange(n)/n + 0.5/n
+        weights = self.get_weights(channel_centers, phi)
+        return {
+            self.output_name: tensor.dot(weights, x)
         }
 
     def from_json(self, json_dict):
@@ -74,25 +108,53 @@ class WeightChannelsGaussian(BaseWeightChannels):
     '''
 
     def get_priors(self, initial_data):
-        # Space the priors for each output channel evenly along the normalized
-        # frequency axis (where 0 is the min frequency and 1 is the max
-        # frequency).
-        mu = np.linspace(0, 1, self.n_outputs)
-        mu_sd = np.full_like(mu, 0.5)
-        sd = np.full_like(mu, 0.2)
+        '''
+        Channel weights are specified in the range [0, 1] with 0 being the
+        lowest frequency in the input spectrogram and 1 being the highest.
+        Hence, the prior must be constrained to the range [0, 1]. Acceptable
+        priors include Uniform and Beta priors.
+
+        In this implementation we use Beta priors such that the center for each
+        channel can fall anywhere in the range [0, 1]; however, the first
+        channel is most likely to fall at the lower end of the frequency axis
+        and the last channel at the higher end of the frequency axis.
+
+        See `plot_probability_distribution` to understand how the weights for
+        each work.
+        '''
+        alpha = []
+        beta = []
+        i_middle = (self.n_outputs-1)/2
+        for i in range(self.n_outputs):
+            if i < i_middle:
+                # This is one of the low-frequency channels.
+                a = self.n_outputs + 1
+                b = i + 1
+            elif i == i_middle:
+                # Center the prior such that the expected value for the channel
+                # falls at 0.5
+                a = self.n_outputs + 1
+                b = self.n_outputs + 1
+            else:
+                # This is one of the high-frequency channels
+                a = self.n_outputs-i
+                b = self.n_outputs + 1
+            alpha.append(a)
+            beta.append(b)
+
+        sd = np.full(self.n_outputs, 0.2)
         return {
-            'mu': Normal(mu=mu, sd=mu_sd),
-            'sd': HalfNormal(sd=sd),
+            'mu': Beta(alpha, beta),
+            'sd': HalfNormal(sd),
         }
 
-    def get_weights(self, n, phi):
-        mu = phi['mu']
-        sd = phi['sd']
+    def get_weights(self, x, phi):
 
-        # Add a half step to the array so that x represents the bin "centers".
-        x = np.arange(n, dtype=np.float)/n + 0.5/n
-        weights = [stats.norm.pdf(x, loc=m, scale=s) for m, s in zip(mu, sd)]
+        # Set up so that the channels are broadcast along the last dimension
+        # (columns) and each row represents the weights for one of the output
+        # channels.
+        mu = phi['mu'][..., np.newaxis]
+        sd = phi['sd'][..., np.newaxis]
+        weights = 1/(sd*np.sqrt(2*np.pi)) * np.exp(-0.5 * ((x-mu)/sd)**2)
+        return weights.astype('float32')
 
-        # Normalize so the sum of the weights equals 1
-        weights = np.array(weights)/n
-        return weights
