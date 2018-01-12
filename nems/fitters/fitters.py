@@ -922,21 +922,24 @@ class fit_iteratively(nems_fitter):
     sub_fitter = None
     max_iter = 100
     module_sets=[]
-    tolerance=0.000001
+    tolerance=0.0000001  # deprecated
+    start_tolerance=0.000001  # start tolerance
+    min_tolerance=0.00000001  # end tolerance
 
     def my_init(self, sub_fitter=basic_min, max_iter=100,
-                min_kwargs={'routine': 'L-BFGS-B', 'maxit': 10000}):
+                min_kwargs={'routine': 'L-BFGS-B', 'maxit': 10000},
+                start_tolerance=0.00001, min_tolerance=0.00000001):
         self.sub_fitter = sub_fitter(self.stack, **min_kwargs)
         self.max_iter = max_iter
         self.module_sets = [[i] for i in self.fit_modules]
 
     def do_fit(self):
-        self.sub_fitter.tolerance = self.tolerance
+        self.sub_fitter.tolerance = self.start_tolerance
         itr = 0
         err = self.stack.error()
         this_itr = 0
-
-        while itr < self.max_iter:
+        d_err=1
+        while itr < self.max_iter and d_err>self.min_tolerance:
             this_itr += 1
 
             for i in self.module_sets:
@@ -945,24 +948,36 @@ class fit_iteratively(nems_fitter):
                                  self.sub_fitter.tolerance))
                 self.sub_fitter.fit_modules = i
                 new_err = self.sub_fitter.do_fit()
-            if err - new_err < self.sub_fitter.tolerance:
-                log.info("\nError improvement less than tol,"
-                         "starting new outer iteration")
+                
+            d_err=err-new_err
+            
+            if d_err < self.sub_fitter.tolerance and d_err>self.min_tolerance:
+                log.info("\nIter {0}: error improvement < tol {1}, "
+                         "starting new outer iteration"
+                         .format(itr,self.sub_fitter.tolerance))
                 itr += 1
                 self.sub_fitter.tolerance = self.sub_fitter.tolerance / 2
                 this_itr = 0
-            elif this_itr > 20:
+            elif this_itr > 20 and d_err>self.min_tolerance:
                 log.info("\nToo many loops at this tolerance, stuck?")
                 itr += 1
                 self.sub_fitter.tolerance = self.sub_fitter.tolerance / 2
                 this_itr = 0
-
+                
             err = new_err
-
+        
+        # report that fit is complete and why stopped
+        if itr > self.max_iter:
+            log.info("\nIter {0}: max number of iterations completed"
+                         .format(itr))
+        if d_err<=self.min_tolerance:
+            log.info("\nIter {0}: error improvement < min_tolerance"
+                         .format(itr,self.min_tolerance))
+            
         # Fit all params together aferward. If iterative fit did its job,
         # this should be a very short operation.
         # May only be useful for testing.
-        log.debug("Subfitting complete, beginning whole-model fit...")
+        log.info("Subfitting complete, beginning a final whole-model fit (DELETE ME?)")
         self.sub_fitter.fit_modules = self.fit_modules
         err = self.sub_fitter.do_fit()
 

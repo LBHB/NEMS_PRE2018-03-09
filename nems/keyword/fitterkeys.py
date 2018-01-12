@@ -194,10 +194,12 @@ def fititer01(stack):
 
     Should be appended last in a modelname (excepting "nested" keywords)
     """
-    stack.append(nm.metrics.mean_square_error, shrink=0.5)
+    stack.append(nm.metrics.mean_square_error) # , shrink=0.5
     stack.error = stack.modules[-1].error
-
-    stack.fitter = nems.fitters.fitters.fit_iteratively(stack, max_iter=10)
+    
+    stack.fitter = nems.fitters.fitters.fit_iteratively(stack, max_iter=10,
+                                                        start_tolerance=0.000001 ,
+                                                        min_tolerance=0.00000001)
     stack.fitter.sub_fitter = nems.fitters.fitters.basic_min(stack)
 
     stack.fitter.do_fit()

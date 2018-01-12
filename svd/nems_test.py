@@ -63,21 +63,24 @@ if 0:
     modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
     batch=269
 
-if 0:
+if 1:
     """ NAT SOUND """
     #cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
     #cellid='bbl070i-a1'
     #batch=291  # IC
 
-    #cellid="bbl031f-a1"
-    cellid="eno052b-c1"
+    cellid="chn020f-b1"
+    #cellid="eno052b-c1"
     #cellid='chn020f-b1'
     #cellid='chn029d-a1'
     #cellid='TAR010c-21-1'
     batch=271 #A1
     #modelname="fb18ch100_wc01_fir15_fit01"
-    modelname="fb18ch100_wcg01_fir15_fit01"
+    
+    #modelname="fb18ch100_wcg01_fir15_fit01"
+    modelname="fb18ch100_wcg01_fir15_fititer01"
+    
     #modelname="fb18ch100_wcg01_fir15_fitannl00"
     #modelname="ctx100ch100_dlog_wc02_fir15_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
@@ -164,7 +167,7 @@ if 0:
     #modelname="env100_dlog_fir15_dexp_fit03"
 
 """ Fitter comparisons """
-if 1:
+if 0:
     # matched np.org:
     batch = 271
     #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
@@ -194,7 +197,7 @@ if 1:
     # forest_minimize: mse 0.505, est 0.501, val 0.617
     # gbrt_minimize: mse 0.505, est 0.501, val 0.616
     # fit02: mse 0.504, est 0.501, val 0.616 (and much faster)
-    cellid='chn020f-b1'; modelname="fb18ch100_wcr01_fir15_fit01"
+    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
     # gp_minimize: MSE 0.615, r_est 0.629, r_val 0.826
     # forest_minimize: mse 0.615, est 0.629, val 0.826
     # gbrt_minimize: mse 0.6204, est 0.626, val 0.816
