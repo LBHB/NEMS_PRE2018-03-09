@@ -268,6 +268,77 @@ def load_spike_raster(spkfile, options, nargout=None):
     else:
         return r, tags, trialset, exptevents
     
+def load_pupil_raster(pupfile, options):
+    '''
+    # CRH added 1-12-2018, work in progress - meant to mirror the output of 
+    baphy's loadevpraster for pupil=1
+    
+    inputs:
+        spkfile - name of .spk.mat file generated using meska
+
+        options - structure can contain the following fields:
+            pupil: must be = 1 or will not load pupil
+            rasterfs in Hz (default 1000)
+            includeprestim - raster includes silent period before stimulus onset
+            tag_masks - cell array of strings to filter tags, eg,
+                {'torc','reference'} or {'target'}.  AND logic.  default ={}
+            psthonly - shape of r (default -1, see below)
+            sorter - preferentially load spikes sorted by sorter.  if not
+                sorted by sorter, just take primary sorting
+            lfpclean - [0] if 1, remove MSE prediction of spikes (single
+                trial) predicted by LFP
+            includeincorrect - if 1, load all trials, not just correct (default 0)
+            runclass - if set, load only data for runclass when multiple runclasses
+                in file
+                
+            pupil_offset   see baphy documentation on loadevpraster
+            pupil_median
+        
+     outputs:
+        p: pupil raster in same shape as spike raster for same params        
+    '''
+    
+    # ========== see if cache file exists =====================
+    need_matlab=0 # if set to 1, use matlab engine to generate the cache file
+    
+    # get path to spkfile
+    if(len(pupfile.split('/'))==1):
+        path_to_pupfile = os.getcwd()   
+    else: 
+        path_to_pupfile = os.path.dirname(pupfile)
+      
+    
+    # define the cache file name using fucntion written below    
+    cache_fn= pupil_cache_filename(pupfile,options)
+    
+    # make cache directory if it doesn't already exist
+    path_to_cacheFile = path_to_pupfile+'/tmp/'
+    cache_file = os.path.join(path_to_cacheFile,cache_fn)
+    print('loading from cache:')
+    print(cache_file)
+    if(os.path.isdir(path_to_cacheFile) and os.path.exists(cache_file)):
+        out = si.loadmat(cache_file)
+        p = out['r']           # it's called r in loadevpraster (where it's generated)       
+    else:
+        need_matlab = 1
+        
+    
+
+    # Generate the cache file so that it can be loaded by python
+    if need_matlab:
+        # only start the matlab engine if the cached file doesn't exist
+        import matlab.engine
+        eng = matlab.engine.start_matlab()
+        baphy_util_path = '/auto/users/hellerc/baphy/Utilities'
+        eng.addpath(baphy_util_path,nargout=0)
+        # call matlab function to make the requested array
+        eng.loadevpraster(pupfile, options, nargout=0)    # Don't want to pass stuff back. evpraster will cache the file
+        out = si.loadmat(cache_file)
+        p = out['r']
+
+    return p
+    
+
 def spike_cache_filename(spkfile,options):
     '''
     Given the spkfile and options passed to load_spike_raster, generate the filename that 
@@ -319,13 +390,25 @@ def spike_cache_filename(spkfile,options):
 def pupil_cache_filename(pupfile, options):
     # parse the input in options
     try: pupil=options['pupil']; pupil_str='_pup';
-    except: sys.exit('options does not set pupil=1')
+    except: sys.exit('options does not set pupil=1')   
     
-    try: offset=options['pupil_offset']; offset_str='_offset-'+str(offset);
-    except: offset_str='';
-    
-    try: med=options['pupil_median']; offset_str='_med-'+str(med);
-    except: med_str='';
+    if 'pupil_offset' in options:
+        offset = options['pupil_offset']
+        if offset==0.75: #matlab default in evpraster 
+            offset_str='';
+        else:
+            offset_str='_offset-'+str(offset)
+    else:
+        offset_str=''
+      
+    if 'pupil_offset' in options:
+        med = options['pupil_median']
+        if med==0: #matlab default in evpraster 
+            med_str='';
+        else:
+            med_str='_med-'+str(med)
+    else:
+       med_str=''
     
     try: rasterfs=options['rasterfs']
     except: rasterfs=1000.   # must be float for matlab if matlab engine is called
@@ -350,7 +433,6 @@ def pupil_cache_filename(pupfile, options):
     
     try: psthonly=options['psthonly']; psthonly=options['psthonly'];
     except: psthonly=-1;
-    
     
    
     

@@ -6,13 +6,17 @@ Created on Mon Jan  8 13:10:25 2018
 @author: hellerc
 """
 
-from baphy import load_spike_raster, cache_filename
+import os
+import sys
+sys.path.append('/auto/users/hellerc/nems/nems/utilities')
+from baphy import load_spike_raster, spike_cache_filename, pupil_cache_filename, load_pupil_raster
 import matplotlib.pyplot as plt
 import nems.db as db
 import numpy as np
-import os
+
 
 folder = '/auto/data/daq/Tartufo/TAR010/sorted/'
+pfolder='/auto/data/daq/Tartufo/TAR010/'
 site='TAR010c'
 runclass='PTD'
 
@@ -20,12 +24,22 @@ files=os.listdir(folder)
 
 to_open = []
 for f in files:
-    if 'PTD' in f:
+    if runclass in f:
         to_open.append(f)
     else:
         pass
 
+pfiles=os.listdir(pfolder)
+p_files_to_open = []
+for f in pfiles:
+    if runclass in f and 'pup.mat' in f:
+        p_files_to_open.append(f)
+    else:
+        pass
+    
+    
 cache_path=folder+'cache/'
+p_cache_path = pfolder+'tmp/'
 cellids=np.unique(db.get_cell_files(cellid=site,runclass=runclass)['cellid'].values)
 ch_un = [unit[-4:] for unit in cellids]
 cellcount=len(cellids)
@@ -41,10 +55,17 @@ parms={
         'unit':1
     }
 
+pup_parms = parms
+pup_parms['pupil']=1
+
 
 resp_list=[]
+p_list=[]
 act_pass=[]
-for f in to_open:
+for i, f in enumerate(to_open):
+    
+    ptemp = load_pupil_raster(pfolder+p_files_to_open[i],pup_parms)
+    
     samp = load_spike_raster(folder+f,parms)
     temp = np.empty((samp.shape[0],samp.shape[1],samp.shape[2],cellcount))
     
@@ -60,11 +81,15 @@ for f in to_open:
         else:
             parms['channel']=cell[0:2]
         
-        fn=cache_filename(f, parms)    
+        fn=spike_cache_filename(f, parms)    
         rt = load_spike_raster(folder+f,parms)
         print(rt.shape)
         temp[:,:,:,i] = rt
+        
     resp_list.append(temp)
-    
+    p_list.append(ptemp)
 r = np.concatenate(resp_list,axis=1)
+p = np.concatenate(p_list,axis=1)
 a_p =np.concatenate(act_pass)
+
+
