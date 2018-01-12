@@ -84,6 +84,8 @@ stack=nems.fit_single_model(cellid, batch, modelname, saveInDB=False)
 
 # CASE 6 (NOT IMPLEMENTED YET)
 # generic user scheme. load the data and then ask nems to do the fitting
+
+
 file=nu.baphy.get_celldb_file(batch, cellid,fs=100, stimfmt='ozgf', chancount=18)
 d=nu.io.load_baphy_data(est_files=[file], fs=100)
 
@@ -96,9 +98,16 @@ X_val=X[:,3:,:]
 Y_val=Y[:,3:,:]
 
 # this is pseudo code, hasn't been written yet!
+
+stack=generated_skeleton_stack_with_no_parameters(model_string)
+stack.data_getter=my_load('stimulusfile','respfile')
+
+stack.data_getter=use(X,Y)
+
 stack=fit_dumb_model(stim=X_est,resp=Y_est)
 r=test_dumb_model(stack=stack,stim=X_val,resp=Y_val)
 
+save_dumb_model_as_json(stack)
 
 # CASE 7 (NOT IMPLEMENTED YET)
 # Relevant to DS's pupil/behavior project

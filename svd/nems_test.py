@@ -70,7 +70,8 @@ if 1:
     #cellid='bbl070i-a1'
     #batch=291  # IC
 
-    cellid="chn020f-b1"
+    cellid="zee015e-04-1"
+    #cellid="chn020f-b1"
     #cellid="eno052b-c1"
     #cellid='chn020f-b1'
     #cellid='chn029d-a1'
@@ -78,8 +79,8 @@ if 1:
     batch=271 #A1
     #modelname="fb18ch100_wc01_fir15_fit01"
     
-    #modelname="fb18ch100_wcg01_fir15_fit01"
-    modelname="fb18ch100_wcg01_fir15_fititer01"
+    modelname="fb18ch100_wcg01_fir15_fit01"
+    #modelname="fb18ch100_wcg01_fir15_fititer01"
     
     #modelname="fb18ch100_wcg01_fir15_fitannl00"
     #modelname="ctx100ch100_dlog_wc02_fir15_fit01"
