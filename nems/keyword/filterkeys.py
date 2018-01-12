@@ -24,6 +24,18 @@ def wc(stack, output_channels):
     output_channels : int
         Number of filters to apply to input stream.
     '''
+    stack.append(filters.WeightChannels, num_chans=output_channels,
+                 norm_output=True)
+
+def wc_raw(stack, output_channels):
+    '''
+    Applies a n-channel spectral filter to the data stream. Don't normalize
+
+    Parameters
+    ----------
+    output_channels : int
+        Number of filters to apply to input stream.
+    '''
     stack.append(filters.WeightChannels, num_chans=output_channels)
 
 
@@ -105,6 +117,8 @@ def parse_wc(groups):
     transform = groups[0]
     if transform is None:
         return partial(wc, output_channels=output_channels)
+    elif transform == 'r':
+        return partial(wc_raw, output_channels=output_channels)
     elif transform == 'g':
         return partial(wc_gaussian, output_channels=output_channels)
     elif transform == 'c':

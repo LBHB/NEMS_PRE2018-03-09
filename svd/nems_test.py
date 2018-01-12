@@ -155,7 +155,7 @@ if 0:
     #modelname="env100e_fir20_dexp_fit01"
 
 """ SPN test """
-if 1:
+if 0:
     #cellid='gus018d-d1'
     cellid="eno024d-b1"
     #cellid="por016d-a1"
@@ -164,7 +164,7 @@ if 1:
     #modelname="env100_dlog_fir15_dexp_fit03"
 
 """ Fitter comparisons """
-if 0:
+if 1:
     # matched np.org:
     batch = 271
     #cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
@@ -194,7 +194,7 @@ if 0:
     # forest_minimize: mse 0.505, est 0.501, val 0.617
     # gbrt_minimize: mse 0.505, est 0.501, val 0.616
     # fit02: mse 0.504, est 0.501, val 0.616 (and much faster)
-    cellid='chn020f-b1'; modelname="fb18ch100_wc01_fir15_fit01"
+    cellid='chn020f-b1'; modelname="fb18ch100_wcr01_fir15_fit01"
     # gp_minimize: MSE 0.615, r_est 0.629, r_val 0.826
     # forest_minimize: mse 0.615, est 0.629, val 0.826
     # gbrt_minimize: mse 0.6204, est 0.626, val 0.816
