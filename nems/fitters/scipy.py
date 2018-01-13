@@ -17,7 +17,7 @@ class ScipyFitter(Fitter):
         vector = phi_to_vector(phi)
         self.phi_template = phi
         return optimize.fmin(self.cost_function, vector, args=(model, signals),
-                             **optimize_kw)
+                             **self.optimize_kw)
 
     def get_initial_phi(self, model):
         priors = model.get_priors()
@@ -33,3 +33,17 @@ class ScipyFitter(Fitter):
     def evalauate(self, vector, model, signals):
         phi = vector_to_phi(vector, self.phi_template)
         return self.cost_function(model, signals, phi)
+
+class ScipyMinimizeFitter(ScipyFitter):
+    """Fits the model using scipy.optimize.minimize instead of .fmin.
+    TODO: Other ways to do this, but this seemed the simplest for now.
+          -jacob, 1-13-18
+
+    """
+
+    def fit(self, model, signals):
+        phi = self.get_initial_phi(model)
+        vector = phi_to_vector(phi)
+        self.phi_template = phi
+        return optimize.minimize(self.cost_function, vector,
+                                 args=(model, signals), **self.optimize_kw)

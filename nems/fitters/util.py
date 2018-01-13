@@ -1,3 +1,5 @@
+import numpy as np
+
 def phi_to_vector(phi):
     '''
     Convert a list of dictionaries where the values are scalars or array-like
