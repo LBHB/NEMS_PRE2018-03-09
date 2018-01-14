@@ -181,6 +181,7 @@ class LOGGING_DEFAULTS():
                     'nems': {'level': 'DEBUG'},
                     'nems_config': {'level': 'DEBUG'},
                     'nems_scripts': {'level': 'DEBUG'},
+                    'nems_web': {'level': 'DEBUG'},
                     },
             'root': {
                     'handlers': ['console'],
