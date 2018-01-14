@@ -1,4 +1,12 @@
+"""DO NOT USE FOR THE TIME BEING, might be re-implemented at a later date.
+    -jacob 1/13/2018
+"""
+
 def web_print(s):
+    print(s)
+    return
+
+"""
     use_app = False
     try:
         from nems_web.nems_analysis import app
@@ -18,3 +26,4 @@ def web_print(s):
         )
     else:
         print(s)
+"""

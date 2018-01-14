@@ -13,7 +13,6 @@ import logging
 log = logging.getLogger(__name__)
 
 import os
-import sys
 import datetime
 
 import numpy as np
@@ -232,7 +231,7 @@ def _enqueue_single_model(
         .first()
     )
     if result and not force_rerun:
-        web_log.info(
+        web_print(
             "Entry in NarfResults already exists for: %s, skipping.\n" %
             note)
         session.close()
@@ -284,7 +283,7 @@ def _enqueue_single_model(
         message = "Adding job to queue for: %s\n" % note
         job = _add_model_to_queue(
             commandPrompt, note, user, codeHash, jerbQuery
-        )
+            )
         cluster_session.add(job)
 
     cluster_session.commit()
@@ -301,10 +300,8 @@ def _enqueue_single_model(
     return queueid, message
 
 
-def _add_model_to_queue(
-        commandPrompt, note, user, codeHash, jerbQuery, priority=1,
-        rundataid=0,
-):
+def _add_model_to_queue(commandPrompt, note, user, codeHash, jerbQuery,
+                        priority=1, rundataid=0):
     """
     Returns:
     --------
@@ -362,10 +359,7 @@ def update_job_complete(queueid):
     # conn.close()
     conn = cluster_engine.connect()
     # tick off progress, job is live
-    sql = (
-        "UPDATE tQueue SET complete=1 WHERE id={}"
-        .format(queueid)
-    )
+    sql = "UPDATE tQueue SET complete=1 WHERE id={}".format(queueid)
     r = conn.execute(sql)
     conn.close()
     return r
@@ -396,10 +390,8 @@ def update_job_complete(queueid):
 def update_job_start(queueid):
     conn = cluster_engine.connect()
     # mark job as active and progress set to 1
-    sql = (
-        "UPDATE tQueue SET complete=-1,progress=1 WHERE id={}"
-        .format(queueid)
-    )
+    sql = ("UPDATE tQueue SET complete=-1,progress=1 WHERE id={}"
+           .format(queueid))
     r = conn.execute(sql)
     conn.close()
     return r
@@ -408,10 +400,7 @@ def update_job_start(queueid):
 def update_job_tick(queueid):
     conn = cluster_engine.connect()
     # tick off progress, job is live
-    sql = (
-        "UPDATE tQueue SET progress=progress+1 WHERE id={}"
-        .format(queueid)
-    )
+    sql = "UPDATE tQueue SET progress=progress+1 WHERE id={}".format(queueid)
     r = conn.execute(sql)
     conn.close()
     return r
@@ -548,7 +537,7 @@ def _fetch_attr_value(stack, k, default=0.0):
     """Return the value of key 'k' of stack.meta, or default."""
 
     # if stack.meta[k] is a string, return it.
-    # if it's an ndarray or anything else with indicies, get the first index;
+    # if it's an ndarray or anything else with indices, get the first index;
     # otherwise, just get the value. Then convert to scalar if np data type.
     # or if key doesn't exist at all, return the default value.
     if k in stack.meta:
@@ -575,51 +564,52 @@ def _fetch_attr_value(stack, k, default=0.0):
 
 def get_batch_cells(batch=None, cellid=None):
     # eg, sql="SELECT * from NarfBatches WHERE batch=301"
-    params=()
-    sql="SELECT * FROM NarfBatches WHERE 1"
+    params = ()
+    sql = "SELECT * FROM NarfBatches WHERE 1"
     if not batch is None:
-        sql+=" AND batch=%s"
-        params=params+(batch,)
-        
+        sql += " AND batch=%s"
+        params = params+(batch,)
+
     if not cellid is None:
-       sql+=" AND cellid like %s"
-       params=params+(cellid+"%",)
+       sql += " AND cellid like %s"
+       params = params+(cellid+"%",)
     print(sql)
     print(params)
-    d=pd.read_sql(sql=sql,con=engine, params=params)
-    
+    d = pd.read_sql(sql=sql, con=engine, params=params)
+
     return d
 
 def get_batches(name=None):
     # eg, sql="SELECT * from NarfBatches WHERE batch=301"
-    params=()
-    sql="SELECT *,id as batch FROM sBatch WHERE 1"
+    params = ()
+    sql = "SELECT *,id as batch FROM sBatch WHERE 1"
     if not name is None:
-        sql+=" AND name like %s"
-        params=params+("%"+name+"%",)
-    d=pd.read_sql(sql=sql,con=engine, params=params)
-    
+        sql += " AND name like %s"
+        params = params+("%"+name+"%",)
+    d = pd.read_sql(sql=sql, con=engine, params=params)
+
     return d
 
-def get_cell_files(cellid=None,runclass=None):
+def get_cell_files(cellid=None, runclass=None):
     # eg, sql="SELECT * from sCellFile WHERE cellid like "TAR010c-30-1"
-    params=()
-    sql="SELECT sCellFile.*,gRunClass.name FROM sCellFile INNER JOIN gRunClass on sCellFile.runclassid=gRunClass.id WHERE 1"
+    params = ()
+    sql = ("SELECT sCellFile.*,gRunClass.name FROM sCellFile INNER JOIN "
+           "gRunClass on sCellFile.runclassid=gRunClass.id WHERE 1")
     if not cellid is None:
-        sql+=" AND cellid like %s"
-        params=params+("%"+cellid+"%",)
+        sql += " AND cellid like %s"
+        params = params+("%"+cellid+"%",)
     if not runclass is None:
-        sql+=" AND gRunClass.name like %s"
-        params=params+("%"+runclass+"%",)
-    d=pd.read_sql(sql=sql,con=cluster_engine, params=params)
-    
+        sql += " AND gRunClass.name like %s"
+        params = params+("%"+runclass+"%",)
+    d = pd.read_sql(sql=sql, con=cluster_engine, params=params)
+
     return d
 
 def list_batches(name=None):
-    d=get_batches(name)
+    d = get_batches(name)
     for x in range(0,len(d)):
         print("{} {}".format(d['batch'][x],d['name'][x]))
-    
+
     return d
 
 
@@ -627,12 +617,14 @@ def get_data_parms(rawid=None, parmfile=None):
     # get parameters stored in gData associated with a rawfile
 
     if rawid is not None:
-        sql = "SELECT gData.* FROM gData INNER JOIN gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.id={0}".format(
-            rawid)
+        sql = ("SELECT gData.* FROM gData INNER JOIN "
+               "gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.id={0}"
+               .format(rawid))
         #sql="SELECT * FROM gData WHERE rawid={0}".format(rawid)
     elif parmfile is not None:
-        sql = "SELECT gData.* FROM gData INNER JOIN gDataRaw ON gData.rawid=gDataRaw.id WHERE gDataRaw.parmfile = '{0}'".format(
-            parmfile)
+        sql = ("SELECT gData.* FROM gData INNER JOIN gDataRaw ON"
+               "gData.rawid=gDataRaw.id WHERE gDataRaw.parmfile = '{0}'"
+               .format(parmfile))
         log.info(sql)
     else:
         pass
