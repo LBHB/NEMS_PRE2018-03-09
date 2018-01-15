@@ -88,3 +88,7 @@ stack.quick_plot()
 
 # TODO - save in JSON format with or without data matrix
 # PSEUDOCODE: nu.io.save_dumb_model_as_json(stack)
+#
+# open questions/options
+# 1. save only metadata and fit parameters
+# 2. save metadata, fit parameters and input signals
