@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 
-class Signal():-
+class Signal():
 
     def __init__(self, **kwargs):
         ''' 
@@ -261,7 +261,7 @@ class Signal():-
         m_normed = (m - m.min(0)) / m.ptp(0)    
         return self._modified_copy(m_normed)
 
-    def split_by_reps(self, fraction):
+    def split_at_rep(self, fraction):
         '''
         Returns a tuple of two signals split at fraction (rounded to the nearest
         repetition) of the original signal. If you had 10 reps of T time samples
@@ -290,7 +290,7 @@ class Signal():-
                    matrix=right.reshape(-1, self.nchans))
         return (l, r)
 
-    def split_by_time(self, fraction):
+    def split_at_time(self, fraction):
         '''
         Returns a tuple of 2 new signals; because this may split
         one of the repetitions unevenly, it sets the nreps to 1 in both of

@@ -34,14 +34,14 @@
 # ----------------------------------------------------------------------------
 # DATA LOADING AND SPLITTING
 
-import nems.signal as signal
+from nems.recording import Recording
 
 # Load the data: a dict of Signal objects
-sigs = signal.load_signals_in_dir('signals/gus027b13_p_PPS/')
+rec = Recording.load('signals/gus027b13_p_PPS/')
 
 # Alternatively, from the (soon to be created) API:
-URL = "neuralprediction.org:3003/signals?batch=273&cellid=gus027b13-a1"
-sigs = fetch_signals_over_http(URL)
+#URL = "neuralprediction.org:3003/signals?batch=273&cellid=gus027b13-a1"
+#sigs = fetch_signals_over_http(URL)
 
 # For now, just assume that sigs looks roughly like this:
 # sigs = {'stim': signal.Signal(...),
@@ -50,7 +50,7 @@ sigs = fetch_signals_over_http(URL)
 
 # Create est dataset from the first 80%, and val from the last 20%
 # (The Signal class has other ways of splitting/combining files & signals)
-est, val = signal.split_signals_by_time(sigs, 0.8)
+est, val = rec.split_at_time(0.8)
 
 # Open question: even though it is only a few lines, how and where should
 # this information be recorded? The data set that a model was trained on
@@ -92,7 +92,7 @@ modelspec = [{'fn': 'nems.modules.fir',       # The pure function to call
 # |--------------------------------------+---------------------------------------|
 # | f(modelspec, data) -> pred           | EVALUATOR. Makes a model's prediction |
 # | f(pred) -> error                     | METRIC. Evaluates predictive accuracy |
-# | f(modelspec, evaluator) -> modelspec | FITTER. Finds a better modelspec      |
+# | f(modelspec, metric, evaluator) -> modelspec | FITTER. Finds a better modelspec      |
 #
 # where:
 #   data       is a dict of signals, like {'stim': ..., 'resp': ..., ...}
@@ -117,7 +117,7 @@ est_evaluator = partial(evaluator, est)
 
 # Perform the fit on est data set using standard gradient_descent
 fitter = nems.fitter.gradient_descent
-modelspec_fitted = fitter(modelspec, est_evaluator)
+modelspec_fitted = fitter(modelspec, metric, est_evaluator)
 
 # Take your final measurements on the validation data set, and save!
 results = {}
@@ -222,3 +222,4 @@ def random_subset_fitter(modelspec, cost_fn,
 #      not really in existance; they are just part of the modelspec datastructure)
 # - Return the whole set of modelspecs trained on the jackknifed est data
 # etc
+

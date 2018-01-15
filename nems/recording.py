@@ -1,4 +1,5 @@
-import .signal
+import os
+from .signal import Signal
 
 
 class Recording():
@@ -25,8 +26,8 @@ class Recording():
         returns a Recording object containing all of them.
         '''
 
-        files = list_signals_in_dir(directory)
-        filepaths = [os.path.join(directory, f) for f in files]
+        files = Signal.list_signals(directory)
+        basepaths = [os.path.join(directory, f) for f in files]
         signals = [Signal.load(f) for f in basepaths]
         signals_dict = {s.name: s for s in signals}
         return Recording(signals=signals_dict)
@@ -46,22 +47,22 @@ class Recording():
             s.save(directory)
         pass
 
-    def split_by_reps(self, fraction):
+    def split_at_rep(self, fraction):
         '''
-        Calls split_by_reps() on all signal objects in this recording.
+        Calls split_at_rep() on all signal objects in this recording.
         '''
 
         left = {}
         right = {}
         for s in self.signals.values():
-            (l, r) = s.split_by_reps(fraction)
+            (l, r) = s.split_at_rep(fraction)
             left[l.name] = l
             right[r.name] = r
         return (Recording(signals=left), Recording(signals=right))
 
     def split_at_time(self, fraction):
         '''
-        Calls split_by_time() on all signal objects in this recording.
+        Calls split_at_time() on all signal objects in this recording.
         For example, fraction = 0.8 will result in two recordings,
         with 80% of the data in the left, and 20% of the data in
         the right signal. Useful for making est/val data splits, or
@@ -71,7 +72,7 @@ class Recording():
         left = {}
         right = {}
         for s in self.signals.values():
-            (l, r) = s.split_by_time(fraction)
+            (l, r) = s.split_at_time(fraction)
             left[l.name] = l
             right[r.name] = r
         return (Recording(signals=left), Recording(signals=right))

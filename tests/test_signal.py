@@ -125,9 +125,9 @@ def test_normalized_by_bounds(example_signal_object):
     assert(1.0 == sn._matrix.max())
 
 
-def test_split_by_reps(example_signal_object):
+def test_split_at_rep(example_signal_object):
     sig = example_signal_object
-    l, r = sig.split_by_reps(0.8)
+    l, r = sig.split_at_rep(0.8)
     print(sig.as_repetition_matrix().shape)
     print(l.as_repetition_matrix().shape)
     print(r.as_repetition_matrix().shape)
@@ -136,9 +136,9 @@ def test_split_by_reps(example_signal_object):
     assert((20, 2, 3) == r.as_repetition_matrix().shape)
 
 
-def test_split_by_time(example_signal_object):
+def test_split_at_time(example_signal_object):
     sig = example_signal_object
-    l, r = sig.split_by_time(0.81)
+    l, r = sig.split_at_time(0.81)
     print(sig.as_single_trial().shape)
     print(l.as_single_trial().shape)
     print(r.as_single_trial().shape)
