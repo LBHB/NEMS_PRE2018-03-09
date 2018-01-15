@@ -208,6 +208,7 @@ def mini_fit(stack, mods=['filters.weight_channels',
     if 'mini_fit' in stack.meta.keys() and not stack.meta['mini_fit']:
         return
     
+    log.info("Running mini_fit on modules: {0}".format(', '.join(mods)))
     stack.append(nems.modules.metrics.mean_square_error, shrink=0.05)
     stack.error = stack.modules[-1].error
     fitidx = []

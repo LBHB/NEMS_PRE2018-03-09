@@ -37,7 +37,7 @@ def dlog(stack):
     where x is the input matrix and v1 is a fitted parameter applied to each
     matrix entry (the same across all entries)
     """
-    stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], phi=[-2])
+    stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], phi=np.array([[-2]]))
 
 
 def exp(stack):
@@ -49,7 +49,7 @@ def exp(stack):
 
     Performs a fit on the nonlinearity parameters, as well.
     """
-    stack.append(nm.nonlin.gain, nltype='exp', fit_fields=['phi'], phi=[1, 1])
+    stack.append(nm.nonlin.gain, nltype='exp', fit_fields=['phi'], phi=np.array([[1, 1]]))
     mini_fit(stack, mods=['nonlin.gain'])
 
 
@@ -76,7 +76,7 @@ def dexp(stack):
     # phi=[max_out min_out slope mean_in]
     meanr = np.nanmean(resp)
     stdr = np.nanstd(resp)
-    phi = [meanr + stdr * 4, stdr * 8, np.std(pred) / 10, np.mean(pred)]
+    phi = np.array([[meanr - stdr * 4, stdr * 8, np.std(pred) / 10, np.mean(pred)]])
     log.info(phi)
     stack.append(nm.nonlin.gain, nltype='dexp', fit_fields=['phi'], phi=phi)
     mini_fit(stack, mods=['nonlin.gain'])
@@ -92,7 +92,7 @@ def logsig(stack):
     pred = stack.modules[-1].unpack_data('pred', use_dout=True)
     meanr = np.mean(resp)
     stdr = np.std(resp)
-    phi = [meanr - stdr * 3, stdr * 6, np.mean(pred), np.std(pred)]
+    phi = np.array([[meanr - stdr * 3, stdr * 6, np.mean(pred), np.std(pred)]])
     stack.append(nm.nonlin.gain, nltype='logsig', fit_fields=['phi'], phi=phi)
     mini_fit(stack, mods=['nonlin.gain'])
 

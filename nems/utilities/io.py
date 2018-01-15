@@ -337,18 +337,20 @@ def load_matlab_matrix(filename=None, key='resp', label=None, channelaxis=None,
             timeaxis=1
         if repaxis is None:
             repaxis=2
-            
+    
+    # create dummy dimensions if not specified
     if channelaxis is None:
         channelaxis=d.ndim
         d=np.expand_dims(d,axis=channelaxis)
     if eventaxis is None:
         eventaxis=d.ndim
         d=np.expand_dims(d,axis=eventaxis)
-    if repaxis is None:
-        repaxis=d.ndim
-        d=np.expand_dims(d,axis=repaxis)
         
-    d=np.transpose(d,axes=[channelaxis,eventaxis,timeaxis,repaxis])
+    if repaxis is None:
+        d=np.transpose(d,axes=[channelaxis,eventaxis,timeaxis])
+    else:
+        d=np.transpose(d,axes=[channelaxis,eventaxis,timeaxis,repaxis])
+        
     return d
 
 

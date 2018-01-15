@@ -35,7 +35,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
 
-import nems_sample as ns
+import demo as ns
 import nems_logs
 SAMPLE_PATH = os.path.dirname(os.path.abspath(ns.__file__))
 NEMS_LOGS_PATH = os.path.dirname(os.path.abspath(nems_logs.__file__))
