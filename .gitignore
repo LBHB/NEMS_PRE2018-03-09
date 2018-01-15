@@ -111,6 +111,7 @@ signals/
 **/database_info.txt
 **/nems_path.txt
 
+**/demo/*
 **/nems_config/*
 !**/nems_config/__init__.py
 !**/nems_config/defaults.py

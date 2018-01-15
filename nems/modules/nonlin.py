@@ -36,22 +36,33 @@ class gain(nems_module):
     phi = np.array([1])
     nltype = 'dlog'
 
-    def my_init(self, nltype='dlog', fit_fields=['phi'], phi=[1]):
+    def my_init(self, nltype='dlog', fit_fields=['phi'], phi=None):
         """
         nltype: type of nonlinearity
         fit_fields: name of fitted parameters
-        phi: initial values for fitted parameters
+        phi: initial values for fitted parameters expects 2d numpy matrix
         """
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         self.fit_fields = fit_fields
         self.nltype = nltype
-        self.phi = np.array([phi])
+        
         if nltype == 'dlog':
             self.do_plot = self.plot_fns[2]
         else:
             self.do_plot = self.plot_fns[1]
-
+            
+        if phi is None:
+            # default depends on the nl type
+            if nltype == 'dexp':
+                phi = np.array([[0,1,10,1]])
+            elif nltype == 'dlog':
+                phi = np.array([[-2]])
+            else:
+                phi = np.array([[1]])
+        
+        self.phi=phi
+        
     def dlog_fn(self, X):
         # threshold input so that minimum of X is 1 and min output is 0
         offset = self.phi[0,0]
@@ -93,8 +104,8 @@ class gain(nems_module):
         return(Y)
 
     def dexp_fn(self, X):
-        Y = self.phi[:, 0:1] - self.phi[:, 1:2] * \
-            np.exp(-np.exp(self.phi[:, 2:3] * (X - self.phi[:, 3:4])))
+        Y = self.phi[:, 0:1] + self.phi[:, 1:2] * \
+            np.exp(-np.exp(-self.phi[:, 2:3] * (X - self.phi[:, 3:4])))
         return(Y)
 
     def poly_fn(self, X):
