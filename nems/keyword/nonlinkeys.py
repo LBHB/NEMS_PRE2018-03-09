@@ -28,7 +28,6 @@ def dlog2(stack):
     matrix entry (the same across all entries)
     """
     stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=[], phi=[1])
-    # stack.append(nm.normalize)
 
 
 def dlog(stack):
@@ -38,9 +37,7 @@ def dlog(stack):
     where x is the input matrix and v1 is a fitted parameter applied to each
     matrix entry (the same across all entries)
     """
-    stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], 
-                 phi=[-2], norm_output=True)
-    # stack.append(nm.normalize)
+    stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], phi=[-2])
 
 
 def exp(stack):
@@ -65,6 +62,8 @@ def dexp(stack):
 
     Performs a fit on the nonlinearity parameters, as well.
     """
+    
+    # load the incoming pred/resp to guess at initial conditions
     resp = stack.modules[-1].unpack_data('resp', use_dout=True)
     pred = stack.modules[-1].unpack_data('pred', use_dout=True)
     if resp.shape[0]>pred.shape[0]:

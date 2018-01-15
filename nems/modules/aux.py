@@ -38,18 +38,45 @@ class normalize(nems_module):
     # in the stack.
 
     name = 'aux.normalize'
-    user_editable_fields = ['input_name', 'output_name', 'd', 'g']
+    user_editable_fields = ['input_name', 'output_name', 
+                            'force_positive','norm_gain', 'norm_base']
     force_positive = True
-    d = 0
-    g = 1
-
-    def my_init(self, force_positive=True):
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
-        self.force_positive = force_positive
+    norm_gain=1
+    norm_base=0
+    
+    def my_init(self, force_positive=True, num_channels=None):
         self.auto_plot = False
+        if num_channels is None:
+            num_channels = self.d_in[0][self.input_name].shape[0]
+        self.norm_gain=np.ones([num_channels,1])
+        self.norm_base=np.zeros([num_channels,1])
+        self.force_positive = force_positive
 
-    def evaluate(self, nest=0):
+    def evaluate(self):
+        del self.d_out[:]
+        # create a copy of each input variable
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+            
+        Z=self.unpack_data(self.input_name,est=True)
+        
+        # compute std() of est data output and then normalize
+        if self.force_positive:
+            self.norm_base=np.min(Z,axis=1,keepdims=True)
+        else:
+            self.norm_base=np.mean(Z,axis=1,keepdims=True)    
+        self.norm_gain=np.std(Z,axis=1,keepdims=True)
+        
+        Z=(Z-self.norm_base)/self.norm_gain
+        self.pack_data(Z,self.output_name,est=True)
+        
+        if self.parent_stack.valmode:
+            Z=self.unpack_data(self.input_name,est=False)
+            # don't recalc. just use baseline/gain from est data
+            Z=(Z-self.norm_base)/self.norm_gain
+            self.pack_data(Z,self.output_name,est=False)
+            
+    def evaluate_old(self, nest=0):
         del self.d_out[:]
         for i, d in enumerate(self.d_in):
             # create a copy of each input variable

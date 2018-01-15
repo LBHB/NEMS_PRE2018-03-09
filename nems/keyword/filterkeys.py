@@ -24,8 +24,7 @@ def wc(stack, output_channels):
     output_channels : int
         Number of filters to apply to input stream.
     '''
-    stack.append(filters.WeightChannels, num_chans=output_channels,
-                 norm_output=True)
+    stack.append(filters.WeightChannels, num_chans=output_channels)
 
 def wc_raw(stack, output_channels):
     '''
@@ -82,6 +81,7 @@ def fir(stack, n_coefs, random):
     as such, or as the temporal filter in the factorized STRF if used in
     conjuction with the weight channel spectral filter.
     """
+    stack.append(aux.normalize)
     stack.append(filters.FIR, num_coefs=n_coefs, random_init=random)
     if 'mini_fit' in stack.meta.keys() and not stack.meta['mini_fit']:
         pass
@@ -90,6 +90,7 @@ def fir(stack, n_coefs, random):
 
 def stp(stack, n_channels=1, u=None, tau=None, normalize=False):
     if normalize:
+        # ie, rescale input to have have min=0 and std=1
         stack.append(aux.normalize)
     stack.append(filters.stp, num_channels=n_channels)
     module = stack.modules[-1]

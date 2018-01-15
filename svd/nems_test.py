@@ -70,8 +70,8 @@ if 1:
     #cellid='bbl070i-a1'
     #batch=291  # IC
 
-    cellid="zee015e-04-1"
-    #cellid="chn020f-b1"
+    #cellid="zee015e-04-1"
+    cellid="chn020f-b1"
     #cellid="eno052b-c1"
     #cellid='chn020f-b1'
     #cellid='chn029d-a1'

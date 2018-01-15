@@ -18,6 +18,8 @@ import io
 import json
 import h5py
 
+import urllib
+
 import nems.utilities as ut
 from nems_config.defaults import DEMO_MODE
 
@@ -259,6 +261,81 @@ def get_mat_file(filename, chars_as_strings=True):
     except Exception as e:
         log.error("File not found on S3 or local storage: {0}".format(key))
         raise e
+
+def load_matlab_file(filename=None, key='resp', label=None, channelaxis=None,
+                     eventaxis=None,timeaxis=None, repaxis=None, fs=100,
+                     chars_as_strings=True):
+    
+    if label is None:
+        label=key
+        
+    o=urllib.parse.urlparse(filename)
+    if o.scheme=='https' or o.scheme=='http':
+        uri="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/gus021d-a2_NAT_resp_fs100.mat"
+        response=urllib.request.urlopen(filename)
+        data = scipy.io.loadmat(
+                io.BytesIO(response.read()),
+                chars_as_strings=chars_as_strings)
+        
+    elif o.scheme=='s3':
+        # todo: s3 support     
+        pass
+        #s3-us-west-2.amazonaws.com/nemspublic/sample_data/gus021d-a2_NAT_resp_fs100.mat
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        bucket='nemspublic'
+        file='sample_data/gus021d-a2_NAT_resp_fs100.mat'
+        fileobj = s3_client.get_object(Bucket=bucket, Key=file)
+        data = scipy.io.loadmat(
+                    io.BytesIO(fileobj['Body'].read()),
+                    chars_as_strings=chars_as_strings)
+        
+    else:
+        data = scipy.io.loadmat(filename,
+                chars_as_strings=chars_as_strings)
+        
+    d=data[key]
+    if d.ndim==1:
+        # assume time X 1
+        if timeaxis is None:
+            timeaxis=0
+    elif d.ndim==2:
+        # assume event X time
+        if eventaxis is None:
+            eventaxis=0
+        if timeaxis is None:
+            timeaxis=1
+    elif d.ndim==3 and repaxis is None:
+        # assume channel X event X time
+        if channelaxis is None:
+            channelaxis=0
+        if eventaxis is None:
+            eventaxis=1
+        if timeaxis is None:
+            timeaxis=2
+
+    elif d.ndim==3:
+        # assume event X time X rep
+        if eventaxis is None:
+            eventaxis=0
+        if timeaxis is None:
+            timeaxis=1
+        if repaxis is None:
+            repaxis=2
+            
+    axadd=0
+    if channelaxis is None:
+        channelaxis=d.ndim
+        d=np.expand_dims(d,axis=channelaxis)
+    if eventaxis is None:
+        eventaxis=d.ndim
+        d=np.expand_dims(d,axis=eventaxis)
+    if repaxis is None:
+        repaxis=d.ndim
+        d=np.expand_dims(d,axis=repaxis)
+        
+    d=np.transpose(d,axes=[channelaxis,eventaxis,timeaxis,repaxis])
+    return d
+
 
 def load_baphy_data(est_files=[], fs=100, parent_stack=None, avg_resp=True):
     """ load data from baphy export file. current "standard" data format
