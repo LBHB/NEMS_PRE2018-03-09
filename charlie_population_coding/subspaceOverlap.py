@@ -14,36 +14,20 @@ import matplotlib.pyplot as plt
 import nems.db as db
 import numpy as np
 
-
+# =================== Set parameters to load data from cache =================
 folder = '/auto/data/daq/Tartufo/TAR010/sorted/'
 pfolder='/auto/data/daq/Tartufo/TAR010/'
 site='TAR010c'
 runclass='PTD'
+runs = [9, 10, 11, 12]
+pupil=1
 
-files=os.listdir(folder)
-
-to_open = []
-for f in files:
-    if runclass in f:
-        to_open.append(f)
-    else:
-        pass
-
-pfiles=os.listdir(pfolder)
-p_files_to_open = []
-for f in pfiles:
-    if runclass in f and 'pup.mat' in f:
-        p_files_to_open.append(f)
-    else:
-        pass
-    
-    
+# Load cellids from db
 cache_path=folder+'cache/'
 p_cache_path = pfolder+'tmp/'
 cellids=np.unique(db.get_cell_files(cellid=site,runclass=runclass)['cellid'].values)
 ch_un = [unit[-4:] for unit in cellids]
 cellcount=len(cellids)
-
 
 #parms of the cached files to load    
 parms={  
@@ -56,16 +40,49 @@ parms={
     }
 
 pup_parms = parms
-pup_parms['pupil']=1
+pup_parms['pupil']=pupil
+# =============================================================================
 
+# Get names of spk files to load
+files=os.listdir(folder)
 
+to_open = []
+for f in files:
+    for r in runs:
+        if len(str(r))==1:
+            r_str='0'+str(r)
+        else:
+            r_str=str(r)
+            
+        if runclass in f and site+r_str in f:
+            to_open.append(f)
+        else:
+            pass
+
+# get names of pup files to load
+pfiles=os.listdir(pfolder)
+p_files_to_open = []
+for f in pfiles:
+    for r in runs:
+        if len(str(r))==1:
+            r_str='0'+str(r)
+        else:
+            r_str=str(r)
+        if runclass in f and 'pup.mat' in f and r_str in f:
+            p_files_to_open.append(f)
+        else:
+            pass
+    
+# ======================= Load the data =================================    
 resp_list=[]
 p_list=[]
 act_pass=[]
 for i, f in enumerate(to_open):
     
-    ptemp = load_pupil_raster(pfolder+p_files_to_open[i],pup_parms)
-    
+    if pup_parms['pupil']==1:
+        ptemp = load_pupil_raster(pfolder+p_files_to_open[i],pup_parms)
+        p_list.append(ptemp)
+        
     samp = load_spike_raster(folder+f,parms)
     temp = np.empty((samp.shape[0],samp.shape[1],samp.shape[2],cellcount))
     
@@ -87,9 +104,13 @@ for i, f in enumerate(to_open):
         temp[:,:,:,i] = rt
         
     resp_list.append(temp)
-    p_list.append(ptemp)
+    
 r = np.concatenate(resp_list,axis=1)
-p = np.concatenate(p_list,axis=1)
 a_p =np.concatenate(act_pass)
 
-
+if pup_parms['pupil']==1:
+    p = np.concatenate(p_list,axis=1)
+    
+# ========================= Pre-process the data ============================
+    
+    
