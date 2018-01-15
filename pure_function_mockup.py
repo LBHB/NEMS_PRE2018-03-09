@@ -6,13 +6,13 @@
 # but that we should keep focused on stateless functions when possible.
 #
 # Managing modules can be complicated precisely because they contain mutable
-# state. Given that state is usually easier when it is all in once place, 
+# state. Given that state is usually easier when it is all in once place,
 # maybe packing the entire model into a single data structure isn't such a
 # crazy idea.
 #
 # The following shows a little demo of how that might look in general,
 # and for three cases that are not supported by the current version of NEMS:
-# 
+#
 #   1. "Per-module fitters", when each module uses a different sub-fitter
 #      and all modules are iterated through.
 #
@@ -20,13 +20,13 @@
 #      considered for optimization during the fitting process
 #
 #   3. "Module dropout", when the transformation of random modules are
-#      temporarily omitted during the fitting process 
-# 
+#      temporarily omitted during the fitting process
+#
 # The latter two techniques have been used extensively in deep learning
 # and allegedly make the fitting process more robust. And per-module
 # fitters could be a cleaner way of putting all the fitting code in a single
-# place rather than spreading it out and putting a little in each module, 
-# which then requires that other fitters remove manually whenever they 
+# place rather than spreading it out and putting a little in each module,
+# which then requires that other fitters remove manually whenever they
 # do not want to do an "initial-fit".
 
 ##############################################################################
@@ -48,11 +48,11 @@ sigs = fetch_signals_over_http(URL)
 #         'resp': signal.Signal(...),
 #         'pupil': signal.Signal(...)}
 
-# Create est dataset from the first 80%, and val from the last 20% 
+# Create est dataset from the first 80%, and val from the last 20%
 # (The Signal class has other ways of splitting/combining files & signals)
 est, val = signal.split_signals_by_time(sigs, 0.8)
 
-# Open question: even though it is only a few lines, how and where should 
+# Open question: even though it is only a few lines, how and where should
 # this information be recorded? The data set that a model was trained on
 # is relevant information that should be serialized and recorded somewhere.
 # save_to_disk('/some/path/model1_dataspec.json',
@@ -70,7 +70,7 @@ modelspec = [{'fn': 'nems.modules.fir',       # The pure function to call
               'prior': [0.0, 0.0, 0.1, ...],  # a.k.a. Initialization params
               'posterior': None,              # a.k.a. Params after fitting
               'plotfn': 'nems.plots.plot_strf'}, # A plotting function
-             {'fn': 'nems.modules.nl/dexp',              
+             {'fn': 'nems.modules.nl/dexp',
               'phi': [0.54, 1.982, 9.1],
               'prior': [1, 2, 5],
               'posterior': None,
@@ -96,11 +96,11 @@ modelspec = [{'fn': 'nems.modules.fir',       # The pure function to call
 #
 # where:
 #   data       is a dict of signals, like {'stim': ..., 'resp': ..., ...}
-#   pred       is a dict of signals, just like 'data' but containing 'pred' 
+#   pred       is a dict of signals, just like 'data' but containing 'pred'
 #   modelspec  is defined as above
 
 def evaluator(data_in, modelspec):
-    ''' This should probably be a put into a StackModel class; but 
+    ''' This should probably be a put into a StackModel class; but
     basically it is just a way of executing a modelspec on some data.'''
     data = data_in
     for m in modelspec:
@@ -112,7 +112,7 @@ metric = lambda data: nems.metrics.MSE(data['resp'], data['pred'])
 # Make a curried evaluator function for the fitter (so that it only sees
 # the estimation data set, and never the validation one)
 from functools import partial
-est_evaluator = partial(evaluator, est) 
+est_evaluator = partial(evaluator, est)
 # TODO: If desired, evaluator could include inner CV loop wrapper as well
 
 # Perform the fit on est data set using standard gradient_descent
@@ -129,9 +129,9 @@ save_to_disk('/some/path/model1_results.json', json.dumps(results))
 
 # ----------------------------------------------------------------------------
 # INTERLUDE: Giving names to fitter internal functions
-# 
+#
 # We are about to get into more difficult territory, and so once again I am
-# going to make some mathematical definitions that may be useful as 
+# going to make some mathematical definitions that may be useful as
 # optional arguments (or internal functions) used in our fitters.
 #
 # |---------------------------+------------------------------------------------|
@@ -141,11 +141,11 @@ save_to_disk('/some/path/model1_results.json', json.dumps(results))
 # | f(stepspace) -> modelspec | UNPACKER. The inverse operation of PACKER      |
 # | f(stepspace) -> stepspace | STEPPER. Alters 1+ parameters in stepspace     |
 #
-# I used to think that "packers" and "unpackers" should always convert to 
-# vectors, combining all params into "phi_all". However, now I think it may be 
+# I used to think that "packers" and "unpackers" should always convert to
+# vectors, combining all params into "phi_all". However, now I think it may be
 # better to consider them as generating a point in "stepspace" in which the
 # fitting algorithm may take a step, and leave the nature of this subspace
-# vague -- it may not be a vector space, and the number of dimensions is not 
+# vague -- it may not be a vector space, and the number of dimensions is not
 # fixed.
 #
 # My rationale for this is that:
@@ -157,10 +157,10 @@ save_to_disk('/some/path/model1_results.json', json.dumps(results))
 # 2) We may want to develop different "packers" and "unpackers" that strive to
 #    keep the parameter search space (the "stepspace) linear, even if the
 #    parameters themselves create a fairly nonlinear space.
-# 
+#
 # 3) By not assuming anything about the stepspace, we can easily change its
-#    dimensionality from step to step by creating a triplet of functions on 
-#    every step that pack, step, and unpack themselves. 
+#    dimensionality from step to step by creating a triplet of functions on
+#    every step that pack, step, and unpack themselves.
 
 # ----------------------------------------------------------------------------
 # Example: fitting iteratively, giving every module a different fitter
@@ -180,13 +180,13 @@ def iterative_permodule_fitter(fitterdict, modelspec, cost_fn,
     '''Fit each module, one at a time'''
     spec = modelspec
     stepinfo = {'num': 1, # Num of steps
-                'err': cost_fn(spec), # 
+                'err': cost_fn(spec), #
                 'err_delta': None, # Change since last step
                 'start_time': time.time()}
     # Check for errors
     for m in modelspec:
         if m['fn'] not in fitterdict:
-            raise ValueError('Missing per module fitter:'+m['fn']))
+            raise ValueError('Missing per module fitter:'+m['fn'])
     # Now do the actual iterated fit
     while error_nondecreasing(stepinfo):
         for m in modelspec:
@@ -200,11 +200,11 @@ modelspec_fitted = fitter(modelspec, est_evaluator)
 
 
 # ----------------------------------------------------------------------------
-# Even harder example: fitting different random subsets of the parameters 
+# Even harder example: fitting different random subsets of the parameters
 # on each fitter search round
-    
+
 def random_subset_fitter(modelspec, cost_fn,
-                         stop_cond=...):    
+                         stop_cond=...):
     cost_fn = lambda spec: metric(evaluator(spec))
     spec = modelspec
     while not stop_cond(stepinfo):
@@ -218,7 +218,7 @@ def random_subset_fitter(modelspec, cost_fn,
 # ----------------------------------------------------------------------------
 # I think you can see how you could have fitters:
 # - Return multiple parameter sets, such as in a bayesian analysis or swarm model
-# - Completely drop out entire modules or parameters (because the modules are 
+# - Completely drop out entire modules or parameters (because the modules are
 #      not really in existance; they are just part of the modelspec datastructure)
 # - Return the whole set of modelspecs trained on the jackknifed est data
 # etc

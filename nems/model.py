@@ -44,6 +44,7 @@ class Model:
         data : dictionary of Signals
             Represents the final output of the model
         '''
+
         # Loop through each module in the stack and transform the data.
         modules = self.modules[start:stop]
         data = initial_data.copy()

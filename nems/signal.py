@@ -9,9 +9,9 @@ import numpy as np
 # repetitions, allowing us to remove 'nreps' and replace it with annotations
 # of the time series that I am going to call 'segments':
 #    sig = Signal(name='stim', ...)
-#    sig.segments = [['TORC1', 0, 500 ], # Torc 1 is from time 0 to 500 
-#                    ['TORC2', 501, 1000 ], # Torc 2 is from time 501 to 1000 
-#                    ['TORC1', 1001, 1500 ]]) # Torc 1 is from time 1001 to 1500 
+#    sig.segments = [['TORC1', 0, 500 ], # Torc 1 is from time 0 to 500
+#                    ['TORC2', 501, 1000 ], # Torc 2 is from time 501 to 1000
+#                    ['TORC1', 1001, 1500 ]]) # Torc 1 is from time 1001 to 1500
 #    gain1 = np.nanmean(sig.select('TORC1'))
 #    gain2 = np.nanmean(sig.select('TORC2'))
 #    def some_scaling_function(x):
@@ -21,21 +21,21 @@ import numpy as np
 class Signal():
 
     def __init__(self, **kwargs):
-        ''' 
+        '''
         A Signal is a convenient class for slicing, averaging, jackknifing,
-        truncating, splitting, saving, and loading tabular data that is stored 
-        in a CSV file + a JSON metadata sidecar. This class is intended to be 
-        useful for loading a dataset, dividing it into estimation and 
+        truncating, splitting, saving, and loading tabular data that is stored
+        in a CSV file + a JSON metadata sidecar. This class is intended to be
+        useful for loading a dataset, dividing it into estimation and
         validation subsets, selecting parts of data where a condition is true,
-        concatenating Signals together, and other common data wrangling tasks. 
+        concatenating Signals together, and other common data wrangling tasks.
 
         DATA ACCESS:
         Generally speaking, you won't access a Signal's internal ._matrix data
-        directly (it is immutable anyway), but instead call a function that 
+        directly (it is immutable anyway), but instead call a function that
         will present the data to you in an expected format. For example:
 
         sig = nems.signal.load('/path/to/signal')
-        ... = sig.as_single_trial()               # Get all of the channels 
+        ... = sig.as_single_trial()               # Get all of the channels
         ... = sig.as_single_trial(chans=[0,3,7])  # Get channels 0, 3 and 7
         ... = sig.as_single_trial(reps=[5,6])     # Get trials 5 and 6 only
 
@@ -55,8 +55,8 @@ class Signal():
         It's very common to want to create a new signal from an existing signal.
         You may do that with the following functions:
 
-        .normalized_by_bounds() 
-        .normalized_by_mean() 
+        .normalized_by_bounds()
+        .normalized_by_mean()
         .split_by_reps(fraction)
         .split_by_time(fraction)
         .jackknifed_by_reps(nsplits, split_idx)
@@ -66,28 +66,29 @@ class Signal():
         .append_signal(other_signal)
         .combine_channels(other_signal)
 
-        FILE FORMAT: 
+        FILE FORMAT:
         A CSV file should have one row per instant in time, and each column
         should be a different "channel" of the signal. Channels can represent
-        whatever dimension you want, such as an auditory frequency, X/Y/Z 
-        coordinates for motion, or voltage and current levels for a neuron. 
-        It is common for Signals to have multiple channels, because it is 
+        whatever dimension you want, such as an auditory frequency, X/Y/Z
+        coordinates for motion, or voltage and current levels for a neuron.
+        It is common for Signals to have multiple channels, because it is
         common for a tuple of data to be measured at the same instant.
-       
+
         The JSON file specifies optional attributes for the Signal, such as:
            .name       The name of the signal
            .recording  The name of the recording session of this signal
            .chans      A list of the names of each of the channels
            .fs         Frequency of sampling [Hz]
            .nreps      The number of equal-length repetitions to divide
-                       the time series into, if applicable. 
+                       the time series into, if applicable.
            .meta       A catch-all data structure for anything else you want
-        
+
         You may augment the .meta with whatever information describes
         the experimental conditions under which that the data was observed.
 
         TODO: Examples!
         '''
+
         self._matrix = kwargs['matrix']
         self._matrix.flags.writeable = False  # Make it immutable
         self.name = kwargs['name']
@@ -148,9 +149,9 @@ class Signal():
                              + type(self._matrix))
 
     def save(self, dirpath, fmt=None):
-        ''' 
-        Save this signal to a CSV + JSON sidecar. If desired, you may 
-        use optional parameter fmt (for example, fmt='%1.3e') 
+        '''
+        Save this signal to a CSV + JSON sidecar. If desired, you may
+        use optional parameter fmt (for example, fmt='%1.3e')
         to alter the precision of the floating point matrices.
         '''
         filebase = self.recording + '_' + self.name
@@ -207,8 +208,8 @@ class Signal():
     @staticmethod
     def list_signals(directory):
         '''
-        Returns a list of all CSV/JSON signal files found in DIRECTORY, 
-        Paths are relative, not absolute. 
+        Returns a list of all CSV/JSON signal files found in DIRECTORY,
+        Paths are relative, not absolute.
         '''
         files = os.listdir(directory)
         just_fileroot = lambda f: os.path.splitext(os.path.basename(f))[0]
@@ -234,7 +235,7 @@ class Signal():
 
     def as_average_trial(self):
         '''
-        Returns a matrix of Time x Chans after averaging all of the 
+        Returns a matrix of Time x Chans after averaging all of the
         repetitions together.
         TODO: kwargs: chans=None
         '''
@@ -262,10 +263,10 @@ class Signal():
         return self._modified_copy(m_normed)
 
     def normalized_by_bounds(self):
-        """ Returns a new signal, same as this one, but shifted so 
+        """ Returns a new signal, same as this one, but shifted so
         that the signal will range between 0 and 1 on each channel."""
         m = self._matrix
-        m_normed = (m - m.min(0)) / m.ptp(0)    
+        m_normed = (m - m.min(0)) / m.ptp(0)
         return self._modified_copy(m_normed)
 
     def split_by_reps(self, fraction):
@@ -274,7 +275,7 @@ class Signal():
         repetition) of the original signal. If you had 10 reps of T time samples
         samples, and split it at fraction=0.81, this would return (A, B) where
         A is the first eight reps and B are the last two reps.
-        '''        
+        '''
         split_rep = min(self.nreps - 1, max(1, round(self.nreps * fraction)))
         m = self.as_repetition_matrix()
         left = m[:, 0:split_rep, :]
@@ -306,7 +307,7 @@ class Signal():
         m = self.as_single_trial()
         split_idx = max(1, int(self.ntimes * fraction))
         left = m[0:split_idx, :]
-        right = m[split_idx:, :]        
+        right = m[split_idx:, :]
         l = Signal(name=self.name,
                    recording=self.recording,
                    chans=self.chans,
@@ -326,7 +327,7 @@ class Signal():
     def jackknifed_by_reps(self, nsplits, split_idx, invert=False):
         '''
         Returns a new signal, with entire reps NaN'd out. If nreps is not
-        an integer multiple of nsplits, an error is thrown. 
+        an integer multiple of nsplits, an error is thrown.
         Optional argument 'invert' causes everything BUT the jackknife to be NaN.
         '''
         ratio = (self.nreps / nsplits)
@@ -334,7 +335,7 @@ class Signal():
             raise ValueError('nreps must be an integer multiple of nsplits:'
                              + str(ratio))
         ratio = int(ratio)
-        m = self.as_repetition_matrix()       
+        m = self.as_repetition_matrix()
         if not invert:
             m[:, split_idx:split_idx+ratio, :] = float('NaN')
         else:
@@ -358,8 +359,8 @@ class Signal():
         if split_idx == nsplits - 1:
             split_end = self.ntimes
         else:
-            split_end = (split_idx + 1) * splitsize        
-        m = self.as_single_trial().copy()    
+            split_end = (split_idx + 1) * splitsize
+        m = self.as_single_trial().copy()
         if not invert:
             m[split_start:split_end, :] = float('NaN')
         else:
@@ -371,7 +372,7 @@ class Signal():
     def append_signal(self, other_signal):
         '''
         Returns a new signal that is a copy of this one with other_signal
-        appended to the end. Requires that other_signal have the 
+        appended to the end. Requires that other_signal have the
         same number of channels, repetition length.
         '''
         if not type(other_signal) == type(self):
@@ -380,7 +381,7 @@ class Signal():
             raise ValueError('Cannot append signal with different fs.')
         if not len(other_signal.chans) == len(self.chans):
             raise ValueError('Cannot append signal with different nchans.')
-        m = np.concatenate((self._matrix, other_signal._matrix), axis=0)    
+        m = np.concatenate((self._matrix, other_signal._matrix), axis=0)
         return Signal(name=self.name,
                       recording=self.recording,
                       chans=self.chans,
@@ -390,10 +391,10 @@ class Signal():
                       matrix=m)
 
     def combine_channels(self, other_signal):
-        ''' 
+        '''
         Combines other_signal into this one as a new set of channels.
-        Requires that both signals be from the same recording and have the 
-        same number of time samples. 
+        Requires that both signals be from the same recording and have the
+        same number of time samples.
         '''
         if not type(other_signal) == type(self):
             raise ValueError('combine_channels needs another Signal object.')
@@ -401,7 +402,7 @@ class Signal():
             raise ValueError('Cannot combine signals with different fs.')
         if not other_signal.ntimes == self.ntimes:
             raise ValueError('Cannot combine signals with different ntimes')
-        m = np.concatenate((self._matrix, other_signal._matrix), axis=1)    
+        m = np.concatenate((self._matrix, other_signal._matrix), axis=1)
         return Signal(name=self.name,
                       recording=self.recording,
                       chans=self.chans + other_signal.chans,
