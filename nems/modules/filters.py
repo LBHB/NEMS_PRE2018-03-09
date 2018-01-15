@@ -90,6 +90,7 @@ class WeightChannels(Module):
                 self.fit_fields = ['phi']
         else:
             # self.coefs=np.ones([num_chans,num_dims])/num_dims/100
+            #self.coefs = np.zeros([num_chans, num_dims])
             self.coefs = np.random.normal(
                 1, 0.1, [num_chans, num_dims]) / num_dims
             if not fit_fields:

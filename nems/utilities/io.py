@@ -262,16 +262,18 @@ def get_mat_file(filename, chars_as_strings=True):
         log.error("File not found on S3 or local storage: {0}".format(key))
         raise e
 
-def load_matlab_file(filename=None, key='resp', label=None, channelaxis=None,
-                     eventaxis=None,timeaxis=None, repaxis=None, fs=100,
-                     chars_as_strings=True):
+
+def load_matlab_file(filename=None, chars_as_strings=True):
+    """
+    load matlab fiel via scipy.io
+    parse the filename to determine if it's a web url or s3 address and deal 
+    with loading from the relevant source
+    """
     
-    if label is None:
-        label=key
-        
     o=urllib.parse.urlparse(filename)
+    
     if o.scheme=='https' or o.scheme=='http':
-        uri="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/gus021d-a2_NAT_resp_fs100.mat"
+        
         response=urllib.request.urlopen(filename)
         data = scipy.io.loadmat(
                 io.BytesIO(response.read()),
@@ -292,6 +294,20 @@ def load_matlab_file(filename=None, key='resp', label=None, channelaxis=None,
     else:
         data = scipy.io.loadmat(filename,
                 chars_as_strings=chars_as_strings)
+        
+    return data
+
+def load_matlab_matrix(filename=None, key='resp', label=None, channelaxis=None,
+                     eventaxis=None,timeaxis=None, repaxis=None, fs=100,
+                     chars_as_strings=True):
+    """
+    load a single matrix out of a matlab file (loaded via load_matlab_file)
+
+    """    
+    if label is None:
+        label=key
+        
+    data=load_matlab_file(filename)
         
     d=data[key]
     if d.ndim==1:
@@ -322,7 +338,6 @@ def load_matlab_file(filename=None, key='resp', label=None, channelaxis=None,
         if repaxis is None:
             repaxis=2
             
-    axadd=0
     if channelaxis is None:
         channelaxis=d.ndim
         d=np.expand_dims(d,axis=channelaxis)

@@ -247,15 +247,14 @@ class nems_module:
         del self.d_out[:]
         # create a copy of each input variable
         for i, d in enumerate(self.d_in):
-            # self.d_out.append(copy.deepcopy(d))
-            # TODO- make it so don't deepcopy eveything. deal with nesting!
             self.d_out.append(copy.copy(d))
 
         for f_in, f_out in zip(self.d_in, self.d_out):
             # don't need to eval the est data for each nest, just the first
             # one
-            X = copy.deepcopy(f_in[self.input_name])
-            f_out[self.output_name] = self.my_eval(X)
+            if self.parent_stack.valmode or f_in['est']:
+                X = copy.deepcopy(f_in[self.input_name])
+                f_out[self.output_name] = self.my_eval(X)
             
         # state_mask is one way to exclude some subset of the data from
         # evaluation by this module. Probably should be moved into the data object

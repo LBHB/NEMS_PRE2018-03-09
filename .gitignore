@@ -117,7 +117,6 @@ signals/
 !**/nems_config/default_db.db
 
 **/nems_analysis/static/gen/*
-**/nems_sample*
 nems.log*
 **/nems_logs/*
 !**/nems_logs/__init__.py

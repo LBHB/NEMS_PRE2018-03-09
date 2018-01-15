@@ -14,7 +14,9 @@ from time import time
 import scipy as sp
 import numpy as np
 import skopt
-import nems.db as nd
+
+if 'QUEUEID' in os.environ:
+    import nems.db as nd
 
 def phi_to_vector(phi):
     '''
