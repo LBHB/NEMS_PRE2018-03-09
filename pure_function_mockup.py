@@ -127,6 +127,17 @@ for m in nems.metrics.get_some_list_of_metric_functions:
 save_to_disk('/some/path/model1.json', json.dumps(modelspec_fitted))
 save_to_disk('/some/path/model1_results.json', json.dumps(results))
 
+
+# Plot the prediction vs reality
+# phi_distributions.plot('/some/other/path.png')
+
+# Plot confidence intervals
+# phi_EV = 
+# pred_EV = model.evaluate(phi_distributions.expected_value(), val)
+# pred_10 = model.evaluate(phi_distributions.percentile(10), val)
+# pred_90 = model.evaluate( phi_distributions.percentile(90), val)
+# plot_signals('/some/path.png', pred_EV, pred_10, pred_90, ...)
+
 # ----------------------------------------------------------------------------
 # INTERLUDE: Giving names to fitter internal functions
 #
