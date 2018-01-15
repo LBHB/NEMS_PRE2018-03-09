@@ -18,6 +18,7 @@ def phi_to_vector(phi):
     >>> phi_to_vector(phi)
     [1, 2, 3, 4, 5, 6, 32]
     '''
+
     vector = []
     for p in phi:
         for k in sorted(p.keys()):
@@ -44,6 +45,7 @@ def vector_to_phi(vector, phi_template):
     >>> vector_to_phi(vector, phi_template)
     [{'coefs': array([[1, 2], [3, 4], [5, 6]])}, {'a': 32}]
     '''
+
     # TODO: move this to a unit test instead?
     offset = 0
     phi = []
