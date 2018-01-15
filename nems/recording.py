@@ -1,4 +1,4 @@
-import signal
+import .signal
 
 
 class Recording():

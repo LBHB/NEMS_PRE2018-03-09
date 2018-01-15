@@ -3,22 +3,8 @@ import json
 import pandas as pd
 import numpy as np
 
-# NOTE: This code is now slightly tested and should be good for alpha tests.
-#
-# An upcoming feature is a way to remove the assumption of identical-length
-# repetitions, allowing us to remove 'nreps' and replace it with annotations
-# of the time series that I am going to call 'segments':
-#    sig = Signal(name='stim', ...)
-#    sig.segments = [['TORC1', 0, 500 ], # Torc 1 is from time 0 to 500 
-#                    ['TORC2', 501, 1000 ], # Torc 2 is from time 501 to 1000 
-#                    ['TORC1', 1001, 1500 ]]) # Torc 1 is from time 1001 to 1500 
-#    gain1 = np.nanmean(sig.select('TORC1'))
-#    gain2 = np.nanmean(sig.select('TORC2'))
-#    def some_scaling_function(x):
-#       ... TODO ...
-#    newsig = sig.apply('TORC1', some_scaling_function)
 
-class Signal():
+class Signal():-
 
     def __init__(self, **kwargs):
         ''' 
@@ -32,24 +18,14 @@ class Signal():
         DATA ACCESS:
         Generally speaking, you won't access a Signal's internal ._matrix data
         directly (it is immutable anyway), but instead call a function that 
-        will present the data to you in an expected format. For example:
+        will present the data to you in the format you want. For example:
 
         sig = nems.signal.load('/path/to/signal')
         ... = sig.as_single_trial()               # Get all of the channels 
-        ... = sig.as_single_trial(chans=[0,3,7])  # Get channels 0, 3 and 7
-        ... = sig.as_single_trial(reps=[5,6])     # Get trials 5 and 6 only
-
-        # Also useful:
-           .as_repetition_matrix()
-           .as_average_trial()
-
-        DATA SUBSETS:
-        You have two choices when creating a data subset:
-          1) Get a new signal with the non-matching data excised
-          .excised(condition_function)
-
-          2) NaN out all data that does not meet a particular condition, use:
-          .where(condition_function)
+        # or
+        ... = sig.as_repetition_matrix()
+        # or 
+        ... = sig.as_average_trial()
 
         MODIFIED SIGNAL CREATION:
         It's very common to want to create a new signal from an existing signal.
@@ -63,8 +39,27 @@ class Signal():
         .jackknifed_by_time(nsplits, split_idx)
 
         MERGING SIGNALS:
+        Other common operations are to combine another signal with this one:
+
         .append_signal(other_signal)
         .combine_channels(other_signal)
+
+        SIGNAL SEGMENTS:
+        Another really common operation is to want to select just part of 
+        this signal, and NaN out the rest. This is accomplished by using
+        the ".segments" annotations, which give names to the start and stop 
+        time indexes of various intervals of this signal. For example:
+
+        sig = Signal(name='stim', ...)
+        sig.segments = [['TORC1', 0, 500 ], # Torc 1 is from time 0 to 500 
+                        ['TORC2', 501, 1000 ], 
+                        ['TORC1', 1001, 1500 ]]) # Another rep of TORC1 is ok
+        gain1 = np.nanmean(sig.select('TORC1'))
+        gain2 = np.nanmean(sig.select('TORC2'))
+        def some_scaling_function(x):
+        ... TODO ...
+        newsig = sig.apply('TORC1', some_scaling_function)
+
 
         FILE FORMAT: 
         A CSV file should have one row per instant in time, and each column
@@ -79,14 +74,12 @@ class Signal():
            .recording  The name of the recording session of this signal
            .chans      A list of the names of each of the channels
            .fs         Frequency of sampling [Hz]
-           .nreps      The number of equal-length repetitions to divide
-                       the time series into, if applicable. 
+           .segments   Named tuplets that annotate a time interval
            .meta       A catch-all data structure for anything else you want
         
         You may augment the .meta with whatever information describes
         the experimental conditions under which that the data was observed.
 
-        TODO: Examples!
         '''
         self._matrix = kwargs['matrix']
         self._matrix.flags.writeable = False  # Make it immutable
