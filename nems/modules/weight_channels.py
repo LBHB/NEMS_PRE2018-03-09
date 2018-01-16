@@ -1,38 +1,8 @@
 import numpy as np
 from scipy import stats
 
-from theano import tensor
-
 from ..distributions.api import Beta, HalfNormal
 from .module import Module
-
-
-def plot_probability_distribution(n_outputs):
-    '''
-    Illustrates how the Beta priors for the gaussian weight channel centers work
-    by plotting the probability distribution for each.
-    '''
-    x = np.arange(0, 1, 1000)
-
-    middle_index = (n_outputs-1)/2
-    for i in range(n_outputs):
-        alpha = n_outputs + 1
-        beta = i + 1
-        print(i, (n_outputs-1)/2)
-        if i < (n_outputs-1)/2:
-            alpha = n_outputs + 1
-            beta = i + 1
-        elif i == (n_outputs-1)/2:
-            alpha = n_outputs + 1
-            beta = n_outputs + 1
-        else:
-            beta = n_outputs + 1
-            alpha = n_outputs-i
-
-        y = stats.beta(alpha, beta).pdf(x)
-        pl.plot(x, y, label='Channel ' + str(i))
-
-    pl.legend()
 
 
 def weight_channels(x, weights):
@@ -65,7 +35,7 @@ def weight_channels(x, weights):
 
 class BaseWeightChannels(Module):
 
-    def __init__(self, n_outputs, input_name, output_name):
+    def __init__(self, n_outputs, input_name='pred', output_name='pred'):
         self.n_outputs = n_outputs
         self.input_name = input_name
         self.output_name = output_name
@@ -81,6 +51,8 @@ class BaseWeightChannels(Module):
         }
 
     def generate_tensor(self, data, phi):
+        # Hide import here
+        from theano import tensor
         x = data[self.input_name]
         n = x.shape[0]
         # Add a half step to the array so that x represents the bin "centers".

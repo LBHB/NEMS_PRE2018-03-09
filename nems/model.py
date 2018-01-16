@@ -1,10 +1,10 @@
 class Model:
 
-    def __init__(self, modelspec):
-        self.modelspec = modelspec
+    def __init__(self):
+        self.modules = []
 
     def append(self, module):
-        self.modelspec.append(module)
+        self.modules.append(module)
 
     def get_priors(self, initial_data):
         # Here, we query each module for it's priors. A prior will be a
@@ -25,21 +25,22 @@ class Model:
 
         return priors
 
-    @staticmethod
-    def evaluate(data, modelspec):
+    def evaluate(self, data, phi):
         '''
         Evaluate the Model on some data using the provided modelspec.
-        '''        
-        data = initial_data.copy()
-        # Todo: Partial evaluation?
+        '''
+        result = data.copy()
+        for module, module_phi in zip(self.modules, phi):
+            module_output = module.evaluate(data, module_phi)
+            result.update(module_output)
 
-        for module in modelspec
-	    module_output = module['fn'].evaluate(module['phi'], data)
-	    data.update(module_output)
+        # We're just returning the final output (More memory efficient. If we
+        # get into partial evaluation of a subset of the stack, then we will
+        # need to figure out a way to properly cache the results of unchanged
+        # parameters such as using joblib).
+        return result
 
-        return data
-
-    def generate_tensor(self, initial_data, phi, start=0, stop=None):
+    def generate_tensor(self, data, phi):
         '''
         Evaluate the module given the input data and phi
 
@@ -51,8 +52,6 @@ class Model:
             model. If a module does not require any input parameters, use a
             blank dictionary. All elements in phi must be scalars, arrays or
             tensors.
-        start : integer
-            Module to start evaluation at (note that input data
 
         Returns
         -------
@@ -60,17 +59,12 @@ class Model:
             dictionary of arrays and/or tensors
         '''
         # Loop through each module in the stack and transform the data.
-        modules = self.modules[start:stop]
-        data = initial_data.copy()
-        for module, module_phi in zip(modules, phi):
+        result = initial_data.copy()
+        for module, module_phi in zip(self.modules, phi):
             module_output = module.generate_tensor(data, module_phi)
-            data.update(module_output)
+            result.update(module_output)
 
-        # We're just returning the final output (More memory efficient. If we
-        # get into partial evaluation of a subset of the stack, then we will
-        # need to figure out a way to properly cache the results of unchanged
-        # parameters such as using joblib).
-        return data
+        return result
 
     def iget_subset(self, lb=None, ub=None):
         '''

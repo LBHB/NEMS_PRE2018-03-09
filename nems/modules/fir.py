@@ -1,8 +1,6 @@
 import numpy as np
 from scipy import signal
 
-import theano.tensor as T
-
 from ..distributions.api import Normal
 from .module import Module
 
@@ -29,7 +27,6 @@ def fir_filter(x, coefficients):
 
 
 def theano_convolution_node(x, coefficients):
-
     import theano
     from theano.tensor.signal.conv import conv2d
     theano.config.compute_test_value = 'ignore'
@@ -55,7 +52,7 @@ def theano_convolution_node(x, coefficients):
 
 class FIR(Module):
 
-    def __init__(self, n_taps, input_name, output_name):
+    def __init__(self, n_taps, input_name='pred', output_name='pred'):
         self.n_taps = n_taps
         self.input_name = input_name
         self.output_name = output_name
