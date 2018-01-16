@@ -18,8 +18,8 @@ import numpy as np
 folder = '/auto/data/daq/Tartufo/TAR010/sorted/'
 pfolder='/auto/data/daq/Tartufo/TAR010/'
 site='TAR010c'
-runclass='PTD'
-runs = [9, 10, 11, 12]
+runclass='NAT'
+runs = [16]
 pupil=1
 
 # Load cellids from db
