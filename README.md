@@ -66,3 +66,36 @@ FITTERS.  This is the hardest part in my experience and needs the most thought. 
     - Supporting "drop-out" of parameters/neurons in a multi-neuron fit
     - Supporting Cross Validation
 
+
+# Stateless Module Demo
+
+# The more I think about it, the more I wonder if our real goal should just
+# be to exorcise all state from a module, turning modules into "pure functions"
+# (a.k.a. functions without side effects). Not that we shouldn't use classes,
+# but that we should keep focused on stateless functions when possible.
+#
+# Managing modules can be complicated precisely because they contain mutable
+# state. Given that state is usually easier when it is all in once place,
+# maybe packing the entire model into a single data structure isn't such a
+# crazy idea.
+#
+# The following shows a little demo of how that might look in general,
+# and for three cases that are not supported by the current version of NEMS:
+#
+#   1. "Per-module fitters", when each module uses a different sub-fitter
+#      and all modules are iterated through.
+#
+#   2. "Parameter fitting dropout", when some parameters are randomly NOT
+#      considered for optimization during the fitting process
+#
+#   3. "Module dropout", when the transformation of random modules are
+#      temporarily omitted during the fitting process
+#
+# The latter two techniques have been used extensively in deep learning
+# and allegedly make the fitting process more robust. And per-module
+# fitters could be a cleaner way of putting all the fitting code in a single
+# place rather than spreading it out and putting a little in each module,
+# which then requires that other fitters remove manually whenever they
+# do not want to do an "initial-fit".
+
+##############################################################################

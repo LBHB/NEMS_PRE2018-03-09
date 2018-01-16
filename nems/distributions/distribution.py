@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Distribution:
@@ -52,3 +53,28 @@ class Distribution:
         >>> upper = prior.percentile(0.995)
         '''
         return self.distribution.ppf(percentile)
+
+    @property
+    def shape(self):
+        return self.mean().shape
+
+    def sample(self, size=1):
+        n = self.shape()
+        return self.distribution.rvs(size=(size, n[0]))
+
+    def pdf(self, x):
+        return self.distribution.pdf(x)
+
+    def plot(self):
+        x_min = self.percentile(0.01)
+        x_max = self.percentile(0.99)
+        n = self.shape[0]
+
+        xs, _ = np.mgrid[xmin:xmax:100j, 1:n+1]
+        ys = self.pdf(xs)
+
+        labels = ["phi[{}]".format(i) for i in range(n+1)]
+        fig, ax = plt.subplots(1, 1)
+        ax.plot(xs, ys, alpha=0.7, lw=2)
+        ax.legend(loc='best', frameon=False, labels=labels)
+        plt.show()

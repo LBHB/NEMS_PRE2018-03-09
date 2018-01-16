@@ -19,6 +19,7 @@ def phi_to_vector(phi):
     >>> phi_to_vector(phi)
     [1, 2, 3, 4, 5, 6, 32]
     '''
+
     vector = []
     for p in phi:
         for k in sorted(p.keys()):
