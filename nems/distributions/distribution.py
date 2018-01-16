@@ -58,23 +58,34 @@ class Distribution:
     def shape(self):
         return self.mean().shape
 
-    def sample(self, size=1):
-        n = self.shape()
-        return self.distribution.rvs(size=(size, n[0]))
+    def sample(self, n=None):
+        if n is None:
+            return self.distribution.rvs()
+        size = [n] + list(self.shape)
+        return self.distribution.rvs(size=size)
 
-    def pdf(self, x):
-        return self.distribution.pdf(x)
+    def plot(self, ax=None, **plot_kw):
+        # Get mi and max percentiles across the full set of priors.
+        prior_min = self.percentile(0.01)
+        prior_max = self.percentile(0.99)
+        x_min = np.min(prior_min)
+        x_max = np.max(prior_max)
 
-    def plot(self):
-        x_min = self.percentile(0.01)
-        x_max = self.percentile(0.99)
-        n = self.shape[0]
+        # Create x and reshape so that it broadcasts across all dimensions of
+        # the set of priors.
+        x = np.linspace(x_min, x_max, 1000)
+        x.shape = [x.size] + [1]*len(self.shape)
+        y = self.distribution.pdf(x)
 
-        xs, _ = np.mgrid[xmin:xmax:100j, 1:n+1]
-        ys = self.pdf(xs)
+        # Reshape x and y to facilitate plotting
+        x = x.ravel()
+        y.shape = (x.size, -1)
 
-        labels = ["phi[{}]".format(i) for i in range(n+1)]
-        fig, ax = plt.subplots(1, 1)
-        ax.plot(xs, ys, alpha=0.7, lw=2)
-        ax.legend(loc='best', frameon=False, labels=labels)
-        plt.show()
+        if ax is None:
+            figure, ax = plt.subplots(1, 1)
+
+        ax.plot(x, y, **plot_kw)
+        ax.set_xlabel('Value')
+        ax.set_ylabel('PDF')
+
+        return ax
