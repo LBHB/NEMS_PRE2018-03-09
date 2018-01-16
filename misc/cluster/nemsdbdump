@@ -1,0 +1,8 @@
+#!/bin/bash
+
+locdump='mysqldump --host=localhost -udavid -pnine1997'
+
+#$locdump cell NarfBatches NarfResults NarfAnalysis NarfData NarfUsers >/tmp/NarfTables.sql
+$locdump cell tQueue tComputer >/tmp/QueueTables.sql
+$locdump cell gCellMaster sCellFile sBatch >/tmp/celldbTables.sql
+
