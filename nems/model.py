@@ -1,10 +1,10 @@
 class Model:
 
-    def __init__(self):
-        self.modules = []
+    def __init__(self, modelspec):
+        self.modelspec = modelspec
 
     def append(self, module):
-        self.modules.append(module)
+        self.modelspec.append(module)
 
     def get_priors(self, initial_data):
         # Here, we query each module for it's priors. A prior will be a
@@ -25,35 +25,16 @@ class Model:
 
         return priors
 
-    def evaluate(self, initial_data, phi, start=0, stop=None):
+    @staticmethod
+    def evaluate(data, modelspec):
         '''
-        Evaluate the module given the input data and phi
-
-        Parameters
-        ----------
-        data : dictionary of Signals
-        phi : list of dictionaries
-            Each entry in the list maps to the corresponding module in the
-            model. If a module does not require any input parameters, use a
-            blank dictionary.
-        start : integer
-            Module to start evaluation at (note that input data
-
-        Returns
-        -------
-        data : dictionary of Signals
-            Represents the final output of the model
-        '''
-
-        # Loop through each module in the stack and transform the data.
-        modules = self.modules[start:stop]
+        Evaluate the Model on some data using the provided modelspec.
+        '''        
         data = initial_data.copy()
-        for module, module_phi in zip(modules, phi):
-            module_output = module.evaluate(data, module_phi)
-            data.update(module_output)
+        # Todo: Partial evaluation?
 
-        # We're just returning the final output (More memory efficient. If we
-        # get into partial evaluation of a subset of the stack, then we will
-        # need to figure out a way to properly cache the results of unchanged
-        # parameters such as using joblib).
+        for module in modelspec
+	    module_output = module['fn'].evaluate(module['phi'], data)
+	    data.update(module_output)
+
         return data
