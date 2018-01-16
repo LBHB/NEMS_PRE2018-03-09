@@ -397,12 +397,22 @@ def update_job_start(queueid):
     return r
 
 
-def update_job_tick(queueid):
-    conn = cluster_engine.connect()
-    # tick off progress, job is live
-    sql = "UPDATE tQueue SET progress=progress+1 WHERE id={}".format(queueid)
-    r = conn.execute(sql)
-    conn.close()
+def update_job_tick(queueid=0):
+    path = os.path.dirname(nems_config.defaults.__file__)
+    i = path.find('nems/nems_config')
+    qsetload_path = (path[:i + 5] + 'misc/cluster/qsetload')
+    r=os.system(qsetload_path)
+    if r:
+        log.warning('Error executing qsetload')
+        
+    if queueid:
+        conn = cluster_engine.connect()
+        # tick off progress, job is live
+        sql = "UPDATE tQueue SET progress=progress+1 WHERE id={}".format(queueid)
+        r = conn.execute(sql)
+        conn.close()
+        
+        
     return r
 
 
