@@ -11,8 +11,8 @@ class Model:
         # distribution, so we set phi to the mean (i.e., expected value) for
         # each parameter, then ask the module to evaluate the input data. By
         # doing so, we give each module an opportunity to perform sensible data
-        # transforms that allow the following module to initialize its priors
-        # as it sees fit.
+        # transforms that allow the following module to initialize its priors as
+        # it sees fit.
         data = initial_data.copy()
         priors = []
         for module in self.modules:
@@ -89,3 +89,18 @@ class Model:
         # need to figure out a way to properly cache the results of unchanged
         # parameters such as using joblib).
         return data
+
+    def iget_subset(self, lb=None, ub=None):
+        '''
+        Return a subset of the model by index
+        '''
+        model = Model()
+        model.modules = self.modules[lb:ub]
+        return model
+
+    @property
+    def n_modules(self):
+        '''
+        Number of modules in Model
+        '''
+        return len(self.modules)
