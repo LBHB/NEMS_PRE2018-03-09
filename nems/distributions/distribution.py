@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Distribution:
     '''
     Base class for a Distribution
@@ -23,25 +26,20 @@ class Distribution:
         '''
         return self.distribution.rvs()
 
-    def get_bounds(self, lower=0, upper=1):
+    def percentile(self, percentile):
         '''
-        Return the bounds of the distribution
+        Calculate the percentile
 
         Parameters
         ----------
-        lower : float [0, 1]
-            Percentile at which the lower bound should be calculated. Should be
-            specified as a fraction in the range 0 ... 1 rather than a percent.
-        upper : float [0, 1]
-            Percentile at which the upper bound should be calculated. Should be
-            specified as a fraction in the range 0 ... 1 rather than a percent.
+        percentile : float [0, 1]
+            Probability at which the result is calculated. Should be specified as
+            a fraction in the range 0 ... 1 rather than a percent.
 
         Returns
         -------
-        lower : float
-            Lower bound of the distribution.
-        upper : float
-            Upper bound of the distribution
+        value : float
+            Value of random variable at given percentile
 
         For some distributions (e.g., Normal), the bounds will be +/- infinity.
         In those situations, you can request that you get the bounds for the 99%
@@ -50,6 +48,7 @@ class Distribution:
 
         >>> from nems.distributions.api import Normal
         >>> prior = Normal(mu=0, sd=1)
-        >>> prior.get_bounds(0.005, 0.995)
+        >>> lower = prior.percentile(0.005)
+        >>> upper = prior.percentile(0.995)
         '''
-        return self.distribution.ppf([lower, upper])
+        return self.distribution.ppf(percentile)
