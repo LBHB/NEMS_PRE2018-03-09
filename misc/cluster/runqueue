@@ -27,11 +27,11 @@ QUEUEIDROUNDED=`expr $QUEUEID / 1000 * 1000`
 DOMAIN=`hostname -d`
 if [ "$DOMAIN" == "us-west-2.compute.internal" ] ;
 then
-  DBSERVER="kamzik.org"
-  DBPORT="19555"
+  DBSERVER="pubdb"
+  DBPORT="3306"
   QUEUEOUTPATH="/auto/nems/queue"
 else
-  DBSERVER="hyrax"
+  DBSERVER="mysql.neuralprediction.org"
   DBPORT="3306"
   QUEUEOUTPATH="/auto/data/web/celldb/queue"
 fi
