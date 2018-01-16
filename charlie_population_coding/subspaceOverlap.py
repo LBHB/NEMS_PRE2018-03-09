@@ -15,17 +15,26 @@ import nems.db as db
 import numpy as np
 
 # =================== Set parameters to load data from cache =================
-folder = '/auto/data/daq/Tartufo/TAR010/sorted/'
-pfolder='/auto/data/daq/Tartufo/TAR010/'
-site='TAR010c'
-runclass='NAT'
-runs = [16]
+folder = '/auto/data/daq/Boleto/BOL005/sorted'
+pfolder='/auto/data/daq/Boleto/BOL005/'
+site='BOL005c'
+runclass=['VOC','PPS']
+runs = [5]
 pupil=1
+iso=84
 
 # Load cellids from db
 cache_path=folder+'cache/'
 p_cache_path = pfolder+'tmp/'
-cellids=np.unique(db.get_cell_files(cellid=site,runclass=runclass)['cellid'].values)
+d=db.get_cell_files(cellid=site,runclass=runclass)
+cellids = np.unique(d['cellid'].values)
+
+isolation = []
+for cellid in cellids:
+    isolation.append(db.get_isolation(cellid, d['rawid'][0])['isolation'][0])
+isolation = np.array(isolation)
+
+cellids=cellids[isolation>iso]
 ch_un = [unit[-4:] for unit in cellids]
 cellcount=len(cellids)
 

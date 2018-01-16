@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 import os
 import datetime
-
+import sys
 import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -601,6 +601,8 @@ def get_cell_files(cellid=None, runclass=None):
     if not runclass is None:
         sql += " AND gRunClass.name like %s"
         params = params+("%"+runclass+"%",)
+    
+    
     d = pd.read_sql(sql=sql, con=cluster_engine, params=params)
 
     return d
@@ -612,7 +614,20 @@ def get_isolation(cellid=None, rawid=None):
     d = pd.read_sql(sql=sql, con=cluster_engine)
     return d
 
+def get_cellids(rawid=None):
+   sql = ("SELECT distinct(cellid) FROM sCellFile WHERE 1")
+   
+   if rawid is not None:
+       sql+=" AND rawid = {0} order by cellid".format(rawid)
+   else:
+       sys.exit('Must give rawid')
+       
+   cellids = pd.read_sql(sql=sql,con=cluster_engine)['cellid']
+   
+   return cellids
+    
 
+    
 def list_batches(name=None):
     d = get_batches(name)
     for x in range(0,len(d)):
