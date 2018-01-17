@@ -451,7 +451,7 @@ def spike_cache_filename2(spkfilestub,options):
     load_spike_raster, generate the unique filename for for that cell/format
     '''
     
-    # parse the input in options
+    # parse the input in options    
     try: 
         rasterfs='_fs'+str(options['rasterfs'])
     except: 
@@ -492,6 +492,77 @@ def spike_cache_filename2(spkfilestub,options):
     
     # define the cache file name
     cache_fn=spkfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+'.mat'
+    
+    return cache_fn
+
+def pupil_cache_filename2(spkfilestub,options):
+    '''
+    Given the stub for spike cache file and options typically passed to 
+    load_spike_raster, generate the unique filename for for that cell/format
+    '''
+    
+    # parse the input in options
+    try: pupil=options['pupil']; pupil_str='_pup';
+    except: sys.exit('options does not set pupil=1')
+    
+    if 'pupil_offset' in options:
+        offset = options['pupil_offset']
+        if offset==0.75: #matlab default in evpraster 
+            offset_str='';
+        else:
+            offset_str='_offset-'+str(offset)
+    else:
+        offset_str=''
+      
+    if 'pupil_median' in options:
+        med = options['pupil_median']
+        if med==0: #matlab default in evpraster 
+            med_str='';
+        else:
+            med_str='_med-'+str(med)
+    else:
+       med_str=''
+    
+    try: 
+        rasterfs='_fs'+str(options['rasterfs'])
+    except: 
+        rasterfs='_fs1000'
+    
+    try: 
+        tag_name='_tags-'+''.join(options['tag_masks'])
+    except: 
+        tag_name='_tags-Reference'
+    
+    try: 
+        run='_run-'+options['runclass'];
+    except: 
+        run='_run-all';
+    
+    if 'includeprestim' in options and type(options['includeprestim'])==int: 
+        prestim='_prestim-1'; 
+    elif 'includeprestim' in options: 
+        prestim=str(options['includeprestim'])
+        while ', ' in prestim:
+            prestim=prestim.replace('[','').replace(']','').replace(', ','-')
+        prestim='_prestim-'+prestim
+    else: 
+        prestim='_prestim-none'
+    
+    try: 
+        if options['includeincorrect']:
+            ic='_allTrials'
+        else:
+            ic='_correctTrials'
+    except: 
+        ic='_correctTrials';
+    
+    try: 
+        psthonly='_psth'+str(options['psthonly'])
+    except: 
+        psthonly='_psth-1'
+    
+    # define the cache file name
+    cache_fn=spkfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+offset_str+med_str+pupil_str+'.mat'
     
     return cache_fn
 
