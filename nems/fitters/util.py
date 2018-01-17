@@ -66,7 +66,7 @@ def vector_to_phi(vector, phi_template):
     return phi
 
 
-def initialize_phi(priors, method='mean')
+def initialize_phi(priors, method='mean'):
     '''
     Create an initial set of values for phi given priors
 

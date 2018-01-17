@@ -6,22 +6,22 @@ class Model:
     def append(self, module):
         self.modules.append(module)
 
-    def get_priors(self, initial_data):
+    def get_priors(self, data):
         # Here, we query each module for it's priors. A prior will be a
         # distribution, so we set phi to the mean (i.e., expected value) for
         # each parameter, then ask the module to evaluate the input data. By
         # doing so, we give each module an opportunity to perform sensible data
         # transforms that allow the following module to initialize its priors as
         # it sees fit.
-        data = initial_data.copy()
+        result = data.copy()
         priors = []
         for module in self.modules:
-            module_priors = module.get_priors(data)
+            module_priors = module.get_priors(result)
             priors.append(module_priors)
 
             phi = {k: p.mean() for k, p in module_priors.items()}
-            module_output = module.evaluate(data, phi)
-            data.update(module_output)
+            module_output = module.evaluate(result, phi)
+            result.update(module_output)
 
         return priors
 
@@ -31,7 +31,7 @@ class Model:
         '''
         result = data.copy()
         for module, module_phi in zip(self.modules, phi):
-            module_output = module.evaluate(data, module_phi)
+            module_output = module.evaluate(result, module_phi)
             result.update(module_output)
 
         # We're just returning the final output (More memory efficient. If we
@@ -59,11 +59,10 @@ class Model:
             dictionary of arrays and/or tensors
         '''
         # Loop through each module in the stack and transform the data.
-        result = initial_data.copy()
+        result = data.copy()
         for module, module_phi in zip(self.modules, phi):
-            module_output = module.generate_tensor(data, module_phi)
+            module_output = module.generate_tensor(result, module_phi)
             result.update(module_output)
-
         return result
 
     def iget_subset(self, lb=None, ub=None):

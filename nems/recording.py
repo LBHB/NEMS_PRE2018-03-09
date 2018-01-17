@@ -2,7 +2,7 @@ import os
 from .signal import Signal
 
 
-class Recording():
+class Recording:
 
     def __init__(self, **kwargs):
         self.signals = kwargs['signals']

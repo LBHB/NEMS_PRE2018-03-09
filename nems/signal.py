@@ -103,7 +103,6 @@ class Signal():
         mat = mat.astype('float')
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)
-            print(js)
             s = Signal(name=js['name'],
                        chans=js.get('chans', None),
                        recording=js['recording'],

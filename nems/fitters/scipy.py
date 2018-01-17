@@ -242,15 +242,22 @@ def fit(model, signals, cost_function=None, phi_initialization='mean',
     # Convert phi back to required format
     fitted_phi = util.vector_to_phi(result.x, phi)
 
+    # Create full set of phi (including fixed values)
+    full_phi = fitted_phi.copy()
+    if fixed_phi is not None:
+        for full, fixed in zip(full_phi, fixed_phi):
+            full.update(fixed)
+
     return {
-        'phi': fitted_phi,
+        'phi': full_phi,
+        'fitted_phi': fitted_phi,
         'result': result,
     }
 
 
 def iterative_fit(model, signals, cost_function=None, phi_initialization='mean',
                   phi_bounds=(0.01, 0.99), initial_phi=None,
-                  fit_single_modules=False, **optimize_kw):
+                  fit_method='single', **optimize_kw):
     '''
     Iterative version of the fit function. See `fit` for explanation of
     parameters not documented below and return value (note that `initial_phi`
@@ -302,7 +309,7 @@ def iterative_fit(model, signals, cost_function=None, phi_initialization='mean',
             initial_phi = fitted_phi
             fixed_phi = None
 
-        result = fit(model, signals, cost_function, phi_initialization,
+        result = fit(model_subset, signals, cost_function, phi_initialization,
                      phi_bounds, initial_phi=initial_phi, fixed_phi=fixed_phi,
                      **optimize_kw)
 

@@ -18,7 +18,8 @@ def double_exponential(x, base, amplitude, shift, kappa):
 
 class DoubleExponential(Nonlinearity):
 
-    def __init__(self, input_name, output_name, response_name):
+    def __init__(self, input_name='pred', output_name='pred',
+                 response_name='pred'):
         self.input_name = input_name
         self.output_name = output_name
         self.response_name = response_name

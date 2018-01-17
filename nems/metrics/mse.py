@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def mse(result, pred_name='pred', resp_name='resp'):
     '''
     Given the evaluated data, return the mean squared error
@@ -30,4 +33,4 @@ def mse(result, pred_name='pred', resp_name='resp'):
     pred = result[pred_name]
     resp = result[resp_name]
     squared_errors = (pred-resp)**2
-    return squared_errors.mean()
+    return np.nanmean(squared_errors)
