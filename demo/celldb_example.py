@@ -24,12 +24,24 @@ import nems.db as nd
 import numpy as np
 
 # set up metadata
-#cellid="gus021d-a2"      # identifier for this data set
-cellid="TAR010c-21-2"     # identifier for this data set
-batch=271                 # batch of data sets that this set belongs to
-modelname="wc02_fir_dexp" # string identifier for this model architecture
+use_example="RDT"
 
+if use_example=="NAT":
+    # This is A1/Natural sound example
+    #cellid="gus021d-a2"      # identifier for this data set
+    cellid="TAR010c-21-2"     # identifier for this data set
+    batch=271                 # batch of data sets that this set belongs to
+    modelname="wc02_fir_dexp" # string identifier for this model architecture
+    valeventcount=3
 
+elif use_example=="RDT":
+    # this is an RDT example:
+    cellid="chn029d-a1"
+    batch=269                 # batch of data sets that this set belongs to
+    modelname="wc02_fir_dexp" # string identifier for this model architecture
+    valeventcount=20
+
+# get file info from database
 d=nd.get_batch_cell_data(batch,cellid)
 
 stim_options={'filtfmt': 'ozgf', 'fsout': 100, 'chancount': 18, 'includeprestim': 1}
@@ -49,7 +61,8 @@ Y=nu.io.load_matlab_matrix(respfile,key="r",label="resp",repaxis=1,
 
 # because of idiosyncratic baphy behavior, having to do with allowing more 
 # reps in the validation segment, some "events" will never actually be
-# played, (0 reps, all nans in Y). This will remove them
+# played, (0 reps, all nans in Y). This will remove them. Only relevant for 
+# NAT data, not RDT
 Y=np.nanmean(Y,axis=3)
 keepidx=np.isfinite(Y[0,:,0])
 Y=Y[:,keepidx,:]
@@ -59,10 +72,10 @@ X=X[:,keepidx,:]
 # FROM HERE DOWN, THIS SHOULD BE IDENTICAL TO simple_example.py
 
 # first three events are validation data, separate them out
-X_est=X[:,3:,:]
-Y_est=Y[:,3:,:]
-X_val=X[:,0:2,:]
-Y_val=Y[:,0:2,:]
+X_est=X[:,valeventcount:,:]
+Y_est=Y[:,valeventcount:,:]
+X_val=X[:,0:valeventcount,:]
+Y_val=Y[:,0:valeventcount,:]
 
 
 # create and fit the model
