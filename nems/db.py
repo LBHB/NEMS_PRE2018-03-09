@@ -589,6 +589,25 @@ def get_batch_cells(batch=None, cellid=None):
 
     return d
 
+def get_batch_cell_data(batch=None, cellid=None):
+    # eg, sql="SELECT * from NarfData WHERE batch=301 and cellid="
+    params = ()
+    sql = "SELECT * FROM NarfData WHERE 1"
+    if not batch is None:
+        sql += " AND batch=%s"
+        params = params+(batch,)
+
+    if not cellid is None:
+       sql += " AND cellid like %s"
+       params = params+(cellid+"%",)
+    print(sql)
+    print(params)
+    d = pd.read_sql(sql=sql, con=engine, params=params)
+    d.set_index(['cellid', 'groupid', 'label'], inplace=True)
+    d=d['filepath'].unstack('label')
+    
+    return d
+
 def get_batches(name=None):
     # eg, sql="SELECT * from NarfBatches WHERE batch=301"
     params = ()
