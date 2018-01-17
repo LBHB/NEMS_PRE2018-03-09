@@ -397,12 +397,22 @@ def update_job_start(queueid):
     return r
 
 
-def update_job_tick(queueid):
-    conn = cluster_engine.connect()
-    # tick off progress, job is live
-    sql = "UPDATE tQueue SET progress=progress+1 WHERE id={}".format(queueid)
-    r = conn.execute(sql)
-    conn.close()
+def update_job_tick(queueid=0):
+    path = os.path.dirname(nems_config.defaults.__file__)
+    i = path.find('nems/nems_config')
+    qsetload_path = (path[:i + 5] + 'misc/cluster/qsetload')
+    r=os.system(qsetload_path)
+    if r:
+        log.warning('Error executing qsetload')
+        
+    if queueid:
+        conn = cluster_engine.connect()
+        # tick off progress, job is live
+        sql = "UPDATE tQueue SET progress=progress+1 WHERE id={}".format(queueid)
+        r = conn.execute(sql)
+        conn.close()
+        
+        
     return r
 
 
@@ -577,6 +587,25 @@ def get_batch_cells(batch=None, cellid=None):
     print(params)
     d = pd.read_sql(sql=sql, con=engine, params=params)
 
+    return d
+
+def get_batch_cell_data(batch=None, cellid=None):
+    # eg, sql="SELECT * from NarfData WHERE batch=301 and cellid="
+    params = ()
+    sql = "SELECT * FROM NarfData WHERE 1"
+    if not batch is None:
+        sql += " AND batch=%s"
+        params = params+(batch,)
+
+    if not cellid is None:
+       sql += " AND cellid like %s"
+       params = params+(cellid+"%",)
+    print(sql)
+    print(params)
+    d = pd.read_sql(sql=sql, con=engine, params=params)
+    d.set_index(['cellid', 'groupid', 'label'], inplace=True)
+    d=d['filepath'].unstack('label')
+    
     return d
 
 def get_batches(name=None):
