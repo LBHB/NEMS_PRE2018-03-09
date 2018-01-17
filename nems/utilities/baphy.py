@@ -495,7 +495,7 @@ def spike_cache_filename2(spkfilestub,options):
     
     return cache_fn
 
-def pupil_cache_filename2(spkfilestub,options):
+def pupil_cache_filename2(pupfilestub,options):
     '''
     Given the stub for spike cache file and options typically passed to 
     load_spike_raster, generate the unique filename for for that cell/format
@@ -562,7 +562,11 @@ def pupil_cache_filename2(spkfilestub,options):
         psthonly='_psth-1'
     
     # define the cache file name
-    cache_fn=spkfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+offset_str+med_str+pupil_str+'.mat'
+    for i, pf in enumerate(pupfilestub):
+        l = pf.split('.')[0].split('/')
+        pupfilestub.iloc[i] = '/'.join(l[:-1])+'/tmp/'+l[-1]
+    
+    cache_fn=pupfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+offset_str+med_str+pupil_str+'.mat'
     
     return cache_fn
 

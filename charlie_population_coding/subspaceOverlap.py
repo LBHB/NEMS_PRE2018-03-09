@@ -10,6 +10,7 @@ import os
 import sys
 sys.path.append('/auto/users/hellerc/nems/nems/utilities')
 from baphy import load_spike_raster, spike_cache_filename, pupil_cache_filename, load_pupil_raster
+import nems.utilities as nu
 from dimReduce_tools import PCA
 import matplotlib.pyplot as plt
 import nems.db as db
@@ -22,9 +23,10 @@ site='TAR010c'
 runclass='PTD'
 runs = [9, 10, 11, 12]           # All runs and rawids must have been sorted together!
 rawids = [123675, 123676, 123677, 123681]
+batch = 301
 pupil=1
 iso=74
-# ============== Rim reduction method ============================
+# ============== Dim reduction method ============================
 reduce_method='PCA';
 
 
@@ -54,7 +56,7 @@ cellcount=len(cellids)
 parms={  
         'rasterfs':100,
         'runclass':'all',    
-        'includeprestim':'1',
+        'includeprestim':1,
         'tag_masks':['Reference'],
         'channel':ch_un[0][1],
         'unit':1
@@ -64,74 +66,32 @@ pup_parms = parms
 pup_parms['pupil']=pupil
 # =============================================================================
 
-# Get names of spk files to load
-files=os.listdir(folder)
-
-to_open = []
-for f in files:
-    for r in runs:
-        if len(str(r))==1:
-            r_str='0'+str(r)
-        else:
-            r_str=str(r)
-            
-        if runclass in f and site+r_str in f:
-            to_open.append(f)
-        else:
-            pass
-to_open=list(np.unique(to_open))
-# get names of pup files to load
-pfiles=os.listdir(pfolder)
-p_files_to_open = []
-for f in pfiles:
-    for r in runs:
-        if len(str(r))==1:
-            r_str='0'+str(r)
-        else:
-            r_str=str(r)
-        if runclass in f and 'pup.mat' in f and r_str in f:
-            p_files_to_open.append(f)
-        else:
-            pass
-p_files_to_open=list(np.unique(p_files_to_open))    
-# ======================= Load the data =================================    
-resp_list=[]
-p_list=[]
-act_pass=[]
-for i, f in enumerate(to_open):
-    
-    if pup_parms['pupil']==1:
-        ptemp = load_pupil_raster(pfolder+p_files_to_open[i],pup_parms)
-        p_list.append(ptemp)
+# load data for all respfiles and pupfiles
+a_p=[]
+for i, cid in enumerate(cellids):
+    d=db.get_batch_cell_data(batch,cid)
+    respfile=nu.baphy.spike_cache_filename2(d['raster'],parms)
+    pupfile=nu.baphy.pupil_cache_filename2(d['pupil'],pup_parms)
+    for j, rf in enumerate(respfile):
+        rts=nu.io.load_matlab_matrix(rf,key="r")
+        pts=nu.io.load_matlab_matrix(pupfile.iloc[j],key='r')
         
-    samp = load_spike_raster(folder+f,parms)
-    temp = np.empty((samp.shape[0],samp.shape[1],samp.shape[2],cellcount))
-    
-    if '_a_' in f:
-        act_pass.append(np.repeat(1,samp.shape[1]))
+        if '_a_' in rf:
+            a_p.append(1)
+        else:
+            a_p.append(0)
+        
+        if j == 0:
+            rt = rts;
+            p = pts;
+        else:
+            rt = np.concatenate((rt,rts),axis=1)
+            p = np.concatenate((p,pts),axis=1)
+    if i == 0:
+        r = np.empty((rt.shape[0],rt.shape[1],rt.shape[2],cellcount))
+        r[:,:,:,0]=rt;
     else:
-        act_pass.append(np.repeat(0,samp.shape[1]))
-    
-    for i, cell in enumerate(ch_un):
-        parms['unit']=cell[-1]
-        if cell[0]=='0':
-            parms['channel']=cell[1]
-        else:
-            parms['channel']=cell[0:2]
-        
-        fn=spike_cache_filename(f, parms)    
-        rt, tags, trialset, exptevents = load_spike_raster(folder+f,parms,nargout=4)
-        print(rt.shape)
-        temp[:,:,:,i] = rt
-        
-    resp_list.append(temp)
-    
-r = np.concatenate(resp_list,axis=1)
-a_p =np.concatenate(act_pass)
-
-if pup_parms['pupil']==1:
-    p = np.concatenate(p_list,axis=1)
-    
+        r[:,:,:,i]=rt;
 # ========================= Pre-process the data ============================
 
 if runclass=='PPS_VOC':
