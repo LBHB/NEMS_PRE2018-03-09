@@ -4,191 +4,146 @@ import filecmp
 import pytest
 import numpy as np
 from nems.signal import Signal
-# import nems.recording
 
 
-def generate_dummy_signal_files(tmpdir, 
-                                signal_name='dummy_signal',
-                                recording_name='dummy_recording',
-                                fs=50,
-                                nchans=3,
-                                ntimes=200,
-                                nreps=10):
-    '''
-    Generates dummy signal file with a predictable structure (every element
-    increases by 1) that is useful for testing. Returns 'basepath' of the 
-    signal, which is the filepath without the .json or .csv extension.
-    '''
-    basepath = os.path.join(str(tmpdir), signal_name)
-
-    with open(basepath+'.csv', 'w') as f:
-        n=0
-        for _ in range(ntimes):
-            f.write('{:1.3e}'.format(float(n)))
-            n += 1
-            for _ in range(1, nchans):
-                f.write(', {:1.3e}'.format(float(n)))
-                n += 1
-            f.write('\n')
-
-    metadata = {'name': signal_name,
-                'recording': recording_name,
-                'chans': ['chan' + str(n) for n in range(nchans)],
-                'fs': fs,
-                'nreps': nreps,
-                'meta': {'for_testing': True, 
-                         'date': "2018-01-10",
-                         'animal': "Donkey Hotey",                         
-                         'windmills': 'tilting'}}
-
-    with open(basepath+'.json', 'w') as f:
-        json.dump(metadata, f)
-
-    return basepath
-
-# Create a tmp directory with a signal in it, test loading/saving
-# of signals, and return an example siignal object for other tests
 @pytest.fixture(scope='module')
-def example_signal_object(tmpdir_factory):
+def signal(signal_name='dummy_signal', recording_name='dummy_recording', fs=50,
+           nchans=3, ntimes=200, nreps=10):
+    '''
+    Generates a dummy signal with a predictable structure (every element
+    increases by 1) that is useful for testing.
+    '''
+    # Generate a numpy array that's incrementially increasing across channels,
+    # then across timepoints, by 1.
+    c = np.arange(nchans, dtype=np.float)
+    t = np.arange(ntimes, dtype=np.float)
+    data = c[..., np.newaxis] + t*nchans
+
+    kwargs = {
+        'matrix': data,
+        'name': signal_name,
+        'recording': recording_name,
+        'chans': ['chan' + str(n) for n in range(nchans)],
+        'fs': fs,
+        'nreps': nreps,
+        'meta': {
+            'for_testing': True,
+            'date': "2018-01-10",
+            'animal': "Donkey Hotey",
+            'windmills': 'tilting'
+        },
+    }
+    return Signal(**kwargs)
+
+
+@pytest.fixture(scope='module')
+def signal_tmpdir(tmpdir_factory):
     '''
     Test that signals object load/save methods work as intended, and
     return an example signal object for other tests.
     '''
-    tmpdir = tmpdir_factory.mktemp("blah")
-
-    print("Generating test signals...")
-    basepath = generate_dummy_signal_files(tmpdir)
-
-    print("Loading signal...")
-    sig = Signal.load(basepath)
-
-    print("Saving signal...")
-    saved_directory = os.path.join(str(tmpdir), 'saved')
-    os.mkdir(saved_directory)
-    sig.save(saved_directory, fmt='%1.3e')
-
-    print("Testing saved signal matches original...")
-    sigs_found = Signal.list_signals(saved_directory)
-    assert(len(sigs_found) == 1)
-    basepath2 = os.path.join(saved_directory, sigs_found[0])
-    f1 = basepath + '.csv'
-    f2 = basepath2 + '.csv'
-    files_are_same = filecmp.cmp(f1, f2)
-    if files_are_same:
-        assert files_are_same
-    else:
-        with open(f1, 'r') as f:
-            first_line1 = f.readline()
-        with open(f2, 'r') as f:
-            first_line2 = f.readline()
-        print(first_line1)
-        print(first_line2)
-        assert files_are_same
-
-    return sig
+    return tmpdir_factory.mktemp(__name__ + '_signal')
 
 
-def test_as_single_trial(example_signal_object):
-    sig = example_signal_object
-    assert(sig.as_single_trial().shape == (200, 3))
+def test_signal_save_load(signal, signal_tmpdir):
+    '''
+    Test that signals save and load properly
+    '''
+    if not os.path.exists(signal_tmpdir):
+        os.mkdir(signal_tmpdir)
+    signal.save(signal_tmpdir, fmt='%1.3e')
+
+    signals_found = Signal.list_signals(signal_tmpdir)
+    assert len(signals_found) == 1
+
+    save_directory = os.path.join(signal_tmpdir, signals_found[0])
+    signal_loaded = Signal.load(save_directory)
+    assert np.all(signal._matrix == signal_loaded._matrix)
+
+    # TODO: add a test for the various signal attributes
 
 
-def test_as_average_trial(example_signal_object):
-    sig = example_signal_object
-    assert(sig.as_average_trial().shape == (20, 3))
+def test_as_continuous(signal):
+    assert signal.as_continuous().shape == (3, 200)
 
 
-def test_as_repetition_matrix(example_signal_object):
-    sig = example_signal_object
-    assert(sig.as_repetition_matrix().shape == (20, 10, 3))
+def test_as_average_trial(signal):
+    result = signal.as_average_trial()
+    assert result.shape == (3, 20)
 
 
-def test_normalized_by_mean(example_signal_object):
-    sig = example_signal_object
-    print("means before:", sig.mean)
-    print("vars before:", sig.var)
-    sn = sig.normalized_by_mean()
-    print("means after:", sn.mean)
-    print("vars after:", sn.var)
-    assert(1.0e-10 > np.abs(sn._matrix.mean()))
-    assert(1.0 == sn._matrix.var())
+def test_as_trials(signal):
+    result = signal.as_trials()
+    assert result.shape == (10, 3, 20)
 
 
-def test_normalized_by_bounds(example_signal_object):
-    sig = example_signal_object
-    print("mins before:", sig.min)
-    print("maxs before:", sig.max)
-    sn = sig.normalized_by_bounds()
-    print("mins after:", sn.min)
-    print("maxs after:", sn.max)
-    assert(0.0 == sn._matrix.min())
-    assert(1.0 == sn._matrix.max())
+def test_normalized_by_mean(signal):
+    normalized_signal = signal.normalized_by_mean()
+    data = normalized_signal.as_continuous()
+    assert np.all(np.mean(data, axis=-1) == 0.0)
+    assert np.allclose(np.std(data, axis=-1), 1.0)
 
 
-def test_split_at_rep(example_signal_object):
-    sig = example_signal_object
-    l, r = sig.split_at_rep(0.8)
-    print(sig.as_repetition_matrix().shape)
-    print(l.as_repetition_matrix().shape)
-    print(r.as_repetition_matrix().shape)
-    assert((20, 10, 3) == sig.as_repetition_matrix().shape)
-    assert((20, 8, 3) == l.as_repetition_matrix().shape)
-    assert((20, 2, 3) == r.as_repetition_matrix().shape)
+def test_normalized_by_bounds(signal):
+    normalized_signal = signal.normalized_by_bounds()
+    data = normalized_signal.as_continuous()
+    assert np.all(np.max(data, axis=-1) == 1)
+    assert np.all(np.min(data, axis=-1) == -1)
 
 
-def test_split_at_time(example_signal_object):
-    sig = example_signal_object
-    l, r = sig.split_at_time(0.81)
-    print(sig.as_single_trial().shape)
-    print(l.as_single_trial().shape)
-    print(r.as_single_trial().shape)
-    assert((200, 3) == sig.as_single_trial().shape)
-    assert((162, 3) == l.as_single_trial().shape)
-    assert((38, 3) == r.as_single_trial().shape)
+def test_split_at_rep(signal):
+    left_signal, right_signal = signal.split_at_rep(0.8)
+    assert left_signal.as_trials().shape == (8, 3, 20)
+    assert right_signal.as_trials().shape == (2, 3, 20)
 
 
-def test_jackknifed_by_reps(example_signal_object):
-    sig = example_signal_object
-    jsig = sig.jackknifed_by_reps(5, 1)
-    isig = sig.jackknifed_by_time(5, 1, invert=True)
-    print(sig.as_single_trial().shape)
-    print(jsig.as_single_trial().shape)
-    assert((200, 3) == sig.as_single_trial().shape)
-    assert((200, 3) == jsig.as_single_trial().shape)
-    assert(120 == np.sum(np.isnan(jsig.as_single_trial())))  # 3chan x 1/5 * 200
-    assert(480 == np.sum(np.isnan(isig.as_single_trial())))  # 3chan * 4/5 * 200
+def test_split_at_time(signal):
+    l, r = signal.split_at_time(0.81)
+    print(signal.as_continuous().shape)
+    assert l.as_continuous().shape == (3, 162)
+    assert r.as_continuous().shape == (3, 38)
 
 
-def test_jackknifed_by_time(example_signal_object):
-    sig = example_signal_object
-    jsig = sig.jackknifed_by_time(20, 2)
-    isig = sig.jackknifed_by_time(20, 2, invert=True)
-    print(sig.as_single_trial().shape)
-    print(jsig.as_single_trial().shape)
-    assert((200, 3) == sig.as_single_trial().shape)
-    assert((200, 3) == jsig.as_single_trial().shape)
-    assert(30 == np.sum(np.isnan(jsig.as_single_trial())))
-    assert(570 == np.sum(np.isnan(isig.as_single_trial())))
+def test_jackknifed_by_reps(signal):
+    jsig = signal.jackknifed_by_reps(5, 1)
+    isig = signal.jackknifed_by_reps(5, 1, invert=True)
+    jdata = jsig.as_continuous()
+    idata = isig.as_continuous()
+
+    assert jdata.shape == (3, 200)
+    assert idata.shape == (3, 200)
+
+    assert np.sum(np.isnan(jdata)) == 120 # 3 channels x 1/5 * 200
+    assert np.sum(np.isnan(idata)) == 480 # 3 channels x 4/5 * 200
+
+    #assert(120 == np.sum(np.isnan(jsig.as_single_trial())))  # 3chan x 1/5 * 200
+    #assert(480 == np.sum(np.isnan(isig.as_single_trial())))  # 3chan * 4/5 * 200
 
 
-def test_append_signal(example_signal_object):
-    sig1 = example_signal_object
+def test_jackknifed_by_time(signal):
+    jsig = signal.jackknifed_by_time(20, 2)
+    isig = signal.jackknifed_by_time(20, 2, invert=True)
+
+    jdata = jsig.as_continuous()
+    idata = isig.as_continuous()
+    assert jdata.shape == (3, 200)
+    assert idata.shape == (3, 200)
+
+    assert np.sum(np.isnan(jdata)) == 30
+    assert np.sum(np.isnan(idata)) == 570
+
+
+def test_append_signal(signal):
+    sig1 = signal
     sig2 = sig1.jackknifed_by_time(20, 2)
     sig3 = sig1.append_signal(sig2)
-    print(sig1.as_single_trial().shape)
-    print(sig2.as_single_trial().shape)
-    print(sig3.as_single_trial().shape)
-    assert((200, 3) == sig1.as_single_trial().shape)
-    assert((400, 3) == sig3.as_single_trial().shape)
+    assert sig1.as_continuous().shape == (3, 200)
+    assert sig3.as_continuous().shape == (3, 400)
 
 
-def test_combine_channels(example_signal_object):
-    sig1 = example_signal_object
+def test_combine_channels(signal):
+    sig1 = signal
     sig2 = sig1.jackknifed_by_time(20, 2)
     sig3 = sig1.combine_channels(sig2)
-    print(sig1.as_single_trial().shape)
-    print(sig2.as_single_trial().shape)
-    print(sig3.as_single_trial().shape)
-    assert((200, 3) == sig1.as_single_trial().shape)
-    assert((200, 6) == sig3.as_single_trial().shape)
-
+    assert sig1.as_continuous().shape == (3, 200)
+    assert sig3.as_continuous().shape == (6, 200)
