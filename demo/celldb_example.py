@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 
-Example model fit using NEMS and some basic calls to baphy-specific files
-and celldb data. 
+Example model fit using NEMS and some basic calls to baphy-specific files and
+celldb data.  This should not live in demo/ forever, but it's meant to provide
+a helpful parallel/contrast with the celldb & baphy-indepedent examples.
 
 As in simple_example.py, the model is a linear-nonlinear STRF, with the
 linear filter constrained to be rank-2 and the output nonlinearity defined
