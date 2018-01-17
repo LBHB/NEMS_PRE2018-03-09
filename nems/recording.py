@@ -5,12 +5,6 @@ from .signal import Signal
 class Recording():
 
     def __init__(self, **kwargs):
-        '''
-        A Recording is a collection of signals that were recorded simultaneously,
-        such that their time indexes line up (and thus the time dimension of all
-        signals should be the same length and have the same sampling rate).
-        '''
-
         self.signals = kwargs['signals']
 
         # Verify that all signals are from the same recording
