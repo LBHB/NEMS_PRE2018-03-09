@@ -482,7 +482,7 @@ def spike_cache_filename2(spkfilestub,options):
             ic='_allTrials'
         else:
             ic='_correctTrials'
-    except: 
+    except:
         ic='_correctTrials';
     
     try: 
