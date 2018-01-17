@@ -15,15 +15,15 @@ updateload() {
   if [ "$DOMAIN" == "us-west-2.compute.internal" ] ;
   then
     NAME=`wget -qO- http://instance-data/latest/meta-data/public-ipv4`
-    DBSERVER="kamzik.org"
+    DBSERVER="pubdb"
     DBPORT="19555"
   else
-    DBSERVER="hyrax"
+    DBSERVER="mysql.neuralprediction.org"
     DBPORT="3306"
   fi
   DBUSER="david"
   DBPASSWORD="nine1997"
-  echo "DBSERVER=$DBSERVER DBPORT=$DBPORT"
+  #echo "DBSERVER=$DBSERVER DBPORT=$DBPORT"
   echo "Setting load on name=$NAME,domain=$DOMAIN to $L1/$L5/$L15"
   echo "update tComputer set load1=$L1,load5=$L5+second(now())/6000,load15=$L15,pingcount=0 where name='$NAME';"
   mysql --host=$DBSERVER --port=$DBPORT --user=$DBUSER --password=$DBPASSWORD --raw --database=cell --execute="update tComputer set load1=$L1,load5=$L5+second(now())/6000,load15=$L15,pingcount=0 where name='$NAME';" 

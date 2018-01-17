@@ -401,7 +401,7 @@ def pupil_cache_filename(pupfile, options):
     else:
         offset_str=''
       
-    if 'pupil_offset' in options:
+    if 'pupil_median' in options:
         med = options['pupil_median']
         if med==0: #matlab default in evpraster 
             med_str='';
@@ -441,6 +441,94 @@ def pupil_cache_filename(pupfile, options):
     
     
     cache_fn=pupfile_root_name+'_fs'+str(int(rasterfs))+'_'+tag_name+'_'+run+'_'+prestim+'_'+ic+'_psth'+str(psthonly)+offset_str+med_str+pupil_str+'.mat'
+    
+    return cache_fn
+
+
+def spike_cache_filename2(spkfilestub,options):
+    '''
+    Given the stub for spike cache file and options typically passed to 
+    load_spike_raster, generate the unique filename for for that cell/format
+    '''
+    
+    # parse the input in options
+    try: 
+        rasterfs='_fs'+str(options['rasterfs'])
+    except: 
+        rasterfs='_fs1000'
+    
+    try: 
+        tag_name='_tags-'+''.join(options['tag_masks'])
+    except: 
+        tag_name='_tags-Reference'
+    
+    try: 
+        run='_run-'+options['runclass'];
+    except: 
+        run='_run-all';
+    
+    if 'includeprestim' in options and type(options['includeprestim'])==int: 
+        prestim='_prestim-1'; 
+    elif 'includeprestim' in options: 
+        prestim=str(options['includeprestim'])
+        while ', ' in prestim:
+            prestim=prestim.replace('[','').replace(']','').replace(', ','-')
+        prestim='_prestim-'+prestim
+    else: 
+        prestim='_prestim-none'
+    
+    try: 
+        if options['includeincorrect']:
+            ic='_allTrials'
+        else:
+            ic='_correctTrials'
+    except: 
+        ic='_correctTrials';
+    
+    try: 
+        psthonly='_psth'+str(options['psthonly'])
+    except: 
+        psthonly='_psth-1'
+    
+    # define the cache file name
+    cache_fn=spkfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+'.mat'
+    
+    return cache_fn
+
+
+def stim_cache_filename(stimfile, options={}):
+    """
+    mimic cache file naming scheme from loadstimfrombaphy.m
+    mfile syntax:
+    % function [stim,stimparam]=loadstimfrombaphy(parmfile,startbin,stopbin, 
+    %                   filtfmt,fsout[=1000],chancount[=30],forceregen[=0],includeprestim[=0],SoundHandle[='ReferenceHandle'],repcount[=1]);
+    """
+    
+    try:
+        filtfmt=options['filtfmt']
+    except: 
+        filtfmt='parm'
+    
+    try:
+        fs='-fs'+str(options['fsout'])
+    except: 
+        fs='-fs100'
+            
+    try:
+        ch='-ch'+str(options['chancount'])
+    except: 
+        ch='-ch0'
+    
+    try:
+        if options['includeprestim']:
+            incps='-incps1'
+        else:
+            incps=''
+    except: 
+        incps='-incps1'
+     
+    #ppdir=['/auto/data/tmp/tstim/'];
+    cache_fn=stimfile + '-' + filtfmt + fs + ch + incps + '.mat'
     
     return cache_fn
     

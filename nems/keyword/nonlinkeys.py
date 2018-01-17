@@ -83,10 +83,10 @@ def dexp(stack):
 
 
 def logsig(stack):
-    #        a=self.phi[0,0]
-    #        b=self.phi[0,1]
-    #        c=self.phi[0,2]
-    #        d=self.phi[0,3]
+    #        a=self.phi[0,0]  # baseline
+    #        b=self.phi[0,1]  # amplitude
+    #        c=self.phi[0,2]  # inflection 
+    #        d=self.phi[0,3]  # slope
     #        Y=a+b/(1+np.exp(-(X-c)/d))
     resp = stack.modules[-1].unpack_data('resp', use_dout=True)
     pred = stack.modules[-1].unpack_data('pred', use_dout=True)
