@@ -33,28 +33,6 @@ imp.reload(nk)
 imp.reload(nu)
 imp.reload(ns)
 
-try:
-    import nems.db as nd
-    db_exists = True
-except Exception as e:
-    # If there's an error import nems.db, probably missing database
-    # dependencies. So keep going but don't do any database stuff.
-    print("Problem importing nems.db, can't update tQueue")
-    print(e)
-    db_exists = False
-
-#datapath='/Users/svd/python/nems/ref/week5_TORCs/'
-#est_files=[datapath + 'tor_data_por073b-b1.mat']
-
-#datapath='/auto/data/code/nems_in_cache/batch271/'
-#est_fieles=[datapath + 'chn020f-b1_b271_ozgf_c24_fs200.mat']
-#datapath='/Users/svd/python/nems/misc/ref/'
-#est_files=[datapath + 'bbl031f-a1_nat_export.mat']
-#'/auto/users/shofer/data/batch291/bbl038f-a2_nat_export.mat'
-def dexp_fn(phi,X):
-    Y=phi[0,0]-phi[0,1]*np.exp(-np.exp(phi[0,2]*(X-phi[0,3])))
-    return(Y)
-
 doval=1
 
 if 0:
@@ -79,7 +57,7 @@ if 1:
     batch=271 #A1
     #modelname="fb18ch100_wc01_fir15_fit01"
     
-    modelname="fb18ch100_wcg01_fir15_dexp_fit01"
+    modelname="fb18ch100_dlogn_wcg01_fir15_dexp_fit01"
     #modelname="fb18ch100_wcg01_fir15_fititer01"
     
     #modelname="fb18ch100_wcg01_fir15_fitannl00"

@@ -24,7 +24,7 @@ import nems.db as nd
 import numpy as np
 
 # set up metadata
-use_example="RDT"
+use_example="NAT"
 
 if use_example=="NAT":
     # This is A1/Natural sound example
@@ -37,46 +37,66 @@ if use_example=="NAT":
 elif use_example=="RDT":
     # this is an RDT example:
     cellid="chn029d-a1"
-    batch=269                 # batch of data sets that this set belongs to
+    batch=269                 # RDT in A1
     modelname="wc02_fir_dexp" # string identifier for this model architecture
     valeventcount=20
+
+elif use_example=="PTD":
+    # this is an RDT example:
+    cellid="TAR010c-21-2"     # note same cellid as NAT data but different files
+    batch=301                 # 301 is A1, pure tone detect with pupil recordings
+    modelname="wc02_fir_dexp"
+    valeventcount=3
 
 # get file info from database
 d=nd.get_batch_cell_data(batch,cellid)
 
-stim_options={'filtfmt': 'ozgf', 'fsout': 100, 'chancount': 18, 'includeprestim': 1}
-stimfile=nu.baphy.stim_cache_filename(d['stim'][0],stim_options)
+# load the data. This is a little more complicated than simple_example now
+# because there may be multiple files for a given (cellid,batch)
+X_est_set=[]
+Y_est_set=[]
+X_val_set=[]
+Y_val_set=[]
+for ii in range(0,len(d)):
+    
+    # specify some pre-processing/formatt parameters for the stimulus. this
+    # will point to a specific .mat file with the relevant spectrogram by
+    # adding strings onto the end of the filename stub returned by
+    # nd.get_batch_cell()
+    stim_options={'filtfmt': 'ozgf', 'fsout': 100, 'chancount': 18, 'includeprestim': 1}
+    stimfile=nu.baphy.stim_cache_filename(d['stim'][0],stim_options)
 
-resp_options={'rasterfs': 100,'includeprestim': 1}
-respfile=nu.baphy.spike_cache_filename2(d['raster'][0],resp_options)
+    resp_options={'rasterfs': 100,'includeprestim': 1}
+    respfile=nu.baphy.spike_cache_filename2(d['raster'][0],resp_options)
 
-#use helper function: data=nu.io.load_matlab_file(respfile)
-# returns stimulus, X = [(spectral)channel X event X time]
-# and response, Y = [(neural)channel X event X time]
-# event and time axis sizes must match for the two matrices
-X=nu.io.load_matlab_matrix(stimfile,key="stim",label="stim",channelaxis=0,
-                           eventaxis=2,timeaxis=1)
-Y=nu.io.load_matlab_matrix(respfile,key="r",label="resp",repaxis=1,
-                           eventaxis=2,timeaxis=0)
+    #use helper function: data=nu.io.load_matlab_file(respfile)
+    # returns stimulus, X = [(spectral)channel X event X time]
+    # and response, Y = [(neural)channel X event X time]
+    # event and time axis sizes must match for the two matrices
+    X=nu.io.load_matlab_matrix(stimfile,key="stim",label="stim",channelaxis=0,
+                               eventaxis=2,timeaxis=1)
+    Y=nu.io.load_matlab_matrix(respfile,key="r",label="resp",repaxis=1,
+                               eventaxis=2,timeaxis=0)
+    
+    # because of idiosyncratic baphy behavior, having to do with allowing more 
+    # reps in the validation segment, some "events" will never actually be
+    # played, (0 reps, all nans in Y). This will remove them. Only relevant for 
+    # NAT data, not RDT
+    Y=np.nanmean(Y,axis=3)
+    keepidx=np.isfinite(Y[0,:,0])
+    Y=Y[:,keepidx,:]
+    X=X[:,keepidx,:]
+    
+    # convert from spikes/bin to spikes/sec
+    Y=Y*resp_options['rasterfs']
+    
+    # first three events are validation data, separate them out
+    X_est_set=X_est_set+[X[:,valeventcount:,:]]
+    Y_est_set=Y_est_set+[Y[:,valeventcount:,:]]
+    X_val_set=X_val_set+[X[:,0:valeventcount,:]]
+    Y_val_set=Y_val_set+[Y[:,0:valeventcount,:]]
 
-# because of idiosyncratic baphy behavior, having to do with allowing more 
-# reps in the validation segment, some "events" will never actually be
-# played, (0 reps, all nans in Y). This will remove them. Only relevant for 
-# NAT data, not RDT
-Y=np.nanmean(Y,axis=3)
-keepidx=np.isfinite(Y[0,:,0])
-Y=Y[:,keepidx,:]
-X=X[:,keepidx,:]
-
-
-# FROM HERE DOWN, THIS SHOULD BE IDENTICAL TO simple_example.py
-
-# first three events are validation data, separate them out
-X_est=X[:,valeventcount:,:]
-Y_est=Y[:,valeventcount:,:]
-X_val=X[:,0:valeventcount,:]
-Y_val=Y[:,0:valeventcount,:]
-
+# FROM HERE DOWN, THIS SHOULD BE LARGELY IDENTICAL TO simple_example.py
 
 # create and fit the model
 # PSEDUOCODE: stack=fit_LN_model(stim=X_est,resp=Y_est)
@@ -85,7 +105,8 @@ Y_val=Y[:,0:valeventcount,:]
 stack=ns.nems_stack(cellid=cellid,batch=batch,modelname=modelname)
 
 stack.data=[[]]
-stack.data[0].append({'stim': X_est, 'resp': Y_est, 'pred': X_est.copy(), 'respFs': 100, 'est': True})
+for X_est,Y_est in zip(X_est_set,Y_est_set):
+    stack.data[0].append({'stim': X_est, 'resp': Y_est, 'pred': X_est.copy(), 'respFs': 100, 'est': True})
 
 # add model modules
 stack.append(nm.filters.WeightChannels,num_chans=2)
@@ -111,7 +132,10 @@ stack.fitter.do_fit()
 # PSEUDOCODE r=test_dumb_model(stack=stack,stim=X_val,resp=Y_val)
 
 stack.append(nm.metrics.correlation)
-stack.data[0].append({'stim': X_val, 'resp': Y_val, 'pred': X_val.copy(), 'respFs': 100, 'est': False})
+
+for X_val,Y_val in zip(X_val_set,Y_val_set):
+    stack.data[0].append({'stim': X_val, 'resp': Y_val, 'pred': X_val.copy(), 'respFs': 100, 'est': False})
+
 stack.valmode=True
 stack.evaluate(0)
 
