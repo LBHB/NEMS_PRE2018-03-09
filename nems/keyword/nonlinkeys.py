@@ -39,6 +39,16 @@ def dlog(stack):
     """
     stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], phi=np.array([[-2]]))
 
+def dlogn(stack):
+    """
+    Applies a natural logarithm entry-by-entry to the datastream after normalization:
+        y = log(x+v1)
+    where x is the input matrix and v1 is a fitted parameter applied to each
+    matrix entry (the same across all entries)
+    """
+    stack.append(nm.aux.normalize)
+    stack.append(nm.nonlin.gain, nltype='dlog', fit_fields=['phi'], phi=np.array([[-2]]))
+
 
 def exp(stack):
     """
@@ -153,5 +163,6 @@ keyword_registry.update({
     'exp': exp,
     'dexp': dexp,
     'dlog': dlog,
-    'dlog2': dlog2,
+    'dlogn': dlogn,
+    'dlog': dlog,
 })
