@@ -16,7 +16,7 @@ updateload() {
   then
     NAME=`wget -qO- http://instance-data/latest/meta-data/public-ipv4`
     DBSERVER="pubdb"
-    DBPORT="19555"
+    DBPORT="3306"
   else
     DBSERVER="mysql.neuralprediction.org"
     DBPORT="3306"
