@@ -633,7 +633,13 @@ def get_cell_files(cellid=None, runclass=None):
     
     
     d = pd.read_sql(sql=sql, con=cluster_engine, params=params)
-
+    
+    tmp=[]
+    for i in range(0,len(d.cellid)):
+        tmp.append(get_isolation(d.cellid.iloc[i], d.rawid.iloc[i])['isolation'].iloc[0])
+  
+    d['isolation']=pd.Series(tmp,index=d.index)
+    
     return d
 
 def get_isolation(cellid=None, rawid=None):
