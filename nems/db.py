@@ -622,10 +622,12 @@ def get_batches(name=None):
 def get_cell_files(cellid=None, runclass=None):
     # eg, sql="SELECT * from sCellFile WHERE cellid like "TAR010c-30-1"
     params = ()
-    sql = ("SELECT sCellFile.*,gRunClass.name FROM sCellFile INNER JOIN "
-           "gRunClass on sCellFile.runclassid=gRunClass.id WHERE 1")
+    sql = ("SELECT sCellFile.*,gRunClass.name, gSingleRaw.isolation FROM sCellFile INNER JOIN "
+           "gRunClass on sCellFile.runclassid=gRunClass.id "
+           " INNER JOIN "
+           "gSingleRaw on sCellFile.rawid=gSingleRaw.rawid and sCellFile.cellid=gSingleRaw.cellid WHERE 1")
     if not cellid is None:
-        sql += " AND cellid like %s"
+        sql += " AND sCellFile.cellid like %s"
         params = params+("%"+cellid+"%",)
     if not runclass is None:
         sql += " AND gRunClass.name like %s"
@@ -633,13 +635,7 @@ def get_cell_files(cellid=None, runclass=None):
     
     
     d = pd.read_sql(sql=sql, con=cluster_engine, params=params)
-    
-    tmp=[]
-    for i in range(0,len(d.cellid)):
-        tmp.append(get_isolation(d.cellid.iloc[i], d.rawid.iloc[i])['isolation'].iloc[0])
-  
-    d['isolation']=pd.Series(tmp,index=d.index)
-    
+
     return d
 
 def get_isolation(cellid=None, rawid=None):
