@@ -577,6 +577,8 @@ def stim_cache_filename(stimfile, options={}):
     mfile syntax:
     % function [stim,stimparam]=loadstimfrombaphy(parmfile,startbin,stopbin, 
     %                   filtfmt,fsout[=1000],chancount[=30],forceregen[=0],includeprestim[=0],SoundHandle[='ReferenceHandle'],repcount[=1]);
+
+    SVD 2018-01-15
     """
     
     try:

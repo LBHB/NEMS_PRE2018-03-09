@@ -25,8 +25,8 @@ updateload() {
   DBPASSWORD="nine1997"
   #echo "DBSERVER=$DBSERVER DBPORT=$DBPORT"
   echo "Setting load on name=$NAME,domain=$DOMAIN to $L1/$L5/$L15"
-  echo "update tComputer set load1=$L1,load5=$L5+second(now())/6000,load15=$L15,pingcount=0 where name='$NAME';"
-  mysql --host=$DBSERVER --port=$DBPORT --user=$DBUSER --password=$DBPASSWORD --raw --database=cell --execute="update tComputer set load1=$L1,load5=$L5+second(now())/6000,load15=$L15,pingcount=0 where name='$NAME';" 
+  #echo "update tComputer set load1=$L1,load5=$L5+second(now())/6000,load15=$L15,pingcount=0 where name='$NAME';"
+  mysql --host=$DBSERVER --port=$DBPORT --user=$DBUSER --password=$DBPASSWORD --raw --database=cell --execute="update tComputer set load1=$L1,load5=$L5+second(now())/6000,load15=$L15,pingcount=0 where name='$NAME';" &>/dev/null
   #mysql --host=hyrax --user=david --password=nine1997 --raw --database=cell --execute="update tComputer set load1=$L1,load5=$L5+second(now())/6000,load15=$L15,pingcount=0 where name='$NAME' AND ext='$EXT';" 
 
   exit 0

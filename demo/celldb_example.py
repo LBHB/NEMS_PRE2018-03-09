@@ -24,7 +24,7 @@ import nems.db as nd
 import numpy as np
 
 # set up metadata
-use_example="PTD"
+use_example="NAT"
 
 if use_example=="NAT":
     # This is A1/Natural sound example
