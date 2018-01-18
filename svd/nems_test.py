@@ -20,6 +20,7 @@ import nems.fitters as nf
 import nems.keyword as nk
 import nems.utilities as nu
 import nems.stack as ns
+import nems.db as nd
 from nems.keyword.registry import keyword_registry
 
 import numpy as np
@@ -57,8 +58,8 @@ if 1:
     batch=271 #A1
     #modelname="fb18ch100_wc01_fir15_fit01"
     
-    modelname="fb18ch100_dlogn_wcg01_fir15_dexp_fit01"
-    #modelname="fb18ch100_wcg01_fir15_fititer01"
+    #modelname="fb18ch100_dlogn_wcg01_stp1pc_fir15_dexp_fit01"
+    modelname="fb18ch100_wcg01_fir15_fit01"
     
     #modelname="fb18ch100_wcg01_fir15_fitannl00"
     #modelname="ctx100ch100_dlog_wc02_fir15_fit01"
@@ -328,10 +329,9 @@ else:
         nu.io.save_model(stack, filename)
         preview_file = stack.quick_plot_save(mode="png")
         print("Preview saved to: {0}".format(preview_file))
-        if db_exists:
-            queueid = None
-            r_id = nd.save_results(stack, preview_file, queueid=queueid)
-            print("Fit results saved to NarfResults, id={0}".format(r_id))
+        queueid = None
+        r_id = nd.save_results(stack, preview_file, queueid=queueid)
+        print("Fit results saved to NarfResults, id={0}".format(r_id))
 
 #stack.modules[1].nests=5
 #stack.modules[1].valfrac=0.2
