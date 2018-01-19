@@ -88,6 +88,7 @@ except Exception as e:
 POOL_RECYCLE = 7200
 
 # create a database connection engine
+log.info('Creating SQLAlchemy engine with URI %s', db_uri)
 engine = create_engine(db_uri, pool_recycle=POOL_RECYCLE)
 
 # create base class to mirror existing database schema
@@ -404,15 +405,15 @@ def update_job_tick(queueid=0):
     r=os.system(qsetload_path)
     if r:
         log.warning('Error executing qsetload')
-        
+
     if queueid:
         conn = cluster_engine.connect()
         # tick off progress, job is live
         sql = "UPDATE tQueue SET progress=progress+1 WHERE id={}".format(queueid)
         r = conn.execute(sql)
         conn.close()
-        
-        
+
+
     return r
 
 
@@ -583,8 +584,6 @@ def get_batch_cells(batch=None, cellid=None):
     if not cellid is None:
        sql += " AND cellid like %s"
        params = params+(cellid+"%",)
-    print(sql)
-    print(params)
     d = pd.read_sql(sql=sql, con=engine, params=params)
 
     return d
@@ -605,7 +604,7 @@ def get_batch_cell_data(batch=None, cellid=None):
     d = pd.read_sql(sql=sql, con=engine, params=params)
     d.set_index(['cellid', 'groupid', 'label'], inplace=True)
     d=d['filepath'].unstack('label')
-    
+
     return d
 
 def get_batches(name=None):
@@ -630,8 +629,8 @@ def get_cell_files(cellid=None, runclass=None):
     if not runclass is None:
         sql += " AND gRunClass.name like %s"
         params = params+("%"+runclass+"%",)
-    
-    
+
+
     d = pd.read_sql(sql=sql, con=cluster_engine, params=params)
 
     return d
@@ -639,24 +638,24 @@ def get_cell_files(cellid=None, runclass=None):
 def get_isolation(cellid=None, rawid=None):
 
     sql = ("SELECT isolation FROM gSingleRaw WHERE cellid = {0}{1}{2} and rawid = {3}".format("'",cellid,"'",rawid))
-        
+
     d = pd.read_sql(sql=sql, con=cluster_engine)
     return d
 
 def get_cellids(rawid=None):
    sql = ("SELECT distinct(cellid) FROM sCellFile WHERE 1")
-   
+
    if rawid is not None:
        sql+=" AND rawid = {0} order by cellid".format(rawid)
    else:
        sys.exit('Must give rawid')
-       
-   cellids = pd.read_sql(sql=sql,con=cluster_engine)['cellid']
-   
-   return cellids
-    
 
-    
+   cellids = pd.read_sql(sql=sql,con=cluster_engine)['cellid']
+
+   return cellids
+
+
+
 def list_batches(name=None):
     d = get_batches(name)
     for x in range(0,len(d)):
