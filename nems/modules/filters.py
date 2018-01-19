@@ -1,6 +1,3 @@
-import logging
-log = logging.getLogger(__name__)
-
 from nems.modules.base import nems_module as Module
 import nems.utilities.utils
 
@@ -40,9 +37,9 @@ def weight_channels_local(x, weights, baseline=None):
     # so that matmul will work properly (it operates on the last two
     # dimensions of the inputs and treats the rest of the dimensions as
     # stacked matrices).
-    #x = np.swapaxes(x, -3, -2)
+    x = np.swapaxes(x, -3, -2)
     x = weights @ x
-    #x = np.swapaxes(x, -3, -2)
+    x = np.swapaxes(x, -3, -2)
     if baseline is not None:
         x += baseline[..., np.newaxis, np.newaxis]
     return x
@@ -57,8 +54,7 @@ class WeightChannels(Module):
     """
     name = 'filters.weight_channels'
     user_editable_fields = ['input_name', 'output_name', 'fit_fields',
-                            'num_dims', 'num_chans', 'baseline', 'coefs',
-                            'phi', 'parm_fun','norm_output']
+                            'num_dims', 'num_chans', 'baseline', 'coefs', 'phi', 'parm_fun']
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
     coefs = None
@@ -67,8 +63,7 @@ class WeightChannels(Module):
     parm_type = None
 
     def my_init(self, num_dims=0, num_chans=1, baseline=[[0]],
-                fit_fields=None, parm_type=None, parm_fun=None, phi=[[0]],
-                norm_output=False):
+                fit_fields=None, parm_type=None, parm_fun=None, phi=[[0]]):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         if self.d_in and not(num_dims):
@@ -90,7 +85,6 @@ class WeightChannels(Module):
                 self.fit_fields = ['phi']
         else:
             # self.coefs=np.ones([num_chans,num_dims])/num_dims/100
-            #self.coefs = np.zeros([num_chans, num_dims])
             self.coefs = np.random.normal(
                 1, 0.1, [num_chans, num_dims]) / num_dims
             if not fit_fields:
@@ -124,40 +118,10 @@ class WeightChannels(Module):
             coefs = self.coefs
         else:
             coefs = self.coefs
-        if np.sum(np.abs(self.baseline[:]))>0:
-            baseline=self.baseline
-        else:
-            baseline=None
-
-        return weight_channels_local(x, coefs, baseline)
-
-    def evaluate(self):
-        del self.d_out[:]
-        # create a copy of each input variable
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-
-        X=self.unpack_data(self.input_name,est=True)
-        Z = self.my_eval(X)
-        if self.norm_output:
-            # compute std() of est data output and then normalize
-            self.norm_factor=np.std(np.abs(Z),axis=1,keepdims=True)
-            Z=Z/self.norm_factor
-        self.pack_data(Z,self.output_name,est=True)
-
-        if self.parent_stack.valmode:
-            X=self.unpack_data(self.input_name,est=False)
-            Z = self.my_eval(X)
-            if self.norm_output:
-                # don't recalc. just use factor that normalizes max of
-                # estimation data to be 1
-                Z=Z/self.norm_factor
-            self.pack_data(Z,self.output_name,est=False)
-
+        return weight_channels_local(x, coefs)
 
 class weight_channels(WeightChannels):
     pass
-
 
 ################################################################################
 # FIR filtering
@@ -211,7 +175,7 @@ def fir_filter(x, coefficients, baseline=None, pad=False, bank_count=1):
 
     if baseline is not None:
         result += baseline
-
+        
     return result
 
 
@@ -265,54 +229,15 @@ class FIR(Module):
         self.fit_fields = fit_fields
         self.do_trial_plot = self.plot_fns[0]
 
-    def my_eval_old(self, x):
+    def my_eval(self, x):
         return fir_filter(x, self.coefs, self.baseline, bank_count=self.bank_count)
 
-    def my_eval(self,X):
-        s=X.shape
-        X=np.reshape(X,[s[0],-1])
-        for i in range(0,s[0]):
-            y=np.convolve(X[i,:],self.coefs[i,:])
-            X[i,:]=y[0:X.shape[1]]
-
-        if self.bank_count:
-            # reshape inputs so that filter is summed separately across each bank
-            ts0=np.int(s[0]/self.bank_count)
-            ts1=self.bank_count
-            X=np.reshape(X,[ts1,ts0,-1])
-
-        X=X.sum(1)+self.baseline
-        s=list(s)
-        s[0]=self.bank_count
-        Y=np.reshape(X,s)
-        return Y
-
     def get_strf(self):
+        wc = self.parent_stack \
+            .find_module('filters.weight_channels', self.output_name)
+        w = wc.get_coefs()
         h = self.coefs
-
-        # if weight channels exist and dimensionality matches, generate a full
-        # STRF
-        try:
-            wcidx = nems.utilities.utils.find_modules(self.parent_stack, "filters.weight_channels")
-            if len(wcidx) > 0 and self.parent_stack.modules[wcidx[0]].output_name == self.output_name:
-                wcidx = wcidx[0]
-            elif len(wcidx) > 1 and self.parent_stack.modules[wcidx[1]].output_name == self.output_name:
-                wcidx = wcidx[1]
-            else:
-                wcidx = -1
-        except BaseException:
-            wcidx = -1
-
-        if self.name == "filters.fir" and wcidx >= 0:
-            w = self.parent_stack.modules[wcidx].coefs
-            if w.shape[0] == h.shape[0]:
-                h = np.matmul(w.transpose(), h)
-
-        return h
-
-
-class fir(FIR): #clone of FIR
-    pass
+        return w.T @ h
 
 
 ################################################################################
@@ -338,8 +263,8 @@ class stp(Module):
     dep_only=False
     num_channels=1
     num_dims=1
-
-    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None,
+    
+    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, 
                 crosstalk=0, fit_fields=['tau','u']):
 
         """
@@ -417,33 +342,3 @@ class stp(Module):
             Y = np.append(Y, di * X, 0)
 
         return Y
-
-
-class PsthModel(Module):
-    name = 'filters.psthmodel'
-    plot_fns = [nems.utilities.plot.sorted_raster,
-                nems.utilities.plot.raster_plot]
-    """
-    Replaces stim with average resp for each stim (i.e., the PSTH).
-    This is the 'perfect' model
-    used for comparing different models of pupil state gain.
-
-    SVD added, pulled out of NS's pupil-specific analysis
-    """
-
-    def my_init(self):
-        log.info('Replacing stimulus with averaged response raster')
-
-    def evaluate(self):
-        del self.d_out[:]
-        # create a copy of pointer to each input variable
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-
-        for f_in, f_out in zip(self.d_in, self.d_out):
-            Xa = f_in['avgresp']
-            R = f_in['replist']
-            X = np.expand_dims(np.squeeze(Xa[R, :]),axis=0)
-            f_out[self.output_name] = X
-
-
