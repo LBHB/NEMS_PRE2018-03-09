@@ -21,12 +21,6 @@ class Distribution:
         '''
         return self.distribution.mean()
 
-    def sample(self):
-        '''
-        Return a random sample from the distribution
-        '''
-        return self.distribution.rvs()
-
     def percentile(self, percentile):
         '''
         Calculate the percentile
