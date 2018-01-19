@@ -628,6 +628,9 @@ def load_site_raster(batch, runclass, site, options):
         includeprestim (boolean), default: 1
         tag_masks (list of strings), default [], ex: ['Reference']
         active_passive (string), default: 'both' ex: 'p' or 'a'
+        
+        **** other options to be implemented ****
+        
     Output:
     -------------------------------------------------------------------------
     r (numpy array), response matrix (bin x reps x stim x cells)
@@ -708,3 +711,72 @@ def load_site_raster(batch, runclass, site, options):
         r = r[:,np.array(a_p)==0,:,:];
         
     return r, cfd
+
+def load_pup_raster(batch, runclass, site, options):
+    '''
+    Load a pupil raster given batch id, runclass, recording site, and options
+    
+    Input:
+    -------------------------------------------------------------------------
+    batch ex: batch=301
+    runclass ex: runclass='PTD'
+    recording site ex: site='TAR010c'
+    
+    options: dict
+        rasterfs (float), default: 100
+        includeprestim (boolean), default: 1
+        tag_masks (list of strings), default [], ex: ['Reference']        
+        active_passive (string), default: 'both' ex: 'p' or 'a'
+    
+        **** other pupil options to be implemented ****    
+    
+    Output:
+    -------------------------------------------------------------------------
+    p (numpy array), response matrix (bin x reps x stim)
+           
+    '''
+
+    try: options['rasterfs'];
+    except: options['rasterfs']=100;
+    
+    try: options['includeprestim'];
+    except: options['includeprestim']=1;
+    
+    try: options['tag_masks'];
+    except: options['tag_masks']=[]
+    
+    try: active_passive = options['active_passive'];
+    except: active_passive='both';
+
+    options['pupil']=1;
+
+    d=db.get_batch_cell_data(batch)
+    files = []
+    for f in d['pupil'].unique():
+        if runclass in f and site in f:
+            files.append(f)
+    
+    files = pd.Series(files)
+    
+    pupfile=nu.baphy.pupil_cache_filename2(files,options)
+    a_p = []
+    for j, rf in enumerate(pupfile):
+        
+        pts=nu.io.load_matlab_matrix(pupfile.iloc[j],key='r')
+        
+        if '_a_' in rf:
+            a_p = a_p+[1]*pts.shape[1]
+        else:
+            a_p = a_p+[0]*pts.shape[1]
+        
+        if j == 0:
+            p = pts;
+        else:
+            p = np.concatenate((p,pts),axis=1)
+
+    if active_passive is 'a':
+        p = p[:,np.array(a_p)==1,:]
+    elif active_passive is 'p':
+        p = p[:,np.array(a_p)==0,:] 
+    
+    return p
