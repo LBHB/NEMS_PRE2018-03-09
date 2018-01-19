@@ -4,8 +4,8 @@ from .signal import Signal
 
 class Recording:
 
-    def __init__(self, **kwargs):
-        self.signals = kwargs['signals']
+    def __init__(self, signals):
+        self.signals = signals
 
         # Verify that all signals are from the same recording
         recordings = [s.recording for s in self.signals.values()]
@@ -19,7 +19,6 @@ class Recording:
         Loads all the signals (CSV/JSON pairs) found in DIRECTORY and
         returns a Recording object containing all of them.
         '''
-
         files = Signal.list_signals(directory)
         basepaths = [os.path.join(directory, f) for f in files]
         signals = [Signal.load(f) for f in basepaths]
@@ -71,21 +70,21 @@ class Recording:
             right[r.name] = r
         return (Recording(signals=left), Recording(signals=right))
 
-    def jackknifed_by_reps(self, nsplits, split_idx, only_signals=None,
+    def jackknifed_by_reps(self, nsplits, split_idx, signal_names=None,
                            invert=False):
         '''
         By default, calls jackknifed_by_reps on all signals and returns a new
         set of data. If you would only like to jackknife certain signals,
         provide their names in a list to optional argument 'only_signals'.
         '''
+        if signal_names is not None:
+            signals = {n: self.signals[n] for n in signal_names}
+        else:
+            signals = self.signals
 
-        new_sigs = {}
-        for sn in self.signals.keys():
-            if (not only_signals or sn in set(only_signals)):
-                s = sn
-                new_sigs[sn] = s.jackknifed_by_reps(nsplits, split_idx,
-                                                    invert=invert)
-        return Recording(signals=new_sigs)
+        kw = dict(nsplits=nsplits, split_idx=split_idx, invert=invert)
+        split = {n: s.jackknifed_by_reps(**kw) for n, s in signals.items()}
+        return Recording(signals=split)
 
     def jackknifed_by_time(self, nsplits, split_idx, only_signals=None,
                            invert=False):
@@ -110,3 +109,15 @@ class Recording:
     #     recording object of just the data at that point.
     #     '''
     #     pass
+
+
+def concatenate_recordings(recordings):
+    merged_signals = recordings[0].signals.copy()
+    for recording in recordings[1:]:
+        if merged_signals.keys() != recording.signals.keys():
+            raise ValueError('Recordings do not contain same signals')
+        for name, base_signal in merged_signals.items():
+            other_signal = recording.signals[name]
+            new_signal = base_signal.append_signal(other_signal)
+            merged_signals[name] = new_signal
+    return Recording(merged_signals)
