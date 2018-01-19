@@ -110,14 +110,19 @@ class Recording:
     #     '''
     #     pass
 
+    @classmethod
+    def concatenate_recordings(cls, recordings):
+        # Make sure they all contain the same set of signals. If not, this is
+        # undefined behavior.
+        signal_names = recordings[0].signals.keys()
+        for recording in recordings:
+            if signal_names != recording.signals.keys():
+                raise ValueError('Recordings do not contain same signals')
 
-def concatenate_recordings(recordings):
-    merged_signals = recordings[0].signals.copy()
-    for recording in recordings[1:]:
-        if merged_signals.keys() != recording.signals.keys():
-            raise ValueError('Recordings do not contain same signals')
-        for name, base_signal in merged_signals.items():
-            other_signal = recording.signals[name]
-            new_signal = base_signal.append_signal(other_signal)
-            merged_signals[name] = new_signal
-    return Recording(merged_signals)
+        # Merge the signals and return it as a new recording.
+        merged_signals = {}
+        for signal_name in signal_names:
+            signals = [r.signals[signal_name] for r in recordings]
+            merged_signals[signal_name] = Signal.concatenate_time(signals)
+
+        return Recording(merged_signals)

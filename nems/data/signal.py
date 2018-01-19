@@ -332,7 +332,7 @@ class Signal:
             ti['start_index'] += offset
             offset += signal.ntimes
             trial_info.append(ti)
-        trial_info = pd.concat(trial_info)
+        trial_info = pd.concat(trial_info, ignore_index=True)
 
         return Signal(
             name=base.name,

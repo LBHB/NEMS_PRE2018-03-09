@@ -1,2 +1,2 @@
 from .signal import Signal
-from .recording import Recording, concatenate_recordings
+from .recording import Recording
