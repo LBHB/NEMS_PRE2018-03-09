@@ -148,3 +148,36 @@ Lazy Devil's Advocate. To rethink a design decision, is it really worth wrapping
 6) I haven't fully updated the code to work with some of the changes you made (e.g., I used some hacks since the Signal and Recording objects weren't production ready). I'm going to spend the next few hours looking into these changes and try to sync up everything so it works with the new data-loading system.
 
 ---
+
+# To help with clarity, we will define the following words mathematically:
+#
+# |-----------+----------------------------------------------------------|
+# | Name      | Function Signature and Description                       |
+# |-----------+----------------------------------------------------------|
+# | EVALUATOR | f(mspec, data) -> pred                                   |
+# |           | Makes a prediction based on the model and data.          |
+# |-----------+----------------------------------------------------------|
+# | METRIC    | f(pred) -> error                                         |
+# |           | Evaluates the accuracy of the prediction.                |
+# |-----------+----------------------------------------------------------|
+# | FITTER    | f(mspec, cost_fn) -> mspec                               |
+# |           | Tests various points and finds a better modelspec.       |
+# |-----------+----------------------------------------------------------|
+# | COST_FN   | f(mspec) -> error                                        |
+# |           | A function that gives the cost (error) of each mspec.    |
+# |           | Often uses curried EST dataset, METRIC() and EVALUATOR() |
+# |-----------+----------------------------------------------------------|
+#
+# where:
+#   data       is a dict of signals, like {'stim': ..., 'resp': ..., ...}
+#   pred       is a dict of signals, just like 'data' but containing 'pred'
+#   mspec      is the modelspec data type, as was defined above
+#   error      is a (scalar) measurement of the error between pred and resp
+
+
+# TODO: Open question: even though it is only a few lines, how and where should
+# this information be recorded? The data set that a model was trained on
+# is relevant information that should be serialized and recorded somewhere.
+# save_to_disk('/some/path/model1_dataspec.json',
+#              json.dumps({'URL': URL, 'est_val_split_frac': 0.8}))
+# TODO: This annotation should be done automatically when split_at_time is called?
