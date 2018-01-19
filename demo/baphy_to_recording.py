@@ -101,13 +101,28 @@ def load_data(data, fs=100):
     return Recording.concatenate_recordings(recordings)
 
 
-cellid = 'sti016a-b1'
-batch = 269
+if __name__ == '__main__':
+    cellid = 'sti016a-b1'
+    batch = 269
 
-# This returns a dataframe. Each row represents a file from that dataframe
-# which will be merged into a single recording (information about trials are
-# preserved so we can properly refactor the trials).
-data = db.get_batch_cell_data(batch, cellid)
+    # This returns a dataframe. Each row represents a file from that dataframe
+    # which will be merged into a single recording (information about trials are
+    # preserved so we can properly refactor the trials).
+    data = db.get_batch_cell_data(batch, cellid)
 
-# This loads the data in each file and merges it into a single recording.
-recording = load_data(data)
+    # This loads the data in each file and merges it into a single recording.
+    recording = load_data(data)
+
+    # Note that this doesn't actually do the preferred approach of pulling out
+    # validation datasets across the full recording yet. This will be implemented in
+    # the near-future. The point is that the recording knows how to split the
+    # dataset into estimation and validation sets.
+    est = recording.jackknifed_by_time(10, 0, invert=False)
+    val = recording.jackknifed_by_time(10, 0, invert=True)
+
+    e = np.nanmean(est.signals['stim1']._matrix, axis=0)
+    v = np.nanmean(val.signals['stim1']._matrix, axis=0)
+
+    # Number of timepoints that are valid
+    print(len(e[~np.isnan(e)]))
+    print(len(v[~np.isnan(v)]))
