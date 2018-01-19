@@ -6,17 +6,20 @@ import numpy as np
 
 class Signal:
 
-    def __init__(self, fs, matrix, name, recording, chans=None, trial_info=None,
+    def __init__(self, fs, matrix, name, recording, chans=None, epochs=None,
                  meta=None):
         '''
         Parameters
         ----------
         ... TODO
-        trial_info : {None, DataFrame}
-            DataFrame with two columns ('start_index', 'end_index') denoting the
-            start and end time of the trials in the recording. Can contain extra
-            columns (e.g., the file it came from, an id for each trial, etc.)
-            that may eventually be used later.
+        epochs : {None, DataFrame}
+            Epochs are periods of time that are tagged with a name
+            When defined, the DataFrame should have these first three columns:
+                 ('start_index', 'end_index', 'epoch_name')
+            denoting the start and end of the time of an epoch, and what
+            it is named. You may reuse the same name (because several epochs
+            might correspond to the same stimulus, for example). start_index
+            is inclusive, and end_index is not, like other indexing in python.
 
         ... TODO
         '''
@@ -26,7 +29,7 @@ class Signal:
         self.recording = recording
         self.chans = chans
         self.fs = fs
-        self.trial_info = trial_info
+        self.epochs = epochs
         self.meta = meta
 
         # Verify that we have a long time series
@@ -54,11 +57,13 @@ class Signal:
             m = 'Name of recording must be a string: {}'.format(self.recording)
             raise ValueError(m)
 
-        if self.chans and type(self.chans) is not list:
-            types_are_str = [(True if c is str else False) for c in self.chans]
-            if not all(types_are_str):
-                raise ValueError('Chans must be a list of strings:'
-                                 + str(self.chans))
+        if self.chans:
+            if type(self.chans) is not list:
+                raise ValueError('Chans must be a list.')
+            typesok = [(True if type(c) is str else False) for c in self.chans]
+            if not all(typesok):
+                raise ValueError('Chans must be a list of strings:' +
+                                 str(self.chans) + str(typesok))
 
         if self.fs < 0:
             m = 'Sampling rate of signal must be a positive number. Got {}.'
@@ -74,19 +79,20 @@ class Signal:
         use optional parameter fmt (for example, fmt='%1.3e')
         to alter the precision of the floating point matrices.
         '''
-        filebase = self.recording + '_' + self.name
+        filebase = self.recording + '.' + self.name
         basepath = os.path.join(dirpath, filebase)
         csvfilepath = basepath + '.csv'
+        epochfilepath = basepath + 'epoch.csv'
         jsonfilepath = basepath + '.json'
 
         np.savetxt(csvfilepath, self.as_continuous(), delimiter=",", fmt=fmt)
+        if self.epochs:
+            np.savetxt(epochfilepath, self.epochs, delimiter=",")
 
         with open(jsonfilepath, 'w') as fh:
             attributes = self._get_attributes()
-            # Be sure to convert the dataframe to a dictionary that can be
-            # handled by JSON
-            attributes['trial_info'] = attributes['trial_info'].to_json()
             json.dump(attributes, fh)
+
         return (csvfilepath, jsonfilepath)
 
     @staticmethod
@@ -101,16 +107,22 @@ class Signal:
            /tmp/sigs/gus027b13_p_PPS_resp-a1
         '''
         csvfilepath = basepath + '.csv'
+        epochfilepath = basepath + '.epoch.csv'
         jsonfilepath = basepath + '.json'
         mat = pd.read_csv(csvfilepath, header=None).values
+        if os.path.isfile(epochfilepath):
+            epochs = pd.read_csv(epochfilepath, header=None).values
+        else:
+            epochs = None
         mat = mat.astype('float')
+        mat = np.swapaxes(mat, 0, 1)
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)
             s = Signal(name=js['name'],
                        chans=js.get('chans', None),
+                       epochs=epochs,
                        recording=js['recording'],
                        fs=js['fs'],
-                       trial_info=pd.read_json(js['trial_info']),
                        meta=js['meta'],
                        matrix=mat)
             return s
@@ -141,21 +153,28 @@ class Signal:
         If trials are of uneven length, pads shorter trials with NaN. All trials
         are aligned to the start.
         '''
-        if self.trial_info is None:
+        if self.epochs is None:
             raise ValueError('Cannot reshape into trials')
 
-        samples = self.trial_info['end_index'] - self.trial_info['start_index']
+        # TODO: This won't work any more; we need an implementation that
+        #  selects all epochs that match a regexp? and makes it ragged
+        #  based on that? or something?
 
-        n_samples = int(samples.max())
-        n_trials = len(self.trial_info)
-        n_channels = self._matrix.shape[0]
+        assert(0)
 
-        data = np.full((n_trials, n_channels, n_samples), np.nan)
-        for i, (_, row) in enumerate(self.trial_info.iterrows()):
-            lb, ub = row[['start_index', 'end_index']].astype('i')
-            samples = ub-lb
-            data[i, :, :samples] = self._matrix[:, lb:ub]
-        return data
+        # samples = self.epoch['end_index'] - self.epoch['start_index']
+
+        # n_samples = int(samples.max())
+        # n_trials = len(self.epochs)
+        # n_channels = self._matrix.shape[0]
+
+        # data = np.full((n_trials, n_channels, n_samples), np.nan)
+        # for i, (_, row) in enumerate(self.trial_info.iterrows()):
+        #     lb, ub = row[['start_index', 'end_index']].astype('i')
+        #     samples = ub-lb
+        #     data[i, :, :samples] = self._matrix[:, lb:ub]
+        # return data
+        return None
 
     def as_average_trial(self):
         '''
@@ -165,8 +184,7 @@ class Signal:
         return np.nanmean(m, axis=0)
 
     def _get_attributes(self):
-        md_attributes = ['name', 'chans', 'fs', 'trial_info', 'meta',
-                         'recording']
+        md_attributes = ['name', 'chans', 'fs', 'meta', 'recording']
         return {name: getattr(self, name) for name in md_attributes}
 
     def _modified_copy(self, data, **kwargs):
@@ -203,27 +221,32 @@ class Signal:
         samples, and split it at fraction=0.81, this would return (A, B) where
         A is the first eight reps and B are the last two reps.
         '''
-        # Ensure that the split occurs in the repetition range [1, -1]
-        nreps = len(self.trial_info)
-        split_rep = round(nreps*fraction)
-        split_rep = np.clip(split_rep, 1, nreps-1)
 
-        # Find the start time of the repetition
-        i = self.trial_info.iloc[split_rep]['start_index'].astype('i')
+        assert(0)
+        # TODO: Consider renaming this "split at epoch" instead
 
-        data = self.as_continuous()
-        ldata = data[..., :i]
-        rdata = data[..., i:]
+        # # Ensure that the split occurs in the repetition range [1, -1]
+        # nreps = len(self.trial_info)
+        # split_rep = round(nreps*fraction)
+        # split_rep = np.clip(split_rep, 1, nreps-1)
 
-        ltrial_info = self.trial_info.iloc[:split_rep].copy()
-        rtrial_info = self.trial_info.iloc[split_rep:].copy()
+        # # Find the start time of the repetition
+        # i = self.trial_info.iloc[split_rep]['start_index'].astype('i')
 
-        # Correct the index
-        rtrial_info[['start_index', 'end_index']] -= i
+        # data = self.as_continuous()
+        # ldata = data[..., :i]
+        # rdata = data[..., i:]
 
-        lsignal = self._modified_copy(data=ldata, trial_info=ltrial_info)
-        rsignal = self._modified_copy(data=rdata, trial_info=rtrial_info)
-        return lsignal, rsignal
+        # ltrial_info = self.trial_info.iloc[:split_rep].copy()
+        # rtrial_info = self.trial_info.iloc[split_rep:].copy()
+
+        # # Correct the index
+        # rtrial_info[['start_index', 'end_index']] -= i
+
+        # lsignal = self._modified_copy(data=ldata, trial_info=ltrial_info)
+        # rsignal = self._modified_copy(data=rdata, trial_info=rtrial_info)
+        # return lsignal, rsignal
+        return None, None
 
     def split_at_time(self, fraction):
         '''
@@ -236,15 +259,15 @@ class Signal:
         ldata = data[..., :split_idx]
         rdata = data[..., split_idx:]
 
-        mask = self.trial_info['end_index'] < split_idx
-        ltrial_info = self.trial_info.loc[mask]
+        mask = self.epochs['end_index'] < split_idx
+        lepochs = self.epochs.loc[mask]
 
-        mask = self.trial_info['start_index'] > split_idx
-        rtrial_info = self.trial_info.loc[mask]
-        rtrial_info[['start_index', 'end_index']] -= split_idx
+        mask = self.epochs['start_index'] > split_idx
+        repochs = self.epochs.loc[mask]
+        repochs[['start_index', 'end_index']] -= split_idx
 
-        lsignal = self._modified_copy(ldata, trial_info=ltrial_info)
-        rsignal = self._modified_copy(rdata, trial_info=rtrial_info)
+        lsignal = self._modified_copy(ldata, epochs=lepochs)
+        rsignal = self._modified_copy(rdata, epochs=repochs)
 
         return lsignal, rsignal
 
@@ -254,21 +277,23 @@ class Signal:
         integer multiple of nsplits, an error is thrown.  Optional argument
         'invert' causes everything BUT the jackknife to be NaN.
         '''
-        nreps = len(self.trial_info)
-        ratio = (nreps / nsplits)
-        if ratio != int(ratio) or ratio < 1:
-            m = 'nreps must be an integer multiple of nsplits, got {}'
-            raise ValueError(m.format(ratio))
+        # TODO: Rework this to jackknife based on epochs that match a regexp
+        assert(0)
+        # nreps = len(self.trial_info)
+        # ratio = (nreps / nsplits)
+        # if ratio != int(ratio) or ratio < 1:
+        #     m = 'nreps must be an integer multiple of nsplits, got {}'
+        #     raise ValueError(m.format(ratio))
 
-        ratio = int(ratio)
-        m = self.as_trials()
-        if not invert:
-            m[split_idx:split_idx+ratio] = np.nan
-        else:
-            mask = np.ones_like(m, dtype=np.bool)
-            mask[split_idx:split_idx+ratio] = 0
-            m[mask] = np.nan
-        return self._modified_copy(m.reshape(self.nchans, -1))
+        # ratio = int(ratio)
+        # m = self.as_trials()
+        # if not invert:
+        #     m[split_idx:split_idx+ratio] = np.nan
+        # else:
+        #     mask = np.ones_like(m, dtype=np.bool)
+        #     mask[split_idx:split_idx+ratio] = 0
+        #     m[mask] = np.nan
+        # return self._modified_copy(m.reshape(self.nchans, -1))
 
     def jackknifed_by_time(self, nsplits, split_idx, invert=False):
         '''
@@ -321,18 +346,18 @@ class Signal:
         # Now, concatenate data along time axis
         data = np.concatenate([s.as_continuous() for s in signals], axis=-1)
 
-        # Merge the trial info tables. For all signals after the first signal,
+        # Merge the epoch tables. For all signals after the first signal,
         # we need to offset the start and end indices to ensure that they
         # reflect the correct position of the trial in the merged array.
         offset = 0
-        trial_info = []
+        epochs = []
         for signal in signals:
-            ti = signal.trial_info.copy()
+            ti = signal.epochs.copy()
             ti['end_index'] += offset
             ti['start_index'] += offset
             offset += signal.ntimes
-            trial_info.append(ti)
-        trial_info = pd.concat(trial_info, ignore_index=True)
+            epochs.append(ti)
+        epochs = pd.concat(epochs, ignore_index=True)
 
         return Signal(
             name=base.name,
@@ -341,7 +366,7 @@ class Signal:
             fs=base.fs,
             meta=base.meta,
             matrix=data,
-            trial_info=trial_info
+            epochs=epochs
         )
 
     @classmethod
@@ -367,12 +392,16 @@ class Signal:
         for signal in signals:
             chans.extend(signal.chans)
 
+        epochs = []
+        for signal in signals:
+            epochs.append(signal.epochs)
+
         return Signal(
             name=base.name,
             recording=base.recording,
             chans=chans,
             fs=base.fs,
             meta=base.meta,
-            trial_info=base.trial_info,
+            epochs=epochs,
             matrix=data,
             )

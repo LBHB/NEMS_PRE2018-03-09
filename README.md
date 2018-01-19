@@ -181,3 +181,41 @@ Lazy Devil's Advocate. To rethink a design decision, is it really worth wrapping
 # save_to_disk('/some/path/model1_dataspec.json',
 #              json.dumps({'URL': URL, 'est_val_split_frac': 0.8}))
 # TODO: This annotation should be done automatically when split_at_time is called?
+
+--------------------------------------------------------------------------------
+
+Epochs:
+
+Each signal should have its own 'epochs' info because you may have to annotate that one recording channel failed, or a neuron died, or something glitched. I might want to split a recording based on the  reps info of "stim", or I might want to do it based on "blinks" of pupil.
+
+How do you feel about:
+└── gus027b13_p_PPS
+   ├── gus027b13_p_PPS_pupil.csv
+   ├── gus027b13_p_PPS_pupil.epochs
+   ├── gus027b13_p_PPS_pupil.json
+   ├── gus027b13_p_PPS_resp.csv
+   ├── gus027b13_p_PPS_resp.epochs
+   ├── gus027b13_p_PPS_resp.json
+   ├── gus027b13_p_PPS_stim.csv
+   ├── gus027b13_p_PPS_stim.epochs
+   └── gus027b13_p_PPS_stim.json (edited)
+
+One directory per recording, and for each signal: two tabular files ('epochs' is a 3 column CSV), and one JSON? 
+
+Depending on the signal type, there might not be an epoch file at all.
+
+We a second delimeter, like period, so that signal names can have underscores in them? <recording>.<signal>.epochs.csv
+
+I would love to have 3 columns for epochs: [start, stop, epochname]
+
+Names may be redundant; that way you can have something like :
+[0, 1000, 'sound1']
+[239, 244, 'blinking']
+[488, 490, 'blinking']
+[1000, 2000, 'sound2']
+[2000, 3000, 'sound1']
+
+And select either all the times sound1 was played, or all the times after 'blinking' occurred.
+
+-------------------------------------------------------------------------------
+

@@ -52,6 +52,7 @@ est, val = rec.split_at_time(0.8)
 
 # Method #1: create from "shorthand/default" keyword string
 modelspec = nems.initializers.from_keywords(est, 'fir30_dexp')
+print('Modelspec was:')
 print(modelspec)
 
 results = [modelspec]
@@ -74,8 +75,8 @@ results = [modelspec]
 #       in descending order of how they performed on the fitter's metric.
 
 # Option 1: Use gradient descent (Fast)
-#results = nems.analysis.fit_basic(est, modelspec,
-#                                  fitter=nems.fitter.gradient_descent)
+results = nems.analysis.fit_basic(est, modelspec,
+                                  fitter=nems.fitter.gradient_descent)
 
 # Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
 # results = nems.analysis.fit_basic(est, modelspec,
@@ -111,19 +112,19 @@ else:
 #       Compare performance of results with other metrics.
 
 # Optional: See how well your best result predicts the validation data set
-# nems.plots.predictions(val, results)
+# nems.plot.predictions(val, [results[0]])
 
-# Optional: Plot traces corresponding to the predictions of all the results
-# performance = nems.plots_predictions(val, results)
+# Optional: See how all the results predicted
+# nems.plot.predictions(val, results)
 
 # Optional: Compute the confidence intervals on your results
-# nems.plots.confidence_intervals(val, results)
+# nems.plot.confidence_intervals(val, results)
 
 # Optional: View the prediction of the best result according to MSE
-# nems.plots.best_estimator(val, results, metric=nems.metrics.mse)
+# nems.plot.best_estimator(val, results, metric=nems.metrics.mse)
 
 # Optional: View the posterior parameter probability distributions
-# nems.plots.posterior(val, results)
+# nems.plot.posterior(val, results)
 
 
 # ----------------------------------------------------------------------------
