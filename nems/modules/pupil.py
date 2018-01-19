@@ -48,14 +48,14 @@ class model(nems_module):
                 # X=np.zeros(f_in['resp'][nest].shape)
                 # for i in range(0,R.shape[0]):
                 #    X[i,:]=Xa[R[i],:]
-                f_out[self.output_name][nest] = X
+                f_out[self.output_name][nest] = X[np.newaxis,:,:]
             else:
                 R = f_in['replist']
                 X = np.squeeze(Xa[R, :])
                 # X=np.zeros(f_in['resp'].shape)
                 # for i in range(0,R.shape[0]):
                 #    X[i,:]=Xa[R[i],:]
-                f_out[self.output_name] = X
+                f_out[self.output_name] = X[np.newaxis,:,:]
 
 
 class pupgain(nems_module):
@@ -188,13 +188,12 @@ class pupgain(nems_module):
                                                                 np.sqrt(1 + np.power(np.divide(Xp, self.theta[0, 1]), 2 * n)))
         return(Y)
 
-    def evaluate(self, nest=0):
+    def evaluate(self):
         m = self
-        if nest == 0:
-            del m.d_out[:]
-            for i, d in enumerate(m.d_in):
-                # self.d_out.append(copy.deepcopy(val))
-                m.d_out.append(copy.copy(d))
+        del m.d_out[:]
+        for i, d in enumerate(m.d_in):
+            # self.d_out.append(copy.deepcopy(val))
+            m.d_out.append(d.copy())
 
         X = m.unpack_data(name=m.input_name, est=True)
         Xp = m.unpack_data(name=m.state_var, est=True)

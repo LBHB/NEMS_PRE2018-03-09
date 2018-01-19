@@ -228,8 +228,8 @@ class load_mat(nems_module):
                     data['resp_raw'] = data['resp'].copy()
                     data['resp'] = data['avgresp']
                 else:
-                    data['stim'], data['resp'], data['pupil'], data['replist'] = nems.utilities.utils.stretch_trials(
-                        data)
+                    data['stim'], data['resp'], data['pupil'], data['replist'] = \
+                        nems.utilities.utils.stretch_trials(data)
                     data['resp_raw'] = data['resp']
 
                 # new: add extra first dimension to resp/pupil (and eventually pred)
@@ -242,18 +242,14 @@ class load_mat(nems_module):
 
                 if data['pupil'] is not None:
                     if data['pupil'].ndim == 3:
-                        data['pupil'] = np.transpose(data['pupil'], (1, 2, 0))
-                        if self.avg_resp is True:
-                            data['state'] = np.concatenate((np.mean(data['pupil'], 0)[np.newaxis, :, :],
-                                                            data['behavior_condition']), 0)
-                        else:
-                            data['state'] = data['behavior_condition']
-
+                        data['pupil'] = np.transpose(data['pupil'], (2, 0, 1))
+                        
                     elif data['pupil'].ndim == 2:
                         data['pupil'] = data['pupil'][np.newaxis, :, :]
-                        # add file state as second dimension to pupil
-                        data['state'] = np.concatenate((data['pupil'],
-                                                        data['behavior_condition']), axis=0)
+                        
+                    # add file state as second dimension to pupil
+                    data['state'] = np.concatenate((data['pupil'],
+                                                    data['behavior_condition']), axis=0)
 
                 else:
                     data['state'] = data['behavior_condition']

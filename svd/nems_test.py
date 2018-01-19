@@ -42,7 +42,7 @@ if 0:
     modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
     batch=269
 
-if 1:
+if 0:
     """ NAT SOUND """
     #cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
@@ -120,11 +120,12 @@ if 0:
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
 """ pupil gain test -- 2 x VOC data """
-if 0:
-    cellid="eno052d-a1"
+if 1:
+    #cellid="eno052d-a1"
+    cellid="BOL006b-25-2"
     #cellid="eno023c-c1"
     batch=294
-    modelname="perfectpupil50_pupgain_fit01_nested5"
+    modelname="perfectpupil50_pupgainctl_fit01"
     #modelname="perfectpupil50_pupgainctl_fit01_nested5"
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 

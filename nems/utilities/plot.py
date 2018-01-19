@@ -496,7 +496,7 @@ def sorted_raster(m, idx=None, size=FIGSIZE):
     prestim = float(pre) * freq
     duration = float(dur) * freq
     poststim = float(post) * freq
-    pup = m.parent_stack.unresampled['pupil']
+    pup = m.parent_stack.unresampled['pupil'][:,:,:,0]
     idi = m.parent_stack.plot_stimidx
     lis = []
     for i in range(0, r):

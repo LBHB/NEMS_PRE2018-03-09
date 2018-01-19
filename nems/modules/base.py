@@ -152,21 +152,15 @@ class nems_module:
             X = np.empty([s[0], 0])
 
         for i, d in enumerate(D):
-            if not 'est' in d.keys():
-                if d[name].ndim == 2:
-                    X = np.concatenate(
-                        (X, d[name].reshape([1, -1], order='C')), axis=1)
-                else:
-                    X = np.concatenate(
-                        (X, d[name].reshape([s[0], -1], order='C')), axis=1)
-            elif (est and d['est']):
-                if d[name].ndim == 2:
-                    X = np.concatenate(
-                        (X, d[name].reshape([1, -1], order='C')), axis=1)
-                else:
-                    X = np.concatenate(
-                        (X, d[name].reshape([s[0], -1], order='C')), axis=1)
-            elif not est and not d['est']:
+#            if not 'est' in d.keys():
+#                if d[name].ndim == 2:
+#                    X = np.concatenate(
+#                        (X, d[name].reshape([1, -1], order='C')), axis=1)
+#                else:
+#                    X = np.concatenate(
+#                        (X, d[name].reshape([s[0], -1], order='C')), axis=1)
+#            elif (est and d['est']):
+            if d['est']==est:
                 if d[name].ndim == 2:
                     X = np.concatenate(
                         (X, d[name].reshape([1, -1], order='C')), axis=1)
@@ -189,8 +183,7 @@ class nems_module:
 
         s = X.shape
         for i, d in enumerate(D):
-            if not 'est' in d.keys() or (est and d['est']) or (
-                    not est and not d['est']):
+            if est==d['est']:
                 s2 = list(d[name].shape)
                 s2[0] = s[0]
                 n = np.prod(s2[1:])

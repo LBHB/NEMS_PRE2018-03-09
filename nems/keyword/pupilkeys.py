@@ -81,7 +81,13 @@ def pupgainctl(stack):
     where x is the input matrix and v1,v2 are fitted parameters applied to
     each matrix entry (the same across all entries)
     """
-    stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=[0,1,0,0])
+    if stack.data[-1][0]['pupil'].shape[0]==3:
+        theta0=[0,1,0,0,0,0,0,0]
+    elif stack.data[-1][0]['pupil'].shape[0]==2:
+        theta0=[0,1,0,0,0,0]
+    else:
+        theta0=[0,1,0,0]
+    stack.append(nm.pupil.pupgain,gain_type='linpupgainctl',fit_fields=['theta'],theta=theta0)
     mini_fit(stack,mods=['pupil.pupgain'])
     log.info(stack.modules[-1].theta)
 
@@ -92,7 +98,13 @@ def pupgain(stack):
     where x is the input matrix, p is the matrix of pupil diameters, and v1,v2
     are fitted parameters applied to each matrix entry (the same across all entries)
     """
-    stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=[0,1,0,0])
+    if stack.data[-1][0]['pupil'].shape[0]==3:
+        theta0=[0,1,0,0,0,0,0,0]
+    elif stack.data[-1][0]['pupil'].shape[0]==2:
+        theta0=[0,1,0,0,0,0]
+    else:
+        theta0=[0,1,0,0]
+    stack.append(nm.pupil.pupgain,gain_type='linpupgain',fit_fields=['theta'],theta=theta0)
     mini_fit(stack,mods=['pupil.pupgain'])
     log.info(stack.modules[-1].theta)
 
