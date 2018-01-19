@@ -424,9 +424,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.49497475"
-     inkscape:cx="1162.0042"
-     inkscape:cy="1472.3409"
+     inkscape:zoom="0.35"
+     inkscape:cx="1539.8529"
+     inkscape:cy="1018.5815"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -858,7 +858,7 @@
          sodipodi:role="line"
          x="-1301.0764"
          y="222.01682"
-         id="tspan11799">(User specs how data should be loaded and split)</tspan><tspan
+         id="tspan11799">(User decides how data should be loaded and split)</tspan><tspan
          sodipodi:role="line"
          x="-1301.0764"
          y="272.01682"
@@ -1116,7 +1116,7 @@
          x="-991.96979"
          y="686.28094"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono'"
-         id="tspan3633"></tspan><tspan
+         id="tspan3633" /><tspan
          sodipodi:role="line"
          x="-991.96979"
          y="723.78094"
