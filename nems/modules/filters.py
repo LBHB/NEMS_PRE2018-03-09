@@ -65,7 +65,7 @@ class WeightChannels(Module):
     num_chans = 1
     parm_fun = None
     parm_type = None
-    
+
     def my_init(self, num_dims=0, num_chans=1, baseline=[[0]],
                 fit_fields=None, parm_type=None, parm_fun=None, phi=[[0]],
                 norm_output=False):
@@ -128,7 +128,7 @@ class WeightChannels(Module):
             baseline=self.baseline
         else:
             baseline=None
-            
+
         return weight_channels_local(x, coefs, baseline)
 
     def evaluate(self):
@@ -136,7 +136,7 @@ class WeightChannels(Module):
         # create a copy of each input variable
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
-            
+
         X=self.unpack_data(self.input_name,est=True)
         Z = self.my_eval(X)
         if self.norm_output:
@@ -144,7 +144,7 @@ class WeightChannels(Module):
             self.norm_factor=np.std(np.abs(Z),axis=1,keepdims=True)
             Z=Z/self.norm_factor
         self.pack_data(Z,self.output_name,est=True)
-        
+
         if self.parent_stack.valmode:
             X=self.unpack_data(self.input_name,est=False)
             Z = self.my_eval(X)
@@ -153,10 +153,11 @@ class WeightChannels(Module):
                 # estimation data to be 1
                 Z=Z/self.norm_factor
             self.pack_data(Z,self.output_name,est=False)
-        
+
 
 class weight_channels(WeightChannels):
     pass
+
 
 ################################################################################
 # FIR filtering
@@ -273,13 +274,13 @@ class FIR(Module):
         for i in range(0,s[0]):
             y=np.convolve(X[i,:],self.coefs[i,:])
             X[i,:]=y[0:X.shape[1]]
-            
+
         if self.bank_count:
             # reshape inputs so that filter is summed separately across each bank
             ts0=np.int(s[0]/self.bank_count)
             ts1=self.bank_count
             X=np.reshape(X,[ts1,ts0,-1])
-            
+
         X=X.sum(1)+self.baseline
         s=list(s)
         s[0]=self.bank_count
@@ -309,8 +310,10 @@ class FIR(Module):
 
         return h
 
+
 class fir(FIR): #clone of FIR
     pass
+
 
 ################################################################################
 # Short-term plasticity
@@ -416,16 +419,15 @@ class stp(Module):
         return Y
 
 
-
 class PsthModel(Module):
     name = 'filters.psthmodel'
     plot_fns = [nems.utilities.plot.sorted_raster,
                 nems.utilities.plot.raster_plot]
     """
-    Replaces stim with average resp for each stim (i.e., the PSTH). 
+    Replaces stim with average resp for each stim (i.e., the PSTH).
     This is the 'perfect' model
     used for comparing different models of pupil state gain.
-    
+
     SVD added, pulled out of NS's pupil-specific analysis
     """
 
@@ -443,5 +445,5 @@ class PsthModel(Module):
             R = f_in['replist']
             X = np.expand_dims(np.squeeze(Xa[R, :]),axis=0)
             f_out[self.output_name] = X
-            
-            
+
+
