@@ -2,6 +2,13 @@
 
 from nems.recording import Recording
 
+# Define various backends for loading data (including one specific to LBHB which
+# would not be part of the main NEMS module but would be a
+# separately-installable module that appears in the nems.io.backend.lbhb
+# namespace because other labs wouldn't be using this backend)
+#from nems.io.backends import http
+#from nems.io.backend import lbhb
+
 # ----------------------------------------------------------------------------
 # DATA FETCHING
 
@@ -12,20 +19,20 @@ rec = Recording.load('signals/gus027b13_p_PPS/')
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "neuralprediction.org:3003/signals?batch=273&cellid=gus027b13-a1"
-# rec = fetch_signals_over_http(URL)
+# rec = http.fetch_signals_over_http(URL)
 
 # Method #3: Load the data from S3:
 # stimfile="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"+cellid+"_NAT_stim_ozgf_c18_fs100.mat"
 # respfile="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"+cellid+"_NAT_resp_fs100.mat"
-# rec = fetch_signals_over_http(stimfile, respfile)
+# rec = lbhb.fetch_signals_over_http(stimfile, respfile)
 
 # Method #4: Load the data from a jerb (TODO)
 
-# Method #5: Create a Recording object from a matrix, manually (TODO)
+# Method #5: Create a Recording object from an array, manually (TODO)
 
 
 # ----------------------------------------------------------------------------
-# DATA WITHHOLDING 
+# DATA WITHHOLDING
 
 # GOAL: Split your data into estimation and validation sets
 
@@ -46,55 +53,12 @@ est, val = rec.split_at_time(0.8)
 # TODO: This annotation should be done automatically when split_at_time is called?
 
 # ----------------------------------------------------------------------------
-# DEFINE A MODELSPEC
-
-# GOAL: Uniquely define the structure of the model you wish to fit or use to 
-# make a prediction about your data. A 'modelspec' is a datastructure that
-# defines the entire model and is easily saved/loaded to disk. 
-# It is essentially a serialization of a Model object and may be defined using:
-
-# Method #1: create from "shorthand/default" keyword string
-# modelspec = keywords_to_modelspec('fir30_dexp')
-
-# Method #2: load a JSON from disk
-# modelspec = json.loads('modelspecs/model1.json')
-
-# Method #3: Load it from a jerb (TODO)
-# modelspec = ...
-
-# Method #4: specify it manually
-modelspec = [{'fn': 'nems.modules.weight_channels',
-              'phi' : TODO}
-             {'fn': 'nems.modules.fir',       # The pure function to call
-              'phi': {                        # The parameters that may change
-                  'mu': {
-                    # expected distribution
-                    'prior': ('Normal', {'mu': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                                         'sd': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}),
-                    # fitted distribution (if applicable)
-                    'posterior': None,
-                    # initial scalar value (typically the mean of the prior)
-                    'initial': [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                    # fitted scalar value (if applicable)
-                    'final': None,
-                    },
-                  'sd': {
-                    'prior': ('HalfNormal', {'sd': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}),
-                    'posterior': None,
-                    'initial': 1,
-                    'final': None,
-                    }
-                  },
-              'plotfn': 'nems.plots.plot_strf'}, # A plotting function
-             ]
-
-# ----------------------------------------------------------------------------
 # DEFINE THE COST FUNCTION
 #
 # Goal: Define the cost function and metric for use by the fitter.
 #
 # To help with clarity, we will define the following words mathematically:
-# 
+#
 # |-----------+----------------------------------------------------------|
 # | Name      | Function Signature and Description                       |
 # |-----------+----------------------------------------------------------|
@@ -129,15 +93,40 @@ metric = lambda data: nems.metrics.MSE(data['resp'], data['pred'])
 
 # Finally, define the evaluator and cost functions
 # TODO: I think these can be boilerplate elsewhere
+
+from nems.model import generate_model
+
+# If we're doing incremential fitting (for example)
+
+class Phi:
+
+    def __init__(self, phi):
+        self.phi = phi
+        self.free_parameters = #
+
+    def select_for_fit(self):
+        fit_phi = []
+        for module_phi, module_free_parameters in zip(self.phi, self.free_parameters):
+
+
+for i in range(len(modelspec)):
+    eval_fn = model.compose_eval(modelspec[:i])
+    phi = model.initialize_phi(modelspec)
+    cost_fn = partial(nems.metrics.mse, eval_fn=eval_fn, pred_name='pred', resp_name='resp')
+
+eval_fn = compose_transform(modelspec)
+
+evaluator = generate_evaluation
+
 evaluator = lambda data, mspec : nems.model.Model(mspec).evaluate(data, mspec)
 cost_fn = lambda mspec: metric(evaluator(est, mspec))
 
 # ----------------------------------------------------------------------------
 # FIT THE MODEL
-# 
-# GOAL: Sample from the parameter space to estimate the best parameter values 
-# that accurately predict the data, or better still, the distributions of 
-# parameter values that describe the data well. 
+#
+# GOAL: Sample from the parameter space to estimate the best parameter values
+# that accurately predict the data, or better still, the distributions of
+# parameter values that describe the data well.
 
 # Option 1: Fit using gradient descent (Fast)
 fitter = nems.fitter.gradient_descent
