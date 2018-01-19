@@ -6,8 +6,7 @@ The goals of the "dev" branch are:
 
 1. BAYESIAN PARAMETER SUPPORT. We want to estimate parameter distributions, not just a single value of a parameter. This lets us ditch nested crossvalidation, which is a huge complexity monster.
 2. STANDALONE OPERATION. This branch should not depend on any databases and should run without an internet connection.
-3. NO KEYWORDS. At least, not yet. We're going to try to use JSONs instead so we can control parameters better.
-4. MINIMALISM. We are going to try to keep this branch as succinct as possible for the moment;
+3. MINIMALISM. We are going to try to keep this branch as succinct as possible for the moment;
 
 For the moment, we are ignoring queuing models on the cluster, keywords, web interfaces, and most of the functionality in the master branch. We will migrate this over later.
 
@@ -42,13 +41,10 @@ FITTERS.  This is the hardest part in my experience and needs the most thought. 
 ## WORK PLAN ##
 
 ### Ivar ###
-    - Ivar will start a "dev" branch, and put the Signal class object in it
     - Ivar will work on an API to get Baphy data as Signal objects
 
 ### Brad ###
-    - Brad is going to add his Bayesian template to the dev branch, then use PyMC3 and Theano to the modules to get some bayesian fitters working (maybe a trivially simple model first?)
-    - Brad will flesh out modules, and their conversion to and from JSONs
-    - Brad will come up with some results that are convincing for SVD! ;-)
+    - Brad is working on the RDT models and can't work on NEMS for a while.
 
 ### Jake ### 
     - Jake and Ivar will write a generic fitter class together, and discuss how to remove cross validation from all modules
@@ -77,7 +73,7 @@ FITTERS.  This is the hardest part in my experience and needs the most thought. 
 # Managing modules can be complicated precisely because they contain mutable
 # state. Given that state is usually easier when it is all in once place,
 # maybe packing the entire model into a single data structure isn't such a
-# crazy idea.
+# crazy idea.   
 #
 # The following shows a little demo of how that might look in general,
 # and for three cases that are not supported by the current version of NEMS:
@@ -99,3 +95,56 @@ FITTERS.  This is the hardest part in my experience and needs the most thought. 
 # do not want to do an "initial-fit".
 
 ##############################################################################
+
+Are you proposing that a single modelspec will contain all of that information? I would suggest breaking it out a little and have separate data structures. One describes the model, one is a Recording containing the data, one is your fit function (which you have carefully composed from the pieces described in fitter_dataflow.svg, perhaps using a fitterspec to help quickly compose the pieces) and phi (the value of all model cofficients). 
+
+Q: Why is Phi part of the modelspec? I have to clone the modelspec each time I want to run a different fit on the model!
+
+A: I'm conceptually thinking about modelspecs as being something that defines the entire input-output "black box" model; yes, the parameters (phi) are a special case in many cases, but they still fall within the black box and can't be logically separated from it without having to lug around the knowledge that this phi goes with that black box, and this other phi goes with that other black box. I'm willing to pay the very slight extra memory use because I think we can optimize it away in other ways.
+
+-----
+
+Let me clarify how it works in my code
+
+Every  Module implements a get_priors method that takes one argument (the data being fit). The module may use this data to help come up with reasonable information about the fit bounds. For each parameter, a distribution is returned. This distribution defines the min/max and range of possible values.
+
+So, for a value that can take on any positive values, you'd use a Gamma distribution. The mean of the gamma distribution (E[x] = alpha/beta) will be set to what you think is a reasonable value for that parameter. The fitter can then choose to set the initial value for the parameter to E[x] or draw a random sample from the distribution.
+
+For a value that can take on any value, you'd use a Normal centered at what a reasonable expected starting point for the value is.
+
+For a value that must fall between 0 and 1 you can choose either a Uniform or Beta distribution.
+
+For parameters that are multi-dimensional (e.g. FIR coefficients and mu in weight channels), the Priors can be multidimensional as well. So, for weight channels you can specify that the first channel is a Beta distribution such that the channel most likely falls at the lower end of the frequency axis and the second channel at the upper end of the frequency axis.
+
+
+------
+
+modules/sum.py. Should this be renamed "sum_channels.py"? We might have a 'sum_signals.py" module at some point. Also: should this summing implementation be put in the "signals" object, which we then call from this file, in order that we don't accidentally have two similar-but-not-identical versions of the same code? (I guess the answer to this depends on whether signals are passed between modules or not, as the same problem comes up with a "normalization" module and the Signal.normalize() methods)
+
+----
+
+Fitter Input Argument Specs. I think I may be arguing with my past self here, but I am wondering if we can remove the need to pass the "model" object to our fitting algorithms? I would ideally just prefer to have fitters accept a cost function, instead of having any knowledge about the model structure. I feel like any optimizations (evaluating part of the stack, per-module fitters) could still be accomplished with carefully structured functional composition.
+
+---
+
+Inter-module Data Exchange Format. Now that we have Signal objects, have we decided the data type once and for all? Numpy arrays? Or Signal/Recording objects? The former is probably more efficient, the latter is (debatably) more convenient for interoperability. Since the signal object was not available before, I can see that Brad assumed numpy arrays would be exchanged -- is that necessary for Theano to work?
+
+---
+
+Lazy Devil's Advocate. To rethink a design decision, is it really worth wrapping all of the scipy.stats distributions with nems.distributions.* instead of instead of using them directly? What specific advantages do we get from this?
+
+---
+
+1) I added a docs folder and moved some of the planning documentation to docs/planning. I also added an IPython notebook that explains how I envision distributions working in the NEMS ecosystem. Bitbucket doesn't let you view the formatted notebook (Github does), so you can view it using this link: https://nbviewer.jupyter.org/urls/bitbucket.org/lbhb/nems/raw/b962df365a79f2c68dabd7d575e6fca05ea474ec/docs/distributions.ipynb
+
+2) I have functional versions of the modules, fitters and model portions of the system right now. To see how we can implement it using a bayes approach vs scipy, compare nems.fitters.scipy and nems.fitters.pymc3. The bayes approach is a very abstract system and requires quite a bit of knowledge re how PyMC3 (the bayes fitting package) works, so I haven't documented it in depth. Basically PyMC3 uses symbolic computation to build a symbolic model, then evaluates it once it's built.
+
+3) Stephen's very concerned about "mini-fits", so the iterative_fit function in the nems.fitters.scipy should hopefully alleviate his concerns.
+
+4) I've made the fitting routines functions (i.e., functional approach) rather than objects. It just seems to make more sense for these basic fits. There's no reason why some fitters can't be objects (e.g., if we are building a complex fitter with sub-fitters for each module and we need a central object to track the state).
+
+5) I also tried to document as much as I could so that you can hopefully follow my logic. Let me know if you have any questions or if anything is unclear.
+
+6) I haven't fully updated the code to work with some of the changes you made (e.g., I used some hacks since the Signal and Recording objects weren't production ready). I'm going to spend the next few hours looking into these changes and try to sync up everything so it works with the new data-loading system.
+
+---
