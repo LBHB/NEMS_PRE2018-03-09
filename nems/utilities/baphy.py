@@ -14,6 +14,9 @@ import os.path
 import scipy.io as si
 import numpy as np
 import sys
+import nems.db as db
+import pandas as pd
+import nems.utilities as nu
 
 try:
     import nems_config.Storage_Config as sc
@@ -451,7 +454,78 @@ def spike_cache_filename2(spkfilestub,options):
     load_spike_raster, generate the unique filename for for that cell/format
     '''
     
+    # parse the input in options    
+    try: 
+        rasterfs='_fs'+str(options['rasterfs'])
+    except: 
+        rasterfs='_fs1000'
+    
+    try: 
+        tag_name='_tags-'+''.join(options['tag_masks'])
+    except: 
+        tag_name='_tags-Reference'
+    
+    try: 
+        run='_run-'+options['runclass'];
+    except: 
+        run='_run-all';
+    
+    if 'includeprestim' in options and type(options['includeprestim'])==int: 
+        prestim='_prestim-1'; 
+    elif 'includeprestim' in options: 
+        prestim=str(options['includeprestim'])
+        while ', ' in prestim:
+            prestim=prestim.replace('[','').replace(']','').replace(', ','-')
+        prestim='_prestim-'+prestim
+    else: 
+        prestim='_prestim-none'
+    
+    try: 
+        if options['includeincorrect']:
+            ic='_allTrials'
+        else:
+            ic='_correctTrials'
+    except:
+        ic='_correctTrials';
+    
+    try: 
+        psthonly='_psth'+str(options['psthonly'])
+    except: 
+        psthonly='_psth-1'
+    
+    # define the cache file name
+    cache_fn=spkfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+'.mat'
+    
+    return cache_fn
+
+def pupil_cache_filename2(pupfilestub,options):
+    '''
+    Given the stub for spike cache file and options typically passed to 
+    load_spike_raster, generate the unique filename for for that cell/format
+    '''
+    
     # parse the input in options
+    try: pupil=options['pupil']; pupil_str='_pup';
+    except: sys.exit('options does not set pupil=1')
+    
+    if 'pupil_offset' in options:
+        offset = options['pupil_offset']
+        if offset==0.75: #matlab default in evpraster 
+            offset_str='';
+        else:
+            offset_str='_offset-'+str(offset)
+    else:
+        offset_str=''
+      
+    if 'pupil_median' in options:
+        med = options['pupil_median']
+        if med==0: #matlab default in evpraster 
+            med_str='';
+        else:
+            med_str='_med-'+str(med)
+    else:
+       med_str=''
+    
     try: 
         rasterfs='_fs'+str(options['rasterfs'])
     except: 
@@ -491,7 +565,11 @@ def spike_cache_filename2(spkfilestub,options):
         psthonly='_psth-1'
     
     # define the cache file name
-    cache_fn=spkfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+'.mat'
+    for i, pf in enumerate(pupfilestub):
+        l = pf.split('.')[0].split('/')
+        pupfilestub.iloc[i] = '/'.join(l[:-1])+'/tmp/'+l[-1]
+    
+    cache_fn=pupfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+offset_str+med_str+pupil_str+'.mat'
     
     return cache_fn
 
@@ -502,6 +580,8 @@ def stim_cache_filename(stimfile, options={}):
     mfile syntax:
     % function [stim,stimparam]=loadstimfrombaphy(parmfile,startbin,stopbin, 
     %                   filtfmt,fsout[=1000],chancount[=30],forceregen[=0],includeprestim[=0],SoundHandle[='ReferenceHandle'],repcount[=1]);
+
+    SVD 2018-01-15
     """
     
     try:
@@ -532,3 +612,171 @@ def stim_cache_filename(stimfile, options={}):
     
     return cache_fn
     
+def load_site_raster(batch, runclass, site, options):
+    '''
+    Load a population raster given batch id, runclass, recording site, and options
+    
+    Input:
+    -------------------------------------------------------------------------
+    batch ex: batch=301
+    runclass ex: runclass='PTD'
+    recording site ex: site='TAR010c'
+    
+    options: dict
+        min_isolation (float), default - load all cells above 70% isolation
+        rasterfs (float), default: 100
+        includeprestim (boolean), default: 1
+        tag_masks (list of strings), default [], ex: ['Reference']
+        active_passive (string), default: 'both' ex: 'p' or 'a'
+        
+        **** other options to be implemented ****
+        
+    Output:
+    -------------------------------------------------------------------------
+    r (numpy array), response matrix (bin x reps x stim x cells)
+    meta (pandas data frame), df with all information from data base about the cells you've loaded (sorted in same order as last dim of r)
+           
+    '''
+
+    # Parse inputs
+    try: iso=options['min_isolation'];
+    except: iso=70;
+       
+    try: options['rasterfs'];
+    except: options['rasterfs']=100;
+    
+    try: options['includeprestim'];
+    except: options['includeprestim']=1;
+    
+    try: options['tag_masks'];
+    except: options['tag_masks']=[]
+    
+    try: active_passive = options['active_passive'];
+    except: active_passive='both';
+    
+    # Define parms dict to be passed to loading function
+    parms=options;
+    if 'min_isolation' in parms:
+        del parms['min_isolation']   # not need to find cache file
+    if 'active_passive' in parms:
+        del parms['active_passive']
+        
+    # Load cellids and meta data from celldb
+    if len(runclass.split('_'))>1:
+        for i, run in enumerate(runclass.split('_')):
+            if i==0:
+                cfd=db.get_cell_files(cellid=site,runclass=run)
+                
+            else:
+                cfd = pd.concat([cfd,db.get_cell_files(cellid=site,runclass=run)])
+    else:
+        cfd=db.get_cell_files(cellid=site,runclass=runclass)
+    
+    
+    cfd=cfd.sort_values('cellid') # sort the data frame by cellid so it agrees with the r matrix output
+    cfd=cfd[cfd['isolation']>iso]
+    cellids=np.sort(np.unique(cfd[cfd['isolation']>iso]['cellid'])) # only need list of unique id's
+     
+    # load data for all identified respfiles corresponding to cellids
+    
+    cellcount=len(cellids)
+    
+    a_p=[] # classify as active or passive based on respfile name
+    
+    for i, cid in enumerate(cellids):
+        d=db.get_batch_cell_data(batch,cid)
+        respfile=nu.baphy.spike_cache_filename2(d['raster'],parms)
+        for j, rf in enumerate(respfile):
+            rts=nu.io.load_matlab_matrix(rf,key="r")
+            
+            if i == 0:
+                if '_a_' in rf:
+                    a_p = a_p+[1]*rts.shape[1]
+                else:
+                    a_p = a_p+[0]*rts.shape[1]
+            
+            if j == 0:
+                rt = rts;
+            else:
+                rt = np.concatenate((rt,rts),axis=1)
+        if i == 0:
+            r = np.empty((rt.shape[0],rt.shape[1],rt.shape[2],cellcount))
+            r[:,:,:,0]=rt;
+        else:
+            r[:,:,:,i]=rt;
+
+    if active_passive is 'a':
+        r = r[:,np.array(a_p)==1,:,:]
+    elif active_passive is 'p':
+        r = r[:,np.array(a_p)==0,:,:];
+        
+    return r, cfd
+
+def load_pup_raster(batch, runclass, site, options):
+    '''
+    Load a pupil raster given batch id, runclass, recording site, and options
+    
+    Input:
+    -------------------------------------------------------------------------
+    batch ex: batch=301
+    runclass ex: runclass='PTD'
+    recording site ex: site='TAR010c'
+    
+    options: dict
+        rasterfs (float), default: 100
+        includeprestim (boolean), default: 1
+        tag_masks (list of strings), default [], ex: ['Reference']        
+        active_passive (string), default: 'both' ex: 'p' or 'a'
+    
+        **** other pupil options to be implemented ****    
+    
+    Output:
+    -------------------------------------------------------------------------
+    p (numpy array), response matrix (bin x reps x stim)
+           
+    '''
+
+    try: options['rasterfs'];
+    except: options['rasterfs']=100;
+    
+    try: options['includeprestim'];
+    except: options['includeprestim']=1;
+    
+    try: options['tag_masks'];
+    except: options['tag_masks']=[]
+    
+    try: active_passive = options['active_passive'];
+    except: active_passive='both';
+
+    options['pupil']=1;
+
+    d=db.get_batch_cell_data(batch)
+    files = []
+    for f in d['pupil'].unique():
+        if runclass in f and site in f:
+            files.append(f)
+    
+    files = pd.Series(files)
+    
+    pupfile=nu.baphy.pupil_cache_filename2(files,options)
+    a_p = []
+    for j, rf in enumerate(pupfile):
+        
+        pts=nu.io.load_matlab_matrix(pupfile.iloc[j],key='r')
+        
+        if '_a_' in rf:
+            a_p = a_p+[1]*pts.shape[1]
+        else:
+            a_p = a_p+[0]*pts.shape[1]
+        
+        if j == 0:
+            p = pts;
+        else:
+            p = np.concatenate((p,pts),axis=1)
+
+    if active_passive is 'a':
+        p = p[:,np.array(a_p)==1,:]
+    elif active_passive is 'p':
+        p = p[:,np.array(a_p)==0,:] 
+    
+    return p

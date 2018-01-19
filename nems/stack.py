@@ -584,11 +584,9 @@ class nems_stack:
         outer = gridspec.GridSpec(len(plot_set), 1)
 
         # this is for old subplot handling, since they have 1 based indexing.
-        spidx = 1
         for sp, idx in enumerate(plot_set):
             log.info("quick_plot: {}".format(self.modules[idx].name))
 
-            # plt.subplot(len(plot_set),1,spidx)   <- this is to work without
             # grispec
             try:
                 # if the module specific plotting uses an inner subplot grid, passes the outer grid
@@ -603,8 +601,7 @@ class nems_stack:
 
             # if idx==plot_set[0]:
             #    plt.title("{0} - {1} - {2}".format(self.meta['cellid'],self.meta['batch'],self.meta['modelname']))
-            spidx += 1
-
+ 
         fig.suptitle(
             "{0} - {1} - {2}".format(self.meta['cellid'], self.meta['batch'], self.meta['modelname']))
 
@@ -636,13 +633,19 @@ class nems_stack:
         modelname = self.meta['modelname']
 
         fig = plt.figure(figsize=(8, 9))
+        plot_set = []
         for idx, m in enumerate(self.modules):
-            # skip first module
-            if idx > 0:
-                log.info(self.mod_names[idx])
-                plt.subplot(len(self.modules) - 1, 1, idx)
-                m.do_plot(m)
-        plt.tight_layout()
+            if m.auto_plot:
+                plot_set.append(idx)
+                
+        for sp, idx in enumerate(plot_set):
+            m=self.modules[idx]
+            log.info(self.mod_names[idx])
+            plt.subplot(len(plot_set), 1, sp+1)
+            m.do_plot(m)
+            
+        if len(plot_set)<6:
+            plt.tight_layout()
 
         filename = (
             sc.DIRECTORY_ROOT + "nems_saved_images/batch{0}/{1}/{2}.{3}"

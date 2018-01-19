@@ -572,6 +572,22 @@ def _fetch_attr_value(stack, k, default=0.0):
 
     return v
 
+def get_batch(name=None, batchid=None):
+    # eg, sql="SELECT * from NarfBatches WHERE batch=301"
+    params = ()
+    sql = "SELECT * FROM sBatch WHERE 1"
+    if not batchid is None:
+        sql += " AND id=%s"
+        params = params+(batchid,)
+
+    if not name is None:
+       sql += " AND name like %s"
+       params = params+("%"+name+"%",)
+    print(sql)
+    print(params)
+    d = pd.read_sql(sql=sql, con=engine, params=params)
+
+    return d
 
 def get_batch_cells(batch=None, cellid=None):
     # eg, sql="SELECT * from NarfBatches WHERE batch=301"
@@ -621,10 +637,12 @@ def get_batches(name=None):
 def get_cell_files(cellid=None, runclass=None):
     # eg, sql="SELECT * from sCellFile WHERE cellid like "TAR010c-30-1"
     params = ()
-    sql = ("SELECT sCellFile.*,gRunClass.name FROM sCellFile INNER JOIN "
-           "gRunClass on sCellFile.runclassid=gRunClass.id WHERE 1")
+    sql = ("SELECT sCellFile.*,gRunClass.name, gSingleRaw.isolation FROM sCellFile INNER JOIN "
+           "gRunClass on sCellFile.runclassid=gRunClass.id "
+           " INNER JOIN "
+           "gSingleRaw on sCellFile.rawid=gSingleRaw.rawid and sCellFile.cellid=gSingleRaw.cellid WHERE 1")
     if not cellid is None:
-        sql += " AND cellid like %s"
+        sql += " AND sCellFile.cellid like %s"
         params = params+("%"+cellid+"%",)
     if not runclass is None:
         sql += " AND gRunClass.name like %s"

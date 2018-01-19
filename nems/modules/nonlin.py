@@ -55,7 +55,7 @@ class gain(nems_module):
         if phi is None:
             # default depends on the nl type
             if nltype == 'dexp':
-                phi = np.array([[0,1,10,1]])
+                phi = np.array([[0,1,1,1]])
             elif nltype == 'dlog':
                 phi = np.array([[-2]])
             else:
