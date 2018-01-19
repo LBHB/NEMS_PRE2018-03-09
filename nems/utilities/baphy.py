@@ -661,16 +661,7 @@ def load_site_raster(batch, runclass, site, options):
     if 'active_passive' in parms:
         del parms['active_passive']
         
-    # Load cellids and meta data from celldb
-    if len(runclass.split('_'))>1:
-        for i, run in enumerate(runclass.split('_')):
-            if i==0:
-                cfd=db.get_cell_files(cellid=site,runclass=run)
-                
-            else:
-                cfd = pd.concat([cfd,db.get_cell_files(cellid=site,runclass=run)])
-    else:
-        cfd=db.get_cell_files(cellid=site,runclass=runclass)
+    cfd=db.get_cell_files(cellid=site,runclass=runclass)
     
     
     cfd=cfd.sort_values('cellid') # sort the data frame by cellid so it agrees with the r matrix output
@@ -753,7 +744,9 @@ def load_pup_raster(batch, runclass, site, options):
     d=db.get_batch_cell_data(batch)
     files = []
     for f in d['pupil'].unique():
-        if runclass in f and site in f:
+        if f is None: 
+            pass
+        elif runclass in f and site in f:
             files.append(f)
     
     files = pd.Series(files)
