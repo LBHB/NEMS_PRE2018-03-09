@@ -69,6 +69,14 @@ class nems_stack:
         log.info("Creating new stack")
         self.modules = []
         self.mod_names = []
+
+        # Data is a list of lists of dictionaries:
+        #   data[i] gives you the data for the i-th module in the stack
+        #   data[i][j] gives you the data for the j-th file from the i-th
+        #       module.
+        #   data[i][j][key] gives you the array from the dataset for the j-th
+        #       file from the i-th module.
+        # Point of clarification here is that .
         self.data = []
         self.data.append([])
         self.data[0].append({})  # Also this?
@@ -396,7 +404,7 @@ class nems_stack:
             # standard evaluation when not using nested cross-validation
             for ii in range(start, len(self.modules)):
                 self.modules[ii].evaluate()
-                
+
     # create instance of mod and append to stack
     def append(self, mod=None, **xargs):
         """
@@ -583,7 +591,7 @@ class nems_stack:
                 plot_set.append(idx)
         # outer grid corresponding to a subplot for each of the modules.
         outer = gridspec.GridSpec(len(plot_set), 1)
-        
+
         # this is for old subplot handling, since they have 1 based indexing.
         spidx = 1
         for sp, idx in enumerate(plot_set):
