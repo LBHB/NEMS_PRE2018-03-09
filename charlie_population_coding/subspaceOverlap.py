@@ -19,13 +19,9 @@ import pandas as pd
 import scipy.signal as ss
 
 # =================== Set parameters to find file =================
-folder = '/auto/data/daq/Tartufo/TAR010/sorted/'
-pfolder='/auto/data/daq/Tartufo/TAR010/'
 site='TAR010c'
 runclass='PTD'
-runs = [9, 10, 11, 12]           # All runs and rawids must have been sorted together!
-rawids = [123675, 123676, 123677, 123681]
-batch = 301
+batch = 301   # 271 - NAT, 301 - PTD/pupil, 294 - VOC/pupil
 pupil=1
 iso=70
 resample=1
@@ -38,27 +34,20 @@ parms={
         'runclass':'all',    
         'includeprestim':1,
         'tag_masks':['Reference'],
-        'unit':1
     }
 # ========================= Load cellids from db =============================
 if len(runclass.split('_'))>1:
     for i, run in enumerate(runclass.split('_')):
         if i==0:
-            d=db.get_cell_files(cellid=site,runclass=run)
+            cfd=db.get_cell_files(cellid=site,runclass=run)
             
         else:
-            d = pd.concat([d,db.get_cell_files(cellid=site,runclass=run)])
+            cfd = pd.concat([cfd,db.get_cell_files(cellid=site,runclass=run)])
 else:
-    d=db.get_cell_files(cellid=site,runclass=runclass)
+    cfd=db.get_cell_files(cellid=site,runclass=runclass)
 
-cellids=np.sort(np.unique(d[d['rawid']==rawids[0]]['cellid']))    
-    
-isolation = []
-for cellid in cellids:
-    isolation.append(db.get_isolation(cellid, rawids[0])['isolation'].iloc[0])
-isolation = np.array(isolation)
+cellids=np.sort(np.unique(cfd[cfd['isolation']>iso]['cellid']))    
 
-cellids=cellids[isolation>=iso]
 ch_un = [unit[-4:] for unit in cellids]
 cellcount=len(cellids)
 
@@ -76,10 +65,11 @@ for i, cid in enumerate(cellids):
         rts=nu.io.load_matlab_matrix(rf,key="r")
         pts=nu.io.load_matlab_matrix(pupfile.iloc[j],key='r')
         
-        if '_a_' in rf:
-            a_p = a_p+[1]*rts.shape[1]
-        else:
-            a_p = a_p+[0]*rts.shape[1]
+        if i == 0:
+            if '_a_' in rf:
+                a_p = a_p+[1]*rts.shape[1]
+            else:
+                a_p = a_p+[0]*rts.shape[1]
         
         if j == 0:
             rt = rts;
@@ -148,14 +138,19 @@ stimcount=r.shape[2]
 cellcount=r.shape[3]
 # ===================== Send data off for analysis ===========================
 
+  
+
+# call linear model function (regression between r and variabel set of predictors)
+from regression_utils import linear_model
+pred, rsq = linear_model(r, p)
+r_no_p = (r.reshape(bincount*stimcount*repcount, cellcount)-pred).reshape(bincount, repcount, stimcount, cellcount)
+
+#r = r_no_p
+
 if reduce_method is 'PCA':
     pcs, var, step, loading = PCA(r,trial_averaged=False,center=True)
     pcs_a, var_a, step_a, loading_a = PCA(r[:,a_p==1,:,:],trial_averaged=False,center=True)
     pcs_p, var_p, step_p, loading_p = PCA(r[:,a_p==0,:,:],trial_averaged=False, center=True)
-    
-
-# call linear model function (regression between r and variabel set of predictors)
-
     
 # =============================================================================    
 

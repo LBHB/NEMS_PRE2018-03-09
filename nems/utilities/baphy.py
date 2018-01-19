@@ -14,6 +14,9 @@ import os.path
 import scipy.io as si
 import numpy as np
 import sys
+import nems.db as db
+import pandas as pd
+import nems.utilities as nu
 
 try:
     import nems_config.Storage_Config as sc
@@ -609,3 +612,99 @@ def stim_cache_filename(stimfile, options={}):
     
     return cache_fn
     
+def load_site_raster(batch, runclass, site, options):
+    '''
+    Load a population raster given batch id, runclass, recording site, and options
+    
+    Input:
+    -------------------------------------------------------------------------
+    batch ex: batch=301
+    runclass ex: runclass='PTD'
+    recording site ex: site='TAR010c'
+    
+    options: dict
+        min_isolation (float), default - load all cells above 70% isolation
+        rasterfs (float), default: 100
+        includeprestim (boolean), default: 1
+        tag_masks (list of strings), default [], ex: ['Reference']
+        active_passive (string), default: 'both' ex: 'p' or 'a'
+    Output:
+    -------------------------------------------------------------------------
+    r (numpy array), response matrix (bin x reps x stim x cells)
+    meta (pandas data frame), df with all information from data base about the cells you've loaded (sorted in same order as last dim of r)
+           
+    '''
+
+    # Parse inputs
+    try: iso=options['min_isolation'];
+    except: iso=70;
+       
+    try: options['rasterfs'];
+    except: options['rasterfs']=100;
+    
+    try: options['includeprestim'];
+    except: options['includeprestim']=1;
+    
+    try: options['tag_masks'];
+    except: options['tag_masks']=[]
+    
+    try: active_passive = options['active_passive'];
+    except: active_passive='both';
+    
+    # Define parms dict to be passed to loading function
+    parms=options;
+    if 'min_isolation' in parms:
+        del parms['min_isolation']   # not need to find cache file
+    if 'active_passive' in parms:
+        del parms['active_passive']
+        
+    # Load cellids and meta data from celldb
+    if len(runclass.split('_'))>1:
+        for i, run in enumerate(runclass.split('_')):
+            if i==0:
+                cfd=db.get_cell_files(cellid=site,runclass=run)
+                
+            else:
+                cfd = pd.concat([cfd,db.get_cell_files(cellid=site,runclass=run)])
+    else:
+        cfd=db.get_cell_files(cellid=site,runclass=runclass)
+    
+    
+    cfd=cfd.sort_values('cellid') # sort the data frame by cellid so it agrees with the r matrix output
+    cfd=cfd[cfd['isolation']>iso]
+    cellids=np.sort(np.unique(cfd[cfd['isolation']>iso]['cellid'])) # only need list of unique id's
+     
+    # load data for all identified respfiles corresponding to cellids
+    
+    cellcount=len(cellids)
+    
+    a_p=[] # classify as active or passive based on respfile name
+    
+    for i, cid in enumerate(cellids):
+        d=db.get_batch_cell_data(batch,cid)
+        respfile=nu.baphy.spike_cache_filename2(d['raster'],parms)
+        for j, rf in enumerate(respfile):
+            rts=nu.io.load_matlab_matrix(rf,key="r")
+            
+            if i == 0:
+                if '_a_' in rf:
+                    a_p = a_p+[1]*rts.shape[1]
+                else:
+                    a_p = a_p+[0]*rts.shape[1]
+            
+            if j == 0:
+                rt = rts;
+            else:
+                rt = np.concatenate((rt,rts),axis=1)
+        if i == 0:
+            r = np.empty((rt.shape[0],rt.shape[1],rt.shape[2],cellcount))
+            r[:,:,:,0]=rt;
+        else:
+            r[:,:,:,i]=rt;
+
+    if active_passive is 'a':
+        r = r[:,np.array(a_p)==1,:,:]
+    elif active_passive is 'p':
+        r = r[:,np.array(a_p)==0,:,:];
+        
+    return r, cfd
