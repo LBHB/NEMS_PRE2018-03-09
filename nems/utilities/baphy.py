@@ -612,7 +612,7 @@ def stim_cache_filename(stimfile, options={}):
     
     return cache_fn
     
-def load_site_raster(batch, runclass, site, options):
+def load_site_raster(batch, site, options, runclass=None, rawid=None):
     '''
     Load a population raster given batch id, runclass, recording site, and options
     
@@ -661,7 +661,7 @@ def load_site_raster(batch, runclass, site, options):
     if 'active_passive' in parms:
         del parms['active_passive']
         
-    cfd=db.get_cell_files(cellid=site,runclass=runclass)
+    cfd=db.get_cell_files2(cellid=site,runclass=runclass,rawid=rawid)
     
     
     cfd=cfd.sort_values('cellid') # sort the data frame by cellid so it agrees with the r matrix output

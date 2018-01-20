@@ -9,7 +9,7 @@ Created on Mon Jan  8 13:10:25 2018
 import os
 import sys
 sys.path.append('/auto/users/hellerc/nems/nems/utilities')
-from baphy import load_spike_raster, spike_cache_filename, pupil_cache_filename, load_pupil_raster
+import baphy as bu
 import nems.utilities as nu
 from dimReduce_tools import PCA
 import matplotlib.pyplot as plt
@@ -17,111 +17,33 @@ import nems.db as db
 import numpy as np
 import pandas as pd
 import scipy.signal as ss
-
+import charlie_random_utils as cru
 # =================== Set parameters to find file =================
 site='TAR010c'
-runclass='PTD'
-batch = 301   # 271 - NAT, 301 - PTD/pupil, 294 - VOC/pupil
+# runclass='NAT'  (can't use until we migrate over the database)
+batch = 271   # 271 - NAT/pup, 301 - PTD/pupil, 294 - VOC/pupil
+rawid = 123692   # TAR010c NAT - 123692
 pupil=1
+
 iso=70
 resample=1
 samps=14
 reduce_method='PCA';
-
 # =================== parms of the cached files to load ======================    
 parms={  
         'rasterfs':100,
-        'runclass':'all',    
+        'runclass':'all',
+        'min_isolation': iso,
         'includeprestim':1,
         'tag_masks':['Reference'],
     }
 # ========================= Load cellids from db =============================
-if len(runclass.split('_'))>1:
-    for i, run in enumerate(runclass.split('_')):
-        if i==0:
-            cfd=db.get_cell_files(cellid=site,runclass=run)
-            
-        else:
-            cfd = pd.concat([cfd,db.get_cell_files(cellid=site,runclass=run)])
-else:
-    cfd=db.get_cell_files(cellid=site,runclass=runclass)
 
-cellids=np.sort(np.unique(cfd[cfd['isolation']>iso]['cellid']))    
+r, meta = bu.load_site_raster(batch=batch,site=site,rawid=rawid,options=parms)
+p = bu.load_pup_raster(batch=batch,site=site,rawid=rawid,options=parms)
 
-ch_un = [unit[-4:] for unit in cellids]
-cellcount=len(cellids)
-
-pup_parms = parms
-pup_parms['pupil']=pupil
-# =============================================================================
-
-# load data for all respfiles and pupfiles
-a_p=[]
-for i, cid in enumerate(cellids):
-    d=db.get_batch_cell_data(batch,cid)
-    respfile=nu.baphy.spike_cache_filename2(d['raster'],parms)
-    pupfile=nu.baphy.pupil_cache_filename2(d['pupil'],pup_parms)
-    for j, rf in enumerate(respfile):
-        rts=nu.io.load_matlab_matrix(rf,key="r")
-        pts=nu.io.load_matlab_matrix(pupfile.iloc[j],key='r')
-        
-        if i == 0:
-            if '_a_' in rf:
-                a_p = a_p+[1]*rts.shape[1]
-            else:
-                a_p = a_p+[0]*rts.shape[1]
-        
-        if j == 0:
-            rt = rts;
-            p = pts;
-        else:
-            rt = np.concatenate((rt,rts),axis=1)
-            p = np.concatenate((p,pts),axis=1)
-    if i == 0:
-        r = np.empty((rt.shape[0],rt.shape[1],rt.shape[2],cellcount))
-        r[:,:,:,0]=rt;
-    else:
-        r[:,:,:,i]=rt;
 # ========================= Pre-process the data ============================
-
-if runclass=='PPS_VOC':
-    # last two stim are vocalizations, first 19 are pip sequences. This is for VOC
-    prestim=2
-    poststim=0.5
-    duration=3
-    r = r[0:int(parms['rasterfs']*(prestim+duration+poststim)),:,-2:,:];
-    
-elif runclass=='PTD':
-    # Dropping any reps in which there were Nans for one or more stimuli (quick way
-    # way to deal with nana. This should be improved)
-
-    inds = []
-    for ind in np.argwhere(np.isnan(r[0,:,:,0])):
-        inds.append(ind[0])
-    inds = np.array(inds)
-    #drop_inds=np.unique(inds)
-    keep_inds=[x for x in np.arange(0,len(r[0,:,0,0])) if x not in inds]
-    
-    a_p = np.array(a_p)[keep_inds]
-    r = r[:,keep_inds,:,:]
-    p = p[:,keep_inds,:]
-   
-    
-elif runclass=='NAT':    
-    # Different options for this... chop out the extra reps of first few? Or keep all data?
-    # Chopping it out for now
-    r = r[:,0:3,:,:]
-    p = p[:,0:3,:]
-    stim_inds = []
-    
-    for si in np.argwhere(np.isnan(r[0,0,:,0])):
-        stim_inds.append(si[0])
-    stim_inds=np.array(stim_inds)
-    
-    si_keep = [x for x in np.arange(0,len(r[0,0,:,0])) if x not in stim_inds]
-    
-    r = r[:,:,si_keep,:]
-    p = p[:,:,si_keep]
+r, p = cru.remove_nans(runclass=runclass, options=parms, r=r, p=p)
 
     
 # Resample if wanted    
@@ -132,87 +54,32 @@ if resample==1:
 # Summarize dims for later use    
 bincount=r.shape[0]
 repcount=r.shape[1]
-a_reps=sum(a_p)
-p_reps=sum(a_p==0)
 stimcount=r.shape[2]
 cellcount=r.shape[3]
-# ===================== Send data off for analysis ===========================
 
-  
+# Visualize pupil
+plt.figure()
+out = plt.hist(np.mean(p,0).flatten(),bins=50,color='green')
+count=out[0]
+pup_val=out[1]
+minima=pup_val[ss.argrelextrema(count,np.less,order=5)]
+plt.axvline(minima,color='k')
+
+# ===================== Send data off for analysis ===========================
 
 # call linear model function (regression between r and variabel set of predictors)
 from regression_utils import linear_model
 pred, rsq = linear_model(r, p)
 r_no_p = (r.reshape(bincount*stimcount*repcount, cellcount)-pred).reshape(bincount, repcount, stimcount, cellcount)
-
 #r = r_no_p
 
 if reduce_method is 'PCA':
     pcs, var, step, loading = PCA(r,trial_averaged=False,center=True)
-    pcs_a, var_a, step_a, loading_a = PCA(r[:,a_p==1,:,:],trial_averaged=False,center=True)
-    pcs_p, var_p, step_p, loading_p = PCA(r[:,a_p==0,:,:],trial_averaged=False, center=True)
-    
-# =============================================================================    
-
-cc_p=[]
-cc_a=[]    
-for i in range(0,cellcount):
-     cc_p.append(np.corrcoef((pcs_p[:,i],p[:,a_p==0,:].reshape(bincount*p_reps*stimcount)))[0][1])
-     cc_a.append(np.corrcoef((pcs_a[:,i],p[:,a_p==1,:].reshape(bincount*a_reps*stimcount)))[0][1])
-
-# ===================== Figure 1 =======================================
-fig1=1;
-
-plt.figure(fig1)
-plt.plot(var_a,'.-r')
-plt.plot(var_p,'.-b')
-plt.plot(var, '.-k',alpha=0.5)
-plt.legend(['active','passive','both'])
+  
 
 
-## ===================== Figure 2 ========================================
-fig2 = 2
-npcs = cellcount
-# plot the correlation btwn pupil and pcs
-     
-plt.figure(fig2)
-plt.subplot(223)
-plt.title('pupil correlations with pcs')
-plt.bar(range(0,cellcount),cc_p,alpha=0.5, color='r')
-plt.bar(range(0,cellcount),cc_a,alpha=0.5, color='b')
-plt.legend(['passive','active'])
-plt.xlabel('PCs')
-plt.ylabel('r^2')
-
-# plot the loading vectors    
-
-cross_cor = np.matmul(loading_a[:,0:npcs],loading_p[:,0:npcs].T)    
-vmin=np.min(np.hstack((loading_a,loading_p,cross_cor)))
-vmax=np.max(np.hstack((loading_a,loading_p,cross_cor)))    
-plt.figure(fig2)    
-plt.subplot(221)
-plt.title('Loading vector passive')
-plt.imshow(loading_p[:,0:npcs],vmin=vmin,vmax=vmax,cmap='jet',aspect='auto')
-plt.yticks(range(0,cellcount),cellids)
-plt.xticks(range(0,npcs),range(0,npcs),rotation=90)
-plt.xlabel('PCs')
-plt.subplot(222)
-plt.title('Loading vector active')    
-plt.imshow(loading_a[:,0:npcs],vmin=vmin,vmax=vmax,cmap='jet',aspect='auto')
-plt.yticks(range(0,cellcount),cellids)
-plt.xlabel('PCs')
-plt.xticks(range(0,npcs),range(0,npcs),rotation=90)
-
-# plot correlation btwn loading vectors
-
-plt.figure(fig2)
-plt.subplot(224)
-plt.title('Cross correlation')
-plt.imshow(cross_cor,vmin=vmin,vmax=vmax,cmap='jet')
-plt.yticks(range(0,cellcount),cellids)
-plt.xticks(range(0,cellcount),cellids, rotation=90)
-plt.colorbar()    
 ## ===========================================================================
+
 '''   
 # Filtering pupil...    
 p_long = p.transpose(1,2,0).flatten()   
@@ -236,3 +103,4 @@ y = butter_lowpass_filter(p_long, cutoff, fs, order)
 plt.plot(y)
 plt.plot(p_long)
 '''
+
