@@ -42,7 +42,7 @@ if 0:
     modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
     batch=269
 
-if 0:
+if 1:
     """ NAT SOUND """
     #cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
@@ -54,13 +54,14 @@ if 0:
     #cellid="eno052b-c1"
     #cellid='chn020f-b1'
     #cellid='chn029d-a1'
-    cellid='TAR010c-21-2'
+    #cellid='TAR010c-21-2'
+    cellid="bbl086b-02-1"
     batch=271 #A1
     #modelname="fb18ch100_wc01_fir15_fit01"
     
     #modelname="fb18ch100_dlogn_wcg01_stp1pc_fir15_dexp_fit01"
-    modelname="fb18ch100_wcg01_fir15_fit01"
-    
+    #modelname="fb18ch100_wcg01_fir15_fit01"
+    modelname="fb18ch100_dlogn_wc02_fir15_fit01"
     #modelname="fb18ch100_wcg01_fir15_fitannl00"
     #modelname="ctx100ch100_dlog_wc02_fir15_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
@@ -120,7 +121,7 @@ if 0:
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
 """ pupil gain test -- 2 x VOC data """
-if 1:
+if 0:
     #cellid="eno052d-a1"
     cellid="BOL005c-25-5"
     #cellid="eno023c-c1"

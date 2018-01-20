@@ -87,6 +87,7 @@ class load_mat(nems_module):
             for s in matdata['data'][0]:
 
                 data = {}
+                self.d_out.append(data)
                 if 'stimids' in s.dtype.names:
                     # new format: stimulus events logged in stimids and
                     # pulled from stim matrix or from a separate file
@@ -227,6 +228,8 @@ class load_mat(nems_module):
                 if self.avg_resp is True:
                     data['resp_raw'] = data['resp'].copy()
                     data['resp'] = data['avgresp']
+                    data['pupil']=np.nanmean(data['pupil'], axis=1)
+                    data['pupil'] = np.transpose(data['pupil'], (1, 0))
                 else:
                     data['stim'], data['resp'], data['pupil'], data['replist'] = \
                         nems.utilities.utils.stretch_trials(data)
@@ -257,7 +260,7 @@ class load_mat(nems_module):
                 # append contents of file to data, assuming data is a dictionary
                 # with entries stim, resp, etc...
                 #log.info('load_mat: appending {0} to d_out stack'.format(f))
-                self.d_out.append(data)
+                #self.d_out.append(data)
 
         # Raises error if d_out is an empty list
         if not self.d_out:
