@@ -534,7 +534,7 @@ def pupil_cache_filename2(pupfilestub,options):
     try: 
         tag_name='_tags-'+''.join(options['tag_masks'])
     except: 
-        tag_name='_tags-Reference'
+        tag_name='_tags-default'
     
     try: 
         run='_run-'+options['runclass'];
@@ -563,13 +563,30 @@ def pupil_cache_filename2(pupfilestub,options):
         psthonly='_psth'+str(options['psthonly'])
     except: 
         psthonly='_psth-1'
-    
+ 
+    filt_str='';
+    try:
+        if options['pupil_highpass']>0:
+            filt_str="{0}_hp{1:.2f}".format(filt_str,options['pupil_highpass'])
+    except:
+        pass
+    try:
+        if options['pupil_lowpass']>0:
+           filt_str="{0}_lp{1:.2f}".format(filt_str,options['pupil_lowpass'])
+    except:
+        pass
+    try:
+        if options['pupil_derivative']!='':
+           filt_str="{0}_D{1}".format(filt_str,options['pupil_derivative'])
+    except:
+        pass
+
     # define the cache file name
-    for i, pf in enumerate(pupfilestub):
-        l = pf.split('.')[0].split('/')
-        pupfilestub.iloc[i] = '/'.join(l[:-1])+'/tmp/'+l[-1]
+    #for i, pf in enumerate(pupfilestub):
+    #    l = pf.split('.')[0].split('/')
+    #   pupfilestub.iloc[i] = '/'.join(l[:-1])+'/tmp/'+l[-1]
     
-    cache_fn=pupfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+offset_str+med_str+pupil_str+'.mat'
+    cache_fn=pupfilestub+rasterfs+tag_name+run+prestim+ic+psthonly+offset_str+med_str+filt_str+pupil_str+'.mat'
     
     return cache_fn
 
