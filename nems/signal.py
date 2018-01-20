@@ -37,6 +37,8 @@ class Signal:
         if T < C:
             m = 'Incorrect matrix dimensions: (C, T) is {}. ' \
                 'We expect a long time series, but T < C'
+            # TODO: Raise some kind of warning here instead?
+            #       Could be (probably rare) cases where T does end up < C
             raise ValueError(m.format((C, T)))
 
         self.nchans = C
@@ -165,10 +167,42 @@ class Signal:
         # samples = self.epoch['end_index'] - self.epoch['start_index']
 
         # n_samples = int(samples.max())
+
+        # pseudocode: dont re-count epochs with overlapping time
+        #              but this assumes 'trials' are longer than other
+        #              epochs - not necessarily true?
+        #              would replace "n_trials = len(self.epochs)"
+        # n_trials = 0
+        # for ith epoch:
+        #     j = i+1
+        #     if ith epoch's end_index <= jth epoch's end_index:
+        #         skip it
+        #     else:
+        #         n_trials += 1
+
+        # alternative pseudocode: like mentioned above, some kind of
+        #                         regexp to specify which epochs are 'trials'?
+        # n_trials = 0
+        # epoch_lengths = []
+        # for ith epoch:
+        #    if epoch_name matches stim_pattern (or some other rule):
+        #        epoch_lengths.append(end - start for this epoch)
+        #        n_trials += 1
+        #    else:
+        #        skip epoch
+        # n_samples = max(epoch_lengths)
+
         # n_trials = len(self.epochs)
         # n_channels = self._matrix.shape[0]
 
         # data = np.full((n_trials, n_channels, n_samples), np.nan)
+
+        # assuming data always loaded in as chans x time and 2nd approach:
+        # last_epoch_end = 0
+        # for i, epoch in enumerate(epoch_lengths):
+        #     data[:, i, :epoch] = self._matrix[:, slice(last_epoch_ebd, epoch)]
+
+
         # for i, (_, row) in enumerate(self.trial_info.iterrows()):
         #     lb, ub = row[['start_index', 'end_index']].astype('i')
         #     samples = ub-lb
