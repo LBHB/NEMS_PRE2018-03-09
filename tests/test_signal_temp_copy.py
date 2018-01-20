@@ -53,12 +53,19 @@ def signal_tmpdir(tmpdir_factory):
 #       copy paste to test_signal.py
 
 def test_fold_by_trial(signal):
-    result = signal.fold_by('^trial')
+    result = signal.fold_by('trial')
     assert result.shape == (3, 3, 100)
 
     # remove below later
     print("fold by trial: success")
     return result
+
+def test_as_trials(signal):
+    # TODO: need to decide if epochs have to be specified by user
+    #       or if signal.as_trials() should grab defaults if no epochs present
+    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    result = signal.as_trials()
+    assert result.shape == (10, 3, 20)
 
 def test_fold_by_pupil(signal):
     cached_epochs = signal.epochs
@@ -76,6 +83,26 @@ def test_fold_by_pupil(signal):
     signal.epochs = cached_epochs
     return result
 
+def test_trial_epochs_from_reps(signal):
+    cached_epochs = signal.epochs
+    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    result1 = signal.fold_by('trial')
+    assert result1.shape == (10, 3, 20)
+
+    # remove later
+    print("trial_epochs_from_reps (even): success")
+
+    signal.epochs = signal.trial_epochs_from_reps(nreps=11)
+    result2 = signal.fold_by('trial')
+    assert result2.shape == (12, 3, 18)
+    assert np.isnan(result2[11, 0]).sum() == 16
+
+    # remove later
+    print("trial_epochs_from_reps (uneven): success")
+    signal.epochs = cached_epochs
+    return result1, result2
+
+"""
 def test_fold_by_trial_and_pupil(signal):
     # TODO: not going to work yet b/c current implementation of fold_by
     #       would cause the slices to exceed index for multiple matches
@@ -98,3 +125,22 @@ s = signal()
 r1 = test_fold_by_trial(s)
 r2 = test_fold_by_pupil(s)
 r3 = test_fold_by_trial_and_pupil(s)
+
+
+s = signal()
+matched_rows = s.epochs['epoch_name'].str.contains('trial8')
+matched_epochs = s.epochs[matched_rows]
+samples = matched_epochs['end_index'] - matched_epochs['start_index']
+n_epochs = len(matched_epochs)
+n_channels = s._matrix.shape[0]
+n_samples = samples.max()
+
+data = np.full((n_epochs, n_channels, n_samples), np.nan)
+for i, (_, row) in enumerate(matched_epochs.iterrows()):
+    lb, ub = row[['start_index', 'end_index']].astype('i')
+    samples = ub-lb
+    data[i, :, :samples] = s._matrix[:, lb:ub]
+
+"""
+
+s = signal()

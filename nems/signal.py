@@ -155,28 +155,15 @@ class Signal:
         If trials are of uneven length, pads shorter trials with NaN. All trials
         are aligned to the start.
         '''
+
+        # TODO: should self.trial_epochs_from_nreps be baked in here instead?
+        #       i.e. if no epochs, get some default ones instead of error
         if self.epochs is None:
-            raise ValueError('Cannot reshape into trials')
+            raise ValueError("Cannot reshape into trials without epochs info.\n"
+                             "For default trial epochs, try setting epochs = "
+                             "signal.trial_epochs_from_reps(nreps='#')")
 
-        # TODO: This won't work any more; we need an implementation that
-        #  selects all epochs that match a regexp? and makes it ragged
-        #  based on that? or something?
-
-        assert(0)
-
-        # samples = self.epoch['end_index'] - self.epoch['start_index']
-
-        # n_samples = int(samples.max())
-        # n_trials = len(self.epochs)
-        # n_channels = self._matrix.shape[0]
-
-        # data = np.full((n_trials, n_channels, n_samples), np.nan)
-        # for i, (_, row) in enumerate(self.trial_info.iterrows()):
-        #     lb, ub = row[['start_index', 'end_index']].astype('i')
-        #     samples = ub-lb
-        #     data[i, :, :samples] = self._matrix[:, lb:ub]
-        # return data
-        return None
+        return self.fold_by('trial')
 
     def as_average_trial(self):
         '''
@@ -409,10 +396,48 @@ class Signal:
             )
 
     # TODO: classmethod?
-    def fold_by(self, epoch_regex=None):
-        # TODO: additional feature(s) that might be nice, either in this
-        #       function or separate functions:
-        #
+    def fold_by(self, regex):
+        """Returns matrix with shape epochs x channels x time, wherever
+        epoch_name in signal.epochs matches the provided regular expression.
+        If a plain string is provided instead of a regular expression, the
+        matching behavior will be similar to python's 'in' operator.
+        For epochs with uneven length, NaNs will be appended to the shorter
+        lengths.
+
+        Ex: with signal.epochs = {'start_index': [0, 10, 15],
+                                  'end_index': [10, 15, 35],
+                                  'epoch_name': [trial1, trial2, trial3]}
+            number of channels = 3,
+            fold_by('trial') would return a matrix of shape
+            (3, 3, 20), for 3 epochs x 3 channels x 20 time samples (longest).
+            The epochs would contain 10, 15, and 0 NaN values, respectively.
+
+        TODO: finish doc
+
+        """
+
+        if self.epochs is None:
+            raise ValueError("Signal.epochs must be defined in order"
+                             "to fold by epochs")
+        matched_rows = self.epochs['epoch_name'].str.contains(regex)
+        matched_epochs = self.epochs[matched_rows]
+        # TODO: best way to report no matches?
+        if not len(matched_epochs):
+            return np.empty((1,1))
+        samples = matched_epochs['end_index'] - matched_epochs['start_index']
+        n_epochs = len(matched_epochs)
+        n_channels, _ = self._matrix.shape
+        n_samples = samples.max()
+
+        folded_data = np.full((n_epochs, n_channels, n_samples), np.nan)
+        for i, (_, row) in enumerate(matched_epochs.iterrows()):
+            lower, upper = row[['start_index', 'end_index']].astype('i')
+            samples = upper - lower
+            folded_data[i, :, :samples] = self._matrix[:, lower:upper]
+
+        return folded_data
+
+        #       TODO:
         #       1) specify list of regexp instead of one string,
         #          along with 'logic' and 'action' specs.
         #          ex: regex=['^stim', '^trial', '^rep'], logic='OR',
@@ -422,8 +447,6 @@ class Signal:
         #              patterns as separate folds/trials/whatever.
         #              (useful if naming scheme not known or different
         #               schemes used interchangeably)
-        #              (not so useful case since regexp can already do this,
-        #               but more intuitive for people that aren't used to it).
         #
         #          ex: regex=['trial2', '^pupil_closed'], logic='AND',
         #              action=my_function_object
@@ -435,18 +458,108 @@ class Signal:
         #              then drop the latter epoch from the folding.
         #              I guess a copy of _matrix would have to be passed
         #              to the callback? Maybe not feasible.
+        #
+        #        why not just put the OR / AND in the regex?
+        #           -not as intuitive for people that aren't familar with regexp
+        #           -also complicates the fold_by code because
+        #                matching more than one epoch to the same time period
+        #                would necessitate copying parts of the data
+        #                (or doing something else, but simple stacking
+        #                 won't work).
+        #
+        #       possible solutions:
+        #           1) make user provide a function that decides what to
+        #              do with the matches (would necessitate knowledge
+        #              of data structure details, so not ideal).
+        #           2) make order of regexs list matter.
+        #              ex: ['trial', 'pupil_closed', 'stim1'], 'AND'
+        #                  would fold by trial, but only for trials that
+        #                  overlap with the pupil_closed and stim1 epochs.
+        #                  ['stim', 'pupil_closed', 'trial5'], 'AND'
+        #                  would fold by stim, but only for stims that
+        #                  overlap with the pupil_closed and trial5 epochs.
+        #           3) but what if want to fold by just the overlapping slice?
+        #              separate functions? fold_by_or vs fold_by_or_filter?
+        #              ex: ['trial', 'pupil_closed'], 'AND'
+        #                  would match all trials, but slice out only the
+        #                  portions that overlap with pupil_closed.
+        #
+        #        started fold_by_or and fold_by_and below
 
-        matched_rows = self.epochs['epoch_name'].str.contains(epoch_regex)
-        matched_epochs = self.epochs[matched_rows]
-        samples = matched_epochs['end_index'] - matched_epochs['start_index']
-        n_epochs = len(matched_epochs)
-        n_channels = self._matrix.shape[0]
-        n_samples = samples.max()
 
-        data = np.full((n_epochs, n_channels, n_samples), np.nan)
-        for i, (_, row) in enumerate(matched_epochs.iterrows()):
-            lb, ub = row[['start_index', 'end_index']].astype('i')
-            samples = ub-lb
-            data[i, :, :samples] = self._matrix[:, lb:ub]
+    def fold_by_or(self, regexs):
+        # TODO: make a single regex string that
+        #       matches to one or more of the patterns
+        combined_regex = 'regexs0 | regexs1 | etc...'
+        return self.fold_by(combined_regex)
 
-        return data
+    def fold_by_and(self, regexs):
+        # TODO
+        combined_regex = 'regexs0 && regexs1 && etc...'
+        return self.fold_by(combined_regex)
+
+    def trial_epochs_from_reps(self, nreps=1):
+        """Creates a generic epochs DataFrame with a number of trials
+        based on sample length and number of repetitions specified.
+
+        Ex: If signal._matrix has shape 3x100,
+            trial_epochs_from_reps(nreps=5) would generate a DataFrame of
+            of the form:
+                {'start_index': [0, 20, 40, 60, 80],
+                 'end_index': [20, 40, 60, 80, 100],
+                 'epoch_name': ['trial0', 'trial1', 'trial2',
+                                'trial3', 'trial4']}
+
+        Note: If the number of time samples is not evenly divisible by
+              the number of repetitions, then an additional trial will be
+              added to carry the remainder of the time samples.
+              (i.e. if there are 100 time samples and nreps=3, there will
+              be 3 trials of length 33 and a 4th trial of length 1)
+              TODO: is this good default behavior, or would it be better to
+                    either throw an error, chop off the remainder, or
+                    append the remainder to the nth trial?
+
+        Reminder: epochs indices behave similar to python list indices, so
+                  start_index is inclusive while end_index is exclusive,
+                  making the actual index values 0-99.
+
+        TODO: finish doc
+
+        TODO: Some way to get reps info from the data instead of
+              requiring user-provided?
+
+              Could use a default value based on length, like
+              nreps = np.ceil(n_samples/10) (and last trial would be
+              shorter than the others if n_samples not multiple of 10).
+
+        """
+
+        n_chans, n_samples = self._matrix.shape
+        trial_size = int(n_samples/nreps)
+        remainder = n_samples % nreps
+
+        starts = []
+        ends = []
+        names = []
+
+        for i in range(nreps):
+            start = (i)*trial_size
+            end = (i+1)*trial_size
+            starts.append(start)
+            ends.append(end)
+            names.append('trial%d'%i)
+        if remainder:
+            start = (nreps)*trial_size
+            end = start+remainder
+            starts.append(start)
+            ends.append(end)
+            names.append('trial%d'%nreps)
+
+        epochs = pd.DataFrame({'start_index': starts,
+                           'end_index': ends,
+                           'epoch_name': names},
+                          columns=['start_index', 'end_index', 'epoch_name'])
+
+        return epochs
+
+
