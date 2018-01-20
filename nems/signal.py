@@ -167,42 +167,10 @@ class Signal:
         # samples = self.epoch['end_index'] - self.epoch['start_index']
 
         # n_samples = int(samples.max())
-
-        # pseudocode: dont re-count epochs with overlapping time
-        #              but this assumes 'trials' are longer than other
-        #              epochs - not necessarily true?
-        #              would replace "n_trials = len(self.epochs)"
-        # n_trials = 0
-        # for ith epoch:
-        #     j = i+1
-        #     if ith epoch's end_index <= jth epoch's end_index:
-        #         skip it
-        #     else:
-        #         n_trials += 1
-
-        # alternative pseudocode: like mentioned above, some kind of
-        #                         regexp to specify which epochs are 'trials'?
-        # n_trials = 0
-        # epoch_lengths = []
-        # for ith epoch:
-        #    if epoch_name matches stim_pattern (or some other rule):
-        #        epoch_lengths.append(end - start for this epoch)
-        #        n_trials += 1
-        #    else:
-        #        skip epoch
-        # n_samples = max(epoch_lengths)
-
         # n_trials = len(self.epochs)
         # n_channels = self._matrix.shape[0]
 
         # data = np.full((n_trials, n_channels, n_samples), np.nan)
-
-        # assuming data always loaded in as chans x time and 2nd approach:
-        # last_epoch_end = 0
-        # for i, epoch in enumerate(epoch_lengths):
-        #     data[:, i, :epoch] = self._matrix[:, slice(last_epoch_ebd, epoch)]
-
-
         # for i, (_, row) in enumerate(self.trial_info.iterrows()):
         #     lb, ub = row[['start_index', 'end_index']].astype('i')
         #     samples = ub-lb
@@ -439,3 +407,46 @@ class Signal:
             epochs=epochs,
             matrix=data,
             )
+
+    # TODO: classmethod?
+    def fold_by(self, epoch_regex=None):
+        # TODO: additional feature(s) that might be nice, either in this
+        #       function or separate functions:
+        #
+        #       1) specify list of regexp instead of one string,
+        #          along with 'logic' and 'action' specs.
+        #          ex: regex=['^stim', '^trial', '^rep'], logic='OR',
+        #              action=None
+        #
+        #              would match all epochs with any of the above
+        #              patterns as separate folds/trials/whatever.
+        #              (useful if naming scheme not known or different
+        #               schemes used interchangeably)
+        #              (not so useful case since regexp can already do this,
+        #               but more intuitive for people that aren't used to it).
+        #
+        #          ex: regex=['trial2', '^pupil_closed'], logic='AND',
+        #              action=my_function_object
+        #
+        #              not sure exactly how this would work yet, but the idea
+        #              is that you could specify an action to take on the final
+        #              data returned, like changing the values of the samples
+        #              in 'trial2' to nan where it lines up with 'pupil_closed'
+        #              then drop the latter epoch from the folding.
+        #              I guess a copy of _matrix would have to be passed
+        #              to the callback? Maybe not feasible.
+
+        matched_rows = self.epochs['epoch_name'].str.contains(epoch_regex)
+        matched_epochs = self.epochs[matched_rows]
+        samples = matched_epochs['end_index'] - matched_epochs['start_index']
+        n_epochs = len(matched_epochs)
+        n_channels = self._matrix.shape[0]
+        n_samples = samples.max()
+
+        data = np.full((n_epochs, n_channels, n_samples), np.nan)
+        for i, (_, row) in enumerate(matched_epochs.iterrows()):
+            lb, ub = row[['start_index', 'end_index']].astype('i')
+            samples = ub-lb
+            data[i, :, :samples] = self._matrix[:, lb:ub]
+
+        return data

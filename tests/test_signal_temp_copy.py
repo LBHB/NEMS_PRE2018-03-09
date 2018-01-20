@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import filecmp
 import pytest
@@ -33,7 +34,8 @@ def signal(signal_name='dummy_signal', recording_name='dummy_recording', fs=50,
             },
         'epochs': pd.DataFrame({'start_index': [0, 100, 150],
                        'end_index': [100, 150, 200],
-                       'epoch_name': ['stim1', 'stim2', 'stim3']})
+                       'epoch_name': ['trial1', 'trial2', 'trial3']},
+                        columns=['start_index', 'end_index', 'epoch_name'])
         }
     return Signal(**kwargs)
 
@@ -46,6 +48,53 @@ def signal_tmpdir(tmpdir_factory):
     '''
     return tmpdir_factory.mktemp(__name__ + '_signal')
 
+###################################################################
+# TODO: new tests below. when finished tinkering, remove prints and
+#       copy paste to test_signal.py
+
+def test_fold_by_trial(signal):
+    result = signal.fold_by('^trial')
+    assert result.shape == (3, 3, 100)
+
+    # remove below later
+    print("fold by trial: success")
+    return result
+
+def test_fold_by_pupil(signal):
+    cached_epochs = signal.epochs
+    pupil_info = pd.DataFrame({'start_index': [0, 150],
+                               'end_index': [60, 190],
+                               'epoch_name': ['pupil_closed1', 'pupil_closed2']
+                               }, columns=['start_index', 'end_index',
+                                           'epoch_name'])
+    signal.epochs = signal.epochs.append(pupil_info, ignore_index=True)
+    result = signal.fold_by('^pupil')
+    assert result.shape == (2, 3, 60)
+
+    # remove below later
+    print("fold by pupil: success")
+    signal.epochs = cached_epochs
+    return result
+
+def test_fold_by_trial_and_pupil(signal):
+    # TODO: not going to work yet b/c current implementation of fold_by
+    #       would cause the slices to exceed index for multiple matches
+    cached_epochs = signal.epochs
+    pupil_info = pd.DataFrame({'start_index': [0, 150],
+                               'end_index': [60, 190],
+                               'epoch_name': ['pupil_closed1', 'pupil_closed2']
+                               }, columns=['start_index', 'end_index',
+                                           'epoch_name'])
+    signal.epochs = signal.epochs.append(pupil_info, ignore_index=True)
+    result = signal.fold_by('((^|, )(trial|stim))+$')
+    assert result.shape == (5, 3, 60)
+
+    # remove below later
+    print("fold by both pupil and trial: success")
+    signal.epochs = cached_epochs
+    return result
 
 s = signal()
-
+r1 = test_fold_by_trial(s)
+r2 = test_fold_by_pupil(s)
+r3 = test_fold_by_trial_and_pupil(s)
