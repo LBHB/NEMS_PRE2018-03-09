@@ -90,8 +90,8 @@ def pred_act_scatter(m, idx=None, size=FIGSIZE):
     if idx:
         plt.figure(num=idx, figsize=size)
     out1 = m.d_out[m.parent_stack.plot_dataidx]
-    s = out1[m.output_name][m.parent_stack.plot_stimidx, :]
-    r = out1['resp'][m.parent_stack.plot_stimidx, :]
+    s = out1[m.output_name][0,m.parent_stack.plot_stimidx, :]
+    r = out1['resp'][0,m.parent_stack.plot_stimidx, :]
     plt.plot(s, r, 'ko')
     plt.xlabel("Predicted ({0})".format(m.output_name))
     plt.ylabel('Actual')

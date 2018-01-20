@@ -122,10 +122,10 @@ if 0:
 """ pupil gain test -- 2 x VOC data """
 if 1:
     #cellid="eno052d-a1"
-    cellid="BOL006b-25-2"
+    cellid="BOL005c-25-5"
     #cellid="eno023c-c1"
     batch=294
-    modelname="perfectpupil50_pupgainctl_fit01"
+    modelname="perfectpupil10_pupgainctl_fit01_nested10"
     #modelname="perfectpupil50_pupgainctl_fit01_nested5"
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 

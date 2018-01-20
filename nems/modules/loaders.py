@@ -188,7 +188,7 @@ class load_mat(nems_module):
 
                 # Changed resample to decimate w/ 'fir' and threshold, as it produces less ringing when downsampling
                 #-njs June 16, 2017
-                if resp_resamp_factor in np.arange(0, 10):
+                if resp_resamp_factor in np.arange(0, 20):
                     #log.info("resp bin resamp factor {0}".format(
                     #    resp_resamp_factor))
                     data['resp'] = nems.utilities.utils.bin_resamp(

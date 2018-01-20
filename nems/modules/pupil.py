@@ -100,6 +100,10 @@ class pupgain(nems_module):
         SVD mod: shuffle pupil, keep same number of parameters for proper control
         """
 
+        # only apply to dims of Xp spanned by theta
+        dims=np.int(self.theta.shape[1]/2-1)
+        Xp=Xp[0:dims,:]
+        
         # OLD WAY -- not random enough
         if 0:
             s = Xp.shape
@@ -132,6 +136,11 @@ class pupgain(nems_module):
     def linpupgain_fn(self, X, Xp):
         # expect theta = [b0 g0 b1 p1 b2 p2...] where 1, 2 are first dimension
         # of Xp (pupil, behavior state, etc)
+        
+        # only apply to dims of Xp spanned by theta
+        dims=np.int(self.theta.shape[1]/2-1)
+        Xp=Xp[0:dims,:]
+
         Y = self.theta[0, 0] + (self.theta[0, 1] * X)
         for ii in range(0, Xp.shape[0]):
             Y += (self.theta[0, 2 + ii * 2] * Xp[ii, :]) + \
