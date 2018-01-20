@@ -150,14 +150,13 @@ def stretch_trials(data):
     # R=resp[mask]
     # resp=np.reshape(R,(-1,s[0]),order='C')
     try:
-        # stack each rep on top of each other -- identical to resp
-        pupil = np.transpose(data['pupil'], (0, 2, 1))
+        if data['pupil'].ndim==3:
+            data['pupil']=data['pupil'][:,:,:,np.newaxis]
+        ps=data['pupil'].shape
+        pupil = np.transpose(data['pupil'], (0, 2, 1, 3))
         pupil = np.transpose(np.reshape(
-            pupil, (s[0], s[1] * s[2]), order='F'), (1, 0))
-        # P=pupil[mask]
-        # pupil=np.reshape(P,(-1,s[0]),order='C')
-        # data['pupil']=np.transpose(np.reshape(data['pupil'],(s[0],s[1]*s[2]),order='C'),(1,0))
-        # #Interleave
+            pupil, (ps[0], ps[1] * ps[2], ps[3]), order='F'), (1, 0, 2))
+                
     except ValueError:
         pupil = None
 
@@ -179,7 +178,7 @@ def stretch_trials(data):
     stim = stim[:, keepidx, :]
     replist = replist[keepidx]
     if not pupil is None:
-        pupil = pupil[keepidx, :]
+        pupil = pupil[keepidx, :, :]
 
     #    Y=data['stim'][:,0,:]
     #    stim=np.repeat(Y[:,np.newaxis,:],r[0],axis=1)

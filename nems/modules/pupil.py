@@ -48,14 +48,14 @@ class model(nems_module):
                 # X=np.zeros(f_in['resp'][nest].shape)
                 # for i in range(0,R.shape[0]):
                 #    X[i,:]=Xa[R[i],:]
-                f_out[self.output_name][nest] = X
+                f_out[self.output_name][nest] = X[np.newaxis,:,:]
             else:
                 R = f_in['replist']
                 X = np.squeeze(Xa[R, :])
                 # X=np.zeros(f_in['resp'].shape)
                 # for i in range(0,R.shape[0]):
                 #    X[i,:]=Xa[R[i],:]
-                f_out[self.output_name] = X
+                f_out[self.output_name] = X[np.newaxis,:,:]
 
 
 class pupgain(nems_module):
@@ -100,6 +100,10 @@ class pupgain(nems_module):
         SVD mod: shuffle pupil, keep same number of parameters for proper control
         """
 
+        # only apply to dims of Xp spanned by theta
+        dims=np.int(self.theta.shape[1]/2-1)
+        Xp=Xp[0:dims,:]
+        
         # OLD WAY -- not random enough
         if 0:
             s = Xp.shape
@@ -132,6 +136,11 @@ class pupgain(nems_module):
     def linpupgain_fn(self, X, Xp):
         # expect theta = [b0 g0 b1 p1 b2 p2...] where 1, 2 are first dimension
         # of Xp (pupil, behavior state, etc)
+        
+        # only apply to dims of Xp spanned by theta
+        dims=np.int(self.theta.shape[1]/2-1)
+        Xp=Xp[0:dims,:]
+
         Y = self.theta[0, 0] + (self.theta[0, 1] * X)
         for ii in range(0, Xp.shape[0]):
             Y += (self.theta[0, 2 + ii * 2] * Xp[ii, :]) + \
@@ -188,13 +197,12 @@ class pupgain(nems_module):
                                                                 np.sqrt(1 + np.power(np.divide(Xp, self.theta[0, 1]), 2 * n)))
         return(Y)
 
-    def evaluate(self, nest=0):
+    def evaluate(self):
         m = self
-        if nest == 0:
-            del m.d_out[:]
-            for i, d in enumerate(m.d_in):
-                # self.d_out.append(copy.deepcopy(val))
-                m.d_out.append(copy.copy(d))
+        del m.d_out[:]
+        for i, d in enumerate(m.d_in):
+            # self.d_out.append(copy.deepcopy(val))
+            m.d_out.append(d.copy())
 
         X = m.unpack_data(name=m.input_name, est=True)
         Xp = m.unpack_data(name=m.state_var, est=True)
