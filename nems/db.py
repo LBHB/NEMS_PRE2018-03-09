@@ -654,6 +654,27 @@ def get_cell_files(cellid=None, runclass=None):
 
     return d
 
+# temporary function while we migrate databases (don't have access to gRunClass right now, so need to use rawid)
+def get_cell_files2(cellid=None, runclass=None, rawid=None): 
+    params = ()
+    sql = ("SELECT sCellFile.* FROM sCellFile WHERE 1")
+    
+    if not cellid is None:
+        sql += " AND sCellFile.cellid like %s"
+        params = params+("%"+cellid+"%",)
+    if not runclass is None:
+        sql += " AND gRunClass.name like %s"
+        params = params+("%"+runclass+"%",)
+    if not rawid is None:
+        sql+=" AND sCellFile.rawid = %s"
+        params = params+(rawid,)
+    
+    
+    d = pd.read_sql(sql=sql, con=cluster_engine, params=params)
+
+    return d
+
+
 def get_isolation(cellid=None, rawid=None):
 
     sql = ("SELECT isolation FROM gSingleRaw WHERE cellid = {0}{1}{2} and rawid = {3}".format("'",cellid,"'",rawid))
