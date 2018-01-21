@@ -117,7 +117,12 @@ class Signal:
         else:
             epochs = None
         mat = mat.astype('float')
-        mat = np.swapaxes(mat, 0, 1)
+        # TODO: @Ivar test_signal_save_load was failing due to
+        #       matrix shape being 200x3 instead of 3x200 on load.
+        #       Saw this swapaxes line, and removing it causes the test to pass.
+        #       Is this swap necessary for some reason? If so might be some
+        #       other stuff to fix, but I wasn't sure. -jacob
+        #mat = np.swapaxes(mat, 0, 1)
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)
             s = Signal(name=js['name'],
@@ -169,6 +174,7 @@ class Signal:
         '''
         Return data as a 2D array of channel x time averaged across trials
         '''
+
         m = self.as_trials()
         return np.nanmean(m, axis=0)
 
@@ -441,11 +447,11 @@ class Signal:
         mask = self.epochs['epoch_name'].str.contains(regex)
         matched_epochs = self.epochs[mask]
         # TODO: best way to report no matches?
-        if not len(matched_epochs):
-            return np.empty((1,1))
+        #if not len(matched_epochs):
+        #    return np.empty((1,1))
         samples = matched_epochs['end_index'] - matched_epochs['start_index']
-        n_epochs = len(matched_epochs)
-        n_samples = samples.max()
+        n_epochs = matched_epochs.shape[0]
+        n_samples = samples.max().astype('i')
 
         folded_data = np.full((n_epochs, self.nchans, n_samples), np.nan)
         for i, (_, row) in enumerate(matched_epochs.iterrows()):
