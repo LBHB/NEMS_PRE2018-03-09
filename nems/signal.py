@@ -203,45 +203,42 @@ class Signal:
         m_normed = (m - self.channel_min) / ptp - 1
         return self._modified_copy(m_normed)
 
-    def split_at_rep(self, fraction):
+    def split_at_epoch(self, fraction):
         '''
-        Returns a tuple of two signals split at fraction (rounded to the nearest
-        repetition) of the original signal. If you had 10 reps of T time samples
+        Returns a tuple of two signals split at fraction (rounded to the
+        nearest epoch) of the original signal. If you had 10 epochs of T time
         samples, and split it at fraction=0.81, this would return (A, B) where
-        A is the first eight reps and B are the last two reps.
+        A is the first eight epochs and B are the last two epochs.
         '''
 
-        assert(0)
-        # TODO: Consider renaming this "split at epoch" instead
+        # Get time index that the fraction corresponds to
+        ntimes_idx = max(1, int(self.ntimes * fraction))
 
-        # # Ensure that the split occurs in the repetition range [1, -1]
-        # nreps = len(self.trial_info)
-        # split_rep = round(nreps*fraction)
-        # split_rep = np.clip(split_rep, 1, nreps-1)
+        # Epochs under the time go 'left', over go 'right'
+        # time index is rounded to the max index of the 'left' set
+        mask = self.epochs['end_index'] <= ntimes_idx
+        lepochs = self.epochs.loc[mask]
+        i = lepochs['end_index'].astype('i').max()
+        mask = self.epochs['start_index'] >= i
+        repochs = self.epochs.loc[mask]
 
-        # # Find the start time of the repetition
-        # i = self.trial_info.iloc[split_rep]['start_index'].astype('i')
+        data = self.as_continuous()
+        ldata = data[..., :i]
+        rdata = data[..., i:]
 
-        # data = self.as_continuous()
-        # ldata = data[..., :i]
-        # rdata = data[..., i:]
+        # Correct the index for the latter data
+        repochs[['start_index', 'end_index']] -= i
 
-        # ltrial_info = self.trial_info.iloc[:split_rep].copy()
-        # rtrial_info = self.trial_info.iloc[split_rep:].copy()
-
-        # # Correct the index
-        # rtrial_info[['start_index', 'end_index']] -= i
-
-        # lsignal = self._modified_copy(data=ldata, trial_info=ltrial_info)
-        # rsignal = self._modified_copy(data=rdata, trial_info=rtrial_info)
-        # return lsignal, rsignal
-        return None, None
+        lsignal = self._modified_copy(data=ldata, epochs=lepochs)
+        rsignal = self._modified_copy(data=rdata, epochs=repochs)
+        return lsignal, rsignal
 
     def split_at_time(self, fraction):
         '''
         Returns a tuple of 2 new signals; because this may split one of the
         repetitions unevenly, it sets the nreps to 1 in both of the new signals.
         '''
+
         split_idx = max(1, int(self.ntimes * fraction))
 
         data = self.as_continuous()
@@ -426,10 +423,9 @@ class Signal:
             return np.empty((1,1))
         samples = matched_epochs['end_index'] - matched_epochs['start_index']
         n_epochs = len(matched_epochs)
-        n_channels, _ = self._matrix.shape
         n_samples = samples.max()
 
-        folded_data = np.full((n_epochs, n_channels, n_samples), np.nan)
+        folded_data = np.full((n_epochs, self.nchans, n_samples), np.nan)
         for i, (_, row) in enumerate(matched_epochs.iterrows()):
             lower, upper = row[['start_index', 'end_index']].astype('i')
             samples = upper - lower
@@ -534,9 +530,8 @@ class Signal:
 
         """
 
-        n_chans, n_samples = self._matrix.shape
-        trial_size = int(n_samples/nreps)
-        remainder = n_samples % nreps
+        trial_size = int(self.ntimes/nreps)
+        remainder = self.ntimes % nreps
 
         starts = []
         ends = []

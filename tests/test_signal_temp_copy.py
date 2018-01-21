@@ -60,6 +60,25 @@ def test_fold_by_trial(signal):
     print("fold by trial: success")
     return result
 
+def test_trial_epochs_from_reps(signal):
+    cached_epochs = signal.epochs
+    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    result1 = signal.fold_by('trial')
+    assert result1.shape == (10, 3, 20)
+
+    # remove later
+    print("trial_epochs_from_reps (even): success")
+
+    signal.epochs = signal.trial_epochs_from_reps(nreps=11)
+    result2 = signal.fold_by('trial')
+    assert result2.shape == (12, 3, 18)
+    assert np.isnan(result2[11, 0]).sum() == 16
+
+    # remove later
+    print("trial_epochs_from_reps (uneven): success")
+    signal.epochs = cached_epochs
+    return result1, result2
+
 def test_as_trials(signal):
     # TODO: need to decide if epochs have to be specified by user
     #       or if signal.as_trials() should grab defaults if no epochs present
@@ -83,24 +102,19 @@ def test_fold_by_pupil(signal):
     signal.epochs = cached_epochs
     return result
 
-def test_trial_epochs_from_reps(signal):
+def test_split_at_epoch(signal):
     cached_epochs = signal.epochs
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
-    result1 = signal.fold_by('trial')
-    assert result1.shape == (10, 3, 20)
+    s1, s2 = signal.split_at_epoch(0.75)
+    assert s1._matrix.shape == (3, 140)
+    assert s2._matrix.shape == (3, 60)
+    assert len(s1.epochs['epoch_name']) == 7
+    assert len(s2.epochs['epoch_name']) == 3
 
-    # remove later
-    print("trial_epochs_from_reps (even): success")
-
-    signal.epochs = signal.trial_epochs_from_reps(nreps=11)
-    result2 = signal.fold_by('trial')
-    assert result2.shape == (12, 3, 18)
-    assert np.isnan(result2[11, 0]).sum() == 16
-
-    # remove later
-    print("trial_epochs_from_reps (uneven): success")
+    # remove below later
+    print("split at epoch: success")
     signal.epochs = cached_epochs
-    return result1, result2
+    return s1, s2
 
 """
 def test_fold_by_trial_and_pupil(signal):
