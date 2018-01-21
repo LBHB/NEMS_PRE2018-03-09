@@ -233,3 +233,17 @@ def test_combine_channels(signal):
     sig3 = sig1.combine_channels(sig2)
     assert sig1.as_continuous().shape == (3, 200)
     assert sig3.as_continuous().shape == (6, 200)
+
+def test_fold_by_or(signal):
+    # TODO
+    # Goal: should do the same thing as fold_by('^(x|y|z)$'),
+    #       just a wrapper for people that aren't familiar with regex
+    pass
+
+def test_fold_by_and(signal):
+    # TODO
+    # Goal: Not entirely sure how this should work yet, not familiar
+    #       enough with the use cases. Thinking either match the first
+    #       regex (but only where subsequent ones are also true)
+    #       or match the specific slices of the time sample where all are true.
+    pass
