@@ -173,7 +173,7 @@ class Signal:
         return np.nanmean(m, axis=0)
 
     def _get_attributes(self):
-        md_attributes = ['name', 'chans', 'fs', 'meta', 'recording']
+        md_attributes = ['name', 'chans', 'fs', 'meta', 'recording', 'epochs']
         return {name: getattr(self, name) for name in md_attributes}
 
     def _modified_copy(self, data, **kwargs):
@@ -274,29 +274,34 @@ class Signal:
 
         return lsignal, rsignal
 
-    def jackknifed_by_reps(self, nsplits, split_idx, invert=False):
+    def jackknifed_by_epochs(self, regex, invert=False):
         '''
-        Returns a new signal, with entire reps NaN'd out. If nreps is not an
-        integer multiple of nsplits, an error is thrown.  Optional argument
-        'invert' causes everything BUT the jackknife to be NaN.
+        Returns a new signal, with entire epochs NaN'd out. Optional argument
+        'invert' causes everything BUT the matched epochs to be NaN.
         '''
-        # TODO: Rework this to jackknife based on epochs that match a regexp
-        assert(0)
-        # nreps = len(self.trial_info)
-        # ratio = (nreps / nsplits)
-        # if ratio != int(ratio) or ratio < 1:
-        #     m = 'nreps must be an integer multiple of nsplits, got {}'
-        #     raise ValueError(m.format(ratio))
 
-        # ratio = int(ratio)
-        # m = self.as_trials()
-        # if not invert:
-        #     m[split_idx:split_idx+ratio] = np.nan
-        # else:
-        #     mask = np.ones_like(m, dtype=np.bool)
-        #     mask[split_idx:split_idx+ratio] = 0
-        #     m[mask] = np.nan
-        # return self._modified_copy(m.reshape(self.nchans, -1))
+        mask = self.epochs['epoch_name'].str.contains(regex)
+        matched_epochs = self.epochs[mask]
+        # TODO: best way to report no matches?
+        #if not matched_epochs.size:
+        #    return np.empty((1,1))
+
+        m = self.as_continuous()
+        if invert:
+            mask = np.ones_like(m, dtype=np.bool)
+        else:
+            mask = np.zeros_like(m, dtype=np.bool)
+        for _, row in matched_epochs.iterrows():
+            lower, upper = row[['start_index', 'end_index']].astype('i')
+            mask[:, lower:upper] = 0 if invert else 1
+
+        m[mask] = np.nan
+        # TODO: should the epochs be removed from self.epochs as well?
+        #       or add on an extra column to tag them as NaN'd?
+        #       For now just leaving them - seems better to have that info
+        #       (i.e. so user can see that the NaN'd sections
+        #        line up with trials 3, 7, 9 or w/e)
+        return self._modified_copy(m)
 
     def jackknifed_by_time(self, nsplits, split_idx, invert=False):
         '''
@@ -433,8 +438,8 @@ class Signal:
         if self.epochs is None:
             raise ValueError("Signal.epochs must be defined in order"
                              "to fold by epochs")
-        matched_rows = self.epochs['epoch_name'].str.contains(regex)
-        matched_epochs = self.epochs[matched_rows]
+        mask = self.epochs['epoch_name'].str.contains(regex)
+        matched_epochs = self.epochs[mask]
         # TODO: best way to report no matches?
         if not len(matched_epochs):
             return np.empty((1,1))
@@ -450,54 +455,54 @@ class Signal:
 
         return folded_data
 
-        #       TODO:
-        #       1) specify list of regexp instead of one string,
-        #          along with 'logic' and 'action' specs.
-        #          ex: regex=['^stim', '^trial', '^rep'], logic='OR',
-        #              action=None
-        #
-        #              would match all epochs with any of the above
-        #              patterns as separate folds/trials/whatever.
-        #              (useful if naming scheme not known or different
-        #               schemes used interchangeably)
-        #
-        #          ex: regex=['trial2', '^pupil_closed'], logic='AND',
-        #              action=my_function_object
-        #
-        #              not sure exactly how this would work yet, but the idea
-        #              is that you could specify an action to take on the final
-        #              data returned, like changing the values of the samples
-        #              in 'trial2' to nan where it lines up with 'pupil_closed'
-        #              then drop the latter epoch from the folding.
-        #              I guess a copy of _matrix would have to be passed
-        #              to the callback? Maybe not feasible.
-        #
-        #        why not just put the OR / AND in the regex?
-        #           -not as intuitive for people that aren't familar with regexp
-        #           -also complicates the fold_by code because
-        #                matching more than one epoch to the same time period
-        #                would necessitate copying parts of the data
-        #                (or doing something else, but simple stacking
-        #                 won't work).
-        #
-        #       possible solutions:
-        #           1) make user provide a function that decides what to
-        #              do with the matches (would necessitate knowledge
-        #              of data structure details, so not ideal).
-        #           2) make order of regexs list matter.
-        #              ex: ['trial', 'pupil_closed', 'stim1'], 'AND'
-        #                  would fold by trial, but only for trials that
-        #                  overlap with the pupil_closed and stim1 epochs.
-        #                  ['stim', 'pupil_closed', 'trial5'], 'AND'
-        #                  would fold by stim, but only for stims that
-        #                  overlap with the pupil_closed and trial5 epochs.
-        #           3) but what if want to fold by just the overlapping slice?
-        #              separate functions? fold_by_or vs fold_by_or_filter?
-        #              ex: ['trial', 'pupil_closed'], 'AND'
-        #                  would match all trials, but slice out only the
-        #                  portions that overlap with pupil_closed.
-        #
-        #        started fold_by_or and fold_by_and below
+#       TODO:
+#       1) specify list of regexp instead of one string,
+#          along with 'logic' and 'action' specs.
+#          ex: regex=['^stim', '^trial', '^rep'], logic='OR',
+#              action=None
+#
+#              would match all epochs with any of the above
+#              patterns as separate folds/trials/whatever.
+#              (useful if naming scheme not known or different
+#               schemes used interchangeably)
+#
+#          ex: regex=['trial2', '^pupil_closed'], logic='AND',
+#              action=my_function_object
+#
+#              not sure exactly how this would work yet, but the idea
+#              is that you could specify an action to take on the final
+#              data returned, like changing the values of the samples
+#              in 'trial2' to nan where it lines up with 'pupil_closed'
+#              then drop the latter epoch from the folding.
+#              I guess a copy of _matrix would have to be passed
+#              to the callback? Maybe not feasible.
+#
+#        why not just put the OR / AND in the regex?
+#           -not as intuitive for people that aren't familar with regexp
+#           -also complicates the fold_by code because
+#                matching more than one epoch to the same time period
+#                would necessitate copying parts of the data
+#                (or doing something else, but simple stacking
+#                 won't work).
+#
+#       possible solutions:
+#           1) make user provide a function that decides what to
+#              do with the matches (would necessitate knowledge
+#              of data structure details, so not ideal).
+#           2) make order of regexs list matter.
+#              ex: ['trial', 'pupil_closed', 'stim1'], 'AND'
+#                  would fold by trial, but only for trials that
+#                  overlap with the pupil_closed and stim1 epochs.
+#                  ['stim', 'pupil_closed', 'trial5'], 'AND'
+#                  would fold by stim, but only for stims that
+#                  overlap with the pupil_closed and trial5 epochs.
+#           3) but what if want to fold by just the overlapping slice?
+#              separate functions? fold_by_or vs fold_by_or_filter?
+#              ex: ['trial', 'pupil_closed'], 'AND'
+#                  would match all trials, but slice out only the
+#                  portions that overlap with pupil_closed.
+#
+#        started fold_by_or and fold_by_and below
 
 
     def fold_by_or(self, regexs):

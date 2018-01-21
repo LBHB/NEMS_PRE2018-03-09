@@ -131,6 +131,24 @@ def test_split_at_epoch(signal):
     signal.epochs = cached_epochs
     return s1, s2, s3, s4
 
+def test_jackknifed_by_epochs(signal):
+    cached_epochs = signal.epochs
+    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    s1 = signal.jackknifed_by_epochs(regex='trial5')
+    assert s1._matrix.shape == (3, 200)
+    assert np.isnan(s1._matrix).sum() == 60
+
+    s2 = signal.jackknifed_by_epochs(regex='^trial(5|7|9)$')
+    assert np.isnan(s2._matrix).sum() == 180
+
+    s3 = signal.jackknifed_by_epochs(regex='trial4', invert=True)
+    assert np.isnan(s3._matrix).sum() == 540
+    signal.epochs = cached_epochs
+
+    # remove later
+    print("jackknifed by epochs: success")
+    return s1, s2, s3
+
 """
 def test_fold_by_trial_and_pupil(signal):
     # TODO: not going to work yet b/c current implementation of fold_by
