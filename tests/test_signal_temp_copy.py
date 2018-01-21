@@ -111,10 +111,25 @@ def test_split_at_epoch(signal):
     assert len(s1.epochs['epoch_name']) == 7
     assert len(s2.epochs['epoch_name']) == 3
 
+    # remove this later
+    print("split at epoch (nonoverlapped): success")
+
+    overlapping_epochs = pd.DataFrame(
+            {'start_index': [30, 70, 130], 'end_index': [65, 110, 180],
+             'epoch_name': ['pupil1', 'pupil2', 'pupil3']},
+            columns=['start_index', 'end_index', 'epoch_name']
+            )
+    signal.epochs = signal.epochs.append(overlapping_epochs, ignore_index=True)
+    s3, s4 = signal.split_at_epoch(0.75)
+    assert s3._matrix.shape == (3, 140)
+    assert s4._matrix.shape == (3, 60)
+    assert len(s3.epochs['epoch_name']) == 10
+    assert len(s4.epochs['epoch_name']) == 4
+
     # remove below later
-    print("split at epoch: success")
+    print("split at epoch (overlapped): success")
     signal.epochs = cached_epochs
-    return s1, s2
+    return s1, s2, s3, s4
 
 """
 def test_fold_by_trial_and_pupil(signal):

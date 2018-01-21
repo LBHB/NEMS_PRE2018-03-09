@@ -221,6 +221,23 @@ class Signal:
         i = lepochs['end_index'].astype('i').max()
         mask = self.epochs['start_index'] >= i
         repochs = self.epochs.loc[mask]
+        # Get any epochs that were left out of left and right set.
+        # i.e. their start is before left's end, and their end is after
+        # right's start.
+        mask = self.epochs['start_index'] < i
+        mepochs = self.epochs.loc[mask]
+        mask = mepochs['end_index'] > i
+        mepochs = mepochs[mask]
+        # Rip dataframe into two halves, one with copied starts and another
+        # with copied ends, both with copied epoch names.
+        # Replace missing ends and starts, respectively, with i.
+        n = mepochs.shape[0]
+        lsplit = mepochs.copy()
+        rsplit = mepochs.copy()
+        lsplit['end_index'] = [i]*n
+        rsplit['start_index'] = [i]*n
+        lepochs = lepochs.append(lsplit, ignore_index=True)
+        repochs = repochs.append(rsplit, ignore_index=True)
 
         data = self.as_continuous()
         ldata = data[..., :i]
