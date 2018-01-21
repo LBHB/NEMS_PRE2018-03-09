@@ -61,8 +61,9 @@ class load_mat(nems_module):
     est_files = []
     fs = 100
     avg_resp = True
+    merge_files=False
 
-    def my_init(self, est_files=[], fs=100, avg_resp=True, filestate=False):
+    def my_init(self, est_files=[], fs=100, avg_resp=True, filestate=False, merge_files=False):
         self.field_dict = locals()
         self.field_dict.pop('self', None)
         self.est_files = est_files.copy()
@@ -71,6 +72,7 @@ class load_mat(nems_module):
         self.parent_stack.avg_resp = avg_resp
         self.filestate = filestate
         self.auto_plot = False
+        self.merge_files = merge_files
 
     def evaluate(self, **kwargs):
 
@@ -80,12 +82,12 @@ class load_mat(nems_module):
 #            self.d_out.append(d.copy())
 
         # load contents of Matlab data file and save in d_out list
+        
         for f in self.est_files:
             matdata = nems.utilities.io.get_mat_file(f)
 
             # go through each entry in structure array 'data'
             for s in matdata['data'][0]:
-
                 data = {}
                 self.d_out.append(data)
                 if 'stimids' in s.dtype.names:
@@ -228,8 +230,9 @@ class load_mat(nems_module):
                 if self.avg_resp is True:
                     data['resp_raw'] = data['resp'].copy()
                     data['resp'] = data['avgresp']
-                    data['pupil']=np.nanmean(data['pupil'], axis=1)
-                    data['pupil'] = np.transpose(data['pupil'], (1, 0))
+                    if data['pupil'] is not None:
+                        data['pupil']=np.nanmean(data['pupil'], axis=1)
+                        data['pupil'] = np.transpose(data['pupil'], (1, 0))
                 else:
                     data['stim'], data['resp'], data['pupil'], data['replist'] = \
                         nems.utilities.utils.stretch_trials(data)
@@ -261,7 +264,28 @@ class load_mat(nems_module):
                 # with entries stim, resp, etc...
                 #log.info('load_mat: appending {0} to d_out stack'.format(f))
                 #self.d_out.append(data)
-
+        
+        # merge entries in d_out list per-key
+        if self.merge_files:
+            d_old=self.d_out
+            d_new=d_old[0].copy()
+            event_count=d_new['resp'].shape[1]
+            for k in d_new.keys():
+                try: 
+                    #if len(d_new[k])==event_count:
+                    #    print('merging list {0} on dim 0'.format(k))
+                    if d_new[k].shape[0]==event_count:
+                        for i,d in enumerate(d_old[1:]):
+                            print('merging {0},{1} on dim 0'.format(k,i))
+                            d_new[k]=np.concatenate((d_new[k],d[k]),axis=0)
+                    elif d_new[k].shape[1]==event_count:
+                        for i,d in enumerate(d_old[1:]):
+                            print('merging {0},{1} on dim 1'.format(k,i))
+                            d_new[k]=np.concatenate((d_new[k],d[k]),axis=1)
+                except:
+                    print('skipping {0}'.format(k))
+            del self.d_out[:]
+            self.d_out.append(d_new)
         # Raises error if d_out is an empty list
         if not self.d_out:
             raise IndexError('loader module d_out is empty')

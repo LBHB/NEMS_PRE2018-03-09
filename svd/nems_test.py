@@ -20,7 +20,7 @@ import nems.fitters as nf
 import nems.keyword as nk
 import nems.utilities as nu
 import nems.stack as ns
-import nems.db as nd
+#import nems.db as nd
 from nems.keyword.registry import keyword_registry
 
 import numpy as np
@@ -42,7 +42,7 @@ if 0:
     modelname="fb18ch100pt_wcg01_fir15_dexp_fit01"
     batch=269
 
-if 1:
+if 0:
     """ NAT SOUND """
     #cellid="bbl031f-a1"
     #cellid='bbl034e-a1'
@@ -55,13 +55,14 @@ if 1:
     #cellid='chn020f-b1'
     #cellid='chn029d-a1'
     #cellid='TAR010c-21-2'
-    cellid="bbl086b-02-1"
+    cellid="zee015e-24-1"
     batch=271 #A1
     #modelname="fb18ch100_wc01_fir15_fit01"
     
     #modelname="fb18ch100_dlogn_wcg01_stp1pc_fir15_dexp_fit01"
     #modelname="fb18ch100_wcg01_fir15_fit01"
-    modelname="fb18ch100_dlogn_wc02_fir15_fit01"
+    #modelname="fb18ch100_dlogn_wc02_fir15_fit01"
+    modelname="fb18ch100_dlogn_wc02_stp1pc_fir15_fit01"
     #modelname="fb18ch100_wcg01_fir15_fitannl00"
     #modelname="ctx100ch100_dlog_wc02_fir15_fit01"
     #modelname="fb24ch100_wcg01_fir15_fit01"
@@ -73,14 +74,16 @@ if 1:
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
     
-if 0:
+if 1:
     """ TORC-TONE """
     #cellid="bbl074g-a1"
     #batch=303 #PTD IC pupil
-    cellid="TAR010c-30-1"
+    cellid="TAR010c-22-1"
     batch=301 #PTD A1 pupil
     #modelname="parm100pt_wcg02_fir15_behgain_fit01"
-    modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
+    #modelname="perfectpupil10_behgain_fit01"
+    #modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
+    modelname="parm100_psthpred_stategain_fit01"
     #modelname="parm100_psth_pupgain_fit01"
 
 if 0:

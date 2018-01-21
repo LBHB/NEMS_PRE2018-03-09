@@ -17,23 +17,6 @@ import nems.utilities as ut
 from .registry import keyword_registry
 
 
-def parm100(stack):
-    """
-    Loads a 16 channel, 100 Hz BAPHY .mat file with 'parm' marker using the
-    provided cellid and batch. Does not average over
-    response rasters, instead treating each trial as a separate stimulus. Applies
-    a 5% estimation/validation split if the est/val datasets are not specified in
-    the file.
-
-    Specifically for batch293 tone-pip data.
-    """
-    file = ut.baphy.get_celldb_file(
-        stack.meta['batch'],
-        stack.meta['cellid'],
-        fs=100, stimfmt='parm', chancount=16)
-    log.info("Initializing load_mat with file {0}".format(file))
-    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, avg_resp=False)
-    stack.append(nm.est_val.crossval)
 
 
 def env50e(stack):
@@ -200,6 +183,25 @@ def parm50ptp(stack):
     log.info("Initializing load_mat with file {0}".format(file))
     stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=False)
     stack.append(nm.est_val.crossval, valfrac=0.2, keep_filestate=[0])
+
+def parm100(stack):
+    """
+    Loads a spectral-parameter (parm format), 100 Hz BAPHY .mat file using the
+    provided cellid and batch. Does not average over
+    response rasters, instead treating each trial as a separate stimulus. Applies
+    a 5% estimation/validation split if the est/val datasets are not specified in
+    the file.
+
+    Specifically for batch293 tone-pip data and 301 PTD (TORC) data.
+    """
+    file = ut.baphy.get_celldb_file(
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='parm', chancount=16)
+    log.info("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat, est_files=[file], fs=100, 
+                 avg_resp=False, merge_files=True)
+    stack.append(nm.est_val.crossval)
 
 
 def parm100pt(stack):

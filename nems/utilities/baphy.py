@@ -14,9 +14,15 @@ import os.path
 import scipy.io as si
 import numpy as np
 import sys
-import nems.db as db
+
 import pandas as pd
 import nems.utilities as nu
+try:
+    import nems.db as db
+except Exception as e:
+    log.info(e)
+    log.info('Running without db')
+    db = None
 
 try:
     import nems_config.Storage_Config as sc
