@@ -17,6 +17,12 @@ rec = Recording.load('../signals/gus027b13_p_PPS/')
 # TODO: temporary hack to avoid errors resulting from epochs not being defined.
 for signal in rec.signals.values():
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+# If there isn't a 'pred' signal yet, copy over 'stim' as the starting point.
+# TODO: still getting a key error for 'pred' in fit_basic when
+#       calling lambda on metric. Not sure why, since it's explicitly added.
+if not 'pred' in list(rec.signals.keys()):
+    rec.signals['pred'] = rec.signals['stim'].copy()
+
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "neuralprediction.org:3003/signals?batch=273&cellid=gus027b13-a1"

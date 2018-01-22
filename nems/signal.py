@@ -1,4 +1,5 @@
 import os
+import copy
 import json
 import pandas as pd
 import numpy as np
@@ -96,6 +97,10 @@ class Signal:
             json.dump(attributes, fh)
 
         return (csvfilepath, jsonfilepath)
+
+    def copy(self):
+        """Wrapper for copy.copy(self)."""
+        return copy.copy(self)
 
     @staticmethod
     def load(basepath):

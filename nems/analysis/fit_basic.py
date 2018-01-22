@@ -3,6 +3,7 @@ from functools import partial
 from nems.fitters.api import dummy_fitter
 import nems.fitters.mappers
 import nems.modules.evaluators
+import nems.metrics.api
 
 """
 # ----------------------------------------------------------------------------
@@ -60,11 +61,11 @@ def fit_basic(data, modelspec):
     # Modelspec: dict with the initial module specifications
     # Per architecture doc, analysis function should only take these two args
 
-    # TODO: should this be exposed as an optional argument?
+    # TODO: should this be exposed as an argument?
     # Specify how the data will be split up
     segmentor = lambda data: data.split_at_time(0.8)
 
-    # TODO: should mapping be exposed as an optional argument?
+    # TODO: should mapping be exposed as an argument?
     # get funcs for translating modelspec to and from fitter's fitspace
     # packer should generally take only modelspec as arg,
     # unpacker should take type returned by packer + modelspec
@@ -73,7 +74,9 @@ def fit_basic(data, modelspec):
     # split up the data using the specified segmentor
     est_data, val_data = segmentor(data)
 
-    metric = lambda data: nems.metrics.MSE(data['resp'], data['pred'])
+    metric = lambda data: nems.metrics.api.mse(
+                                data.signals['resp'], data.signals['pred']
+                                )
     # TODO - evaluates the data using the modelspec, then updates data['pred']
     evaluator = nems.modules.evaluators.matrix_eval
 
@@ -95,7 +98,7 @@ def fit_basic(data, modelspec):
     # get initial sigma value representing some point in the fit space
     sigma = packer(modelspec)
 
-    # TODO: should fitter be exposed as an optional argument?
+    # TODO: should fitter be exposed as an argument?
     #       would make sense if exposing space mapper, since fitter and mapper
     #       type are related.
     fitter = dummy_fitter

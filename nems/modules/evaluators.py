@@ -17,15 +17,15 @@ def matrix_eval(data, modelspec):
     stack = [d_in]
     for m in modelspec:
         fn = getattr(api, m['api'])
-        d_out = fn(d_in, **m['fn_kwargs'])
+        d_out = fn(d_in, *m['phi'].values(), **m['fn_kwargs'])
         stack.append(d_out.copy())
         d_in = d_out
 
     # TODO: Calling modified copy which is tagged as internal use, but
     #       seems like this is the best way to get matrix back to a
     #       pred signal (since other attributes of pred shouldn't change)
-    resp = data.signals['resp']._modified_copy(stack[-1])
-    data.signals['resp'] = resp
+    pred = data.signals['pred']._modified_copy(stack[-1])
+    data.signals['pred'] = pred
     return data
 
 def signal_eval(data, modelspec):
@@ -36,7 +36,7 @@ def signal_eval(data, modelspec):
     stack = [d_in]
     for m in modelspec:
         fn = getattr(api, m['api'])
-        d_out = fn(d_in, **m['fn_kwargs'])
+        d_out = fn(d_in, *m['phi'].values(), **m['fn_kwargs'])
         stack.append(d_out.copy())
         d_in = d_out
 
