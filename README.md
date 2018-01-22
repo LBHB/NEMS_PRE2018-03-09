@@ -209,11 +209,15 @@ We a second delimeter, like period, so that signal names can have underscores in
 I would love to have 3 columns for epochs: [start, stop, epochname]
 
 Names may be redundant; that way you can have something like :
+START END NAME
 [0, 1000, 'sound1']
 [239, 244, 'blinking']
 [488, 490, 'blinking']
 [1000, 2000, 'sound2']
 [2000, 3000, 'sound1']
+
+selected1 = select_fn(rec['pupil'], 'blinking')
+selected2 = select_fn(selected1['pupil'], 'blinking')
 
 And select either all the times sound1 was played, or all the times after 'blinking' occurred.
 

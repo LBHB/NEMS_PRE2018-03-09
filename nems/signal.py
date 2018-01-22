@@ -130,7 +130,7 @@ class Signal:
         #       So I guess either the save method or mat_to_csv needs an
         #       axis swap somewhere as well? Wasn't sure so I figured I
         #       would leave this for you. --jacob
-        mat = np.swapaxes(mat, 0, 1)
+        # mat = np.swapaxes(mat, 0, 1)
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)
             s = Signal(name=js['name'],
@@ -168,13 +168,11 @@ class Signal:
         If trials are of uneven length, pads shorter trials with NaN. All trials
         are aligned to the start.
         '''
-
-        # TODO: should self.trial_epochs_from_nreps be baked in here instead?
-        #       i.e. if no epochs, get some default ones instead of error
         if self.epochs is None:
             raise ValueError("Cannot reshape into trials without epochs info.\n"
-                             "For default trial epochs, try setting epochs = "
-                             "signal.trial_epochs_from_reps(nreps='#')")
+                             "To create default trial epochs, set epochs = "
+                             "signal.trial_epochs_from_reps(nreps=#). This can "
+                             "not be done automatically safely in all cases. ")
 
         return self.fold_by('trial')
 
@@ -182,7 +180,6 @@ class Signal:
         '''
         Return data as a 2D array of channel x time averaged across trials
         '''
-
         m = self.as_trials()
         return np.nanmean(m, axis=0)
 
@@ -266,28 +263,28 @@ class Signal:
 
     def split_at_time(self, fraction):
         '''
-        Returns a tuple of 2 new signals; because this may split one of the
-        repetitions unevenly, it sets the nreps to 1 in both of the new signals.
+        Splits this signal at 'fraction' of the total length of the time series
+        to create a tuple of two signals: (before, after).
+        Example:
+          l, r = mysig.split_at_time(0.8)
+          assert(l.ntimes == 0.8 * mysig.ntimes)
+          assert(r.ntimes == 0.2 * mysig.ntimes)
         '''
-
-        if self.epochs is None:
-            # TODO: Best way to handle this? Doesn't seem like epochs
-            #       should be required for split_at_time, but have issues
-            #       if it isn't defined.
-            raise ValueError("signal.epochs must be defined in order to split")
-
         split_idx = max(1, int(self.ntimes * fraction))
 
         data = self.as_continuous()
         ldata = data[..., :split_idx]
         rdata = data[..., split_idx:]
 
-        mask = self.epochs['end_index'] < split_idx
-        lepochs = self.epochs.loc[mask]
-
-        mask = self.epochs['start_index'] > split_idx
-        repochs = self.epochs.loc[mask]
-        repochs[['start_index', 'end_index']] -= split_idx
+        if self.epochs is None:
+            lepochs = None
+            repochs = None
+        else:
+            mask = self.epochs['end_index'] < split_idx
+            lepochs = self.epochs.loc[mask]
+            mask = self.epochs['start_index'] > split_idx
+            repochs = self.epochs.loc[mask]
+            repochs[['start_index', 'end_index']] -= split_idx
 
         lsignal = self._modified_copy(ldata, epochs=lepochs)
         rsignal = self._modified_copy(rdata, epochs=repochs)
@@ -296,15 +293,17 @@ class Signal:
 
     def jackknifed_by_epochs(self, regex, invert=False):
         '''
-        Returns a new signal, with entire epochs NaN'd out. Optional argument
-        'invert' causes everything BUT the matched epochs to be NaN.
+        Returns a new signal, with epochs matching regex NaN'd out.
+        Optional argument 'invert' causes everything BUT the matched epochs
+        to be NaN'd. If no epochs are found that match the regex, an exception
+        is thrown. The epochs data structure itself is not changed.
         '''
-
         mask = self.epochs['epoch_name'].str.contains(regex)
         matched_epochs = self.epochs[mask]
-        # TODO: best way to report no matches?
-        #if not matched_epochs.size:
-        #    return np.empty((1,1))
+
+        if not matched_epochs.size:
+            m = 'No epochs found matching that regex. Unable to jackknife.'
+            raise ValueError(m)
 
         m = self.as_continuous()
         if invert:
@@ -316,11 +315,6 @@ class Signal:
             mask[:, lower:upper] = 0 if invert else 1
 
         m[mask] = np.nan
-        # TODO: should the epochs be removed from self.epochs as well?
-        #       or add on an extra column to tag them as NaN'd?
-        #       For now just leaving them - seems better to have that info
-        #       (i.e. so user can see that the NaN'd sections
-        #        line up with trials 3, 7, 9 or w/e)
         return self._modified_copy(m)
 
     def jackknifed_by_time(self, nsplits, split_idx, invert=False):
@@ -353,10 +347,8 @@ class Signal:
     @classmethod
     def concatenate_time(cls, signals):
         '''
-        Combines the signals along the time axis
-
-        Requires that all signals have the same number of channels and sampling
-        rate.
+        Combines the signals along the time axis. All signals must have the
+        same number of channels and sampling rates.
         '''
         # Make sure all objects passed are instances of the Signal class
         for signal in signals:
@@ -400,8 +392,10 @@ class Signal:
     @classmethod
     def concatenate_channels(cls, signals):
         '''
-        Merge two signals as a set of new channels. Must have the same number of
-        time samples.
+        Given signals=[sig1, sig2, sig3, ..., sigN], concatenate all channels
+        of [sig2, ...sigN] as new channels on sig1. All signals must be equal-
+        length time series sampled at the same rate (i.e. ntimes and fs are the
+        same for all signals).
         '''
         for signal in signals:
             if not isinstance(signal, Signal):
@@ -436,33 +430,38 @@ class Signal:
 
     # TODO: classmethod?
     def fold_by(self, regex):
-        """Returns matrix with shape epochs x channels x time, wherever
+        """
+        Returns matrix with shape epochs x channels x time, wherever
         epoch_name in signal.epochs matches the provided regular expression.
         If a plain string is provided instead of a regular expression, the
         matching behavior will be similar to python's 'in' operator.
         For epochs with uneven length, NaNs will be appended to the shorter
         lengths.
 
-        Ex: with signal.epochs = {'start_index': [0, 10, 15],
-                                  'end_index': [10, 15, 35],
-                                  'epoch_name': [trial1, trial2, trial3]}
-            number of channels = 3,
-            fold_by('trial') would return a matrix of shape
-            (3, 3, 20), for 3 epochs x 3 channels x 20 time samples (longest).
-            The epochs would contain 10, 15, and 0 NaN values, respectively.
+        Example: Given that signal.nchans == 3 and that
 
-        TODO: finish doc
+           signal.epochs = {'start_index': [0, 10, 15],
+                            'end_index': [10, 15, 35],
+                            'epoch_name': [trial1, trial2, trial3]}
 
+        then this will be true:
+
+           assert(signal.fold_by('trial').shape == (3, 3, 20))
+
+        i.e. 3 epochs x 3 channels x 20 time samples (longest). The three
+        epochs would contain 10, 15, and 0 NaN values, respectively.
         """
-
         if self.epochs is None:
-            raise ValueError("Signal.epochs must be defined in order"
-                             "to fold by epochs")
+            m = "Signal.epochs must be defined in order to fold by epochs"
+            raise ValueError(m)
+
         mask = self.epochs['epoch_name'].str.contains(regex)
         matched_epochs = self.epochs[mask]
-        # TODO: best way to report no matches?
-        #if not len(matched_epochs):
-        #    return np.empty((1,1))
+
+        if not len(matched_epochs):
+            m = 'No matching epochs found. Unable to fold.'
+            raise ValueError(m)
+
         samples = matched_epochs['end_index'] - matched_epochs['start_index']
         n_epochs = matched_epochs.shape[0]
         n_samples = samples.max().astype('i')
@@ -475,69 +474,10 @@ class Signal:
 
         return folded_data
 
-#       TODO:
-#       1) specify list of regexp instead of one string,
-#          along with 'logic' and 'action' specs.
-#          ex: regex=['^stim', '^trial', '^rep'], logic='OR',
-#              action=None
-#
-#              would match all epochs with any of the above
-#              patterns as separate folds/trials/whatever.
-#              (useful if naming scheme not known or different
-#               schemes used interchangeably)
-#
-#          ex: regex=['trial2', '^pupil_closed'], logic='AND',
-#              action=my_function_object
-#
-#              not sure exactly how this would work yet, but the idea
-#              is that you could specify an action to take on the final
-#              data returned, like changing the values of the samples
-#              in 'trial2' to nan where it lines up with 'pupil_closed'
-#              then drop the latter epoch from the folding.
-#              I guess a copy of _matrix would have to be passed
-#              to the callback? Maybe not feasible.
-#
-#        why not just put the OR / AND in the regex?
-#           -not as intuitive for people that aren't familar with regexp
-#           -also complicates the fold_by code because
-#                matching more than one epoch to the same time period
-#                would necessitate copying parts of the data
-#                (or doing something else, but simple stacking
-#                 won't work).
-#
-#       possible solutions:
-#           1) make user provide a function that decides what to
-#              do with the matches (would necessitate knowledge
-#              of data structure details, so not ideal).
-#           2) make order of regexs list matter.
-#              ex: ['trial', 'pupil_closed', 'stim1'], 'AND'
-#                  would fold by trial, but only for trials that
-#                  overlap with the pupil_closed and stim1 epochs.
-#                  ['stim', 'pupil_closed', 'trial5'], 'AND'
-#                  would fold by stim, but only for stims that
-#                  overlap with the pupil_closed and trial5 epochs.
-#           3) but what if want to fold by just the overlapping slice?
-#              separate functions? fold_by_or vs fold_by_or_filter?
-#              ex: ['trial', 'pupil_closed'], 'AND'
-#                  would match all trials, but slice out only the
-#                  portions that overlap with pupil_closed.
-#
-#        started fold_by_or and fold_by_and below
-
-
-    def fold_by_or(self, regexs):
-        # TODO: make a single regex string that
-        #       matches to one or more of the patterns
-        combined_regex = 'regexs0 | regexs1 | etc...'
-        return self.fold_by(combined_regex)
-
-    def fold_by_and(self, regexs):
-        # TODO
-        combined_regex = 'regexs0 && regexs1 && etc...'
-        return self.fold_by(combined_regex)
 
     def trial_epochs_from_reps(self, nreps=1):
-        """Creates a generic epochs DataFrame with a number of trials
+        """
+        Creates a generic epochs DataFrame with a number of trials
         based on sample length and number of repetitions specified.
 
         Ex: If signal._matrix has shape 3x100,
@@ -599,4 +539,146 @@ class Signal:
 
         return epochs
 
+    def just_epochs_named(self, epoch_name):
+        '''
+        Returns just the epochs matching epoch_name. If no matching
+        epochs are found, returns None.
+        '''
+        idxs = self.epochs['epoch_name'] == epoch_name
+        if idxs:
+            return self.epochs[idxs]
+        else:
+            return None
 
+
+def indexes_of_trues(boolean_array):
+    '''
+    Returns the a list of start, end indexes of every contiguous block
+    of True elements in boolean_array.
+    '''
+
+    idxs = np.where(np.diff(boolean_array))
+
+    indexes = []
+    if boolean_array[0]:  # If the first element is true, start there
+        indexes.append([0, idxs[0]])
+        for i in range(1, len(idxs) - 1):
+            indexes.append([idxs[i], idxs[i+1]])
+    else:
+        for i in range(len(idxs) - 1):
+            indexes.append([idxs[i], idxs[i+1]])
+
+    return indexes
+
+
+# def combine_epochs(self, epoch_name1, epoch_name2, operator, new_epoch_name):
+#     '''
+#     Returns a new epoch based on the combination of two other epochs.
+#     Operator may be 'union', 'intersection', or 'difference', which
+#     correspond to the set operation performed on the epochs.
+#     '''
+
+#     ep1 = self.just_epochs_named(epoch_name1)
+#     ep2 = self.just_epochs_named(epoch_name2)
+
+#     # TODO: Consider rewriting this to use the epoch indexes
+#     # instead of creating these temporary boolean mask arrays
+
+#     overall_start = np.min(ep1['start_time'], ep2['start_time'])
+#     overall_end = np.max(ep1['end_time'], ep2['end_time'])
+#     length = overall_end - overall_start
+#     mask1 = np.full((length, 1), False)
+#     mask2 = np.full((length, 1), False)
+
+#     for e1 in ep1:
+#         start, end, name = e1
+#         mask1[start:end] = True
+
+#     for e2 in ep2:
+#         start, end, name = e2
+#         mask2[start:end] = True
+
+#     if operator is 'union':
+#         mask = mask1 | mask2
+#     elif operator is 'intersection':
+#         mask = mask1 & mask2
+#     elif operator is 'difference':
+#         mask = mask1 ^ mask2  # ^ is XOR operator
+#     else:
+#         raise ValueError('operator was invalid')
+
+#     # Convert the boolan mask back into indexes
+#     idxs = indexes_of_trues(mask)
+#     transitions = [overall_start + (i+1) for i in np.where(np.diff(mask))]
+#     new_epoch = [overall_start, transitions[0], new_epoch_name]
+#     for start, end in indxs
+#         new_epoch.append(start, end, new_epoch_name)
+# transitions[i], transitions[i+1], new_epoch_name)
+
+#     return new_epoch
+
+
+# def prepend_epoch(self, epoch_name, time_before, new_epoch_name):
+#     '''
+#     Subtract time_before from the start_time of every epoch named
+#      'epoch_name', and return a new list of epochs named new_epoch_name.
+#     '''
+#     ep = self.just_epochs_named(epoch_name)
+
+#     new_ep = []
+#     for (start, end, _) in ep:
+#         new_ep.append([max(start - time_before, 0), end, new_epoch_name])
+
+#     return new_ep
+
+
+# def postpend_epoch(self, epoch_name, time_after, new_epoch_name):
+#     '''
+#     Add time_after to the end_time of every epoch named 'epoch_name', and
+#     return a new list of epochs named new_epoch_name.
+#     '''
+#     ep = self.just_epochs_named(epoch_name)
+
+#     new_ep = []
+#     for (start, end, _) in ep:
+#         # TODO: What if the end time goes past the end of the signal?
+#         new_ep.append([start, end + time_after, new_epoch_name])
+
+#     return new_ep
+
+
+# def epochs_overlapped(self, epoch_name1, epoch_name2):
+#     '''
+#     Return the outermost boundaries of whenever epoch_name1 and
+#     both occured and overlapped one another.
+#     '''
+#     ep1 = self.just_epochs_named(epoch_name1)
+#     ep2 = self.just_epochs_named(epoch_name2)
+
+#     # TODO: Replace this N^2 algorithm with somthing more efficient?
+#     new_ep = []
+#     for (e1start, e1end, _) in ep1:
+#         for (e2start, e2end, _) in ep2:
+#             if e1start <= e2start and e1end >= e2end:
+#                 # E2 occured inside E1
+#                 new_ep.append([e1start, e1end])
+#             elif e1start >= e2start and e1end <= e2end:
+#                 # E1 occured inside e2
+#                 new_ep.append([e2start, e2end])
+#             elif e1start <= e2start and e2start <= e1end <= e2end:
+#                 # E1 preceeded and overlapped e2
+#                 new_ep.append([e1start, e2end])
+#             elif e2start <= e1start and e1start <= e2end <= e1end:
+#                 # E2 preceeded and overlapped e1
+#                 new_ep.append([e2start, e1end])
+
+#     return new_ep
+
+
+
+# def sanity_check_epochs(self, epoch_name):
+#     '''
+#     Looks for duplicate epochs or epochs that have no duration
+#     '''
+#     # TODO
+#     pass

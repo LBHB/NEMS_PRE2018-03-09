@@ -4,6 +4,7 @@ import filecmp
 import pytest
 import numpy as np
 import pandas as pd
+import nems.signal
 from nems.signal import Signal
 
 
@@ -49,14 +50,14 @@ def test_signal_save_load(signal, signal_tmpdir):
     '''
     Test that signals save and load properly
     '''
-    if not os.path.exists(signal_tmpdir):
-        os.mkdir(signal_tmpdir)
-    signal.save(signal_tmpdir, fmt='%1.3e')
+#    if not os.path.exists(signal_tmpdir):
+#        os.mkdir(signal_tmpdir)    
+    signal.save(str(signal_tmpdir), fmt='%1.3e')
 
-    signals_found = Signal.list_signals(signal_tmpdir)
+    signals_found = Signal.list_signals(str(signal_tmpdir))
     assert len(signals_found) == 1
 
-    save_directory = os.path.join(signal_tmpdir, signals_found[0])
+    save_directory = os.path.join(str(signal_tmpdir), signals_found[0])
     signal_loaded = Signal.load(save_directory)
     assert np.all(signal._matrix == signal_loaded._matrix)
 
@@ -65,6 +66,7 @@ def test_signal_save_load(signal, signal_tmpdir):
 
 def test_as_continuous(signal):
     assert signal.as_continuous().shape == (3, 200)
+
 
 def test_fold_by(signal):
     cached_epochs = signal.epochs
@@ -79,6 +81,7 @@ def test_fold_by(signal):
     # revert epochs to not interfere with other tests
     signal.epochs = cached_epochs
 
+
 def test_trial_epochs_from_reps(signal):
     cached_epochs = signal.epochs
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
@@ -92,12 +95,14 @@ def test_trial_epochs_from_reps(signal):
     # revert epochs to not interfere with other tests
     signal.epochs = cached_epochs
 
+
 def test_as_trials(signal):
     # TODO: need to decide if epochs have to be specified by user
     #       or if signal.as_trials() should grab defaults if no epochs present
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
     result = signal.as_trials()
     assert result.shape == (10, 3, 20)
+
 
 def test_as_average_trial(signal):
     cached_epochs = signal.epochs
@@ -106,6 +111,7 @@ def test_as_average_trial(signal):
     assert result.shape == (3, 20)
     # revert epochs to not interfere with other tests
     signal.epochs = cached_epochs
+
 
 def test_normalized_by_mean(signal):
     normalized_signal = signal.normalized_by_mean()
@@ -164,6 +170,7 @@ def test_split_at_epoch(signal):
     # revert epochs to not interfere with other tests
     signal.epochs = cached_epochs
 
+
 def test_split_at_time(signal):
     l, r = signal.split_at_time(0.81)
     print(signal.as_continuous().shape)
@@ -188,6 +195,7 @@ def test_jackknifed_by_reps(signal):
     #assert(480 == np.sum(np.isnan(isig.as_single_trial())))  # 3chan * 4/5 * 200
 """
 
+
 def test_jackknifed_by_epochs(signal):
     cached_epochs = signal.epochs
     # set epochs to trial0 - trial9, length 20 each
@@ -204,6 +212,7 @@ def test_jackknifed_by_epochs(signal):
     # revert epochs to not interfere with other tests
     signal.epochs = cached_epochs
 
+
 def test_jackknifed_by_time(signal):
     jsig = signal.jackknifed_by_time(20, 2)
     isig = signal.jackknifed_by_time(20, 2, invert=True)
@@ -217,33 +226,22 @@ def test_jackknifed_by_time(signal):
     assert np.sum(np.isnan(idata)) == 570
 
 
-def test_append_signal(signal):
-    # TODO: not implemented yet? Or needs replaced? No method in signal.py
+def test_concatenate_time(signal):
     sig1 = signal
     sig2 = sig1.jackknifed_by_time(20, 2)
-    sig3 = sig1.append_signal(sig2)
+    sig3 = Signal.concatenate_time([sig1, sig2])
     assert sig1.as_continuous().shape == (3, 200)
     assert sig3.as_continuous().shape == (3, 400)
 
 
-def test_combine_channels(signal):
-    # TODO: not implemented yet? Or needs replaced? No method in signal.py
+def test_concatenate_channels(signal):
     sig1 = signal
     sig2 = sig1.jackknifed_by_time(20, 2)
-    sig3 = sig1.combine_channels(sig2)
+    sig3 = Signal.concatenate_channels([sig1, sig2])
     assert sig1.as_continuous().shape == (3, 200)
     assert sig3.as_continuous().shape == (6, 200)
 
-def test_fold_by_or(signal):
-    # TODO
-    # Goal: should do the same thing as fold_by('^(x|y|z)$'),
-    #       just a wrapper for people that aren't familiar with regex
-    pass
 
-def test_fold_by_and(signal):
-    # TODO
-    # Goal: Not entirely sure how this should work yet, not familiar
-    #       enough with the use cases. Thinking either match the first
-    #       regex (but only where subsequent ones are also true)
-    #       or match the specific slices of the time sample where all are true.
-    pass
+def test_indexes_of_trues():
+    ary = [False, False, False, True, True, False]
+    assert([[3, 5]] == nems.signal.indexes_of_trues(ary))
