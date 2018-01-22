@@ -120,9 +120,12 @@ class Signal:
         # TODO: @Ivar test_signal_save_load was failing due to
         #       matrix shape being 200x3 instead of 3x200 on load.
         #       Saw this swapaxes line, and removing it causes the test to pass.
-        #       Is this swap necessary for some reason? If so might be some
-        #       other stuff to fix, but I wasn't sure. -jacob
-        #mat = np.swapaxes(mat, 0, 1)
+        #       However, removing it causes signals to not load correctly
+        #       when using actual data instead of the test data.
+        #       So I guess either the save method or mat_to_csv needs an
+        #       axis swap somewhere as well? Wasn't sure so I figured I
+        #       would leave this for you. --jacob
+        mat = np.swapaxes(mat, 0, 1)
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)
             s = Signal(name=js['name'],
@@ -261,6 +264,12 @@ class Signal:
         Returns a tuple of 2 new signals; because this may split one of the
         repetitions unevenly, it sets the nreps to 1 in both of the new signals.
         '''
+
+        if self.epochs is None:
+            # TODO: Best way to handle this? Doesn't seem like epochs
+            #       should be required for split_at_time, but have issues
+            #       if it isn't defined.
+            raise ValueError("signal.epochs must be defined in order to split")
 
         split_idx = max(1, int(self.ntimes * fraction))
 

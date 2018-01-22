@@ -1,7 +1,10 @@
 from functools import partial
 
-import nems
+from nems.fitters.api import dummy_fitter
+import nems.fitters.mappers
+import nems.modules.evaluators
 
+"""
 # ----------------------------------------------------------------------------
 # DEFINE THE COST FUNCTION
 #
@@ -48,7 +51,7 @@ evaluator = generate_evaluation
 
 evaluator = lambda data, mspec : nems.model.Model(mspec).evaluate(data, mspec)
 cost_fn = lambda mspec: metric(evaluator(est, mspec))
-
+"""
 
 # Leaving above code for reference, redoing as function below to match
 # signature in demo_script2.py and architecture.svg in planning  -jacob
@@ -64,7 +67,7 @@ def fit_basic(data, modelspec):
     # TODO: should mapping be exposed as an optional argument?
     # get funcs for translating modelspec to and from fitter's fitspace
     # packer should generally take only modelspec as arg,
-    # unpacker should take modelspec + whatever type the packer returns
+    # unpacker should take type returned by packer + modelspec
     packer, unpacker = nems.fitters.mappers.simple_vector()
 
     # split up the data using the specified segmentor
@@ -72,11 +75,22 @@ def fit_basic(data, modelspec):
 
     metric = lambda data: nems.metrics.MSE(data['resp'], data['pred'])
     # TODO - evaluates the data using the modelspec, then updates data['pred']
-    evaluator = some_function_that_takes(data, modelspec)
+    evaluator = nems.modules.evaluators.matrix_eval
 
-    # TODO - unpacks sigma and updates modelspec, then evaluates modelspec and
+    # TODO - unpacks sigma and updates modelspec, then evaluates modelspec
+    #        on the estimation/fit data and
     #        uses metric to return some form of error
-    cost_fn = some_function_that_takes(sigma, unpacker, modelspec, evaluator, metric)
+    def cost_function(unpacker, modelspec, est_data, evaluator, metric,
+                      sigma=None):
+        updated_spec = unpacker(sigma, modelspec)
+        updated_est_data = evaluator(est_data, updated_spec)
+        error = metric(updated_est_data)
+        return error
+    # Freeze everything but sigma, since that's all the fitter should be
+    # updating.
+    cost_fn = partial(
+            cost_function(unpacker, modelspec, est_data, evaluator, metric)
+            )
 
     # get initial sigma value representing some point in the fit space
     sigma = packer(modelspec)
@@ -84,11 +98,13 @@ def fit_basic(data, modelspec):
     # TODO: should fitter be exposed as an optional argument?
     #       would make sense if exposing space mapper, since fitter and mapper
     #       type are related.
-    fitter = partial(nems.fitters.gradient_descent(sigma, cost_fn,
-                                           bounds=None, fixed=None))
+    fitter = dummy_fitter
 
     # Results should be a list of modelspecs
     # (might only be one in list, but still should be packaged as a list)
-    results = fitter()
+    improved_sigma = fitter(sigma, cost_fn, bounds=None, fixed=None)
+
+    improved_modelspec = unpacker(improved_sigma, modelspec)
+    results = [improved_modelspec]
 
     return results

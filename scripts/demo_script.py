@@ -2,7 +2,9 @@
 # Please see docs/architecture.svg for a visual diagram of this code
 
 import json
-import nems
+
+from nems import initializers
+from nems.analysis.api import fit_basic
 from nems.recording import Recording
 
 # ----------------------------------------------------------------------------
@@ -11,7 +13,10 @@ from nems.recording import Recording
 # GOAL: Get your data loaded into memory as a Recording object
 
 # Method #1: Load the data from a local directory
-rec = Recording.load('signals/gus027b13_p_PPS/')
+rec = Recording.load('../signals/gus027b13_p_PPS/')
+# TODO: temporary hack to avoid errors resulting from epochs not being defined.
+for signal in rec.signals.values():
+    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "neuralprediction.org:3003/signals?batch=273&cellid=gus027b13-a1"
@@ -35,7 +40,12 @@ rec = Recording.load('signals/gus027b13_p_PPS/')
 
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
-est, val = rec.split_at_time(0.8)
+
+# TODO: @Ivar -- per architecture.svg looked like this was going to be
+#       handled inside an analysis by a segmentor? Designed fit_basic with
+#       that in mind, so maybe this doesn't go here anymore, or I may have
+#       had the wrong interpretation.    --jacob
+#est, val = rec.split_at_time(0.8)
 
 # Method #2: Split based on repetition number, rounded to the nearest rep.
 # est, val = rec.split_at_rep(0.8)
@@ -51,7 +61,7 @@ est, val = rec.split_at_time(0.8)
 # GOAL: Define the model that you wish to test
 
 # Method #1: create from "shorthand/default" keyword string
-modelspec = nems.initializers.from_keywords(est, 'fir30_dexp')
+modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1')
 print('Modelspec was:')
 print(modelspec)
 
@@ -75,8 +85,12 @@ results = [modelspec]
 #       in descending order of how they performed on the fitter's metric.
 
 # Option 1: Use gradient descent (Fast)
-results = nems.analysis.fit_basic(est, modelspec,
-                                  fitter=nems.fitter.gradient_descent)
+# TODO: @Ivar -- Raised question in fit_basic of whether fitter should be
+#       exposed as argument to the analysis. Looks like that may have been
+#       your original intention here? But I think if the fitter is exposed,
+#       then the FitSpaceMapper also needs to be exposed since the type of
+#       mapping needed may change depending on which fitter is use.
+results = fit_basic(rec, modelspec)
 
 # Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
 # results = nems.analysis.fit_basic(est, modelspec,
