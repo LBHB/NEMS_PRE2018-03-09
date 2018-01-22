@@ -254,7 +254,7 @@ class load_mat(nems_module):
                         data['pupil'] = data['pupil'][np.newaxis, :, :]
                         
                     # add file state as second dimension to pupil
-                    data['state'] = np.concatenate((data['pupil'],
+                    data['state'] = np.concatenate((data['pupil'][0:1,:,:],
                                                     data['behavior_condition']), axis=0)
 
                 else:

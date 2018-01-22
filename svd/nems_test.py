@@ -80,10 +80,12 @@ if 1:
     #batch=303 #PTD IC pupil
     cellid="TAR010c-22-1"
     batch=301 #PTD A1 pupil
+    cellid="bbl071d-a1"
+    batch=304 #PTD A1 pupil
     #modelname="parm100pt_wcg02_fir15_behgain_fit01"
     #modelname="perfectpupil10_behgain_fit01"
     #modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
-    modelname="parm20_psthpred_stategainctl_fit01_nested5"
+    modelname="parm20_psthpred_stategain_fit01_nested5"
     #modelname="parm100_psth_pupgain_fit01"
 
 if 0:
