@@ -190,15 +190,15 @@ Each signal should have its own 'epochs' info because you may have to annotate t
 
 How do you feel about:
 └── gus027b13_p_PPS
-   ├── gus027b13_p_PPS_pupil.csv
-   ├── gus027b13_p_PPS_pupil.epochs
-   ├── gus027b13_p_PPS_pupil.json
-   ├── gus027b13_p_PPS_resp.csv
-   ├── gus027b13_p_PPS_resp.epochs
-   ├── gus027b13_p_PPS_resp.json
-   ├── gus027b13_p_PPS_stim.csv
-   ├── gus027b13_p_PPS_stim.epochs
-   └── gus027b13_p_PPS_stim.json (edited)
+   ├── gus027b13_p_PPS.pupil.csv
+   ├── gus027b13_p_PPS.pupil.epochs.csv
+   ├── gus027b13_p_PPS.pupil.json
+   ├── gus027b13_p_PPS.resp.csv
+   ├── gus027b13_p_PPS.resp.epochs.csv
+   ├── gus027b13_p_PPS.resp.json
+   ├── gus027b13_p_PPS.stim.csv
+   ├── gus027b13_p_PPS.stim.epochs.csv
+   └── gus027b13_p_PPS.stim.json 
 
 One directory per recording, and for each signal: two tabular files ('epochs' is a 3 column CSV), and one JSON? 
 
