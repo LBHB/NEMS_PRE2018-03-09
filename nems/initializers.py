@@ -1,12 +1,13 @@
-import nems
+from nems.utils import split_keywords
+from nems import keywords
 
 
-def from_keywords(data, keyword_string, registry=nems.keywords.defaults):
+def from_keywords(data, keyword_string, registry=keywords.defaults):
     '''
     Returns a modelspec sized to match the dimensionality of nems.Recording
     DATA and with the structure defined by keywords in KEYWORD_STRING.
     '''
-    keywords = nems.utils.split_keywords(keyword_string)
+    keywords = split_keywords(keyword_string)
 
     # Lookup the modelspec fragments in the registry
     modelspec = [registry[kw] for kw in keywords]
