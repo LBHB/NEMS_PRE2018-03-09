@@ -83,7 +83,7 @@ if 1:
     #modelname="parm100pt_wcg02_fir15_behgain_fit01"
     #modelname="perfectpupil10_behgain_fit01"
     #modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
-    modelname="parm100_psthpred_stategain_fit01"
+    modelname="parm20_psthpred_stategainctl_fit01_nested5"
     #modelname="parm100_psth_pupgain_fit01"
 
 if 0:
@@ -126,10 +126,10 @@ if 0:
 """ pupil gain test -- 2 x VOC data """
 if 0:
     #cellid="eno052d-a1"
-    cellid="BOL005c-25-5"
+    cellid="BOL005c-25-3"
     #cellid="eno023c-c1"
     batch=294
-    modelname="perfectpupil10_pupgainctl_fit01_nested10"
+    modelname="perfectpupil10_pupgain_fit01_nested10"
     #modelname="perfectpupil50_pupgainctl_fit01_nested5"
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 

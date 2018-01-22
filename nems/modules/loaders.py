@@ -178,7 +178,7 @@ class load_mat(nems_module):
                     # reshape stimulus to be channel X time
                     data[sname] = np.transpose(data[sname], (0, 2, 1))
 
-                    if stim_resamp_factor in np.arange(0, 10):
+                    if stim_resamp_factor in np.arange(0, 20):
                         data[sname] = nems.utilities.utils.bin_resamp(
                             data[sname], stim_resamp_factor, ax=2)
 
