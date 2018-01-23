@@ -89,11 +89,13 @@ class Signal:
         jsonfilepath = basepath + '.json'
 
         np.savetxt(csvfilepath, self.as_continuous(), delimiter=",", fmt=fmt)
-        if self.epochs:
-            np.savetxt(epochfilepath, self.epochs, delimiter=",")
+        # TODO:
+#        if isinstance(self.epochs, pd.DataFrame):
+#            np.savetxt(epochfilepath, self.epochs, delimiter=",")
 
         with open(jsonfilepath, 'w') as fh:
             attributes = self._get_attributes()
+            del attributes['epochs']
             json.dump(attributes, fh)
 
         return (csvfilepath, jsonfilepath)
@@ -541,144 +543,161 @@ class Signal:
 
     def just_epochs_named(self, epoch_name):
         '''
-        Returns just the epochs matching epoch_name. If no matching
-        epochs are found, returns None.
+        Returns a copy of a view of just the epochs matching epoch_name.
+        If no matching epochs are found, returns None.
         '''
-        idxs = self.epochs['epoch_name'] == epoch_name
-        if idxs:
-            return self.epochs[idxs]
+        idxs = self.epochs[self.epochs['epoch_name'] == epoch_name]
+
+        if any(idxs):
+            return idxs.copy()
         else:
             return None
 
+    def resize_epoch(self, epoch_name, prepend, postpend, new_epoch_name):
+        '''
+        Subtract prepend from the start_time of every epoch named
+        'epoch_name', add postpend from the end_time, and return
+        a new dataframe containing the new epochs.
 
-def indexes_of_trues(boolean_array):
-    '''
-    Returns the a list of start, end indexes of every contiguous block
-    of True elements in boolean_array.
-    '''
+        This does not alter self.epochs -- you must do that yourself:
+        # Create epochs starting 200 samples before every blink
+        new_epochs = sig.resize_epochs('blink', 200, 0, 'preblink')
+        print(new_epochs)
+        sig.epochs.append(new_epochs)
+        '''
+        ep = self.just_epochs_named(epoch_name)
+        ep['epoch_name'] = new_epoch_name
+        ep['start_index'] -= prepend
+        ep['end_index'] += postpend
+        return ep
 
-    idxs = np.where(np.diff(boolean_array))
+    @staticmethod
+    def indexes_of_trues(boolean_array):
+        '''
+        Returns the a list of start, end indexes of every contiguous block
+        of True elements in numpy boolean_array. Just a helper function.
+        '''
+        assert(type(boolean_array) is np.ndarray)
 
-    indexes = []
-    if boolean_array[0]:  # If the first element is true, start there
-        indexes.append([0, idxs[0]])
-        for i in range(1, len(idxs) - 1):
-            indexes.append([idxs[i], idxs[i+1]])
-    else:
-        for i in range(len(idxs) - 1):
-            indexes.append([idxs[i], idxs[i+1]])
+        idxs = np.where(np.diff(boolean_array))[0].tolist()
 
-    return indexes
+        # Special case: first element is true
+        if boolean_array[0]:
+            idxs.insert(0, -1)
 
+        # Special case: last element is true
+        if boolean_array[-1]:
+            idxs.append(len(boolean_array)-1)
 
-# def combine_epochs(self, epoch_name1, epoch_name2, operator, new_epoch_name):
-#     '''
-#     Returns a new epoch based on the combination of two other epochs.
-#     Operator may be 'union', 'intersection', or 'difference', which
-#     correspond to the set operation performed on the epochs.
-#     '''
+        indexes = [[idxs[i]+1, idxs[i+1]+1] for i in range(0, len(idxs) - 1, 2)]
 
-#     ep1 = self.just_epochs_named(epoch_name1)
-#     ep2 = self.just_epochs_named(epoch_name2)
+        return indexes
 
-#     # TODO: Consider rewriting this to use the epoch indexes
-#     # instead of creating these temporary boolean mask arrays
+    def combine_epochs(self, name1, name2, operator, new_epoch_name):
+        '''
+        Returns a new epoch based on the combination of two other epochs.
+        Operator may be 'union', 'intersection', or 'difference', which
+        correspond to the set operation performed on the epochs.
+        '''
 
-#     overall_start = np.min(ep1['start_time'], ep2['start_time'])
-#     overall_end = np.max(ep1['end_time'], ep2['end_time'])
-#     length = overall_end - overall_start
-#     mask1 = np.full((length, 1), False)
-#     mask2 = np.full((length, 1), False)
+        ep1 = self.just_epochs_named(name1)
+        ep2 = self.just_epochs_named(name2)
+        print(name1, name2)
 
-#     for e1 in ep1:
-#         start, end, name = e1
-#         mask1[start:end] = True
+        # TODO: Consider rewriting this to use the epoch indexes
+        # instead of creating these temporary boolean mask arrays
+        overall_start = min(ep1['start_index'].min(), ep2['start_index'].min())
+        overall_end = max(ep1['end_index'].max(), ep2['end_index'].max())
+        length = overall_end - overall_start
+        mask1 = np.full((length, 1), False)
+        mask2 = np.full((length, 1), False)
 
-#     for e2 in ep2:
-#         start, end, name = e2
-#         mask2[start:end] = True
+        # Fill the boolean masks with True values where appropriate
+        for e1 in ep1.values.tolist():
+            start, end, name = e1
+            s = max(0, start - overall_start)
+            e = min(max(0, end - overall_start), length)
+            mask1[s:e] = True
 
-#     if operator is 'union':
-#         mask = mask1 | mask2
-#     elif operator is 'intersection':
-#         mask = mask1 & mask2
-#     elif operator is 'difference':
-#         mask = mask1 ^ mask2  # ^ is XOR operator
-#     else:
-#         raise ValueError('operator was invalid')
+        for e2 in ep2.values.tolist():
+            start, end, name = e2
+            s = max(0, start - overall_start)
+            e = min(max(0, end - overall_start), length)
+            mask2[s:e] = True
 
-#     # Convert the boolan mask back into indexes
-#     idxs = indexes_of_trues(mask)
-#     transitions = [overall_start + (i+1) for i in np.where(np.diff(mask))]
-#     new_epoch = [overall_start, transitions[0], new_epoch_name]
-#     for start, end in indxs
-#         new_epoch.append(start, end, new_epoch_name)
-# transitions[i], transitions[i+1], new_epoch_name)
+        # Now do the boolean operation
+        if operator is 'union':
+            mask = np.logical_or(mask1, mask2)
+        elif operator is 'intersection':
+            mask = np.logical_and(mask1, mask2)
+        elif operator is 'difference':
+            mask = np.logical_xor(mask1, mask2)
+        else:
+            raise ValueError('operator was invalid')
 
-#     return new_epoch
+        # Convert the boolan mask back into a dataframe
+        idxs = self.indexes_of_trues(mask.flatten())
+        starts = [i[0] + overall_start for i in idxs]
+        ends = [i[1] + overall_start for i in idxs]
+        new_epoch = pd.DataFrame({'start_index': starts,
+                                  'end_index': ends},
+                                 columns=['start_index',
+                                          'end_index',
+                                          'epoch_name'])
+        new_epoch['epoch_name'] = new_epoch_name
 
+        return new_epoch
 
-# def prepend_epoch(self, epoch_name, time_before, new_epoch_name):
-#     '''
-#     Subtract time_before from the start_time of every epoch named
-#      'epoch_name', and return a new list of epochs named new_epoch_name.
-#     '''
-#     ep = self.just_epochs_named(epoch_name)
+    def overlapping_epochs(self, epoch_name1, epoch_name2, new_epoch_name):
+        '''
+        Return the outermost boundaries of whenever epoch_name1 and
+        both occured and overlapped one another.
+        '''
+        ep1 = self.just_epochs_named(epoch_name1)
+        ep2 = self.just_epochs_named(epoch_name2)
 
-#     new_ep = []
-#     for (start, end, _) in ep:
-#         new_ep.append([max(start - time_before, 0), end, new_epoch_name])
+        # TODO: Replace this N^2 algorithm with somthing more efficient
+        pairs = []
+        for (e1start, e1end, _) in ep1.values.tolist():
+            for (e2start, e2end, _) in ep2.values.tolist():
+                if e1start <= e2start and e1end >= e2end:
+                    # E2 occured inside E1
+                    pairs.append([e1start, e1end])
+                elif e1start >= e2start and e1end <= e2end:
+                    # E1 occured inside e2
+                    pairs.append([e2start, e2end])
+                elif e1start <= e2start and e2start <= e1end <= e2end:
+                    # E1 preceeded and overlapped e2
+                    pairs.append([e1start, e2end])
+                elif e2start <= e1start and e1start <= e2end <= e1end:
+                    # E2 preceeded and overlapped e1
+                    pairs.append([e2start, e1end])
 
-#     return new_ep
+        # Remove duplicates from list
+        uniques = []
+        for p in pairs:
+            if p not in uniques:
+                uniques.append(p)
 
+        # TODO: Refactor this next bit and use pandas more intelligently
+        starts = [i[0] for i in uniques]
+        ends = [i[1] for i in uniques]
+        new_epoch = pd.DataFrame({'start_index': starts,
+                                  'end_index': ends},
+                                 columns=['start_index',
+                                          'end_index',
+                                          'epoch_name'])
+        new_epoch['epoch_name'] = new_epoch_name
 
-# def postpend_epoch(self, epoch_name, time_after, new_epoch_name):
-#     '''
-#     Add time_after to the end_time of every epoch named 'epoch_name', and
-#     return a new list of epochs named new_epoch_name.
-#     '''
-#     ep = self.just_epochs_named(epoch_name)
-
-#     new_ep = []
-#     for (start, end, _) in ep:
-#         # TODO: What if the end time goes past the end of the signal?
-#         new_ep.append([start, end + time_after, new_epoch_name])
-
-#     return new_ep
-
-
-# def epochs_overlapped(self, epoch_name1, epoch_name2):
-#     '''
-#     Return the outermost boundaries of whenever epoch_name1 and
-#     both occured and overlapped one another.
-#     '''
-#     ep1 = self.just_epochs_named(epoch_name1)
-#     ep2 = self.just_epochs_named(epoch_name2)
-
-#     # TODO: Replace this N^2 algorithm with somthing more efficient?
-#     new_ep = []
-#     for (e1start, e1end, _) in ep1:
-#         for (e2start, e2end, _) in ep2:
-#             if e1start <= e2start and e1end >= e2end:
-#                 # E2 occured inside E1
-#                 new_ep.append([e1start, e1end])
-#             elif e1start >= e2start and e1end <= e2end:
-#                 # E1 occured inside e2
-#                 new_ep.append([e2start, e2end])
-#             elif e1start <= e2start and e2start <= e1end <= e2end:
-#                 # E1 preceeded and overlapped e2
-#                 new_ep.append([e1start, e2end])
-#             elif e2start <= e1start and e1start <= e2end <= e1end:
-#                 # E2 preceeded and overlapped e1
-#                 new_ep.append([e2start, e1end])
-
-#     return new_ep
-
-
+        return new_epoch
 
 # def sanity_check_epochs(self, epoch_name):
 #     '''
-#     Looks for duplicate epochs or epochs that have no duration
+#     There are several kinds of pathological epochs:
+#       1. Epochs with no duration (start = end)
+#       2. Epochs where start comes after the end
+#       3. Epochs with repeated epochs that are identical start/stop times.
+#     This function searches for those.
 #     '''
 #     # TODO
 #     pass
