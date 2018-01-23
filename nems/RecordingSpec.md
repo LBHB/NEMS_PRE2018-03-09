@@ -35,11 +35,23 @@ For W events, we have a 3 X W list:
 
 ## What do we need to be able to do?
 
-1. select a subset of events from the event list based on some string processing
+1. select a subset of events from the event list based on some string processing. Simplest case: find every occurences of "TORCnn" in
+the event list. assign a unique eventid=nn to each distinct "TORCnn". Figure out what to do with pre- and post-stim silences based
+on <smart way of representing events>. Use that to generate the list of startime and stoptime for each matching event. The result is a
+list of eventid and epochs, where the value of eventid ranges from 1...30 in the case of TORCs. And if the TORCs were repeated 5 times,
+the event list should have 150 entries:
+
+[eventid1 starttime1 stoptime1
+ eventid2 starttime2 stoptime2
+ ....
+]
 
 2. using the event list:
+
 2a. extract a raster from the continuous recordings [N x unique-event-count X max-event-duration]
+
 2b. generate a raster from the discrete event times: [M x unique-event-count X max-event-duration]
+
 2c. contruct an event-signal matrix from the event signals: [P x unique-event-count X max-event-duration]
 
 
