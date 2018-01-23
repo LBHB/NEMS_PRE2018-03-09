@@ -9,6 +9,7 @@ Created on Mon Jan  8 13:10:25 2018
 import os
 import sys
 sys.path.append('/auto/users/hellerc/nems/nems/utilities')
+import imp
 import baphy as bu
 import nems.utilities as nu
 from dimReduce_tools import PCA
@@ -19,10 +20,10 @@ import pandas as pd
 import scipy.signal as ss
 import charlie_random_utils as cru
 # =================== Set parameters to find file =================
-site='TAR010c'
-# runclass='NAT'  (can't use until we migrate over the database)
-batch = 271   # 271, 289? - NAT/pup, 301 - PTD/pupil, 294 - VOC/pupil
-rawid = 123692   # TAR010c NAT - 123692
+site='BOL005c'
+runclass='VOC'  #(can't use until we migrate over the database)
+batch = 294   # 289? - NAT/pup, 301 - PTD/pupil, 294 - VOC/pupil
+rawid =  118702  # TAR010c NAT - 123692
 pupil=1
 
 iso=70
@@ -34,13 +35,19 @@ parms={
         'rasterfs':100,
         'runclass':'all',
         'min_isolation': iso,
-        'includeprestim':1,
-        'tag_masks':['Reference'],
+        'includeprestim':1, 
+        'tag_masks':['Reference']
+    }
+p_parms = {  
+        'rasterfs':100,
+        'runclass':'all',
+        'min_isolation': iso,
+        'includeprestim':1, 
     }
 # ========================= Load cellids from db =============================
 
 r, meta = bu.load_site_raster(batch=batch,site=site,rawid=rawid,options=parms)
-p = bu.load_pup_raster(batch=batch,site=site,rawid=rawid,options=parms)
+p = bu.load_pup_raster(batch=batch,site=site,rawid=rawid,options=p_parms)
 
 # ========================= Pre-process the data ============================
 r, p = cru.remove_nans(runclass=runclass, options=parms, r=r, p=p)

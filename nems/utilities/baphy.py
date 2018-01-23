@@ -466,10 +466,10 @@ def spike_cache_filename2(spkfilestub,options):
     except: 
         rasterfs='_fs1000'
     
-    try: 
+    try:
         tag_name='_tags-'+''.join(options['tag_masks'])
     except: 
-        tag_name='_tags-Reference'
+        tag_name='_tags-default'
     
     try: 
         run='_run-'+options['runclass'];
@@ -672,7 +672,7 @@ def load_site_raster(batch, site, options, runclass=None, rawid=None):
     except: options['includeprestim']=1;
     
     try: options['tag_masks'];
-    except: options['tag_masks']=[]
+    except: pass
     
     try: active_passive = options['active_passive'];
     except: active_passive='both';
@@ -726,7 +726,7 @@ def load_site_raster(batch, site, options, runclass=None, rawid=None):
         
     return r, cfd
 
-def load_pup_raster(batch, runclass, site, options):
+def load_pup_raster(batch, site, options,runclass=None,rawid=None):
     '''
     Load a pupil raster given batch id, runclass, recording site, and options
     
@@ -757,20 +757,25 @@ def load_pup_raster(batch, runclass, site, options):
     except: options['includeprestim']=1;
     
     try: options['tag_masks'];
-    except: options['tag_masks']=[]
+    except: pass
     
     try: active_passive = options['active_passive'];
     except: active_passive='both';
 
     options['pupil']=1;
 
-    d=db.get_batch_cell_data(batch)
+    d=db.get_batch_cell_data(batch,rawid=rawid)
     files = []
     for f in d['pupil'].unique():
+        f = f.split('.')[0]
         if f is None: 
             pass
-        elif runclass in f and site in f:
-            files.append(f)
+        elif runclass is not None:
+            if runclass in f and site in f:
+                files.append(f)
+        else:
+            if site in f:
+                files.append(f)
     
     files = pd.Series(files)
     
