@@ -678,7 +678,7 @@ def load_site_raster(batch, site, options, runclass=None, rawid=None):
     if 'active_passive' in parms:
         del parms['active_passive']
         
-    cfd=db.get_cell_files2(cellid=site,runclass=runclass,rawid=rawid)
+    cfd=db.get_batch_cell_data(batch=batch,cellid=site,rawid=rawid)
     
     
     cfd=cfd.sort_values('cellid') # sort the data frame by cellid so it agrees with the r matrix output

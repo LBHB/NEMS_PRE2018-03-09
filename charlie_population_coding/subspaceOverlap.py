@@ -21,7 +21,7 @@ import charlie_random_utils as cru
 # =================== Set parameters to find file =================
 site='TAR010c'
 # runclass='NAT'  (can't use until we migrate over the database)
-batch = 271   # 271 - NAT/pup, 301 - PTD/pupil, 294 - VOC/pupil
+batch = 271   # 271, 289? - NAT/pup, 301 - PTD/pupil, 294 - VOC/pupil
 rawid = 123692   # TAR010c NAT - 123692
 pupil=1
 
