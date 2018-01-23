@@ -136,7 +136,9 @@ class WeightChannels(Module):
         # create a copy of each input variable
         for i, d in enumerate(self.d_in):
             self.d_out.append(d.copy())
-            
+            if self.output_name not in self.d_out[-1].keys():
+                self.d_out[-1][self.output_name]=d[self.input_name]
+                
         X=self.unpack_data(self.input_name,est=True)
         Z = self.my_eval(X)
         if self.norm_output:

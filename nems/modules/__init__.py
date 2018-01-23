@@ -16,6 +16,7 @@ import nems.modules.filters
 import nems.modules.metrics
 import nems.modules.nonlin
 import nems.modules.pupil
+import nems.modules.state
 
 __all__ = ['base', 'aux', 'loaders', 'est_val',
-           'filters', 'metrics', 'nonlin', 'pupil']
+           'filters', 'metrics', 'nonlin', 'pupil', 'state']

@@ -18,6 +18,42 @@ from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
 
+class psth(nems_module):
+    """ compute PSTH for each unique stimulus and substiute as "pred" for each
+    single-trial response.  Useful for baseline/gain analysis without an
+    explicit STRF"""
+    
+    name = 'aux.psth'
+    plot_fns = [nems.utilities.plot.sorted_raster,
+                nems.utilities.plot.raster_plot,
+                nems.utilities.plot.plot_stim_psth]
+    """
+    Replaces stim with average resp for each stim. This is the 'perfect' model
+    used for comparing different models of pupil state gain.
+    """
+
+    def my_init(self):
+        log.info('aux.psth: Replacing pred with PSTH response')
+
+    def evaluate(self):
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+            
+        output_name=self.output_name
+        psth={}
+        for f_in, f_out in zip(self.d_in, self.d_out):
+            stimset=np.unique(np.array(f_in['replist']))
+            f_out[output_name]=f_in['resp'].copy()
+            
+            for stimidx in stimset:
+                i = np.array(f_in['replist'])[:,0]==stimidx
+                if f_in['est']:
+                    # compute PSTH for estimation data
+                    psth[stimidx]=np.mean(f_in['resp'][:,i,:],axis=1,keepdims=True)
+                # set predcition to est PSTH for both est and val data
+                f_out[output_name][:,i,:]=psth[stimidx]
+            
 
 class normalize(nems_module):
     """

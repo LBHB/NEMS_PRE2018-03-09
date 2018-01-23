@@ -76,16 +76,17 @@ if 0:
     
 if 1:
     """ TORC-TONE """
-    #cellid="bbl074g-a1"
-    #batch=303 #PTD IC pupil
-    cellid="TAR010c-22-1"
-    batch=301 #PTD A1 pupil
-    cellid="bbl071d-a1"
-    batch=304 #PTD A1 pupil
+    
+    #cellid="TAR010c-22-1"
+    #batch=301 #PTD A1 pupil
+    
+    cellid="BRT007c-a3"
+    batch=304 #PTD IC pupil
+    
     #modelname="parm100pt_wcg02_fir15_behgain_fit01"
     #modelname="perfectpupil10_behgain_fit01"
     #modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
-    modelname="parm20_psthpred_stategain_fit01_nested5"
+    modelname="parm20_psthpred_pupgain_fit01_nested10"
     #modelname="parm100_psth_pupgain_fit01"
 
 if 0:
@@ -97,8 +98,9 @@ if 0:
 if 0:
     cellid='gus019d-b2'
     batch=289 #A1
-    modelname="fb18ch50u_wcg01_fir10_pupgain_fit03"
-
+    modelname="fb18ch50u_wcg01_fir10_pupgain_fit01"
+    #modelname="fb18ch50u_wcg01_fir15_statewgt_dexp_fit01"
+    
 # ecog test
 if 0:
     channel=38
@@ -131,7 +133,7 @@ if 0:
     cellid="BOL005c-25-3"
     #cellid="eno023c-c1"
     batch=294
-    modelname="perfectpupil10_pupgain_fit01_nested10"
+    modelname="fb24ch10u_psthpred_pupgain_fit01_nested10"
     #modelname="perfectpupil50_pupgainctl_fit01_nested5"
     #modelname="perfectpupil50x_pupgain_fit01_nested5"
 

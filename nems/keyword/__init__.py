@@ -5,4 +5,5 @@ import nems.keyword.keyhelpers
 import nems.keyword.loadkeys
 import nems.keyword.nonlinkeys
 import nems.keyword.pupilkeys
+import nems.keyword.statekeys
 import nems.keyword.userkeys

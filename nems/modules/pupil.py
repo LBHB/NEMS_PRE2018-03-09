@@ -3,6 +3,7 @@
 """
 Modules for manipulating pupil data
 
+ALL DEPRECATED AND CAN BE DELETED???
 
 Created on Fri Aug  4 13:29:30 2017
 
@@ -17,7 +18,6 @@ import nems.utilities.utils
 import nems.utilities.plot
 
 import numpy as np
-import copy
 import scipy.special as sx
 
 
@@ -27,6 +27,8 @@ class model(nems_module):
                 nems.utilities.plot.raster_plot,
                 nems.utilities.plot.plot_stim_psth]
     """
+    DEPRECATED. REPLACED by aux.psth. DELETE ME?!?
+    
     Replaces stim with average resp for each stim. This is the 'perfect' model
     used for comparing different models of pupil state gain.
     """
@@ -69,7 +71,7 @@ class pupgain(nems_module):
     other continuous variable. Does not use standard my_eval, instead uses its own
     evaluate() that overrides the nems_module evaluate()
 
-    @author: shofer
+    DEPRECATED? REPLACED BY state.state_gain
     """
     # Changed to helper function based general module --njs June 29 2017
     name = 'pupil.pupgain'
@@ -223,156 +225,3 @@ class pupgain(nems_module):
             m.pack_data(Zp, name=m.state_var, est=False)
 
 
-class state_weight(nems_module):
-    """
-    pupweight - combined weighting of two predicted PSTHs, depending on state_var
-    @author: svd
-    """
-
-    name = 'pupil.state_weight'
-    user_editable_fields = ['input_name', 'input_name2', 'output_name',
-                            'fit_fields', 'state_var', 'input_name2', 'weight_type', 'theta']
-    weight_type = 'linear'
-    plot_fns = [nems.utilities.plot.state_act_scatter_smooth, nems.utilities.plot.pre_post_psth,
-                nems.utilities.plot.pred_act_psth_all, nems.utilities.plot.non_plot]
-    input_name2 = 'pred2'
-    theta = np.zeros([1, 2])
-
-    def my_init(self, input_name2="pred2",
-                weight_type='linear', fit_fields=['theta'], theta=[.1, .1]):
-        self.input_name2 = input_name2
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
-        self.fit_fields = fit_fields
-        self.weight_type = weight_type
-        self.my_eval = getattr(self, self.weight_type + '_fn')
-        self.theta = np.array([theta])
-        self.do_plot = self.plot_fns[0]
-
-    def linear_fn(self, X1, X2, Xp):
-        """
-        linear weighting of two predicted PSTHs, depending on state_var
-        w= a + b * p(t)  hard bounded at 0 and 1
-        """
-        w = self.theta[0, 0] + self.theta[0, 1] * Xp
-        w[w < 0] = 0
-        w[w > 1] = 1
-        Y = (1 - w) * X1 + w * X2
-        return(Y, Xp)
-
-    def linearctl_fn(self, X1, X2, Xp):
-        """
-        shuffle pupil, keep same number of parameters for proper control
-        """
-
-        # save current random state
-        prng = np.random.RandomState()
-        save_state = prng.get_state()
-        prng = np.random.RandomState(1234567890)
-
-        # shuffle state vector across trials (time)
-        for ii in range(0, Xp.shape[0]):
-            fxp = np.isfinite(Xp[ii, :])
-            txp = Xp[ii, fxp]
-            prng.shuffle(txp)
-            Xp[ii, fxp] = txp
-
-        # restore saved random state
-        prng.set_state(save_state)
-
-        Y, Xp = self.linear_fn(X1, X2, Xp)
-
-        return(Y, Xp)
-
-    def evaluate(self, nest=0):
-        m = self
-        del m.d_out[:]
-        for i, d in enumerate(m.d_in):
-            # self.d_out.append(copy.deepcopy(val))
-            m.d_out.append(copy.copy(d))
-
-        X1 = m.unpack_data(name=m.input_name, est=True)
-        X2 = m.unpack_data(name=m.input_name2, est=True)
-        Xp = m.unpack_data(name=m.state_var, est=True)
-        Y, Xp = self.my_eval(X1, X2, Xp)
-        m.pack_data(Y, name=m.output_name, est=True)
-        m.pack_data(Xp, name=m.state_var, est=True)
-
-        if m.parent_stack.valmode:
-            X1 = m.unpack_data(name=m.input_name, est=False)
-            X2 = m.unpack_data(name=m.input_name2, est=False)
-            Xp = m.unpack_data(name=m.state_var, est=False)
-            Y, Xp = self.my_eval(X1, X2, Xp)
-            m.pack_data(Y, name=m.output_name, est=False)
-            m.pack_data(Xp, name=m.state_var, est=False)
-
-
-class state_filter(nems_module):
-    """
-    apply some sort of transformation to state variable
-    @author: svd
-    """
-
-    name = 'pupil.state_filter'
-    user_editable_fields = ['input_name', 'output_name', 'fit_fields',
-                            'state_var', 'input_name2', 'weight_type', 'theta']
-    filter_type = 'slope'
-    plot_fns = [nems.utilities.plot.pre_post_psth, nems.utilities.plot.state_act_scatter_smooth,
-                nems.utilities.plot.pred_act_psth_all, nems.utilities.plot.non_plot]
-    theta = np.zeros([1, 2])
-
-    def my_init(self, filter_type='linear'):
-        self.filter_type = filter_type
-        self.my_eval = getattr(self, self.filter_type + '_fn')
-        self.do_plot = self.plot_fns[0]
-
-    def slope_fn(self, Xp):
-        """
-        linear weighting of two predicted PSTHs, depending on state_var
-        w= a + b * p(t)  hard bounded at 0 and 1
-        """
-
-        slope = (np.mean(Xp[:, -30:-10], axis=1) -
-                 np.mean(Xp[:, 10:30], axis=1))
-        slope = np.reshape(slope, [-1, 1])
-        Y = np.repeat(slope, Xp.shape[1], axis=1)
-        return(Y)
-
-    def slopectl_fn(self, X1, X2, Xp):
-        """
-        shuffle pupil, keep same number of parameters for proper control
-        """
-
-        # save current random state
-        prng = np.random.RandomState()
-        save_state = prng.get_state()
-        prng = np.random.RandomState(1234567890)
-
-        # shuffle state vector across trials (time)
-        prng.shuffle(Xp)
-
-        # restore saved random state
-        prng.set_state(save_state)
-
-        # s=Xp.shape
-        # n=np.int(np.ceil(s[0]/2))
-        # Xp=np.roll(Xp,n,0)
-
-        Y = self.slope_fn(Xp)
-
-        return Y
-
-    def evaluate(self, nest=0):
-        if nest == 0:
-            del self.d_out[:]
-            for i, val in enumerate(self.d_in):
-                self.d_out.append(copy.deepcopy(val))
-        for f_in, f_out in zip(self.d_in, self.d_out):
-            if f_in['est'] is False:
-                Xp = copy.deepcopy(f_in[self.input_name][nest])
-                Xp = self.my_eval(Xp)
-                f_out[self.output_name][nest] = Xp
-            else:
-                Xp = copy.deepcopy(f_in[self.input_name])
-                Xp = self.my_eval(Xp)
-                f_out[self.output_name] = Xp
