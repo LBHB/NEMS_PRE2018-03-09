@@ -24,38 +24,43 @@ import scipy.special as sx
 class model(nems_module):
     name = 'pupil.model'
     plot_fns = [nems.utilities.plot.sorted_raster,
-                nems.utilities.plot.raster_plot]
+                nems.utilities.plot.raster_plot,
+                nems.utilities.plot.plot_stim_psth]
     """
     Replaces stim with average resp for each stim. This is the 'perfect' model
     used for comparing different models of pupil state gain.
     """
 
     def my_init(self):
-        log.info('Replacing stimulus with averaged response raster')
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
+        log.info('Replacing pred with averaged response raster')
 
     def evaluate(self, nest=0):
-        if nest == 0:
-            del self.d_out[:]
-            for i, val in enumerate(self.d_in):
-                self.d_out.append(copy.deepcopy(val))
+        del self.d_out[:]
+        for i, d in enumerate(self.d_in):
+            self.d_out.append(d.copy())
+            
+        output_name=self.output_name
+        psth={}
         for f_in, f_out in zip(self.d_in, self.d_out):
-            Xa = f_in['avgresp']
-            if f_in['est'] is False and self.parent_stack.nests > 0:
-                R = f_in['replist'][nest]
-                X = np.squeeze(Xa[R, :])
-                # X=np.zeros(f_in['resp'][nest].shape)
-                # for i in range(0,R.shape[0]):
-                #    X[i,:]=Xa[R[i],:]
-                f_out[self.output_name][nest] = X[np.newaxis,:,:]
-            else:
-                R = f_in['replist']
-                X = np.squeeze(Xa[R, :])
-                # X=np.zeros(f_in['resp'].shape)
-                # for i in range(0,R.shape[0]):
-                #    X[i,:]=Xa[R[i],:]
-                f_out[self.output_name] = X[np.newaxis,:,:]
+            stimset=np.unique(np.array(f_in['replist']))
+            f_out[output_name]=f_in['resp'].copy()
+            
+            for stimidx in stimset:
+                i = np.array(f_in['replist'])[:,0]==stimidx
+                if f_in['est']:
+                    # compute PSTH for estimation data
+                    psth[stimidx]=np.mean(f_in['resp'][:,i,:],axis=1,keepdims=True)
+                # set predcition to est PSTH for both est and val data
+                f_out[output_name][:,i,:]=psth[stimidx]
+            
+            # deprecated code from Shofer
+            #Xa = f_in['avgresp']
+            #R = f_in['replist']
+            #X = np.squeeze(Xa[R, :])
+            ## X=np.zeros(f_in['resp'].shape)
+            ## for i in range(0,R.shape[0]):
+            ##    X[i,:]=Xa[R[i],:]
+            #f_out[self.output_name] = X[np.newaxis,:,:]
 
 
 class pupgain(nems_module):

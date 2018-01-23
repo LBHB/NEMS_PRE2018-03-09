@@ -169,7 +169,7 @@ def pred_act_scatter_smooth(m, idx=None, size=FIGSIZE):
 def state_act_scatter_smooth(m, idx=None, size=FIGSIZE):
     scatter_smooth(m, idx=idx, size=size, x_name=m.state_var, y_name="resp")
     if 'theta' in dir(m):
-        t = "theta: " + " ".join(str(x) for x in m.theta)
+        t = "theta: " + " ".join("{0:.3f}".format(x) for x in m.theta[0,:])
     axes = plt.gca()
     ymin, ymax = axes.get_ylim()
     xmin, xmax = axes.get_xlim()
@@ -279,9 +279,11 @@ def plot_stim_psth(m, idx=None, size=FIGSIZE):
     # c=out1['repcount'][m.parent_stack.plot_stimidx]
     # h=out1[m.output_name][m.parent_stack.plot_stimidx].shape
     # scl=int(h[0]/c)
-    s2 = out1[m.output_name][m.parent_stack.plot_stimidx, :]
-    resp, = plt.plot(s2, 'r', label='Post-' + m.name)
-    plt.legend(handles=[resp])
+    s2 = out1[m.output_name][:,m.parent_stack.plot_stimidx, :]
+    print(s2.shape)
+    plt.plot(s2.T, 'r')
+    #resp, = plt.plot(s2, 'r', label='Post-' + m.name)
+    #plt.legend(handles=[resp])
     #plt.title(m.name+': stim #'+str(m.parent_stack.plot_stimidx))
         
     
