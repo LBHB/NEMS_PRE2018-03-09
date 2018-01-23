@@ -591,17 +591,17 @@ def get_batch(name=None, batchid=None):
 def get_batch_cells(batch=None, cellid=None, rawid=None):
     # eg, sql="SELECT * from NarfBatches WHERE batch=301"
     params = ()
-    sql = "SELECT * FROM NarfBatches WHERE 1"
+    sql = "SELECT NarfData.rawid, NarfBatches.* FROM NarfBatches INNER JOIN NarfData on NarfData.cellid=NarfBatches.cellid WHERE 1"
     if not batch is None:
-        sql += " AND batch=%s"
+        sql += " AND NarfBatches.batch=%s"
         params = params+(batch,)
 
     if not cellid is None:
-       sql += " AND cellid like %s"
+       sql += " AND NarfBatches.cellid like %s"
        params = params+(cellid+"%",)
        
     if not rawid is None:
-        sql+= " AND rawid = %s"
+        sql+= " AND NarfData.rawid = %s"
         params=params+(rawid,)
     print(sql)
     print(params)
