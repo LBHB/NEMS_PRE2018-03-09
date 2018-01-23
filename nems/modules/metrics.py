@@ -22,6 +22,7 @@ class mean_square_error(nems_module):
     user_editable_fields = ['input1', 'input2', 'norm', 'shrink']
     plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_psth_smooth,
                 nems.utilities.plot.pred_act_scatter]
+    do_trial_plot = plot_fns[1]
     input1 = 'pred'
     input2 = 'resp'
     norm = True
@@ -29,26 +30,12 @@ class mean_square_error(nems_module):
     mse_est = np.ones([1, 1])
     mse_val = np.ones([1, 1])
 
-    def my_init(self, input1='pred', input2='resp', norm=True, shrink=0):
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
-        self.input1 = input1
-        self.input2 = input2
-        self.norm = norm
-        self.shrink = shrink
-        self.do_trial_plot = self.plot_fns[1]
+    def evaluate(self, recording):
+        signal1 = recording.get_signal(self.input1)
+        signal2 = recording.get_signal(self.input2)
 
-    def evaluate(self, nest=0):
-        if nest == 0:
-            del self.d_out[:]
-            for i, d in enumerate(self.d_in):
-                self.d_out.append(d.copy())
-
-        X1 = self.unpack_data(self.input1, est=True)
-        X2 = self.unpack_data(self.input2, est=True)
-
-        X1=np.reshape(X1,[1,-1])
-        X2=np.reshape(X2,[1,-1])
+        X1 = signal1.as_continuous()
+        X2 = signal2.as_continuous()
 
         keepidx = np.isfinite(X1) * np.isfinite(X2)
         if np.all(np.logical_not(keepidx)):
@@ -59,6 +46,7 @@ class mean_square_error(nems_module):
         X1 = X1[keepidx]
         X2 = X2[keepidx]
         if self.shrink:
+            # TODO. This code is undocumented. This needs documentation!!!
             bounds = np.round(np.linspace(0, len(X1) + 1, 11)).astype(int)
             E = np.zeros([10, 1])
             # P=np.mean(np.square(X2))
@@ -95,20 +83,6 @@ class mean_square_error(nems_module):
             P = np.sum(X2 * X2)
             N = X1.size
 
-            #            E=np.zeros([1,1])
-            #            P=np.zeros([1,1])
-            #            N=0
-            #            for f in self.d_out:
-            #                #try:
-            #                E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-            #                P+=np.sum(np.square(f[self.input2]))
-            #                #except TypeError:
-            #                    #log.info('error eval')
-            #                    #nems.utilities.utils.concatenate_helper(self.parent_stack)
-            #                    #E+=np.sum(np.square(f[self.input1]-f[self.input2]))
-            #                    #P+=np.sum(np.square(f[self.input2]))
-            #                N+=f[self.input2].size
-
             if self.norm:
                 if P > 0:
                     mse = E / P
@@ -120,29 +94,6 @@ class mean_square_error(nems_module):
 
         self.mse_est = mse
         self.parent_stack.meta['mse_est'] = [mse]
-
-        if self.parent_stack.valmode:
-
-            X1 = self.unpack_data(self.input1, est=False)
-            X2 = self.unpack_data(self.input2, est=False)
-            keepidx = np.isfinite(X1) * np.isfinite(X2)
-            X1 = X1[keepidx]
-            X2 = X2[keepidx]
-            E = np.sum(np.square(X1 - X2))
-            P = np.sum(X2 * X2)
-            N = X1.size
-
-            if self.norm:
-                if P > 0:
-                    mse = E / P
-                else:
-                    log.debug("P was less than or equal to zero, MSE=1")
-                    mse = 1
-            else:
-                mse = E / N
-            self.mse_val = mse
-            self.parent_stack.meta['mse_val'] = [mse]
-
         return mse
 
     def error(self, est=True):
@@ -291,11 +242,7 @@ class correlation(nems_module):
     r_est_perunit=np.zeros([0,0])
     r_val_perunit=np.zeros([0,0])
 
-    def my_init(self, input1='pred', input2='resp', norm=True):
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
-        self.input1 = input1
-        self.input2 = input2
+    def init(self, recording):
         self.do_plot = self.plot_fns[1]
 
     def do_corr(self,X1,X2):
@@ -308,16 +255,17 @@ class correlation(nems_module):
             r, p = spstats.pearsonr(tX1, tX2)
         return r
 
-    def evaluate(self, **kwargs):
-        del self.d_out[:]
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-
-        X1 = self.unpack_data(self.input1, est=True)
-        X2 = self.unpack_data(self.input2, est=True)
+    def evaluate(self, recording):
+        signal1 = recording.get_signal(self.input1)
+        signal2 = recording.get_signal(self.input2)
+        X1 = signal1.as_continuous()
+        X2 = signal2.as_continuous()
         self.r_est = self.do_corr(X1,X2)
         self.parent_stack.meta['r_est'] = [self.r_est]
+        return [self.r_est]
 
+        # TODO: This isn't documented, so it'd take me a while to figure out
+        # what's going on.
         unit_count=X1.shape[0]
         if unit_count>1:
             self.r_est_perunit=np.zeros([unit_count,1])

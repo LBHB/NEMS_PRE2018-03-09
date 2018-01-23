@@ -50,9 +50,6 @@ class nems_stack:
     # modelname=None
     modules = []  # stack of modules
     mod_names = []
-    mod_ids = []
-    data = []     # corresponding stack of data in/out for each module
-    meta = {}
     fitter = None
     valmode = False
     nests = 0
@@ -63,26 +60,18 @@ class nems_stack:
     fitted_modules = []
     cv_counter = 0
     keywords = []
-    keyfuns = []  # to be populated from nems.keywords.keyfuns - dumb hack
+
+    @property
+    def mod_names(self):
+        return [m.name for m in self.modules]
+
+    @property
+    def mod_ids(self):
+        return [m.name for m.idm in self.modules]
 
     def __init__(self, cellid="X", batch=0, modelname="X"):
         log.info("Creating new stack")
         self.modules = []
-        self.mod_names = []
-
-        # Data is a list of lists of dictionaries:
-        #   data[i] gives you the data for the i-th module in the stack
-        #   data[i][j] gives you the data for the j-th file from the i-th
-        #       module.
-        #   data[i][j][key] gives you the array from the dataset for the j-th
-        #       file from the i-th module.
-        # Point of clarification here is that .
-        self.data = []
-        self.data.append([])
-        self.data[0].append({})  # Also this?
-        self.data[0][0]['resp'] = []  # Do we need these?
-        self.data[0][0]['stim'] = []  # This one too?
-        log.debug("Stack.data structure created: {0}".format(self.data))
         self.meta = {}  # Dictionary that will contain cellid, batch, modelname
         self.meta['cellid'] = cellid
         self.meta['batch'] = batch
@@ -109,9 +98,11 @@ class nems_stack:
         self.unresampled = []
         self.parm_fits = []  # List of fitted parameters for each nest
         self.fitted_modules = []  # List of modules with fitted parameters
-        self.mod_ids = []
         # self.valfrac=0.05 #Fraction of the data used to create each
         # validation nest
+
+    def set_data(self, data):
+        self.data = [data]
 
     def get_phi(self):
         return [module.get_phi() for module in self.modules]
@@ -133,315 +124,146 @@ class nems_stack:
         Note that during valmode, the estimation dataset that is returned is the
         last dataset fit.
         """
-
         if self.valmode and self.meta['nests'] > 0:
-            # new nested eval, doesn't require special evaluation procedure
-            # by modules. instead, all the remapping and collecting of val
-            # data from each nest handled inside this evaluation function.
-
-            # 2017-09-08- still something not quite right.
-            # 2017-10-06- working finally. this is new norm for cross-val
-            stack = self
-
-            try:
-                xval_idx = ut.utils.find_modules(stack, 'est_val.crossval')[0]
-            except BaseException:
-                xval_idx = 1
-
-            try:
-                mse_idx = ut.utils.find_modules(stack, 'metrics.mean_square_error')
-                mse_idx = int(mse_idx[0])
-            except BaseException:
-                mse_idx = len(self.modules)
-
-            log.info("Evaluating nested validation data: xvidx={0} mseidx={1}"
-                     .format(xval_idx, mse_idx))
-
-            # evaluate up to xval module (if necessary)
-            if start > xval_idx:
-                start = xval_idx
-            for ii in range(start, xval_idx):
-                log.info("eval {0} in valmode".format(ii))
-                stack.modules[ii].evaluate()
-
-            # go through each nest and evaluate stack, saving data stack to
-            # a placeholder (d_save). copy all keys from data stack except
-            # known metadata listed in exclude_keys. this allows for arbitrary
-            # new data elements to be created (stim2, etc)
-            exclude_keys = ['avgresp', 'poststim', 'fs', 'isolation', 'stimparam', 'filestate',
-                            'prestim', 'duration', 'est', 'stimFs', 'respFs',
-                            'resp_raw', 'pupil_raw']
-            include_keys = {}
-            d_save = {}
-            for cv_counter in range(0, stack.meta['nests']):
-                # for cv_counter in range(0,1):
-                stack.meta['cv_counter'] = cv_counter
-
-                # load in parameters for appropriate nested fit
-                st = 0
-                for midx in stack.fitted_modules:
-                    phi_old = stack.modules[midx].parms2phi()
-                    s = phi_old.shape
-                    # stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
-                    stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st + np.prod(s))])
-                    st += np.prod(s)
-
-                # evaluate stack for this nest up to before error metric
-                # modules
-                for ii in range(xval_idx, mse_idx):
-                    log.info("nest={0}, eval {1} in valmode".format(cv_counter, ii))
-                    stack.modules[ii].evaluate()
-
-                    # append data from this (nest,module) onto d_save
-                    # placeholders:
-                    if cv_counter == 0:
-                        include_keys[ii] = stack.modules[ii].d_out[0].keys() - exclude_keys
-                        d_save[ii] = copy.deepcopy(stack.modules[ii].d_out)
-                        log.info(include_keys[ii])
-                    for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
-                        if not d['est'] and cv_counter > 0:
-                            for k in include_keys[ii]:
-                                if d[k] is None or d[k] == []:
-                                    pass
-                                elif k == 'pupil' and d[k].ndim == 3 and d['resp'].shape[1] != d[k].shape[1]:
-                                    d2[k] = np.append(d2[k], d[k], axis=2)
-                                elif d[k].ndim == 3:
-                                    d2[k] = np.append(d2[k], d[k], axis=1)
-                                else:
-                                    d2[k] = np.append(d2[k], d[k], axis=0)
-
-            # save accumulated data stack back to main data stack
-
-            # figure out mapping to get val data back into original order
-            for ii in range(xval_idx, mse_idx):
-                jj = -1
-                for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
-                    if not d['est']:
-                        jj += 1  # count validation files only
-                        validx = np.concatenate(
-                            stack.modules[xval_idx].validx_sets[jj])
-                        mapidx = np.argsort(validx)
-                        for k in include_keys[ii]:
-                            if d2[k] is None or d[k] == []:
-                                d[k] = d2[k]
-                            elif k == 'pupil' and d[k].ndim == 3 and d2['resp'].shape[1] != d2[k].shape[1]:
-                                d[k] = d2[k][:, :, mapidx]
-                            elif d[k].ndim == 3:
-                                d[k] = d2[k][:, mapidx, :]
-                            elif d[k].ndim == 2:
-                                d[k] = d2[k][mapidx, :]
-                            else:
-                                d[k] = d2[k][mapidx]
-
-            # continue standard evaluation of later stack elements
-            for ii in range(mse_idx, len(self.modules)):
-                log.info("eval {0} in valmode".format(ii))
-                self.modules[ii].evaluate()
-
+            self._nested_evaluate(start)
         else:
-            # standard evaluation when not using nested cross-validation
-            for ii in range(start, len(self.modules)):
-                self.modules[ii].evaluate()
+            self._evaluate(start)
 
-    def evaluate_old(self, start=0):
-        """
-        DEPRECATED - new evaluate remove old nested code
-        """
+    def _nested_evaluate(self, start):
+        # new nested eval, doesn't require special evaluation procedure
+        # by modules. instead, all the remapping and collecting of val
+        # data from each nest handled inside this evaluation function.
 
-        if self.valmode and self.nests > 0:
-            # evaluate using the old nesting scheme devised by Noah
-            # this section is deprecated and should be deleted
+        # 2017-09-08- still something not quite right.
+        # 2017-10-06- working finally. this is new norm for cross-val
+        stack = self
 
-            log.info('Evaluating nested validation data')
-            mse_idx = ut.utils.find_modules(self, 'metrics.mean_square_error')
+        try:
+            xval_idx = ut.utils.find_modules(stack, 'est_val.crossval')[0]
+        except BaseException:
+            xval_idx = 1
+
+        try:
+            mse_idx = ut.utils.find_modules(stack, 'metrics.mean_square_error')
             mse_idx = int(mse_idx[0])
-            try:
-                xval_idx = ut.utils.find_modules(self, 'est_val.crossval')[0]
-            except BaseException:
-                xval_idx = 1
+        except BaseException:
+            mse_idx = len(self.modules)
 
-            if start > xval_idx:
-                start = xval_idx
-            for ii in range(start, xval_idx + 1):
-                self.modules[ii].evaluate()
+        log.info("Evaluating nested validation data: xvidx={0} mseidx={1}"
+                    .format(xval_idx, mse_idx))
 
-            start = xval_idx + 1
-            for ii in range(start, mse_idx):
-                for cv_counter in range(0, self.nests):
-                    log.info("Eval %d in valmode, nest=%d", cv_counter, ii)
-                    st = 0
-                    for m in self.fitted_modules:
-                        phi_old = self.modules[m].parms2phi()
-                        s = phi_old.shape
-                        self.modules[m].phi2parms(
-                            self.parm_fits[cv_counter][st:(st + np.prod(s))])
-                        st += np.prod(s)
-                    self.modules[ii].evaluate(nest=cv_counter)
-            ut.utils.concatenate_helper(
-                self, start=xval_idx + 1, end=mse_idx + 1)
+        # evaluate up to xval module (if necessary)
+        if start > xval_idx:
+            start = xval_idx
+        for ii in range(start, xval_idx):
+            log.info("eval {0} in valmode".format(ii))
+            stack.modules[ii].evaluate()
 
-            for ii in range(mse_idx, len(self.modules)):
-                self.modules[ii].evaluate()
+        # go through each nest and evaluate stack, saving data stack to
+        # a placeholder (d_save). copy all keys from data stack except
+        # known metadata listed in exclude_keys. this allows for arbitrary
+        # new data elements to be created (stim2, etc)
+        exclude_keys = ['avgresp', 'poststim', 'fs', 'isolation', 'stimparam', 'filestate',
+                        'prestim', 'duration', 'est', 'stimFs', 'respFs',
+                        'resp_raw', 'pupil_raw']
+        include_keys = {}
+        d_save = {}
+        for cv_counter in range(0, stack.meta['nests']):
+            # for cv_counter in range(0,1):
+            stack.meta['cv_counter'] = cv_counter
 
-        elif self.valmode and self.meta['nests'] > 0:
-            # new nested eval, doesn't require special evaluation procedure
-            # by modules. instead, all the remapping and collecting of val
-            # data from each nest handled inside this evaluation function.
+            # load in parameters for appropriate nested fit
+            st = 0
+            for midx in stack.fitted_modules:
+                phi_old = stack.modules[midx].parms2phi()
+                s = phi_old.shape
+                # stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
+                stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st + np.prod(s))])
+                st += np.prod(s)
 
-            # 2017-09-08- still something not quite right.
-            # 2017-10-06- working finally. this is new norm for cross-val
-            stack = self
-
-            try:
-                xval_idx = ut.utils.find_modules(stack, 'est_val.crossval')[0]
-            except BaseException:
-                xval_idx = 1
-
-            try:
-                mse_idx = ut.utils.find_modules(
-                    stack, 'metrics.mean_square_error')
-                mse_idx = int(mse_idx[0])
-            except BaseException:
-                mse_idx = len(self.modules)
-
-            log.info("Evaluating nested validation data: xvidx={0} mseidx={1}"
-                     .format(xval_idx, mse_idx))
-
-            # evaluate up to xval module (if necessary)
-            if start > xval_idx:
-                start = xval_idx
-            for ii in range(start, xval_idx):
-                log.info("eval {0} in valmode".format(ii))
+            # evaluate stack for this nest up to before error metric
+            # modules
+            for ii in range(xval_idx, mse_idx):
+                log.info("nest={0}, eval {1} in valmode".format(cv_counter, ii))
                 stack.modules[ii].evaluate()
 
-            # go through each nest and evaluate stack, saving data stack to
-            # a placeholder (d_save). copy all keys from data stack except
-            # known metadata listed in exclude_keys. this allows for arbitrary
-            # new data elements to be created (stim2, etc)
-            exclude_keys = ['avgresp', 'poststim', 'fs', 'isolation', 'stimparam', 'filestate',
-                            'prestim', 'duration', 'est', 'stimFs', 'respFs',
-                            'resp_raw', 'pupil_raw']
-            include_keys = {}
-            d_save = {}
-            for cv_counter in range(0, stack.meta['nests']):
-                # for cv_counter in range(0,1):
-                stack.meta['cv_counter'] = cv_counter
-
-                # load in parameters for appropriate nested fit
-                st = 0
-                for midx in stack.fitted_modules:
-                    phi_old = stack.modules[midx].parms2phi()
-                    s = phi_old.shape
-                    # stack.modules[midx].phi2parms(stack.parm_fits[cv_counter][st:(st+np.prod(s))])
-                    stack.modules[midx].phi2parms(
-                        stack.parm_fits[cv_counter][st:(st + np.prod(s))])
-                    st += np.prod(s)
-
-                # evaluate stack for this nest up to before error metric
-                # modules
-                for ii in range(xval_idx, mse_idx):
-                    log.info("nest={0}, eval {1} in valmode"
-                             .format(cv_counter, ii))
-                    stack.modules[ii].evaluate()
-
-                    # append data from this (nest,module) onto d_save
-                    # placeholders:
-                    if cv_counter == 0:
-                        include_keys[ii] = stack.modules[ii].d_out[0].keys(
-                        ) - exclude_keys
-                        d_save[ii] = copy.deepcopy(stack.modules[ii].d_out)
-                        log.info(include_keys[ii])
-                    for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
-                        if not d['est'] and cv_counter > 0:
-                            for k in include_keys[ii]:
-                                if d[k] is None or d[k] == []:
-                                    pass
-                                elif k == 'pupil' and d[k].ndim == 3 and d['resp'].shape[1] != d[k].shape[1]:
-                                    d2[k] = np.append(d2[k], d[k], axis=2)
-                                elif d[k].ndim == 3:
-                                    d2[k] = np.append(d2[k], d[k], axis=1)
-                                else:
-                                    d2[k] = np.append(d2[k], d[k], axis=0)
-
-            # save accumulated data stack back to main data stack
-
-            # figure out mapping to get val data back into original order
-            for ii in range(xval_idx, mse_idx):
-                jj = -1
+                # append data from this (nest,module) onto d_save
+                # placeholders:
+                if cv_counter == 0:
+                    include_keys[ii] = stack.modules[ii].d_out[0].keys() - exclude_keys
+                    d_save[ii] = copy.deepcopy(stack.modules[ii].d_out)
+                    log.info(include_keys[ii])
                 for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
-                    if not d['est']:
-                        jj += 1  # count validation files only
-                        validx = np.concatenate(
-                            stack.modules[xval_idx].validx_sets[jj])
-                        mapidx = np.argsort(validx)
+                    if not d['est'] and cv_counter > 0:
                         for k in include_keys[ii]:
-                            if d2[k] is None or d[k] == []:
-                                d[k] = d2[k]
-                            elif k == 'pupil' and d[k].ndim == 3 and d2['resp'].shape[1] != d2[k].shape[1]:
-                                d[k] = d2[k][:, :, mapidx]
+                            if d[k] is None or d[k] == []:
+                                pass
+                            elif k == 'pupil' and d[k].ndim == 3 and d['resp'].shape[1] != d[k].shape[1]:
+                                d2[k] = np.append(d2[k], d[k], axis=2)
                             elif d[k].ndim == 3:
-                                d[k] = d2[k][:, mapidx, :]
-                            elif d[k].ndim == 2:
-                                d[k] = d2[k][mapidx, :]
+                                d2[k] = np.append(d2[k], d[k], axis=1)
                             else:
-                                d[k] = d2[k][mapidx]
+                                d2[k] = np.append(d2[k], d[k], axis=0)
 
-            # continue standard evaluation of later stack elements
-            for ii in range(mse_idx, len(self.modules)):
-                log.info("eval {0} in valmode".format(ii))
-                self.modules[ii].evaluate()
+        # save accumulated data stack back to main data stack
 
-        else:
-            # standard evaluation when not using nested cross-validation
-            for ii in range(start, len(self.modules)):
-                self.modules[ii].evaluate()
+        # figure out mapping to get val data back into original order
+        for ii in range(xval_idx, mse_idx):
+            jj = -1
+            for d, d2 in zip(stack.modules[ii].d_out, d_save[ii]):
+                if not d['est']:
+                    jj += 1  # count validation files only
+                    validx = np.concatenate(
+                        stack.modules[xval_idx].validx_sets[jj])
+                    mapidx = np.argsort(validx)
+                    for k in include_keys[ii]:
+                        if d2[k] is None or d[k] == []:
+                            d[k] = d2[k]
+                        elif k == 'pupil' and d[k].ndim == 3 and d2['resp'].shape[1] != d2[k].shape[1]:
+                            d[k] = d2[k][:, :, mapidx]
+                        elif d[k].ndim == 3:
+                            d[k] = d2[k][:, mapidx, :]
+                        elif d[k].ndim == 2:
+                            d[k] = d2[k][mapidx, :]
+                        else:
+                            d[k] = d2[k][mapidx]
 
-    # create instance of mod and append to stack
-    def append(self, mod=None, **xargs):
-        """
-        Creates an instance of a module and appends it to the stack. Evaluates
-        module in doing so.
-        """
-        if mod is None:
-            raise ValueError('stack.append: module not specified')
-        else:
-            m = mod(self, **xargs)
-        self.append_instance(m)
+        # continue standard evaluation of later stack elements
+        for ii in range(mse_idx, len(self.modules)):
+            log.info("eval {0} in valmode".format(ii))
+            self.modules[ii].evaluate()
 
-    def append_instance(self, mod=None):
-        """Same as append but takes an instance of a module instead
-        of the class to preserve existing **xargs. For use with insert/remove.
-        Could maybe merge these with an added boolean arg? Wasn't sure if that
-        would interfere with the **xargs.
+    def _evaluate(self, start):
+        # Clear the evaluation stack (but keep the input data). Again, I'm not
+        # thrilled with this approach, but let's keep it for now.
+        self.data = self.data[:start+1]
 
-        @author: jacob
+        # This is the input to the starting module
+        recording = self.data[start]
 
-        """
-        if not mod:
-            raise ValueError('stack.append: module not specified')
-            # mod=nm.nems_module(self)
-        self.modules.append(mod)
-        self.data.append(mod.d_out)
-        self.mod_names.append(mod.name)
-        self.mod_ids.append(mod.idm)
+        for module in self.modules[start:]:
+            # TODO: I don't see why we need to store d_in and d_out on the
+            # modules, but I am going to leave this in for now. By putting this
+            # here, we can ensure that the updated modules don't actually have
+            # to deal with this!
+            module.d_in = recording
 
-        mod.evaluate()
+            # Note that module.evaluate should return a *new* recording with the
+            # updated data.
+            recording = module.evaluate(recording)
 
-    def append_no_eval(self, mod=None, **xargs):
-        """
-        Creates an instance of a module and appends it to the stack. Evaluates
-        module in doing so.
+            # Save it to the module as well.
+            module.d_out = recording
 
-        APPEARS TO BE A BUG. Is input a module instance? Or a pointer to the function?
-        """
-        if mod is None:
-            raise ValueError('stack.append: module not specified')
-        else:
-            m = mod(self, **xargs)
-        self.modules.append(mod)
-        self.data.append(mod.d_out)
-        self.mod_names.append(mod.name)
-        self.mod_ids.append(mod.idm)
+            # And to our own internal stack datastructure.
+            self.data.append(recording)
+
+    def append(self, module):
+        recording_in = self.data[-1]
+        module.init(recording_in)
+        recording_out = module.evaluate(recording_in)
+        self.modules.append(module)
+        self.data.append(recording_out)
 
     def insert(self, mod=None, idx=None, **xargs):
         """Insert a module at index in stack, then evaluate the inserted
@@ -553,9 +375,7 @@ class nems_stack:
 
         m = self.modules.pop(-1)
         self.data.pop(-1)
-        self.mod_names.pop(-1)
         # Doesn't look like this one is being used yet?
-        # self.mod_ids.pop(-1)
         return m
 
     def popmodule(self):
@@ -580,6 +400,7 @@ class nems_stack:
         for idx, m in enumerate(self.modules):
             if m.auto_plot:
                 plot_set.append(idx)
+
         # outer grid corresponding to a subplot for each of the modules.
         outer = gridspec.GridSpec(len(plot_set), 1)
 
@@ -589,9 +410,10 @@ class nems_stack:
 
             # grispec
             try:
-                # if the module specific plotting uses an inner subplot grid, passes the outer grid
-                # this implementation is quite nasty since it relies on an error to choose between cases
-                # although passing the handlers of figure and outer grid to the plotting function
+                # if the module specific plotting uses an inner subplot grid,
+                # passes the outer grid this implementation is quite nasty since
+                # it relies on an error to choose between cases although passing
+                # the handlers of figure and outer grid to the plotting function
                 # seems to be what matplotlib wants us to do .
                 self.modules[idx].do_plot(self.modules[idx], figure = fig ,outer=outer[sp]) #, wspace=0.2, hspace=0.2)
             except BaseException:
@@ -599,15 +421,8 @@ class nems_stack:
                 fig.add_subplot(mod_ax)
                 self.modules[idx].do_plot(self.modules[idx])
 
-            # if idx==plot_set[0]:
-            #    plt.title("{0} - {1} - {2}".format(self.meta['cellid'],self.meta['batch'],self.meta['modelname']))
- 
         fig.suptitle(
             "{0} - {1} - {2}".format(self.meta['cellid'], self.meta['batch'], self.meta['modelname']))
-
-        # plt.tight_layout()
-        # TODO: Use gridspec to fix spacing issue? Addition of labels makes
-        #      the subplots look "scrunched" vertically.
 
     def quick_plot_save(self, mode='png'):
         """Copy of quick_plot for easy save or embed.
@@ -637,13 +452,13 @@ class nems_stack:
         for idx, m in enumerate(self.modules):
             if m.auto_plot:
                 plot_set.append(idx)
-                
+
         for sp, idx in enumerate(plot_set):
             m=self.modules[idx]
             log.info(self.mod_names[idx])
             plt.subplot(len(plot_set), 1, sp+1)
             m.do_plot(m)
-            
+
         if len(plot_set)<6:
             plt.tight_layout()
 

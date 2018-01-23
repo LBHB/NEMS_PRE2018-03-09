@@ -40,7 +40,7 @@ class Recording:
             s.save(directory)
         pass
 
-    def split_at_rep(self, fraction):
+    def split_at_epoch(self, fraction):
         '''
         Calls split_at_rep() on all signal objects in this recording.
         '''
@@ -48,7 +48,7 @@ class Recording:
         left = {}
         right = {}
         for s in self.signals.values():
-            (l, r) = s.split_at_rep(fraction)
+            (l, r) = s.split_at_epoch(fraction)
             left[l.name] = l
             right[r.name] = r
         return (Recording(signals=left), Recording(signals=right))
@@ -70,7 +70,7 @@ class Recording:
             right[r.name] = r
         return (Recording(signals=left), Recording(signals=right))
 
-    def jackknifed_by_reps(self, nsplits, split_idx, signal_names=None,
+    def jackknifed_by_epochs(self, regex, signal_names=None,
                            invert=False):
         '''
         By default, calls jackknifed_by_reps on all signals and returns a new
@@ -82,25 +82,25 @@ class Recording:
         else:
             signals = self.signals
 
-        kw = dict(nsplits=nsplits, split_idx=split_idx, invert=invert)
-        split = {n: s.jackknifed_by_reps(**kw) for n, s in signals.items()}
+        kw = dict(regex=regex, invert=invert)
+        split = {n: s.jackknifed_by_epochs(**kw) for n, s in signals.items()}
         return Recording(signals=split)
 
-    def jackknifed_by_time(self, nsplits, split_idx, signal_names=None,
+    def jackknifed_by_time(self, nsplits, split_idx, only_signals=None,
                            invert=False):
         '''
         By default, calls jackknifed_by_time on all signals and returns a new
         set of data. If you would only like to jackknife certain signals,
         provide their names in a list to optional argument 'only_signals'.
         '''
-        if signal_names is not None:
-            signals = {n: self.signals[n] for n in signal_names}
-        else:
-            signals = self.signals
 
-        kw = dict(nsplits=nsplits, split_idx=split_idx, invert=invert)
-        split = {n: s.jackknifed_by_time(**kw) for n, s in signals.items()}
-        return Recording(signals=split)
+        new_sigs = {}
+        for sn in self.signals.keys():
+            if (not only_signals or sn in set(only_signals)):
+                s = sn
+                new_sigs[sn] = s.jackknifed_by_time(nsplits, split_idx,
+                                                    invert=invert)
+        return Recording(signals=new_sigs)
 
 
     # def get_interval(self, interval):
@@ -126,13 +126,3 @@ class Recording:
             merged_signals[signal_name] = Signal.concatenate_time(signals)
 
         return Recording(merged_signals)
-
-    def copy(self):
-        signals = self.signals.copy()
-        return Recording(signals)
-
-    def get_signal(self, signal_name):
-        return self.signals[signal_name]
-
-    def set_signal(self, signal_name, data):
-        self.signals[signal_name] = data

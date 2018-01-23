@@ -16,7 +16,48 @@ from nems.utilities import io
 from nems.data.api import Recording, Signal
 
 
-def _load_row(row, fs):
+def arrays_to_recording(arrays, fs, recording_name):
+    # Build a dataframe that contains the indices of the trial starts and ends.
+    # This is necessary because the internal representation used by the
+    # Signal/Recording objects is a single long timeseries (shape n_channels x
+    # n_timepoints). The trial_info is used to convert this timeseries back into
+    # a 3D array of (n_trials, n_channels, n_times) when needed. Right now the
+    # data is in the format (n_chans, n_trials, n_time). When creating the
+    # Signal/Recording objects, this will be reshaped into (n_chans x n_time).
+
+    # Pull out a random array from the dictionary. They should all be similar
+    # enough that we can get the n_trials and n_time values.
+    template = list(arrays.values())[0]
+    _, n_trials, n_time = template.shape
+
+    # I'm not making any special provision here to account for the prestim and
+    # poststim silence. We could certainly do that at some point.
+    epochs = pd.DataFrame({
+        'start_index': np.arange(n_trials)*n_time,
+        'end_index': np.arange(n_trials)*n_time + n_time,
+    })
+
+    # Make sure that all datasets have the same number of trials. If not,
+    # something went wrong.
+    n_trials = [v.shape[1] for v in arrays.values()]
+    if len(set(n_trials)) != 1:
+        raise ValueError("Data does not have same number of events")
+
+    # Now, reshape each dataset into a long timeseries and createa Signal object
+    # from it. The set of signals will be saved as a recording.
+    signals = {}
+    for k, v in arrays.items():
+        matrix = v.reshape((len(v), -1)).astype(np.float)
+        chans = [''.format(c) for c in np.arange(len(matrix))]
+        signals[k] = Signal(fs, matrix, k, recording_name, chans=chans,
+                            epochs=epochs)
+    return Recording(signals)
+
+
+def _load_row(row, fs, key):
+    # The key is a tuple of cell ID, dataset ID.
+    recording_name = '{}_{}'.format(*key)
+
     # Using MATLAB-like syntax, construct the options that will be used to
     # determine the actual filenames that contain the data we need.
     stim_options = {
@@ -48,22 +89,6 @@ def _load_row(row, fs):
 
     resp = io.load_matlab_matrix(respfile, 'r', repaxis=1, eventaxis=2, timeaxis=0)
 
-    # Build a dataframe that contains the indices of the trial starts and ends.
-    # This is necessary because the internal representation used by the
-    # Signal/Recording objects is a single long timeseries (shape n_channels x
-    # n_timepoints). The trial_info is used to convert this timeseries back into
-    # a 3D array of (n_trials, n_channels, n_times) when needed. Right now the
-    # data is in the format (n_chans, n_trials, n_time). When creating the
-    # Signal/Recording objects, this will be reshaped into (n_chans x n_time).
-    n_chans, n_trials, n_time = stim1.shape
-
-    # I'm not making any special provision here to account for the prestim and
-    # poststim silence. We could certainly do that at some point.
-    trial_info = pd.DataFrame({
-        'start_index': np.arange(n_trials)*n_time,
-        'end_index': np.arange(n_trials)*n_time + n_time,
-    })
-
     # Build a dictionary so we can loop through all of our data more quickly in
     # the next few lines of code.
     data = {
@@ -75,29 +100,13 @@ def _load_row(row, fs):
         'resp': resp,
     }
 
-    # Make sure that all datasets have the same number of trials. If not,
-    # something went wrong.
-    n_trials = [v.shape[1] for v in data.values()]
-    if len(set(n_trials)) != 1:
-        raise ValueError("Data does not have same number of events")
-
-    # Now, reshape each dataset into a long timeseries and createa Signal object
-    # from it. The set of signals will be saved as a recording.
-    signals = {}
-    for k, v in data.items():
-        matrix = v.reshape((len(v), -1)).astype(np.float)
-        chans = [''.format(c) for c in np.arange(len(matrix))]
-        signals[k] = Signal(100, matrix, k, cellid, chans=chans,
-                            trial_info=trial_info)
-    recording = Recording(signals)
-
-    return recording
+    return arrays_to_recording(data, fs, recording_name)
 
 
 def load_data(data, fs=100):
     # Load each set of files and concatenate them all together into one long
-    # recording.
-    recordings = [_load_row(row, fs) for _, row in data.iterrows()]
+    # recording. Here, the key is a tuple of ('
+    recordings = [_load_row(row, fs, key) for key, row in data.iterrows()]
     return Recording.concatenate_recordings(recordings)
 
 

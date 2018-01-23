@@ -195,7 +195,7 @@ def stretch_trials(data):
 
 
 def mini_fit(stack, mods=['filters.weight_channels',
-                          'filters.fir', 'filters.stp']):
+                          'filters.fir', 'filters.stp'], **kwargs):
     """
     Helper function that module coefficients in mod list prior to fitting
     all the model coefficients. This is often helpful, as it gets the model in the
@@ -207,10 +207,11 @@ def mini_fit(stack, mods=['filters.weight_channels',
     """
     if 'mini_fit' in stack.meta.keys() and not stack.meta['mini_fit']:
         return
-    
+
     log.info("Running mini_fit on modules: {0}".format(', '.join(mods)))
-    stack.append(nems.modules.metrics.mean_square_error, shrink=0.05)
-    stack.error = stack.modules[-1].error
+    module = nems.modules.metrics.mean_square_error(stack, shrink=0.05, **kwargs)
+    stack.append(module)
+    stack.error = module.error
     fitidx = []
     for i in mods:
         try:

@@ -1,13 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Modules that apply a non-pupil dependent nonlinearity to the data
-
-Created on Fri Aug  4 13:39:49 2017
-
-@author: shofer
-"""
-
 import logging
 log = logging.getLogger(__name__)
 
@@ -33,40 +23,34 @@ class gain(nems_module):
                 nems.utilities.plot.io_scatter_smooth, nems.utilities.plot.plot_spectrogram]
     user_editable_fields = ['input_name',
                             'output_name', 'fit_fields', 'nltype', 'phi']
-    phi = np.array([1])
+    phi = None
     nltype = 'dlog'
+    fit_fields = ['phi']
 
-    def my_init(self, nltype='dlog', fit_fields=['phi'], phi=None):
+    def init(self, recording):
         """
         nltype: type of nonlinearity
         fit_fields: name of fitted parameters
         phi: initial values for fitted parameters expects 2d numpy matrix
         """
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
-        self.fit_fields = fit_fields
-        self.nltype = nltype
-        
-        if nltype == 'dlog':
-            self.do_plot = self.plot_fns[2]
-        else:
-            self.do_plot = self.plot_fns[1]
-            
-        if phi is None:
+        super().init(recording)
+
+        self.do_plot = self.plot_fns[2] \
+            if self.nltype == 'dlog' else self.plot_fns[1]
+
+        if self.phi is None:
             # default depends on the nl type
-            if nltype == 'dexp':
-                phi = np.array([[0,1,1,1]])
-            elif nltype == 'dlog':
-                phi = np.array([[-2]])
+            if self.nltype == 'dexp':
+                self.phi = np.array([[0,1,1,1]])
+            elif self.nltype == 'dlog':
+                self.phi = np.array([[-2]])
             else:
-                phi = np.array([[1]])
-        
-        self.phi=phi
-        
+                self.phi = np.array([[1]])
+
     def dlog_fn(self, X):
         # threshold input so that minimum of X is 1 and min output is 0
         offset = self.phi[0,0]
-           
+
         # soften effects of more extreme offsets
         if offset>4:
             adjoffset=4+(offset-4)/50
@@ -74,26 +58,26 @@ class gain(nems_module):
             adjoffset=-4+(offset+4)/50
         else:
             adjoffset=offset
-        
-        d = 10.0**adjoffset 
-        
+
+        d = 10.0**adjoffset
+
         # Offset from zero
         if self.phi.shape[0] > 1:
             zeroer = self.phi[1,:]
         else:
             zeroer = 0
-        
+
         # Zero below threshold
         if self.phi.shape[0] > 2:
-            zbt = self.phi[2,:]           
+            zbt = self.phi[2,:]
         else:
             zbt = 0
-        
+
         X[X<zbt] = zbt
         X = X-zbt
-        
+
         Y = np.log((X + d)/d) + zeroer
-        
+
         #s_indices = (X + self.phi[0, 0]) <= 1
         #X[s_indices] = 1 - self.phi[0, 0]
         #Y = np.log(X + self.phi[0, 0])
@@ -129,32 +113,6 @@ class gain(nems_module):
         Y = a + b / (1 + np.exp(-(X - c) / d))
         return(Y)
 
-    def my_eval(self, X):
-        Z = getattr(self, self.nltype + '_fn')(X)
-        return(Z)
-
-    def evaluate(self):
-        del self.d_out[:]
-        # create a copy of each input variable
-        for i, d in enumerate(self.d_in):
-            self.d_out.append(d.copy())
-            
-        X=self.unpack_data(self.input_name,est=True)
-        Z = self.my_eval(X)
-        if self.norm_output:
-            # compute std() of est data output and then normalize
-            self.norm_factor=np.std(np.abs(Z),axis=1,keepdims=True)
-            Z=Z/self.norm_factor
-        self.pack_data(Z,self.output_name,est=True)
-        
-        if self.parent_stack.valmode:
-            X=self.unpack_data(self.input_name,est=False)
-            Z = self.my_eval(X)
-            if self.norm_output:
-                # don't recalc. just use factor that normalizes max of
-                # estimation data to be 1
-                Z=Z/self.norm_factor
-            self.pack_data(Z,self.output_name,est=False)
-            
-
-
+    def simple_eval(self, x):
+        fn = getattr(self, self.nltype + '_fn')
+        return fn(x)

@@ -8,7 +8,7 @@ from scipy import signal
 ################################################################################
 # Channel weighting
 ################################################################################
-def weight_channels_local(x, weights, baseline=None):
+def weight_channels(x, weights):
     '''
     Parameters
     ----------
@@ -22,8 +22,6 @@ def weight_channels_local(x, weights, baseline=None):
         input channels for that given output. The length of the row must be
         equal to the number of channels in the input array
         (e.g., `x.shape[-3] == coefficients.shape[-1]`).
-    baseline : 1d array
-        Offset of the channels
 
     Returns
     -------
@@ -33,16 +31,7 @@ def weight_channels_local(x, weights, baseline=None):
         (the channel dimension). This dimension's length will be equivalent to
         the length of the coefficients.
     '''
-    # We need to shift the channel dimension to the second-to-last dimension
-    # so that matmul will work properly (it operates on the last two
-    # dimensions of the inputs and treats the rest of the dimensions as
-    # stacked matrices).
-    x = np.swapaxes(x, -3, -2)
-    x = weights @ x
-    x = np.swapaxes(x, -3, -2)
-    if baseline is not None:
-        x += baseline[..., np.newaxis, np.newaxis]
-    return x
+    return weights @ x
 
 
 class WeightChannels(Module):
@@ -54,44 +43,30 @@ class WeightChannels(Module):
     """
     name = 'filters.weight_channels'
     user_editable_fields = ['input_name', 'output_name', 'fit_fields',
-                            'num_dims', 'num_chans', 'baseline', 'coefs', 'phi', 'parm_fun']
+                            'num_dims', 'num_chans', 'coefs', 'phi', 'parm_fun']
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
-    coefs = None
-    num_chans = 1
+
     parm_fun = None
     parm_type = None
+    output_channels = 1
 
-    def my_init(self, num_dims=0, num_chans=1, baseline=[[0]],
-                fit_fields=None, parm_type=None, parm_fun=None, phi=[[0]]):
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
-        if self.d_in and not(num_dims):
-            num_dims = self.d_in[0][self.input_name].shape[0]
-        self.num_dims = num_dims
-        self.num_chans = num_chans
-        self.baseline=np.ones([num_chans,1])*baseline
-        self.fit_fields = fit_fields
-        if parm_type:
-            if parm_type == 'gauss':
-                self.parm_fun = self.gauss_fn
-                m = np.matrix(np.linspace(
-                    1, self.num_dims, self.num_chans + 2))
-                m = m[:, 1:-1] / self.num_dims
-                s = np.ones([self.num_chans, 1]) / 4
-                phi = np.concatenate([m.transpose(), s], 1)
+    def init(self, recording):
+        super().init(recording)
+        if self.parm_type == 'gauss':
+            self.parm_fun = self.gauss_fn
+            m = np.linspace(1, self.output_channels, self.output_channels + 2)
+            m = m[..., np.newaxis]
+            m = m[:, 1:-1] / self.input_channels
+            s = np.ones([self.output_channels, 1]) / 4
+            phi = np.concatenate([m.transpose(), s], 1)
+            self.phi = phi
             self.coefs = self.parm_fun(phi)
-            if not fit_fields:
-                self.fit_fields = ['phi']
+            self.fit_fields = ['phi']
         else:
-            # self.coefs=np.ones([num_chans,num_dims])/num_dims/100
-            self.coefs = np.random.normal(
-                1, 0.1, [num_chans, num_dims]) / num_dims
-            if not fit_fields:
-                self.fit_fields = ['coefs']
-        self.parm_type = parm_type
-        self.phi = np.array(phi)
-        self.baseline = np.zeros(num_chans)
+            shape = (self.output_channels, self.input_channels)
+            self.coefs = np.random.normal(1, 0.1, shape) / self.input_channels
+            self.fit_fields = ['coefs']
 
     def gauss_fn(self, phi):
         coefs = np.zeros([self.num_chans, self.num_dims])
@@ -110,18 +85,14 @@ class WeightChannels(Module):
             coefs[i, :] = coefs[i, :] / np.sum(coefs[i, :])
         return coefs
 
-    def my_eval(self, x):
-        # TODO: baseline was an option on this class; however, it was never
-        # integrated in. In NARF, it was part of the fitting.
+    def simple_eval(self, x):
         if self.parm_fun:
             self.coefs = self.parm_fun(self.phi)
             coefs = self.coefs
         else:
             coefs = self.coefs
-        return weight_channels_local(x, coefs)
+        return weight_channels(x, coefs)
 
-class weight_channels(WeightChannels):
-    pass
 
 ################################################################################
 # FIR filtering
@@ -137,17 +108,9 @@ def get_zi(b, x):
     return signal.lfilter(b, [1], null_data, zi=zi)[1]
 
 
-def fir_filter(x, coefficients, baseline=None, pad=False, bank_count=1):
-    if pad:
-        # TODO: This may become a moot option after Ivar's revamp of the data
-        # loading system.
-        pad_width = coefficients.shape[-1] * 2
-        padding = [(0, 0)] * x.ndim
-        padding[-1] = (0, pad_width)
-        x = np.pad(x, padding, mode='constant')
+def fir_filter(x, coefficients, baseline=None, bank_count=1):
 
     result = []
-    x = x.swapaxes(0, -3)
     for x, c in zip(x, coefficients):
         old_shape = x.shape
         x = x.ravel()
@@ -157,10 +120,8 @@ def fir_filter(x, coefficients, baseline=None, pad=False, bank_count=1):
         result.append(r[np.newaxis])
     result = np.concatenate(result)
 
-    if pad:
-        result = result[..., :-pad_width]
-
     if bank_count>1:
+        raise NotImplementedError
         # reshape inputs so that filter is summed separately across each bank
         # need to test this!
         s=list(result.shape)
@@ -170,12 +131,12 @@ def fir_filter(x, coefficients, baseline=None, pad=False, bank_count=1):
         #print("{0},{1}".format(ts0,ts1))
         result=np.reshape(result,s[:-4]+[ts0,ts1]+s[-2:])
         result = np.sum(result, axis=-4)
-    else:
-        result = np.sum(result, axis=-3, keepdims=True)
+
+    result = np.sum(result, axis=0, keepdims=True)
 
     if baseline is not None:
         result += baseline
-        
+
     return result
 
 
@@ -191,15 +152,15 @@ class FIR(Module):
                             'num_dims','num_coefs','coefs','baseline','random_init','bank_count']
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
-    coefs = None
-    baseline = np.zeros([1, 1])
-    num_dims = 0
-    random_init = False
-    num_coefs = 20
-    bank_count=1
 
-    def my_init(self, num_dims=0, num_coefs=20, baseline=0, fit_fields=[
-                'baseline', 'coefs'], random_init=False, coefs=None, bank_count=1):
+    coefs = None
+    num_coefs = 20
+    baseline = 0
+    fit_fields = ['baseline', 'coefs']
+    random_init = False
+    bank_count = 1
+
+    def init(self, recording):
         """
         num_dims: number of stimulus channels (y axis of STRF)
         num_coefs: number of temporal channels of STRF
@@ -207,30 +168,20 @@ class FIR(Module):
         fit_fields: names of fitted parameters
         random: randomize initial values of fir coefficients
         """
-        self.field_dict = locals()
-        self.field_dict.pop('self', None)
-        if self.d_in and not(num_dims):
-            num_dims = self.d_in[0][self.input_name].shape[0]
-        self.num_dims = num_dims
-        if bank_count<=1:
-            self.bank_count=1
-        else:
-            self.bank_count=bank_count
-        self.num_coefs = num_coefs
-        self.baseline[0] = baseline
-        self.random_init = random_init
-        if coefs:
-            self.coefs = coefs
-        elif random_init is True:
-            self.coefs = np.random.normal(
-                loc=0.0, scale=0.0025, size=[num_dims, num_coefs])
-        else:
-            self.coefs = np.zeros([num_dims, num_coefs])
-        self.fit_fields = fit_fields
+        super().init(recording)
+        if self.coefs is None:
+            shape = self.input_channels, self.num_coefs
+            if self.random_init:
+                self.coefs = np.random.normal(loc=0.0, scale=0.0025,
+                                              size=shape)
+            else:
+                self.coefs = np.zeros(shape)
+
         self.do_trial_plot = self.plot_fns[0]
 
-    def my_eval(self, x):
-        return fir_filter(x, self.coefs, self.baseline, bank_count=self.bank_count)
+    def simple_eval(self, x):
+        return fir_filter(x, self.coefs, self.baseline,
+                          bank_count=self.bank_count)
 
     def get_strf(self):
         wc = self.parent_stack \
@@ -263,8 +214,8 @@ class stp(Module):
     dep_only=False
     num_channels=1
     num_dims=1
-    
-    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None, 
+
+    def my_init(self, num_dims=0, num_channels=1, u=None, tau=None, offset_in=None,
                 crosstalk=0, fit_fields=['tau','u']):
 
         """
