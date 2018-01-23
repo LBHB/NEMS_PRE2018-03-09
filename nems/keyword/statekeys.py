@@ -206,7 +206,7 @@ def pupwgtctl(stack):
     """
 
     # call pupwgt with different weight_type
-    statewgt(stack,weight_type='linearctl')
+    pupwgt(stack,weight_type='linearctl')
 
 
 matches = ['state','psthpred','beh','pup']
