@@ -16,12 +16,13 @@ def remove_nans(runclass, options, r, p=None):
     parms = options
     if p is not None:
     
-        if runclass=='PPS_VOC':
+        if runclass=='VOC':
             # last two stim are vocalizations, first 19 are pip sequences. This is for VOC
             prestim=2
             poststim=0.5
             duration=3
             r = r[0:int(parms['rasterfs']*(prestim+duration+poststim)),:,-2:,:];
+            p = p[0:int(parms['rasterfs']*(prestim+duration+poststim)),:,-2:];
             
         elif runclass=='PTD':
             # Dropping any reps in which there were Nans for one or more stimuli (quick way
@@ -58,7 +59,7 @@ def remove_nans(runclass, options, r, p=None):
             
     else:
         
-        if runclass=='PPS_VOC':
+        if runclass=='VOC':
             # last two stim are vocalizations, first 19 are pip sequences. This is for VOC
             prestim=2
             poststim=0.5

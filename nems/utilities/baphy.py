@@ -698,7 +698,7 @@ def load_site_raster(batch, site, options, runclass=None, rawid=None):
     a_p=[] # classify as active or passive based on respfile name
     
     for i, cid in enumerate(cellids):
-        d=db.get_batch_cell_data(batch,cid)
+        d=db.get_batch_cell_data(batch,cid,rawid=rawid)
         respfile=nu.baphy.spike_cache_filename2(d['raster'],parms)
         for j, rf in enumerate(respfile):
             rts=nu.io.load_matlab_matrix(rf,key="r")
@@ -761,7 +761,11 @@ def load_pup_raster(batch, site, options,runclass=None,rawid=None):
     
     try: active_passive = options['active_passive'];
     except: active_passive='both';
+    
+    try: derivative=options['derivative'];
+    except: derivative=False;
 
+    
     options['pupil']=1;
 
     d=db.get_batch_cell_data(batch,rawid=rawid)
@@ -779,6 +783,7 @@ def load_pup_raster(batch, site, options,runclass=None,rawid=None):
     
     files = pd.Series(files)
     
+
     pupfile=nu.baphy.pupil_cache_filename2(files,options)
     a_p = []
     for j, rf in enumerate(pupfile):

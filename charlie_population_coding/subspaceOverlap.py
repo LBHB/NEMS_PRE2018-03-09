@@ -23,7 +23,7 @@ import charlie_random_utils as cru
 site='BOL005c'
 runclass='VOC'  #(can't use until we migrate over the database)
 batch = 294   # 289? - NAT/pup, 301 - PTD/pupil, 294 - VOC/pupil
-rawid =  118702  # TAR010c NAT - 123692
+rawid =  118702  # Ony need for PPS_VOC sets: BOL005c: 118702, BOL006b: 118758
 pupil=1
 
 iso=70
@@ -40,14 +40,20 @@ parms={
     }
 p_parms = {  
         'rasterfs':100,
-        'runclass':'all',
+        'runclass':'VOC',
         'min_isolation': iso,
         'includeprestim':1, 
+        'pupil_median': 1,
+        #'tag_masks':['Reference'],
+        'pupil_derivative': 'pos',  #pos or neg
+        'pupil_lowpass': 0,  # 0 or 1
+        'pupil_highpass': 0 # 0 or 1
+
     }
 # ========================= Load cellids from db =============================
 
 r, meta = bu.load_site_raster(batch=batch,site=site,rawid=rawid,options=parms)
-p = bu.load_pup_raster(batch=batch,site=site,rawid=rawid,options=p_parms)
+p = bu.load_pup_raster(batch=batch,site=site,options=p_parms,rawid=rawid)
 
 # ========================= Pre-process the data ============================
 r, p = cru.remove_nans(runclass=runclass, options=parms, r=r, p=p)
@@ -66,11 +72,15 @@ cellcount=r.shape[3]
 
 # Visualize pupil
 plt.figure()
-out = plt.hist(np.mean(p,0).flatten(),bins=50,color='green')
-count=out[0]
-pup_val=out[1]
-minima=pup_val[ss.argrelextrema(count,np.less,order=5)]
-plt.axvline(minima,color='k')
+plt.title(site+'_'+runclass+'_'+'pupil')
+bins = int(len(np.mean(p,0).flatten())/2);
+out = plt.hist(np.mean(p,0).flatten(),bins=bins,color='green')
+
+# --- TODO --- come up with a good way to divide into big/small
+#count=out[0]
+#pup_val=out[1]
+#minima=pup_val[ss.argrelextrema(count,np.less,order=5)]
+#plt.axvline(minima,color='k')
 
 # ===================== Send data off for analysis ===========================
 
