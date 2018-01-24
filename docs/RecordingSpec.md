@@ -33,8 +33,11 @@ An example signal.epochs DataFrame might look like:
 3          180         380       TORC03
 ```
 
+Indices behave similar to python list indexes,
+so start times are inclusive whereas end times are exclusive.
 Time segments can overlap, can have the same name, etc.
 No rules are enforced in regards to formatting.
+
 An *epochs* DataFrame must be specified in order to use
 some of the signal methods, such as split_at_epoch and fold_by.
 For simple signals with predictable patterns,
@@ -63,6 +66,7 @@ NOTE: final structure/format of the *epochs* information
       is still a work-in-progress, as are the naming and
       behavior of the epochs-related signal methods.
 
+
 ## What do we need to be able to do?
 
 1. select a subset of events from the event list based on some string processing. Simplest case: find every occurences of "TORCnn" in the event list. assign a unique eventid=nn to each distinct "TORCnn". Figure out what to do with pre- and post-stim silences based on [smart way of representing events]. Use that to generate the list of startime and stoptime for each matching event. The result is a list of eventid and epochs, where the value of eventid ranges from 1...30 in the case of TORCs. And if the TORCs were repeated 5 times, the event list should have 150 entries:
@@ -72,6 +76,46 @@ NOTE: final structure/format of the *epochs* information
  ....
 ]
 ```
+
+Example for case 1 using the current *epochs* implementation,
+where sig._matrix is a 3 channel x 900 time bin ndarray
+(Going with the description above of 30 TORCS repeated 5 times each
+ and deciding arbitrarily that they occupy 3s each. Apologies
+ if the numbers are nonsense but it should get the idea across):
+
+```
+>>> sig.epochs
+   start_index   end_index   epoch_name
+0            0           6       TORC00  #first rep
+1            6          12       TORC01
+...
+29         174         180       TORC29
+30         180         186       TORC00  #second rep
+31         186         192       TORC01
+...
+...
+...
+149        894         900       TORC29  #end of fifth rep
+
+# Now we want to look at the data for TORC01 only:
+# NOTE: simple select method not actually implemented yet
+#       in dev branch, but I think bburan had something in RDT?
+>>>sig.select('TORC01')
+# Returns a 3 channels x 900 time bin ndarray with
+# all values set to NaN except for bins 6-12, 186-192,
+# 366-372, 546-552, and 726-732, corresponding to
+# the five repetitions.
+
+# Now we want to reshape the data to index by the
+# five reptitions of TORC29 as the first dimension.
+>>>sig.fold_by('TORC29')
+# returns a 5 epochs x 3 channels x 6 time bins ndarray,
+# where array[0] corresponds to the first repetition of
+# TORC29, array[1] the second repetition, etc.
+# The length of the time axis is determined by the
+# longest epoch matched (in this case all are length 6),
+# and shorter-length matches are appended with NaN values.
+
 
 2. using the event list:
 
