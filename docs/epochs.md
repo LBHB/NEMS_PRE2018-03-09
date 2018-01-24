@@ -10,7 +10,18 @@ An epoch is an event or period of time that has been tagged with a name. Epochs 
 
 where `start_time` and `end_time` are the moments of time marking the beginning and end of the epoch, and `epoch_name` is a string that tags this period of time. You can tag multiple epochs with the same `epoch_name` as you wish; there are other ways for us to select them. 
 
-Zero-length (start_index == end_index) epochs are allowed. 
+Zero-length (start_index == end_index) epochs are allowed.
+
+Also, I'll be kind of lazy in my terminology and treat a group of epochs named the same as being the 'same' epoch:
+
+```
+120, 122, blinking
+425, 426, blinking
+1905, 1909, blinking
+```
+
+This hopefully won't cause much confusino because a set of epochs is almost always treated exactly the same as a single "epoch triplet".
+
 
 ```
 TODO: As of 2018-01-24, epochs use indexes instead of absolute time.
@@ -76,14 +87,14 @@ data = signal.select_epochs('CorrectTrial')
 
 ### How do you remove the prestim and poststim silence?
 
-Besides `.overlapping_epochs()`, you may also use set theory (or Boolean Logic, if you prefer):
+Besides `.overlapping_epochs()`, you may also use set theory to combine two epochs in various ways if you prefer):
 
 ```
-# Get only the prestim silence by combining using an INTERSECTION (AND) operation
+# Get only the prestim silence by combining using an INTERSECTION operation
 only_prestim = signal.combine_epochs('CorrectTrial', 'PreStimSilence', op='intersection')
 data = signal.select_epochs(only_prestim)
 
-# Remove the prestim silence by combining using a DIFFERENCE (XOR) operation
+# Remove the prestim silence by combining using a DIFFERENCE operation
 no_prestim = signal.combine_epochs('CorrectTrial', 'PreStimSilence', op='difference')
 ```
 
