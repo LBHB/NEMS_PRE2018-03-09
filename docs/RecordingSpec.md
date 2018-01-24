@@ -115,6 +115,13 @@ where sig._matrix is a 3 channel x 900 time bin ndarray
 # The length of the time axis is determined by the
 # longest epoch matched (in this case all are length 6),
 # and shorter-length matches are appended with NaN values.
+
+# NOTE: the epochs selection methods accept
+#       regular expressions as arguments, not just strings.
+#       So more complex selections can be composed by
+#       taking advantage of that syntax. For example:
+>>>sig.fold_by('^TORC(00|01|02)$') # to match all reps of the first three
+
 ```
 
 2. using the event list:
