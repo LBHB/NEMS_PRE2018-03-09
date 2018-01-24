@@ -115,7 +115,7 @@ where sig._matrix is a 3 channel x 900 time bin ndarray
 # The length of the time axis is determined by the
 # longest epoch matched (in this case all are length 6),
 # and shorter-length matches are appended with NaN values.
-
+```
 
 2. using the event list:
 
