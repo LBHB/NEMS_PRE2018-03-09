@@ -574,7 +574,7 @@ class Signal:
         epoch_dataframe['epoch_name'] = epoch_name
         self.epochs.append(epoch_dataframe)
 
-    def resize_epoch(self, epoch_name, prepend, postpend):
+    def extend_epoch(self, epoch_name, prepend, postpend):
         '''
         Subtract prepend from the start_time of every epoch named
         'epoch_name', add postpend from the end_time, and return
@@ -619,16 +619,27 @@ class Signal:
         Returns a new epoch based on the combination of two other epochs.
         Operator may be 'union', 'intersection', or 'difference', which
         correspond to the set operation performed on the epochs.
+
+        Note that 'difference' is not commutative, and that
+        (name1 - name2) is not equal to (name2 - name1).
         '''
 
-        ep1 = self.just_epochs_named(name1)
-        ep2 = self.just_epochs_named(name2)
-        print(name1, name2)
+         if type(name1) is pd.DataFrame:
+            ep1 = name1
+        else:
+            ep1 = self.just_epochs_named(name1)
 
-        # TODO: Consider rewriting this to use the epoch indexes
-        # instead of creating these temporary boolean mask arrays
-        overall_start = min(ep1['start_index'].min(), ep2['start_index'].min())
-        overall_end = max(ep1['end_index'].max(), ep2['end_index'].max())
+        if type(name2) is pd.DataFrame:
+            ep2 = name2
+        else:
+            ep2 = self.just_epochs_named(name2)
+
+        # TODO: Rewrite this so that it does not use temporary
+        # boolean mask arrays
+        overall_start = min(ep1['start_index'].min(),
+                            ep2['start_index'].min())
+        overall_end = max(ep1['end_index'].max(),
+                          ep2['end_index'].max())
         length = overall_end - overall_start
         mask1 = np.full((length, 1), False)
         mask2 = np.full((length, 1), False)
@@ -653,6 +664,7 @@ class Signal:
             mask = np.logical_and(mask1, mask2)
         elif operator is 'difference':
             mask = np.logical_xor(mask1, mask2)
+            mask = np.logical_and(mask, mask1)
         else:
             raise ValueError('operator was invalid')
 
@@ -673,8 +685,16 @@ class Signal:
         Return the outermost boundaries of whenever epoch_name1 and
         both occured and overlapped one another.
         '''
-        ep1 = self.just_epochs_named(epoch_name1)
-        ep2 = self.just_epochs_named(epoch_name2)
+
+        if type(epoch_name1) is pd.DataFrame:
+            ep1 = epoch_name1
+        else:
+            ep1 = self.just_epochs_named(epoch_name1)
+
+        if type(epoch_name2) is pd.DataFrame:
+            ep2 = epoch_name2
+        else:
+            ep2 = self.just_epochs_named(epoch_name2)
 
         # TODO: Replace this N^2 algorithm with somthing more efficient
         pairs = []
@@ -722,22 +742,31 @@ class Signal:
         '''
 
         if type(epoch_name) is pd.DataFrame:
-            # TODO
-            pass
+            mask = epoch_name
+        else:
+            mask = self.epochs['epoch_name'].str.equals(epoch_name)
 
-        # TODO
-        pass
+        matched_epochs = self.epochs[mask]
+        samples = matched_epochs['end_index'] - matched_epochs['start_index']
 
+        old_data = self.as_continuous()
+        new_data = np.full(old_data.shape, np.nan)
+        for s in samples:
+            start = s['start_index']
+            end = s['end_index']
+            new_data[start:end] = old_data[start:end]
+
+        return self._modified_copy(new_data)
 
 
 
 # def sanity_check_epochs(self, epoch_name):
 #     '''
 #     There are several kinds of pathological epochs:
-#       1. Epochs with no duration (start = end)
+#       1. Epochs with NaN for a start or end time
 #       2. Epochs where start comes after the end
-#       3. Epochs with repeated epochs that are identical start/stop times.
-#     This function searches for those.
+#       3. Epochs which are completely identical triplets
+#     This function searches for those and throws exceptions about them.
 #     '''
 #     # TODO
 #     pass

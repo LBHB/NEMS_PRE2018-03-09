@@ -56,7 +56,7 @@ We will now ask some simple questions and show example operations that we might 
 
 When fitting the data, we might want to take only 'correct' trials in which the animal licks during a DetectionTask. We could do this using `overlapping_epochs`, which returns the outer bounds of any region of time in which two epochs overlap. Mostly, this is useful for long events (like trials) and detecting when one or more short events (like licks, or correct behavior events, or whatever) occur inside the long event. TODO: I don't like the name 'overlapping_epochs'! What is this operation really called?!)
 
-We also need to use the `.select()` function, which NaNs everything but the selected epochs.
+We also need to use the `.select_epochs()` function, which NaNs everything but the selected epochs.
 
 ```
 correct_detections = signal.overlapping_epochs('DetectionTask', 'Licking')
@@ -80,17 +80,17 @@ Besides `.overlapping_epochs()`, you may also use set theory (or Boolean Logic, 
 
 ```
 # Get only the prestim silence by combining using an INTERSECTION (AND) operation
-only_prestim = signal.combine('CorrectTrial', 'PreStimSilence', op='intersection')
+only_prestim = signal.combine_epochs('CorrectTrial', 'PreStimSilence', op='intersection')
 data = signal.select_epochs(only_prestim)
 
 # Remove the prestim silence by combining using a DIFFERENCE (XOR) operation
-no_prestim = signal.combine('CorrectTrial', 'PreStimSilence', op='difference')
+no_prestim = signal.combine_epochs('CorrectTrial', 'PreStimSilence', op='difference')
 ```
 
 
 ### How do I get the average response to a particular TORC?
 
-Rather than just NaNing data with `signal.select()`, you may also create a 3D array by making a 2D array for every occurence of a particular epoch_name.
+Rather than just NaNing data with `signal.select_epochs()`, you may also create a 3D array by making a 2D array for every occurence of a particular epoch_name.
 
 ```
 data = signal.fold_by('TORC_3983')
@@ -105,8 +105,8 @@ Note that the shape of `data` is `(O, C, T)`, where `O` indexes the occurrences 
 This might be useful for identifying a baseline that is altered by behavior.
 
 ```
-prestim = signal.select('PreStimSilence').mean(axis=1)
-poststim = signal.select('PostStimSilence').mean(axis=1)
+prestim = signal.select_epochs('PreStimSilence').mean(axis=1)
+poststim = signal.select_epochs('PostStimSilence').mean(axis=1)
 ```
 
 ### How do I get the average stimulus 300ms before every mistaken lick?
@@ -115,14 +115,14 @@ What if we want to know what the animal heard just before it licked accidentally
 
 ```
 # Identify the bad trials
-bad_trials = signal.combine('Trials', 'CorrectTrials', op='difference')
+bad_trials = signal.combine_epochs('Trials', 'CorrectTrials', op='difference')
 
 # Extend the 'licking' events backward 300ms
 prior_to_licking = signal.extend_epoch('Licking', 300, 0)
 
 # Now take the intersection of those two selections
-before_bad_licks = signal.combine(bad_trials, prior_to_licking, op='intersection')
-some_plot_function(signal.select(before_bad_licks))
+before_bad_licks = signal.combine_epochs(bad_trials, prior_to_licking, op='intersection')
+some_plot_function(signal.select_epochs(before_bad_licks))
 
 ```
 
@@ -132,7 +132,7 @@ TODO: Note that we have focused on single signals here. In practice, data select
 
 ### How do I use epoch info from two different signals in the same recording?
 
-Instead of using Signal's `.combine()`, `.select()`, and `.fold_by()` methods, use the corresponding ones in the Recording class. (TODO)
+Instead of using Signal's `.combine_epochs()`, `.select_epochs()`, and `.fold_by()` methods, use the corresponding ones in the Recording class. (TODO)
 
 ## How should I name epochs?
 
@@ -141,3 +141,7 @@ Be descriptive. If you give a stimulus a unique name, then when it occurs in oth
 Avoid implicit indexes like `trial1`, `trial2`, `trial3`; prefer using just `trial` and the folding functionality of `.fold_by('trial')`, which gives you a matrix. If you have truly different stimuli, you may named them `stim01`, `stim02`, but descriptive names like `cookoo_bird.wav`, and `train_horn.wav` are better.
 
 Remember that the idea behind epochs is to tag the content of data, much like HTML marks up text to tell what it is. It's totally fine to tag the exact same epoch with multiple names, if that will help you perform queries on it later.
+
+## What happens with zero-length epochs?
+
+TODO: It is untested, but I think they work fine with `.overlapping_epochs()`. They will not work at all with `.combine_epochs()`, because that is an impossible operation.
