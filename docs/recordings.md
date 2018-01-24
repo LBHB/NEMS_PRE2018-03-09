@@ -6,6 +6,25 @@ SVD 2018-01-23
 
 A collection of *signals* collected over a period of time 1...T and an *epochs* DataFrame that identifies important time segments in the experiment
 
+## What does it look like on disk?
+
+For example:
+
+```
+└── gus027b13_p_PPS
+   ├── gus027b13_p_PPS.pupil.csv
+   ├── gus027b13_p_PPS.pupil.epochs.csv
+   ├── gus027b13_p_PPS.pupil.json
+   ├── gus027b13_p_PPS.resp.csv
+   ├── gus027b13_p_PPS.resp.epochs.csv
+   ├── gus027b13_p_PPS.resp.json
+   ├── gus027b13_p_PPS.stim.csv
+   ├── gus027b13_p_PPS.stim.epochs.csv
+   └── gus027b13_p_PPS.stim.json 
+```
+
+As you can see, there is one directory per recording, and for each signal there are two tabular files ('epochs' is a 3 column CSV containing events and epochs) and one JSON. Depending on the signal type, there might not be an epoch file at all.
+
 ## What is a signal?
 
 A signal can come in a few different forms:
