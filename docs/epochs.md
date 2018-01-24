@@ -6,7 +6,7 @@ An epoch is an event or period of time that has been tagged with a name. Epochs 
 
 ```
 (start_index, end_index, epoch_name)
-````
+```
 
 where `start_time` and `end_time` are the moments of time marking the beginning and end of the epoch, and `epoch_name` is a string that tags this period of time. You can tag multiple epochs with the same `epoch_name` as you wish; there are other ways for us to select them. 
 
