@@ -102,14 +102,6 @@ class Recording:
         split = {n: s.jackknifed_by_time(**kw) for n, s in signals.items()}
         return Recording(signals=split)
 
-
-    # def get_interval(self, interval):
-    #     '''
-    #     Given an interval tuple ("name", "start", "stop"), returns a new
-    #     recording object of just the data at that point.
-    #     '''
-    #     pass
-
     @classmethod
     def concatenate_recordings(cls, recordings):
         # Make sure they all contain the same set of signals. If not, this is
@@ -134,5 +126,9 @@ class Recording:
     def get_signal(self, signal_name):
         return self.signals[signal_name]
 
-    def set_signal(self, signal_name, data):
-        self.signals[signal_name] = data
+    def set_signal(self, signal_name, signal):
+        self.signals[signal_name] = signal
+
+    def set_signals(self, signals):
+        for signal_name, signal in signals.items():
+            self.set_signal(signal_name, signal)

@@ -20,8 +20,11 @@ import scipy.stats as spstats
 class mean_square_error(nems_module):
     name = 'metrics.mean_square_error'
     user_editable_fields = ['input1', 'input2', 'norm', 'shrink']
-    plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_psth_smooth,
+
+    plot_fns = [nems.utilities.plot.pred_act_psth,
+                nems.utilities.plot.pred_act_psth_smooth,
                 nems.utilities.plot.pred_act_scatter]
+
     do_trial_plot = plot_fns[1]
     input1 = 'pred'
     input2 = 'resp'
@@ -30,21 +33,23 @@ class mean_square_error(nems_module):
     mse_est = np.ones([1, 1])
     mse_val = np.ones([1, 1])
 
-    def evaluate(self, recording):
+    def init(self, recording):
+        pass
+
+    def evaluate(self, recording, mode):
         signal1 = recording.get_signal(self.input1)
         signal2 = recording.get_signal(self.input2)
-
         X1 = signal1.as_continuous()
         X2 = signal2.as_continuous()
 
-        keepidx = np.isfinite(X1) * np.isfinite(X2)
-        if np.all(np.logical_not(keepidx)):
-            # TODO: this would result in 'n' (X1.size) being 0, causing
-            #       division error. Is this what's causing issues with
-            #       some of the fitters?
-            log.debug("All values were NaN or inf in pred and resp")
-        X1 = X1[keepidx]
-        X2 = X2[keepidx]
+        mask = np.isfinite(X1) & np.isfinite(X2)
+        if not mask.any():
+            log.warn('There are no finite values in %s or %s', self.input1,
+                     self.input2)
+
+        X1 = X1[mask]
+        X2 = X2[mask]
+
         if self.shrink:
             # TODO. This code is undocumented. This needs documentation!!!
             bounds = np.round(np.linspace(0, len(X1) + 1, 11)).astype(int)
@@ -65,7 +70,7 @@ class mean_square_error(nems_module):
             mE = E.mean()
             sE = E.std()
 
-            if self.parent_stack.valmode:
+            if mode == 'val':
                 log.info(E)
                 log.info(mE)
                 log.info(sE)
@@ -78,22 +83,13 @@ class mean_square_error(nems_module):
             else:
                 mse = mE
 
+        elif self.norm:
+            mse = np.sum((X1-X2)**2) / np.sum(X2**2)
         else:
-            E = np.sum(np.square(X1 - X2))
-            P = np.sum(X2 * X2)
-            N = X1.size
-
-            if self.norm:
-                if P > 0:
-                    mse = E / P
-                else:
-                    log.debug("P was less than or equal to zero, MSE=1")
-                    mse = 1
-            else:
-                mse = E / N
+            mse = np.mean((X1-X2)**2)
 
         self.mse_est = mse
-        self.parent_stack.meta['mse_est'] = [mse]
+        self.parent_stack.meta['mse_{}'.format(mode)] = [mse]
         return mse
 
     def error(self, est=True):
@@ -233,7 +229,8 @@ class pseudo_huber_error(nems_module):
 class correlation(nems_module):
     name = 'metrics.correlation'
     user_editable_fields = ['input1', 'input2', 'norm']
-    plot_fns = [nems.utilities.plot.pred_act_psth, nems.utilities.plot.pred_act_scatter,
+    plot_fns = [nems.utilities.plot.pred_act_psth,
+                nems.utilities.plot.pred_act_scatter,
                 nems.utilities.plot.pred_act_scatter_smooth]
     input1 = 'pred'
     input2 = 'resp'

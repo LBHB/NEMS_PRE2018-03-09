@@ -1,3 +1,5 @@
+from nems.data.api import signal_like, recording_like
+
 from nems.modules.base import nems_module as Module
 import nems.utilities.utils
 
@@ -51,6 +53,9 @@ class WeightChannels(Module):
     parm_type = None
     output_channels = 1
 
+    input_name = 'pred'
+    output_name = 'pred'
+
     def init(self, recording):
         super().init(recording)
         if self.parm_type == 'gauss':
@@ -85,13 +90,34 @@ class WeightChannels(Module):
             coefs[i, :] = coefs[i, :] / np.sum(coefs[i, :])
         return coefs
 
-    def simple_eval(self, x):
+    def get_coefs(self):
         if self.parm_fun:
             self.coefs = self.parm_fun(self.phi)
             coefs = self.coefs
         else:
             coefs = self.coefs
-        return weight_channels(x, coefs)
+        return self.coefs
+
+    def evaluate(self, recording, mode):
+        # Extract the Numpy array from the signal we need in the recording.
+        x_signal = recording.get_signal(self.input_name)
+        x = x_signal.as_continuous()
+        coefs = self.get_coefs()
+
+        # Do the computation. This returns a Numpy array.
+        y = weight_channels(x, coefs)
+
+        # Check if we need to normalize the data.
+        if self.norm_output:
+            y = self.normalize(x, mode)
+
+        # Now pack this array into a signal object that looks like the original
+        # signal, but with updated channel names.
+        chans = [str(i) for i in range(coefs.shape[-1])]
+        y_signal = signal_like(x_signal, y, chans=chans)
+
+        # Return a copy of the recording containing the new signal.
+        return recording_like(recording, {self.output_name: y_signal})
 
 
 ################################################################################
@@ -121,6 +147,7 @@ def fir_filter(x, coefficients, baseline=None, bank_count=1):
     result = np.concatenate(result)
 
     if bank_count>1:
+        # Do not remove the NotImplementedError until this is tested properly
         raise NotImplementedError
         # reshape inputs so that filter is summed separately across each bank
         # need to test this!
@@ -148,8 +175,9 @@ class FIR(Module):
     """
 
     name = 'filters.fir'
-    user_editable_fields = ['input_name','output_name','fit_fields',
-                            'num_dims','num_coefs','coefs','baseline','random_init','bank_count']
+    user_editable_fields = ['input_name', 'output_name', 'fit_fields',
+                            'num_dims', 'num_coefs', 'coefs', 'baseline',
+                            'random_init', 'bank_count']
     plot_fns = [nems.utilities.plot.plot_strf,
                 nems.utilities.plot.plot_spectrogram]
 
@@ -159,6 +187,9 @@ class FIR(Module):
     fit_fields = ['baseline', 'coefs']
     random_init = False
     bank_count = 1
+
+    input_name = 'pred'
+    output_name = 'pred'
 
     def init(self, recording):
         """
@@ -179,9 +210,20 @@ class FIR(Module):
 
         self.do_trial_plot = self.plot_fns[0]
 
-    def simple_eval(self, x):
-        return fir_filter(x, self.coefs, self.baseline,
-                          bank_count=self.bank_count)
+    def evaluate(self, recording, mode):
+        # Extract the Numpy array from the signal we need in the recording.
+        x_signal = recording.get_signal(self.input_name)
+        x = x_signal.as_continuous()
+
+        # Do the computation. This returns a Numpy array.
+        y = fir_filter(x, self.coefs, self.baseline, bank_count=self.bank_count)
+
+        # Check if we need to normalize the data
+        if self.norm_output:
+            y = self.normalize(x, mode)
+
+        y_signal = signal_like(x_signal, y, chans=['FIR'])
+        return recording_like(recording, {self.output_name: y_signal})
 
     def get_strf(self):
         wc = self.parent_stack \

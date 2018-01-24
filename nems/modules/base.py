@@ -18,24 +18,18 @@ class nems_module:
     fit_fields = []  # what fields should be fed to phi for fitting
     auto_plot = True  # whether to include in quick_plot
     save_dict = {}
+    norm_output = False
 
-    def __init__(self, parent_stack=None, input_name='pred', output_name='pred',
-                 state_var='pupil', norm_output=False, **kwargs):
-
+    def __init__(self, parent_stack, **kwargs):
         log.info("creating module " + self.name)
-        if parent_stack is not None:
-            # point to parent in order to allow access to it attributes
-            self.parent_stack = parent_stack
-            # d_in is by default the last entry of parent_stack.data
-            self.idm = "{0}{1}".format(self.name, len(parent_stack.modules))
 
-        self.input_name = input_name
-        self.output_name = output_name
-        self.state_var = state_var
-        self.auto_plot = True
-        self.do_plot = self.plot_fns[0]  # default is first in list
+        # point to parent in order to allow access to it attributes
+        self.parent_stack = parent_stack
+        # d_in is by default the last entry of parent_stack.data
+        self.idm = "{0}{1}".format(self.name, len(parent_stack.modules))
+
+        self.do_plot = self.plot_fns[0]
         self.do_trial_plot = self.plot_fns[0]
-        self.norm_output=norm_output
 
         # TODO: This is a hack to maintain certain aspects of NEMS that need to
         # go away eventually. For now, keep NEMS working ...
@@ -60,6 +54,9 @@ class nems_module:
         return f
 
     def normalize(self, x, mode):
+        # This allows us to recalculate the normalization factor when working
+        # with estimation data, but not validation data. I suspect there's a
+        # better way to do this, so let's think about it.
         if mode == 'est':
             self.norm_factor = np.std(np.abs(x), axis=1, keepdims=True)
         return x / self.norm_factor
@@ -69,29 +66,25 @@ class nems_module:
         self.input_channels = x.shape[0]
         self.norm_factor = np.ones((self.input_channels, 1))
 
-    def evaluate(self, recording_in, mode='est'):
+    def evaluate(self, recording, mode):
         '''
-        Defines a general evaluation function for modules with a single input
-        and output. Override this method if you need to apply it to multiple
-        inputs/outputs.
+        Evaluate recording and return new recording with transformed signals
+
+        Parameters
+        ----------
+        recording : instance of `Recording`
+            Input recording to evaluate
+        mode : {'est', 'val'}
+            Indicates whether the recording contains estimation or validation
+            data. This is used to determine whether we need to recompute certain
+            factors such as the normalization value.
+
+        Returns
+        -------
+        new_recording : instance of `Recording`
+            This is a copy of the input recording containing the transformed
+            signals (along with any untransformed signals from the original
+            recording).
         '''
-        # Pull out the named input, evaluate it and save the named output.
-        x_signal = recording_in.get_signal(self.input_name)
-        x = x_signal.as_continuous()
-        y = self.simple_eval(x)
-        if self.norm_output:
-            y = self.normalize(x, mode)
-        recording_out = recording_in.copy()
-        y_signal = x_signal._modified_copy(y)
-        recording_out.set_signal(self.output_name, y_signal)
-        return recording_out
 
-    def simple_eval(self, x):
-        raise NotImplementedError
-
-    def my_eval(self, X):
-        """
-        Placeholder for module-specific evaluation, default is
-        pass-through of pointer to input data matrix.
-        """
         raise NotImplementedError

@@ -26,6 +26,7 @@ except BaseException:
     sc = STORAGE_DEFAULTS
     AWS = False
 
+
 class nems_stack:
     """
     Key components:
@@ -111,7 +112,7 @@ class nems_stack:
         for p, m in zip(phi, self.modules):
             m.set_phi(p)
 
-    def evaluate(self, start=0):
+    def evaluate(self, start=0, mode='est'):
         """
         Evaluate modules in stack, starting at module # start. When stack is
         fitting (valmode is False), simply calls mod.evaluate() for each module
@@ -127,7 +128,7 @@ class nems_stack:
         if self.valmode and self.meta['nests'] > 0:
             self._nested_evaluate(start)
         else:
-            self._evaluate(start)
+            self._evaluate(start, mode)
 
     def _nested_evaluate(self, start):
         # new nested eval, doesn't require special evaluation procedure
@@ -233,7 +234,7 @@ class nems_stack:
             log.info("eval {0} in valmode".format(ii))
             self.modules[ii].evaluate()
 
-    def _evaluate(self, start):
+    def _evaluate(self, start, mode):
         # Clear the evaluation stack (but keep the input data). Again, I'm not
         # thrilled with this approach, but let's keep it for now.
         self.data = self.data[:start+1]
@@ -242,26 +243,16 @@ class nems_stack:
         recording = self.data[start]
 
         for module in self.modules[start:]:
-            # TODO: I don't see why we need to store d_in and d_out on the
-            # modules, but I am going to leave this in for now. By putting this
-            # here, we can ensure that the updated modules don't actually have
-            # to deal with this!
-            module.d_in = recording
-
             # Note that module.evaluate should return a *new* recording with the
-            # updated data.
-            recording = module.evaluate(recording)
-
-            # Save it to the module as well.
-            module.d_out = recording
-
-            # And to our own internal stack datastructure.
+            # updated data. Save this updated recording to the list of
+            # recordings.
+            recording = module.evaluate(recording, mode)
             self.data.append(recording)
 
     def append(self, module):
         recording_in = self.data[-1]
         module.init(recording_in)
-        recording_out = module.evaluate(recording_in)
+        recording_out = module.evaluate(recording_in, 'est')
         self.modules.append(module)
         self.data.append(recording_out)
 

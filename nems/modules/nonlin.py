@@ -5,6 +5,8 @@ from nems.modules.base import nems_module
 import nems.utilities.utils
 import nems.utilities.plot
 
+from nems.data.api import signal_like, recording_like
+
 import numpy as np
 
 
@@ -20,12 +22,17 @@ class gain(nems_module):
     # Added helper functions and removed look up table --njs June 29 2017
     name = 'nonlin.gain'
     plot_fns = [nems.utilities.plot.pre_post_psth,
-                nems.utilities.plot.io_scatter_smooth, nems.utilities.plot.plot_spectrogram]
+                nems.utilities.plot.io_scatter_smooth,
+                nems.utilities.plot.plot_spectrogram]
+
     user_editable_fields = ['input_name',
                             'output_name', 'fit_fields', 'nltype', 'phi']
     phi = None
     nltype = 'dlog'
     fit_fields = ['phi']
+
+    input_name = 'pred'
+    output_name = 'pred'
 
     def init(self, recording):
         """
@@ -113,6 +120,18 @@ class gain(nems_module):
         Y = a + b / (1 + np.exp(-(X - c) / d))
         return(Y)
 
-    def simple_eval(self, x):
+    def evaluate(self, recording, mode):
+        # Extract the Numpy array from the signal we need in the recording.
+        x_signal = recording.get_signal(self.input_name)
+        x = x_signal.as_continuous()
+
+        # Do the computation. This returns a Numpy array.
         fn = getattr(self, self.nltype + '_fn')
-        return fn(x)
+        y = fn(x)
+
+        # Check if we need to normalize the data
+        if self.norm_output:
+            y = self.normalize(x, mode)
+
+        y_signal = signal_like(x_signal, y, chans=['FIR'])
+        return recording_like(recording, {self.output_name: y_signal})
