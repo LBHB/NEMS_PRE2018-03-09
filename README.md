@@ -27,11 +27,11 @@ NEMS is the Neural Encoding Model System. It is helpful for fitting a mathematic
 
 Currently, these tasks are not yet complete:
 
-0. Importing Baphy data as spiketimes
-0. Inter-module data exchange occuring as Recording objects
-1. Unit tests, in the `tests/` directory and run with `pytest`
-2. Partial-stack optimizations during fitting, memoization
-3. Ways of queueing fits and saving results
-4. Ways of starting NEMS from the command line, and running a modelspec + data through several analyses
-5. Theano integration
-6. Contributor Guidelines
+1. Importing Baphy data as spiketimes
+2. Inter-module data exchange occuring as Recording objects
+3. Unit tests, in the `tests/` directory and run with `pytest`
+4. Partial-stack optimizations during fitting, memoization
+5. Ways of queueing fits and saving results
+6. Ways of starting NEMS from the command line, and running a modelspec + data through several analyses
+7. Theano integration
+8. Contributor Guidelines

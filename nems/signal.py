@@ -431,20 +431,24 @@ class Signal:
             )
 
     # TODO: classmethod?
-    def fold_by(self, regex):
+    # TODO: Have a flag 'allow_data_duplication=True' or False
+    # that NaNs out data if it was already used in another epoch
+    def fold_by(self, epoch_name):
         """
-        Returns matrix with shape epochs x channels x time, wherever
-        epoch_name in signal.epochs matches the provided regular expression.
-        If a plain string is provided instead of a regular expression, the
-        matching behavior will be similar to python's 'in' operator.
-        For epochs with uneven length, NaNs will be appended to the shorter
-        lengths.
+        Returns matrix with (O, C, T) where:
+            O   is the number of occurences of epoch_name in the signal
+            C   is the number of channels
+            T   is the number of samples in time
+
+        Because epochs tagged with the same epoch_name may have various
+        lengths, for epochs with uneven length, NaNs will be appended
+        to the shorter lengths to fill out the matrix.
 
         Example: Given that signal.nchans == 3 and that
 
            signal.epochs = {'start_index': [0, 10, 15],
                             'end_index': [10, 15, 35],
-                            'epoch_name': [trial1, trial2, trial3]}
+                            'epoch_name': [trial, trial, trial]}
 
         then this will be true:
 
@@ -457,7 +461,7 @@ class Signal:
             m = "Signal.epochs must be defined in order to fold by epochs"
             raise ValueError(m)
 
-        mask = self.epochs['epoch_name'].str.contains(regex)
+        mask = self.epochs['epoch_name'].str.equals(epoch_name)
         matched_epochs = self.epochs[mask]
 
         if not len(matched_epochs):
@@ -553,7 +557,24 @@ class Signal:
         else:
             return None
 
-    def resize_epoch(self, epoch_name, prepend, postpend, new_epoch_name):
+    def add_epochs(self, epoch_name, epoch_dataframe):
+        '''
+        Adds the epoch_times to this signal's epochs data structure
+        under epoch_name. Will not add epochs if another epoch
+        of the same name already exists.
+        '''
+        if type(epoch_dataframe) is not pd.DataFrame:
+            raise TypeError('epoch_times must be a dataframe')
+
+        existing_matches = self.epochs['epoch_name'] == epoch_name
+
+        if not empty(existing_matches):
+            raise ValueError('Epochs named that already exist!')
+
+        epoch_dataframe['epoch_name'] = epoch_name
+        self.epochs.append(epoch_dataframe)
+
+    def resize_epoch(self, epoch_name, prepend, postpend):
         '''
         Subtract prepend from the start_time of every epoch named
         'epoch_name', add postpend from the end_time, and return
@@ -561,12 +582,12 @@ class Signal:
 
         This does not alter self.epochs -- you must do that yourself:
         # Create epochs starting 200 samples before every blink
-        new_epochs = sig.resize_epochs('blink', 200, 0, 'preblink')
-        print(new_epochs)
-        sig.epochs.append(new_epochs)
+        preblink_epochs = sig.resize_epochs('blink', 200, 0)
+        print(preblink_epochs)
+        sig.add_epochs(preblink_epochs)
         '''
         ep = self.just_epochs_named(epoch_name)
-        ep['epoch_name'] = new_epoch_name
+        ep['epoch_name'] = None
         ep['start_index'] -= prepend
         ep['end_index'] += postpend
         return ep
@@ -593,7 +614,7 @@ class Signal:
 
         return indexes
 
-    def combine_epochs(self, name1, name2, operator, new_epoch_name):
+    def combine_epochs(self, name1, name2, op=None):
         '''
         Returns a new epoch based on the combination of two other epochs.
         Operator may be 'union', 'intersection', or 'difference', which
@@ -644,7 +665,6 @@ class Signal:
                                  columns=['start_index',
                                           'end_index',
                                           'epoch_name'])
-        new_epoch['epoch_name'] = new_epoch_name
 
         return new_epoch
 
@@ -690,6 +710,26 @@ class Signal:
         new_epoch['epoch_name'] = new_epoch_name
 
         return new_epoch
+
+    def select_epochs(self, epoch_name):
+        '''
+        Returns a new signal, the same as this, with everything NaN'd
+        unless it is tagged with epoch_name. If epoch_name is a string,
+        the self.epochs dataframe is used. If epoch_name is a dataframe,
+        then it will be used instead of self.epochs.
+
+        TODO: Examples
+        '''
+
+        if type(epoch_name) is pd.DataFrame:
+            # TODO
+            pass
+
+        # TODO
+        pass
+
+
+
 
 # def sanity_check_epochs(self, epoch_name):
 #     '''
