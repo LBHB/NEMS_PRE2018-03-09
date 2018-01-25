@@ -293,18 +293,18 @@ class Signal:
 
         return lsignal, rsignal
 
-    def jackknifed_by_epochs(self, regex, invert=False):
+    def jackknifed_by_epochs(self, epoch_name, nsplits, split_idx, invert=False):
         '''
-        Returns a new signal, with epochs matching regex NaN'd out.
+        Returns a new signal, with epochs matching  NaN'd out.
         Optional argument 'invert' causes everything BUT the matched epochs
         to be NaN'd. If no epochs are found that match the regex, an exception
         is thrown. The epochs data structure itself is not changed.
         '''
-        mask = self.epochs['epoch_name'].str.contains(regex)
+        mask = self.epochs['epoch_name'] == epoch_name
         matched_epochs = self.epochs[mask]
 
         if not matched_epochs.size:
-            m = 'No epochs found matching that regex. Unable to jackknife.'
+            m = 'No epochs found matching that epoch_name. Unable to jackknife.'
             raise ValueError(m)
 
         m = self.as_continuous()
@@ -431,20 +431,24 @@ class Signal:
             )
 
     # TODO: classmethod?
-    def fold_by(self, regex):
+    # TODO: Have a flag 'allow_data_duplication=True' or False
+    # that NaNs out data if it was already used in another epoch
+    def fold_by(self, epoch_name):
         """
-        Returns matrix with shape epochs x channels x time, wherever
-        epoch_name in signal.epochs matches the provided regular expression.
-        If a plain string is provided instead of a regular expression, the
-        matching behavior will be similar to python's 'in' operator.
-        For epochs with uneven length, NaNs will be appended to the shorter
-        lengths.
+        Returns matrix with (O, C, T) where:
+            O   is the number of occurences of epoch_name in the signal
+            C   is the number of channels
+            T   is the number of samples in time
+
+        Because epochs tagged with the same epoch_name may have various
+        lengths, for epochs with uneven length, NaNs will be appended
+        to the shorter lengths to fill out the matrix.
 
         Example: Given that signal.nchans == 3 and that
 
            signal.epochs = {'start_index': [0, 10, 15],
                             'end_index': [10, 15, 35],
-                            'epoch_name': [trial1, trial2, trial3]}
+                            'epoch_name': [trial, trial, trial]}
 
         then this will be true:
 
@@ -457,7 +461,7 @@ class Signal:
             m = "Signal.epochs must be defined in order to fold by epochs"
             raise ValueError(m)
 
-        mask = self.epochs['epoch_name'].str.contains(regex)
+        mask = self.epochs['epoch_name'] == (epoch_name)
         matched_epochs = self.epochs[mask]
 
         if not len(matched_epochs):
@@ -526,13 +530,13 @@ class Signal:
             end = (i+1)*trial_size
             starts.append(start)
             ends.append(end)
-            names.append('trial%d'%i)
+            names.append('trial')
         if remainder:
             start = (nreps)*trial_size
             end = start+remainder
             starts.append(start)
             ends.append(end)
-            names.append('trial%d'%nreps)
+            names.append('trial')
 
         epochs = pd.DataFrame({'start_index': starts,
                            'end_index': ends,
@@ -553,7 +557,25 @@ class Signal:
         else:
             return None
 
-    def resize_epoch(self, epoch_name, prepend, postpend, new_epoch_name):
+    def add_epochs(self, epoch_name, epoch_dataframe):
+        '''
+        Adds the epoch_times to this signal's epochs data structure
+        under epoch_name. Will not add epochs if another epoch
+        of the same name already exists.
+        '''
+        if type(epoch_dataframe) is not pd.DataFrame:
+            raise TypeError('epoch_times must be a dataframe')
+
+        mask = self.epochs['epoch_name'] == epoch_name
+        existing_matches = self.epochs[mask]
+
+        if not existing_matches.empty:
+            raise ValueError('Epochs named that already exist!')
+
+        epoch_dataframe['epoch_name'] = epoch_name
+        self.epochs.append(epoch_dataframe)
+
+    def extend_epoch(self, epoch_name, prepend, postpend):
         '''
         Subtract prepend from the start_time of every epoch named
         'epoch_name', add postpend from the end_time, and return
@@ -561,14 +583,14 @@ class Signal:
 
         This does not alter self.epochs -- you must do that yourself:
         # Create epochs starting 200 samples before every blink
-        new_epochs = sig.resize_epochs('blink', 200, 0, 'preblink')
-        print(new_epochs)
-        sig.epochs.append(new_epochs)
+        preblink_epochs = sig.resize_epochs('blink', 200, 0)
+        print(preblink_epochs)
+        sig.add_epochs(preblink_epochs)
         '''
         ep = self.just_epochs_named(epoch_name)
-        ep['epoch_name'] = new_epoch_name
         ep['start_index'] -= prepend
         ep['end_index'] += postpend
+        ep = ep.drop('epoch_name', 1)  # Was: ep['epoch_name'] = None
         return ep
 
     @staticmethod
@@ -593,21 +615,32 @@ class Signal:
 
         return indexes
 
-    def combine_epochs(self, name1, name2, operator, new_epoch_name):
+    def combine_epochs(self, name1, name2, op=None):
         '''
         Returns a new epoch based on the combination of two other epochs.
         Operator may be 'union', 'intersection', or 'difference', which
         correspond to the set operation performed on the epochs.
+
+        Note that 'difference' is not commutative, and that
+        (name1 - name2) is not equal to (name2 - name1).
         '''
 
-        ep1 = self.just_epochs_named(name1)
-        ep2 = self.just_epochs_named(name2)
-        print(name1, name2)
+        if type(name1) is pd.DataFrame:
+            ep1 = name1
+        else:
+            ep1 = self.just_epochs_named(name1)
 
-        # TODO: Consider rewriting this to use the epoch indexes
-        # instead of creating these temporary boolean mask arrays
-        overall_start = min(ep1['start_index'].min(), ep2['start_index'].min())
-        overall_end = max(ep1['end_index'].max(), ep2['end_index'].max())
+        if type(name2) is pd.DataFrame:
+            ep2 = name2
+        else:
+            ep2 = self.just_epochs_named(name2)
+
+        # TODO: Rewrite this so that it does not use temporary
+        # boolean mask arrays
+        overall_start = min(ep1['start_index'].min(),
+                            ep2['start_index'].min())
+        overall_end = max(ep1['end_index'].max(),
+                          ep2['end_index'].max())
         length = overall_end - overall_start
         mask1 = np.full((length, 1), False)
         mask2 = np.full((length, 1), False)
@@ -626,12 +659,14 @@ class Signal:
             mask2[s:e] = True
 
         # Now do the boolean operation
-        if operator is 'union':
+        if op is 'union':
             mask = np.logical_or(mask1, mask2)
-        elif operator is 'intersection':
+        elif op is 'intersection':
             mask = np.logical_and(mask1, mask2)
-        elif operator is 'difference':
-            mask = np.logical_xor(mask1, mask2)
+        elif op is 'difference':
+            # mask = np.logical_xor(mask1, mask2)
+            mask = np.logical_xor(mask1, np.logical_and(mask1, mask2))
+            # mask = np.logical_and(masktmp, mask1)
         else:
             raise ValueError('operator was invalid')
 
@@ -644,17 +679,24 @@ class Signal:
                                  columns=['start_index',
                                           'end_index',
                                           'epoch_name'])
-        new_epoch['epoch_name'] = new_epoch_name
 
         return new_epoch
 
-    def overlapping_epochs(self, epoch_name1, epoch_name2, new_epoch_name):
+    def overlapping_epochs(self, epoch_name1, epoch_name2):
         '''
         Return the outermost boundaries of whenever epoch_name1 and
         both occured and overlapped one another.
         '''
-        ep1 = self.just_epochs_named(epoch_name1)
-        ep2 = self.just_epochs_named(epoch_name2)
+
+        if type(epoch_name1) is pd.DataFrame:
+            ep1 = epoch_name1
+        else:
+            ep1 = self.just_epochs_named(epoch_name1)
+
+        if type(epoch_name2) is pd.DataFrame:
+            ep2 = epoch_name2
+        else:
+            ep2 = self.just_epochs_named(epoch_name2)
 
         # TODO: Replace this N^2 algorithm with somthing more efficient
         pairs = []
@@ -687,17 +729,53 @@ class Signal:
                                  columns=['start_index',
                                           'end_index',
                                           'epoch_name'])
-        new_epoch['epoch_name'] = new_epoch_name
 
         return new_epoch
+
+    def select_epochs(self, epoch_name):
+        '''
+        Returns a new signal, the same as this, with everything NaN'd
+        unless it is tagged with epoch_name. If epoch_name is a string,
+        the self.epochs dataframe is used. If epoch_name is a dataframe,
+        then it will be used instead of self.epochs.
+
+        TODO: Examples
+        '''
+
+        if type(epoch_name) is pd.DataFrame:
+            mask = epoch_name
+        else:
+            mask = self.epochs['epoch_name'] == epoch_name
+
+        matched_epochs = self.epochs[mask]
+        samples = matched_epochs['end_index'] - matched_epochs['start_index']
+
+        old_data = self.as_continuous()
+        new_data = np.full(old_data.shape, np.nan)
+        for s in samples:
+            start = s['start_index']
+            end = s['end_index']
+            new_data[start:end] = old_data[start:end]
+
+        return self._modified_copy(new_data)
+
+    def match_epochs(self, epoch_name_regex):
+        '''
+        Return a list of all epochs matching epoch_name_regex
+        '''
+        mask = self.epochs['epoch_name'].str.match(epoch_name_regex)
+        df = self.epochs[mask]
+        unique_epoch_names = df['epoch_name'].unique()
+        return unique_epoch_names
+
 
 # def sanity_check_epochs(self, epoch_name):
 #     '''
 #     There are several kinds of pathological epochs:
-#       1. Epochs with no duration (start = end)
+#       1. Epochs with NaN for a start or end time
 #       2. Epochs where start comes after the end
-#       3. Epochs with repeated epochs that are identical start/stop times.
-#     This function searches for those.
+#       3. Epochs which are completely identical triplets
+#     This function searches for those and throws exceptions about them.
 #     '''
 #     # TODO
 #     pass

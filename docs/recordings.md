@@ -1,14 +1,14 @@
-## Specs for Recording/Signal objects
-
-SVD 2018-01-23
+# Recording Objects
 
 ## What is a recording?
 
-A collection of *signals* collected over a period of time 1...T and an *epochs* DataFrame that identifies important time segments in the experiment
+A collection of *signals* collected over a period of time 1...T. All signals are assumed to be recorded at the same time.
+
+A Recording has  and an *epochs* DataFrame that identifies important time segments in the experiment
 
 ## What does it look like on disk?
 
-For example:
+Recordings are represented as directories, and Signals are represented as 2-3 files. For example, a heircharchy might look lik:
 
 ```
 └── gus027b13_p_PPS
@@ -23,7 +23,24 @@ For example:
    └── gus027b13_p_PPS.stim.json 
 ```
 
-As you can see, there is one directory per recording, and for each signal there are two tabular files ('epochs' is a 3 column CSV containing events and epochs) and one JSON. Depending on the signal type, there might not be an epoch file at all.
+As you can see, 
+
+   1. There is one directory holding all the signals in the recording (gus027b13_p_PPS is the name of the recording);
+
+   2. Each signal ('pupil', 'resp', and 'stim' in this case) are represented by two tabular CSV files and one JSON. Files that end in '.epochs.csv' contain information that tag individual events and regions of time.
+
+More details on the formats of the files may be found on the [Signals documentation page](signal.md).
+
+
+
+
+
+
+
+Is a 3 column CSV containing events and epochs) and one JSON. Depending on the signal type, there might not be an epoch file at all.
+
+
+
 
 ## What is a signal?
 
