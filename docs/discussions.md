@@ -171,19 +171,4 @@ for torc in TORCs:
     plot(mean_for_this_torc)
 ```
 
-Mostly, I just wanted to avoid 4D matrices since they make my head hurt when they get ragged. 
-
-
-
- and Let's make trial_epochs_from_reps return 
-
-
-Honestly, I'm not sure. 
-
-
-
-
- the new functionality of epoch s
-
-
-## What about split
+Mostly, I just wanted to avoid 4D arrays since they make my head hurt when they become ragged or partially NaN'd in strange ways. 

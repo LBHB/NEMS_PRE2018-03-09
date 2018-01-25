@@ -283,6 +283,7 @@ def test_overlapping_epochs(signal):
     df = signal.overlapping_epochs('pupil_closed', 'trial')
     assert([[3, 200, np.nan]] == df.values.tolist())
 
+
 def test_match_epochs(signal):
     print('Testing match_epochs')
     assert(set(['pupil_closed', 'trial']) == set(signal.match_epochs('.*')))
