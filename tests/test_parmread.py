@@ -21,6 +21,8 @@ import matplotlib.pyplot as plt
 nems_path=os.path.dirname(Recording.__file__)
 t=nems_path.split('/')
 nems_root='/'.join(t[:-1]) + '/'
+nems.utilities.baphy.stim_cache_dir=nems_root+'signals/baphy_example/'
+nems.utilities.baphy.spk_subdir=''
 
 
 # Behavior example
@@ -30,9 +32,6 @@ nems_root='/'.join(t[:-1]) + '/'
 #event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 # Nat sound + pupil example
-nems.utilities.baphy.stim_cache_dir='/Users/svd/python/nems/signals/baphy_example/'
-nems.utilities.baphy.spk_subdir=''
-
 cellid='TAR010c-CC-U'
 parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 #parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
@@ -41,15 +40,15 @@ parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 #parmfilepath='/auto/data/daq/Enoki/eno024/eno024d10_p_NAT.m'
 #options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all'}
 #pupilfilepath=nems_root+'signals/baphy_example/TAR010c16_p_NAT.pup.mat'
-#event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
+event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 
 # RDT example
-cellid="oys035b-a2"
-parmfilepath='/auto/data/daq/Oyster/oys035/oys035b04_p_RDT.m'
-options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 
-         'cellid': cellid, 'pertrial': True}
-event_times, spike_dict, stim_dict, stim1_dict, stim2_dict, state_dict = nems.utilities.baphy.baphy_load_recording_RDT(parmfilepath,options)
+#cellid="oys035b-a2"
+#parmfilepath='/auto/data/daq/Oyster/oys035/oys035b04_p_RDT.m'
+#options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 
+#         'cellid': cellid, 'pertrial': True}
+#event_times, spike_dict, stim_dict, stim1_dict, stim2_dict, state_dict = nems.utilities.baphy.baphy_load_recording_RDT(parmfilepath,options)
 
 
 # compute raster for specific unit and stimulus id with sampling rate rasterfs
