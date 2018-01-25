@@ -1061,6 +1061,140 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
     
     return exptevents,spiketimes,unit_names    
 
+def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
+    """ returns big_rs which is pupil trace resampled to options['rasterfs']
+        and strialidx, which is the index into big_rs for the start of each
+        trial. need to make sure the big_rs vector aligns with the other signals
+    """
+    
+    try:
+        rasterfs=options['rasterfs']
+    except:
+        rasterfs=1000
+    try:
+        pupil_offset=options['pupil_offset']
+    except:
+        pupil_offset=0.75
+    try:
+        pupil_deblink=options['pupil_deblink']
+    except:
+        pupil_deblink=False
+    try:
+        pupil_median=options['pupil_median']
+    except:
+        pupil_median=0
+        
+    """
+    try:
+        =options['']
+    except:
+        =
+    pupil_smooth = getparm(options, 'pupil_smooth', 0);
+    pupil_highpass = getparm(options, 'pupil_highpass', 0);
+    pupil_lowpass = getparm(options, 'pupil_lowpass', 0);
+    pupil_bandpass = getparm(options, 'pupil_bandpass', []);
+    options.pupil_derivative = getparm(options, 'pupil_derivative', '');
+    pupil_mm = getparm(options, 'pupil_mm', 0);
+    verbose = getparm(options, 'verbose', 0);
+    """        
+    matdata = scipy.io.loadmat(pupilfilepath)
+    
+    p=matdata['pupil_data']
+    params=p['params']
+    if 'pupil_variable_name' not in options:
+        options['pupil_variable_name']=params[0][0]['default_var'][0][0][0]
+    if 'pupil_algorithm' not in options:
+        options['pupil_algorithm']=params[0][0]['default'][0][0][0]
+    
+    results=p['results'][0][0][-1][options['pupil_algorithm']]
+    pupil_diameter=np.array(results[0][options['pupil_variable_name']][0][0])
+    
+    fs_approximate = 30  # approx video framerate
+    if pupil_deblink:
+        dp = np.abs(np.diff(pupil_diameter,axis=0))
+        
+        # TODO: complete conversion of deblink code from Matlab
+        """ 
+          dp = abs(diff(pupil_diameter)); %take derivative of pupil diameter
+          %mark bins with derivative more than 6 standard deviations from the mean
+          blink = zeros(size(dp)); blink(dp > mean(dp) + 6*std(dp)) = 1;
+          %apply a 1-second smoothing filter
+          blink = smooth(blink, fs_approximate); blink = blink > 0;
+          %find blink onsets and offsets
+          on = zeros(size(blink)); on(diff(blink) == 1) = 1;
+          off = zeros(size(blink)); off(diff(blink) == -1) = 1;
+          %use linear interpolation to fill in the blinks
+          onidx = find(on);
+          offidx = find(off);
+          deblinked = pupil_diameter;
+          %ignore onsets without matching offsets
+          if length(onidx) > length(offidx)
+            onidx = onidx(1:length(offidx));
+          end
+          for k=1:length(onidx)
+            x1 = onidx(k);
+            x2 = offidx(k);
+            deblinked(x1:x2) = linspace(deblinked(x1), deblinked(x2), x2-x1+1);
+          end
+          if verbose
+            figure
+            hold on
+            plot(pupil_diameter, 'b')
+            plot(deblinked, 'k')
+            xlabel('Frame')
+            ylabel('Pupil')
+            legend('Raw', 'Deblinked')
+            title(sprintf('Artifacts detected: %d', sum(on)))
+            axis tight
+          end
+          pupil_diameter = deblinked;
+          fprintf('%s: deblinking trace\n', mfilename)
+        """
+      
+    #find and parse pupil events
+    pp = ['PUPIL,' in x['Note'] for i,x in exptevents.iterrows()]
+    trials=list(exptevents.loc[pp,'Trial'])
+    ntrials=len(trials)
+    timestamp=np.zeros([ntrials+1])
+    firstframe=np.zeros([ntrials+1])
+    for i,x in exptevents.loc[pp].iterrows():
+        t=x['Trial']-1
+        s=x['Note'].split(",[")
+        p=eval("["+s[1])
+        #print("{0} p=[{1}".format(i,s[1]))
+        timestamp[t]=p[0]
+        firstframe[t]=int(p[1])
+    pp = ['PUPILSTOP' in x['Note'] for i,x in exptevents.iterrows()]
+    lastidx=np.argwhere(pp)[-1]
+    
+    s=exptevents.iloc[lastidx[0]]['Note'].split(",[")
+    p=eval("["+s[1])
+    timestamp[-1]=p[0]
+    firstframe[-1]=int(p[1])
+    
+    #calculate frame count and duration of each trial
+    duration = np.diff(timestamp) * 24*60*60
+    frame_count = np.diff(firstframe)
+    
+    # warp/resample each trial to compensate for dropped frames
+    tl=np.zeros([ntrials])
+    big_rs=np.array([])
+    
+    for ii in range(0,ntrials):
+        d=pupil_diameter[int(firstframe[ii]):int(firstframe[ii]+frame_count[ii]),0]
+        fs = frame_count[ii]/duration[ii]
+        t = np.arange(0,len(d))/fs
+        ti = np.arange((1/rasterfs)/2, duration[ii]+(1/rasterfs)/2, 1/rasterfs)
+        #print("{0} len(d)={1} len(ti)={2} fs={3}".format(ii,len(d),len(ti),fs))
+        di=np.interp(ti, t, d)
+        tl[ii]=len(ti)
+        big_rs=np.concatenate((big_rs,di),axis=0)
+        
+    strialidx=np.concatenate(([0],np.cumsum(tl)),axis=0)
+    
+    return big_rs,strialidx
+    
+
 def baphy_load_data(parmfilepath,options={}):
 
     """
@@ -1091,7 +1225,9 @@ def baphy_load_data(parmfilepath,options={}):
     #options=options.update(default_options)
     
     print(options)
-    
+    if 'pupil' not in options:
+        options['pupil']=False
+        
     # load parameter file
     globalparams, exptparams, exptevents = baphy_parm_read(parmfilepath)
     
@@ -1107,7 +1243,6 @@ def baphy_load_data(parmfilepath,options={}):
     spkfilepath=pp + '/' + spk_subdir + re.sub(r"\.m$",".spk.mat",bb)
     print("Spike file: {0}".format(spkfilepath))
     # figure out pupil file to load
-    pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
     
     # load stimulus spectrogram
     stim,tags,stimparam = baphy_load_specgram(stimfilepath)
@@ -1127,7 +1262,12 @@ def baphy_load_data(parmfilepath,options={}):
     for i,x in enumerate(unit_names):
         if x==options['cellid'] or options['cellid']=='all':
             spike_dict[x]=spiketimes[i]
-
+            
+    if options['pupil']:
+        pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
+        pupiltrace,ptrialidx=baphy_load_pupil_trace(pupilfilepath,exptevents,options)
+        
+            
     return exptevents, stim, spike_dict, tags, stimparam, exptparams
 
 

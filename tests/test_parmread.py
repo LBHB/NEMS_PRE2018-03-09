@@ -30,13 +30,17 @@ nems_root='/'.join(t[:-1]) + '/'
 #event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 # Nat sound + pupil example
-#cellid='TAR010c-CC-U'
+nems.utilities.baphy.stim_cache_dir='/Users/svd/python/nems/signals/baphy_example/'
+nems.utilities.baphy.spk_subdir=''
+
+cellid='TAR010c-CC-U'
+parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 #parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
 #parmfilepath='/auto/data/daq/Tartufo/TAR017/TAR017b10_p_NAT.m'
 #cellid='eno024d-b1'
 #parmfilepath='/auto/data/daq/Enoki/eno024/eno024d10_p_NAT.m'
 #options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all'}
-##pupilfilepath=nems_root+'signals/baphy_example/TAR010c16_p_NAT.pup.mat'
+#pupilfilepath=nems_root+'signals/baphy_example/TAR010c16_p_NAT.pup.mat'
 #event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 
