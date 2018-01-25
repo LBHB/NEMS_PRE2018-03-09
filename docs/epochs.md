@@ -97,8 +97,22 @@ A signal object can use epochs to perform two basic operations:
      all_epochs = signal.extract_epochs('TORC_3983')
 	 average_epoch = np.nanmean(all_epochs, axis=0)
 
-
 ## Epoch manipulation
+
+Signal objects offer the following methods:
+
+* Getting the epochs stored inside the signal. You can either request the full
+  set of epochs using `signal.get_epochs` or a subset using
+  `signal.get_epochs(epoch_name)`. This will return a DataFrame with the
+  selected epochs.
+
+* Adding epochs to the ones stored inside the signal. You can do this using
+  `signal.add_epochs(epoch_name, epochs)`.
+
+However, fancy manipulation of epochs (e.g., selecting epochs that contain
+another epoch, resizing epoch boundaries, computing the union of two epochs,
+etc.) must be done outside the signal object. You can then add the
+newly-created epochs back to the signal object.
 
 ### General epoch selection
 
