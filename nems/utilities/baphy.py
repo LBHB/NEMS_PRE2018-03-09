@@ -33,6 +33,9 @@ except Exception as e:
     from nems_config.defaults import STORAGE_DEFAULTS
     sc = STORAGE_DEFAULTS
 
+stim_cache_dir='/auto/data/tmp/tstim/'
+spk_subdir='sorted/'
+
 """ TODO : DELETE OR PRUNE EVERYTHING DOWN TO THE NATIVE BAPHY FUNCTIONS AT END """
 
 def load_baphy_file(filepath, level=0):
@@ -897,6 +900,8 @@ def baphy_load_specgram(stimfilepath):
 
     stim=matdata['stim']
     
+    stimparam=matdata['stimparam'][0][0]
+    
     try:
         # case 1: loadstimfrombaphy format
         # remove redundant tags from tag list and stimulus array
@@ -910,9 +915,8 @@ def baphy_load_specgram(stimfilepath):
         # field names within stimparam don't seem to be preserved in this load format??
         d=matdata['stimparam'][0][0][2][0]
         tags=[x[0] for x in d]
-        
-    
-    return stim,tags
+            
+    return stim,tags,stimparam
 
 
 def baphy_stim_cachefile(exptparams,options,parmfilepath=None):
@@ -933,7 +937,7 @@ def baphy_stim_cachefile(exptparams,options,parmfilepath=None):
         dstr="loadstimbytrial_{0}_ff{1}_fs{2}_cc{3}_trunc{4}.mat".format(
              bb,options['stimfmt'],options['rasterfs'],
              options['chancount'],options['truncatetargets'])
-        return dstr
+        return stim_cache_dir + dstr
 
     # otherwise use standard load stim from baphy format
     RefObject=exptparams['TrialObject'][1]['ReferenceHandle'][1]
@@ -966,14 +970,17 @@ def baphy_stim_cachefile(exptparams,options,parmfilepath=None):
     dstr=re.sub(r"[ ,]",r"_",dstr)
     dstr=re.sub(r"[\[\]]",r"",dstr)
 
-    return dstr+'.mat'
+    return stim_cache_dir + dstr + '.mat'
     
 
 def baphy_load_spike_data_raw(spkfilepath,channel=None,unit=None):
     
-    matdata = scipy.io.loadmat(spkfilepath, chars_as_strings=True)
+    matdata = scipy.io.loadmat(spkfilepath)#, chars_as_strings=True)
 
-    sortinfo=matdata['sortinfo'][0]
+    sortinfo=matdata['sortinfo']
+    if sortinfo.shape[0]>1:
+        sortinfo=sortinfo.T
+    sortinfo=sortinfo[0]
     
     # figure out sampling rate, used to convert spike times into seconds
     spikefs=matdata['rate'][0][0]
@@ -993,7 +1000,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
     TrialLen_spikefs=np.zeros([TrialCount+1,1])
     
     for c in range(0,chancount):
-        if sortinfo[c].size:
+        if sortinfo[c][0].size:
             s=sortinfo[c][0][0]['unitSpikes']
             s=np.reshape(s,(-1,1))
             unitcount=s.shape[0]
@@ -1026,8 +1033,9 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
     unit_names=[]  # string suffix for each unit (CC-U)
     chan_names=['a','b','c','d','e','f','g','h']
     for c in range(0,chancount):
-        if sortinfo[c].size:
+        if sortinfo[c][0].size:
             s=sortinfo[c][0][0]['unitSpikes']
+            comment=sortinfo[c][0][0][0][0][2][0]
             s=np.reshape(s,(-1,1))
             unitcount=s.shape[0]
             for u in range(0,unitcount):
@@ -1039,7 +1047,11 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
                 for trialidx in uniquetrials:
                     ff=(st[0,:]==trialidx)
                     this_spike_events=st[1,ff]+Offset_spikefs[np.int(trialidx-1)]
+                    if comment=='PC-cluster sorted by mespca.m':
+                        # remove last spike, which is stray
+                        this_spike_events=this_spike_events[:-1]
                     unit_spike_events=np.concatenate((unit_spike_events,this_spike_events),axis=0)
+                    #print("   trial {0} first spike bin {1}".format(trialidx,st[1,ff]))
                 
                 totalunits+=1
                 if chancount<=8:
@@ -1050,10 +1062,9 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
     
     return exptevents,spiketimes,unit_names    
 
-def baphy_load_recording(parmfilepath,options={}):
-    
+def baphy_load_data(parmfilepath,options={}):
+
     """
-    
     this can be used to generate a recording object
     input:
         parmfilepath: baphy parameter file
@@ -1089,14 +1100,17 @@ def baphy_load_recording(parmfilepath,options={}):
     
     # figure out stimulus cachefile to load
     pp,bb=os.path.split(parmfilepath)
-    stimfilepath=pp + '/'+ baphy_stim_cachefile(exptparams,options,parmfilepath)
+    
+    stimfilepath=baphy_stim_cachefile(exptparams,options,parmfilepath)
+    print("Cached stim: {0}".format(stimfilepath))
     # figure out spike file to load
-    spkfilepath=re.sub(r"\.m$",".spk.mat",parmfilepath)
+    spkfilepath=pp + '/' + spk_subdir + re.sub(r"\.m$",".spk.mat",bb)
+    print("Spike file: {0}".format(spkfilepath))
     # figure out pupil file to load
     pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
     
     # load stimulus spectrogram
-    stim,tags = baphy_load_specgram(stimfilepath)
+    stim,tags,stimparam = baphy_load_specgram(stimfilepath)
     
     # load spike times
     sortinfo,spikefs=baphy_load_spike_data_raw(spkfilepath)
@@ -1107,12 +1121,20 @@ def baphy_load_recording(parmfilepath,options={}):
     # assign cellids to each unit
     siteid=globalparams['SiteID']
     unit_names=[siteid+"-"+x for x in unit_names]
-    
+    print(unit_names)
     # pull out a single cell if 'all' not specified
     spike_dict={}
     for i,x in enumerate(unit_names):
         if x==options['cellid'] or options['cellid']=='all':
             spike_dict[x]=spiketimes[i]
+
+    return exptevents, stim, spike_dict, tags, stimparam, exptparams
+
+
+def baphy_load_recording(parmfilepath,options={}):
+    
+    # get the relatively un-pre-processed data
+    exptevents, stim, spike_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
     
     # pre-process event list (event_times) to only contain useful events
     
@@ -1183,4 +1205,62 @@ def baphy_load_recording(parmfilepath,options={}):
     event_times=event_times.sort_values(by=['StartTime','StopTime'])
     
     return event_times, spike_dict, stim_dict
+
+
+def baphy_load_recording_RDT(parmfilepath,options={}):
+    
+    # get the relatively un-pre-processed data
+    exptevents, stim, spike_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
+    
+    # pre-process event list (event_times) to only contain useful events
+    
+    # extract each trial
+    tag_mask_start="TRIALSTART"
+    tag_mask_stop="TRIALSTOP"
+    ffstart=(exptevents['Note'] == tag_mask_start)
+    ffstop=(exptevents['Note'] == tag_mask_stop)
+    TrialCount=np.max(exptevents.loc[ffstart,'Trial'])
+    event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
+                          exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
+    event_times['epoch_name']="TRIAL"
+    event_times=event_times.drop(columns=['index'])
+    
+    stim_dict={}
+    stim1_dict={}
+    stim2_dict={}
+    
+    # make stimulus events unique to each trial
+    this_event_times=event_times.copy()
+    for eventidx in range(0,TrialCount):
+        event_name="TRIAL{0}".format(eventidx)
+        this_event_times.loc[eventidx,'epoch_name']=event_name
+        stim1_dict[event_name]=stim[:,:,eventidx,0]
+        stim2_dict[event_name]=stim[:,:,eventidx,1]
+        stim_dict[event_name]=stim[:,:,eventidx,2]
+    event_times=pd.concat([event_times, this_event_times])
+    
+    # sort by when the event occured in experiment time            
+    event_times=event_times.sort_values(by=['StartTime','StopTime'])
+    
+    rasterfs=options['rasterfs']
+    BigStimMatrix=stimparam[-1]
+    state=np.zeros([3,stim.shape[1],stim.shape[2]])
+    single_stream_trials = (BigStimMatrix[0,1,:]==-1)
+    state[1,:,single_stream_trials]=1
+    prebins=int(exptparams['TrialObject'][1]['PreTrialSilence']*rasterfs)
+    samplebins=int(exptparams['TrialObject'][1]['ReferenceHandle'][1]['Duration']*rasterfs)
+    for trialidx in range(0,TrialCount):
+       rslot=np.argmax(np.diff(BigStimMatrix[:,0,trialidx])==0)+1
+       rbin=prebins+rslot*samplebins
+       state[0,rbin:,trialidx]=1
+       
+       tarslot=np.argmin(BigStimMatrix[:,0,trialidx]>0)-1
+       state[2,:,trialidx]=BigStimMatrix[tarslot,0,trialidx]
+
+    state_dict={}
+    state_dict['repeating_phase']=np.reshape(state[0,:,:].T,[-1,1])
+    state_dict['single_stream']=np.reshape(state[0,:,:].T,[-1,1])
+    state_dict['targetid']=np.reshape(state[0,:,:].T,[-1,1])
+    
+    return event_times, spike_dict, stim_dict, stim1_dict, stim2_dict, state_dict
 
