@@ -152,9 +152,38 @@ TODO: Open question: even though it is only a few lines, how and where should th
 
 TODO: This annotation should be done automatically when split_at_time is called?
 
-## Splitting
+## Splitting, Jackknifing, and Epochs
 
-Jake asked re: test_split_at_epoch
-to match previous functionality (which automatically reshaped data
-to be rep x chan x time after split), just have to call as_trials
-afterward. Leaving separate for now incase want to be able to to do both.
+@jacob In reply to your excellent question about what we should do for jackknifed_by_epochs and splitting based on epochs, and what data formats those should return, I think I made a mistake in asking for regex matching as part of the core functionality, and I'd like to walk that back a bit.
+
+On the dev branch, I basically just removed the "regex" matching from split_at_epoch things, and things just worked fine. I didn't fix jackknife_by_epochs yet, and I'm not entirely sure what the right way to do that is, and I'm open to ideas. My current hunch is to make it more like jackknife_by_time, and I'm guessing that rounding to the nearest occurence of by_epochs would be the way to do it (and warn if the rounding is off results in partitions that, say, differ more than some critical amount). But I'm open to ideas. 
+ 
+Now, I still think regex functionality is cool, but after talking with SVD, I'm thinking we should do that in a single function, like `signal.match_epochs('regex')` which will give us a list of all matching epochnames that we can then iterate through. 
+
+Something like:
+
+```
+TORCs = signal.match_epochs('^TORC.*')
+
+for torc in TORCs:
+    my3dmatrix = signal.fold_by(torc)
+    mean_for_this_torc = numpy.mean(my3dmatrix, axis=0)
+    plot(mean_for_this_torc)
+```
+
+Mostly, I just wanted to avoid 4D matrices since they make my head hurt when they get ragged. 
+
+
+
+ and Let's make trial_epochs_from_reps return 
+
+
+Honestly, I'm not sure. 
+
+
+
+
+ the new functionality of epoch s
+
+
+## What about split

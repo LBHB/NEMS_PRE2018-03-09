@@ -293,18 +293,18 @@ class Signal:
 
         return lsignal, rsignal
 
-    def jackknifed_by_epochs(self, regex, invert=False):
+    def jackknifed_by_epochs(self, epoch_name, nsplits, split_idx, invert=False):
         '''
-        Returns a new signal, with epochs matching regex NaN'd out.
+        Returns a new signal, with epochs matching  NaN'd out.
         Optional argument 'invert' causes everything BUT the matched epochs
         to be NaN'd. If no epochs are found that match the regex, an exception
         is thrown. The epochs data structure itself is not changed.
         '''
-        mask = self.epochs['epoch_name'].str.contains(regex)
+        mask = self.epochs['epoch_name'] == epoch_name
         matched_epochs = self.epochs[mask]
 
         if not matched_epochs.size:
-            m = 'No epochs found matching that regex. Unable to jackknife.'
+            m = 'No epochs found matching that epoch_name. Unable to jackknife.'
             raise ValueError(m)
 
         m = self.as_continuous()
@@ -530,13 +530,13 @@ class Signal:
             end = (i+1)*trial_size
             starts.append(start)
             ends.append(end)
-            names.append('trial%d'%i)
+            names.append('trial')
         if remainder:
             start = (nreps)*trial_size
             end = start+remainder
             starts.append(start)
             ends.append(end)
-            names.append('trial%d'%nreps)
+            names.append('trial')
 
         epochs = pd.DataFrame({'start_index': starts,
                            'end_index': ends,
@@ -759,6 +759,14 @@ class Signal:
 
         return self._modified_copy(new_data)
 
+    def match_epochs(self, epoch_name_regex):
+        '''
+        Return a list of all epochs matching epoch_name_regex
+        '''
+        mask = self.epochs['epoch_name'].str.match(epoch_name_regex)
+        df = self.epochs[mask]
+        unique_epoch_names = df['epoch_name'].unique()
+        return unique_epoch_names
 
 
 # def sanity_check_epochs(self, epoch_name):

@@ -179,14 +179,15 @@ def test_jackknifed_by_epochs(signal):
     # set epochs to trial0 - trial9, length 20 each
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
 
-    s1 = signal.jackknifed_by_epochs(regex='trial5')
+    s1 = signal.jackknifed_by_epochs('trial')
     assert s1._matrix.shape == (3, 200) # shape shouldn't change
     assert np.isnan(s1._matrix).sum() == 60 # 3 chans x 20 samples x 1 epoch
 
-    s2 = signal.jackknifed_by_epochs(regex='^trial(5|7|9)$')
+    s2 = signal.jackknifed_by_epochs('trial$')
+    # (5|7|9)
     assert np.isnan(s2._matrix).sum() == 180 # 3 chans x 20 samples x 3 epochs
 
-    s3 = signal.jackknifed_by_epochs(regex='trial4', invert=True)
+    s3 = signal.jackknifed_by_epochs('trial', invert=True)
     assert np.isnan(s3._matrix).sum() == 540 # 3 chans x 20 samples x 9 epochs
 
 
@@ -281,3 +282,9 @@ def test_overlapping_epochs(signal):
     print('Testing overlapping_epochs...')
     df = signal.overlapping_epochs('pupil_closed', 'trial')
     assert([[3, 200, np.nan]] == df.values.tolist())
+
+def test_match_epochs(signal):
+    print('Testing match_epochs')
+    assert(set(['pupil_closed', 'trial']) == set(signal.match_epochs('.*')))
+    assert(set(['pupil_closed']) == set(signal.match_epochs('^p')))
+    assert(set(['trial']) == set(signal.match_epochs('^t')))
