@@ -152,3 +152,9 @@ TODO: Open question: even though it is only a few lines, how and where should th
 
 TODO: This annotation should be done automatically when split_at_time is called?
 
+## Splitting
+
+Jake asked re: test_split_at_epoch
+to match previous functionality (which automatically reshaped data
+to be rep x chan x time after split), just have to call as_trials
+afterward. Leaving separate for now incase want to be able to to do both.

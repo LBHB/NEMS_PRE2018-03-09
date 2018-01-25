@@ -20,7 +20,7 @@ Also, I'll be kind of lazy in my terminology and treat a group of epochs named t
 1905, 1909, blinking
 ```
 
-This hopefully won't cause much confusino because a set of epochs is almost always treated exactly the same as a single "epoch triplet".
+This hopefully won't cause much confusion because a set of epochs is almost always treated exactly the same as a single "epoch triplet".
 
 
 ```
@@ -137,7 +137,7 @@ some_plot_function(signal.select_epochs(before_bad_licks))
 
 ```
 
-Note that fold_by may end up duplicating data. For example, if the animal licked 10 times a second and you were looking at the 3 seconds prior to each lick, you just duplicated your data almost 30 times! This may negatively alter certain computations of the mean in some sense, and in such circumstances, you may want to use the argument `allow_data_duplication=False` for `signal.fold_by()`.
+Note that fold_by may end up duplicating data. For example, if the animal licked 10 times a second and you were looking at the 3 seconds prior to each lick, your data will overlap, meaning you just duplicated your total data about 1/2 * 3 * 10 = 15 times! This may negatively alter certain computations of the mean in some sense, and in such circumstances, you may want to use the argument `allow_data_duplication=False` for `signal.fold_by()`.
 
 TODO: Note that we have focused on single signals here. In practice, data selection will be very slightly more difficult than this because I'm not sure how stimulus data is actually represented in Baphy. 'stimTORCs' might be one signal, and 'stimTones' might be another signal, or they might be combined into a multi-channel signal, or something entirely different.
 

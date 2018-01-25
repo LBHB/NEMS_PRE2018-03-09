@@ -461,7 +461,7 @@ class Signal:
             m = "Signal.epochs must be defined in order to fold by epochs"
             raise ValueError(m)
 
-        mask = self.epochs['epoch_name'].str.equals(epoch_name)
+        mask = self.epochs['epoch_name'] == (epoch_name)
         matched_epochs = self.epochs[mask]
 
         if not len(matched_epochs):
@@ -566,9 +566,10 @@ class Signal:
         if type(epoch_dataframe) is not pd.DataFrame:
             raise TypeError('epoch_times must be a dataframe')
 
-        existing_matches = self.epochs['epoch_name'] == epoch_name
+        mask = self.epochs['epoch_name'] == epoch_name
+        existing_matches = self.epochs[mask]
 
-        if not empty(existing_matches):
+        if not existing_matches.empty:
             raise ValueError('Epochs named that already exist!')
 
         epoch_dataframe['epoch_name'] = epoch_name
@@ -587,9 +588,9 @@ class Signal:
         sig.add_epochs(preblink_epochs)
         '''
         ep = self.just_epochs_named(epoch_name)
-        ep['epoch_name'] = None
         ep['start_index'] -= prepend
         ep['end_index'] += postpend
+        ep = ep.drop('epoch_name', 1)  # Was: ep['epoch_name'] = None
         return ep
 
     @staticmethod
@@ -624,7 +625,7 @@ class Signal:
         (name1 - name2) is not equal to (name2 - name1).
         '''
 
-         if type(name1) is pd.DataFrame:
+        if type(name1) is pd.DataFrame:
             ep1 = name1
         else:
             ep1 = self.just_epochs_named(name1)
@@ -658,13 +659,14 @@ class Signal:
             mask2[s:e] = True
 
         # Now do the boolean operation
-        if operator is 'union':
+        if op is 'union':
             mask = np.logical_or(mask1, mask2)
-        elif operator is 'intersection':
+        elif op is 'intersection':
             mask = np.logical_and(mask1, mask2)
-        elif operator is 'difference':
-            mask = np.logical_xor(mask1, mask2)
-            mask = np.logical_and(mask, mask1)
+        elif op is 'difference':
+            # mask = np.logical_xor(mask1, mask2)
+            mask = np.logical_xor(mask1, np.logical_and(mask1, mask2))
+            # mask = np.logical_and(masktmp, mask1)
         else:
             raise ValueError('operator was invalid')
 
@@ -680,7 +682,7 @@ class Signal:
 
         return new_epoch
 
-    def overlapping_epochs(self, epoch_name1, epoch_name2, new_epoch_name):
+    def overlapping_epochs(self, epoch_name1, epoch_name2):
         '''
         Return the outermost boundaries of whenever epoch_name1 and
         both occured and overlapped one another.
@@ -727,7 +729,6 @@ class Signal:
                                  columns=['start_index',
                                           'end_index',
                                           'epoch_name'])
-        new_epoch['epoch_name'] = new_epoch_name
 
         return new_epoch
 
@@ -744,7 +745,7 @@ class Signal:
         if type(epoch_name) is pd.DataFrame:
             mask = epoch_name
         else:
-            mask = self.epochs['epoch_name'].str.equals(epoch_name)
+            mask = self.epochs['epoch_name'] == epoch_name
 
         matched_epochs = self.epochs[mask]
         samples = matched_epochs['end_index'] - matched_epochs['start_index']
