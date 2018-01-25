@@ -762,10 +762,6 @@ def load_pup_raster(batch, site, options,runclass=None,rawid=None):
     try: active_passive = options['active_passive'];
     except: active_passive='both';
     
-    try: derivative=options['derivative'];
-    except: derivative=False;
-
-    
     options['pupil']=1;
 
     d=db.get_batch_cell_data(batch,rawid=rawid)

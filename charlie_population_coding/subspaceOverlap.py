@@ -20,14 +20,14 @@ import pandas as pd
 import scipy.signal as ss
 import charlie_random_utils as cru
 # =================== Set parameters to find file =================
-site='BOL005c'
+site='BOL006b'
 runclass='VOC'  #(can't use until we migrate over the database)
 batch = 294   # 289? - NAT/pup, 301 - PTD/pupil, 294 - VOC/pupil
-rawid =  118702  # Ony need for PPS_VOC sets: BOL005c: 118702, BOL006b: 118758
+rawid =  118758  # Ony need for PPS_VOC sets: BOL005c: 118702, BOL006b: 118758
 pupil=1
 
 iso=70
-resample=1
+resample=0
 samps=14
 reduce_method='PCA';
 # =================== parms of the cached files to load ======================    
@@ -45,20 +45,48 @@ p_parms = {
         'includeprestim':1, 
         'pupil_median': 1,
         #'tag_masks':['Reference'],
-        'pupil_derivative': 'pos',  #pos or neg
-        'pupil_lowpass': 0,  # 0 or 1
-        'pupil_highpass': 0 # 0 or 1
+        #'pupil_derivative': 'pos',  #pos or neg
+        'pupil_lowpass': 0,  # 0 or n pass
+        'pupil_highpass': 0 # 0 or n pass ex: 0.5
 
     }
 # ========================= Load cellids from db =============================
 
 r, meta = bu.load_site_raster(batch=batch,site=site,rawid=rawid,options=parms)
 p = bu.load_pup_raster(batch=batch,site=site,options=p_parms,rawid=rawid)
+try:
+    p_parms['runclass']='VOC'
+    p_parms['pupil_median']=0
+    p_parms['pupil_lowpass']=0.05
+    p_lp = bu.load_pup_raster(batch=batch,site=site,options=p_parms,rawid=rawid)
+    p_parms['pupil_lowpass']=0
+    p_parms['pupil_highpass']=0.05
+    p_hp = bu.load_pup_raster(batch=batch,site=site,options=p_parms,rawid=rawid)
+except:
+   pass
+try:
+    #p_parms['pupil_median']=1
+    p_parms['runclass']='VOC'
+    p_parms['pupil_derivative']='pos'
+    p_parms['pupil_highpass']=0
+    p_dpos = bu.load_pup_raster(batch=batch,site=site,options=p_parms,rawid=rawid)
+    p_parms['pupil_derivative']='neg'
+    p_dneg = bu.load_pup_raster(batch=batch,site=site,options=p_parms,rawid=rawid)
+except:
+    pass
 
 # ========================= Pre-process the data ============================
 r, p = cru.remove_nans(runclass=runclass, options=parms, r=r, p=p)
-
-    
+try:
+    p_lp = cru.remove_nans(runclass=runclass, options=parms, p=p_lp)
+    p_hp = cru.remove_nans(runclass=runclass, options=parms, p=p_hp)
+except:
+    pass
+try:
+    p_dpos = cru.remove_nans(runclass=runclass, options=parms, p=p_dpos)
+    p_dneg = cru.remove_nans(runclass=runclass, options=parms, p=p_dneg)
+except:
+    pass
 # Resample if wanted    
 if resample==1:
     r = ss.resample(r,samps)
