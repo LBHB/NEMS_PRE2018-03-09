@@ -33,8 +33,10 @@ except Exception as e:
     from nems_config.defaults import STORAGE_DEFAULTS
     sc = STORAGE_DEFAULTS
 
-stim_cache_dir='/auto/data/tmp/tstim/'
-spk_subdir='sorted/'
+# paths to baphy data -- standard locations on elephant
+stim_cache_dir='/auto/data/tmp/tstim/'  # location of cached stimuli
+spk_subdir='sorted/'   # location of spk.mat files relative to parmfiles
+
 
 """ TODO : DELETE OR PRUNE EVERYTHING DOWN TO THE NATIVE BAPHY FUNCTIONS AT END """
 
@@ -829,8 +831,7 @@ def baphy_mat2py(s):
     s3=re.sub(r'exptparams\(1\)',r'exptparams',s3)
               
     s4=re.sub(r'\(([0-9]*)\)', r'[\g<1>]', s3)
-#    s4=re.sub(r"\.(?m')(?evp')", r"XXXX", s4)
-#    s4=re.sub(r"\.(?m')(?evp')", r"XXXX", s4)
+    
     s5=re.sub(r'\.([A-Za-z][A-Za-z1-9_]+)', r"['\g<1>']", s4)
     
     s6=re.sub(r'([0-9]+) ', r"\g<0>,", s5)
@@ -838,8 +839,6 @@ def baphy_mat2py(s):
     
     s7=re.sub(r"XX([a-zA-Z0-9]+)'",r".\g<1>'",s6)
     s7=re.sub(r"XX([a-zA-Z0-9]+) ,",r".\g<1> ,",s7)
-    #s7=re.sub(r"XXevp'",r".evp'",s7)
-    
     s7=re.sub(r',,',r',',s7)
     s7=re.sub(r',Hz',r'Hz',s7)
     s7=re.sub(r'NaN',r'np.nan',s7)
@@ -1065,7 +1064,8 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
 def baphy_load_data(parmfilepath,options={}):
 
     """
-    this can be used to generate a recording object
+    this feeds into baphy_load_recording and baphy_load_recording_RDT (see
+        below)
     input:
         parmfilepath: baphy parameter file
         options: dictionary of loading options
@@ -1133,6 +1133,28 @@ def baphy_load_data(parmfilepath,options={}):
 
 def baphy_load_recording(parmfilepath,options={}):
     
+    """
+    this can be used to generate a recording object
+    
+    input:
+        parmfilepath: baphy parameter file
+        options: dictionary of loading options
+        
+    current outputs:
+        event_times: pandas dataframe with one row per event. times in sec
+              since experiment began
+        spike_dict: dictionary of lists. spike_dict[cellid] is the set of 
+              spike times (secs since expt started) for that unit
+        stim_dict: stim_dict[epoch_name] is [channel X time] stimulus 
+              (spectrogram) matrix, the times that the stimuli were played
+              are rows in the event_times dataframe
+    
+    TODO: support for pupil and behavior. branch out different functions for
+        different batches of analysis. (see RDT special case below)          
+    other things that could be returned:
+        globalparams, exptparams: dictionaries with expt metadata from baphy
+        
+    """
     # get the relatively un-pre-processed data
     exptevents, stim, spike_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
     
@@ -1208,6 +1230,32 @@ def baphy_load_recording(parmfilepath,options={}):
 
 
 def baphy_load_recording_RDT(parmfilepath,options={}):
+    """
+    this can be used to generate a recording object for an RDT experiment
+        based largely on baphy_load_recording but with several additional
+        specialized outputs
+    
+    input:
+        parmfilepath: baphy parameter file
+        options: dictionary of loading options
+        
+    current outputs:
+        event_times: pandas dataframe with one row per event. times in sec
+              since experiment began
+        spike_dict: dictionary of lists. spike_dict[cellid] is the set of 
+              spike times (secs since expt started) for that unit
+        stim_dict: stim_dict[epoch_name] is [channel X time] stimulus 
+              (spectrogram) matrix, the times that the stimuli were played
+              are rows in the event_times dataframe
+        stim1_dict: same thing but for foreground stream only
+        stim2_dict: background stream
+        state_dict: dictionary of continuous Tx1 signals indicating 
+           state_dict['repeating_phase']=when in repeating phase
+           state_dict['single_stream']=when trial is single stream
+           state_dict['targetid']=target id on the current trial
+    
+    TODO : merge back into general loading function ? Or keep separate?
+    """
     
     # get the relatively un-pre-processed data
     exptevents, stim, spike_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
