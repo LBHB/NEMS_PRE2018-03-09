@@ -241,9 +241,13 @@ class load_mat(nems_module):
                 # new: add extra first dimension to resp/pupil (and eventually pred)
                 # resp,pupil,state,pred now channel X stim/trial X time
                 data['resp'] = data['resp'][np.newaxis, :, :]
-
-                data['behavior_condition'] = np.ones(
-                    data['resp'].shape) * (data['filestate'] > 0)
+                
+                # generate a matrix of behavior conditions, same size as 'resp'
+                # currently 0 (filestate==0) or 1 (if filestate>0) -- active v. passive
+                # TO DO: add a second dim if more than one active file state- easy/hard or on/off BF
+                # need to work out a more general scheme
+                
+                data['behavior_condition'] = np.ones(data['resp'].shape) * (data['filestate'] > 0)
                 data['behavior_condition'][np.isnan(data['resp'])] = np.nan
 
                 if data['pupil'] is not None:
