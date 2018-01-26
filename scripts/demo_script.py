@@ -20,8 +20,7 @@ for signal in rec.signals.values():
 # If there isn't a 'pred' signal yet, copy over 'stim' as the starting point.
 # TODO: still getting a key error for 'pred' in fit_basic when
 #       calling lambda on metric. Not sure why, since it's explicitly added.
-if not 'pred' in list(rec.signals.keys()):
-    rec.signals['pred'] = rec.signals['stim'].copy()
+rec.signals['pred'] = rec.signals['stim'].copy()
 
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
@@ -119,10 +118,13 @@ results = fit_basic(rec, modelspec)
 # If only one result was returned, save it. But if multiple  modelspecs were
 # returned, save all of them.
 if len(results) == 1:
-    json.dump(results[0], '../modelspecs/demo_script_model.json')
+    with open('../modelspecs/demo_script_model.json', mode='w+') as fp:
+        json.dump(results[0], fp)
 else:
     for i, m in enumerate(results):
-        json.dump(m, '../modelspecs/demo_script_model_{:04i}.json'.format(i))
+        s = '../modelspecs/demo_script_model_{:04i}.json'.format(i)
+        with open(s, mode='w+') as fp:
+            json.dump(m, fp)
 
 
 # ----------------------------------------------------------------------------

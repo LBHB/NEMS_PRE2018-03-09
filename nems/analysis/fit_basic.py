@@ -74,9 +74,13 @@ def fit_basic(data, modelspec):
     # split up the data using the specified segmentor
     est_data, val_data = segmentor(data)
 
+    # bit hacky at the moment, but trying not to interfere with or rewrite mse
+    # for now. -jacob
     metric = lambda data: nems.metrics.api.mse(
-                                data.signals['resp'], data.signals['pred']
+                                {'pred': data.get_signal('pred').as_continuous(),
+                                 'resp': data.get_signal('resp').as_continuous()}
                                 )
+
     # TODO - evaluates the data using the modelspec, then updates data['pred']
     evaluator = nems.modules.evaluators.matrix_eval
 
@@ -92,7 +96,8 @@ def fit_basic(data, modelspec):
     # Freeze everything but sigma, since that's all the fitter should be
     # updating.
     cost_fn = partial(
-            cost_function(unpacker, modelspec, est_data, evaluator, metric)
+            cost_function, unpacker=unpacker, modelspec=modelspec,
+            est_data=est_data, evaluator=evaluator, metric=metric,
             )
 
     # get initial sigma value representing some point in the fit space

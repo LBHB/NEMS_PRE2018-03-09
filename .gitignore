@@ -121,7 +121,8 @@ saved_models/
 nems.log*
 **/nems_logs/*
 !**/nems_logs/__init__.py
-
+**/modelspecs/*
+!**/modelspecs/__init__.py
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
