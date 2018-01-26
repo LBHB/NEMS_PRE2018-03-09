@@ -13,9 +13,9 @@ import numpy as np
 import scipy.io
 import nems.recording as Recording
 import pandas as pd
-import nems.utilities.baphy
 import matplotlib.pyplot as plt
 
+import nems.utilities.baphy
 
 # figure out filepath for demo files
 nems_path=os.path.dirname(Recording.__file__)
@@ -41,7 +41,7 @@ parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 #pupilfilepath=nems_root+'signals/baphy_example/TAR010c16_p_NAT.pup.mat'
 
 options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
-event_times, spike_dict, stim_dict,state_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
+event_times, spike_dict, stim_dict, state_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 
 # RDT example
