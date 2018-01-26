@@ -38,8 +38,9 @@ parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 #parmfilepath='/auto/data/daq/Tartufo/TAR017/TAR017b10_p_NAT.m'
 #cellid='eno024d-b1'
 #parmfilepath='/auto/data/daq/Enoki/eno024/eno024d10_p_NAT.m'
-#options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all'}
 #pupilfilepath=nems_root+'signals/baphy_example/TAR010c16_p_NAT.pup.mat'
+
+options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
 event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 

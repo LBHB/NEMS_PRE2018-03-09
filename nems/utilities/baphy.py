@@ -13,12 +13,16 @@ import re
 import os
 import os.path
 import scipy.io
+import scipy.ndimage.filters
+import scipy.signal
 import numpy as np
 import sys
 import io
 
 import pandas as pd
 import nems.utilities as nu
+import matplotlib.pyplot as plt
+
 try:
     import nems.db as db
 except Exception as e:
@@ -1061,42 +1065,41 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
     
     return exptevents,spiketimes,unit_names    
 
+import numpy
+
+ 
+
 def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     """ returns big_rs which is pupil trace resampled to options['rasterfs']
         and strialidx, which is the index into big_rs for the start of each
         trial. need to make sure the big_rs vector aligns with the other signals
     """
     
-    try:
-        rasterfs=options['rasterfs']
-    except:
-        rasterfs=1000
-    try:
-        pupil_offset=options['pupil_offset']
-    except:
-        pupil_offset=0.75
-    try:
-        pupil_deblink=options['pupil_deblink']
-    except:
-        pupil_deblink=False
-    try:
-        pupil_median=options['pupil_median']
-    except:
-        pupil_median=0
+    rasterfs = options.get('rasterfs', 1000)
+    pupil_offset = options.get('pupil_offset', 0.75)
+    pupil_deblink = options.get('pupil_deblink',True)
+    pupil_median = options.get('pupil_median',0)
+    pupil_smooth = options.get('pupil_smooth',0)
+    pupil_highpass = options.get('pupil_highpass',0)
+    pupil_lowpass = options.get('pupil_lowpass',0)
+    pupil_bandpass = options.get('pupil_bandpass',0)
+    pupil_derivative = options.get('pupil_derivative','')
+    pupil_mm = options.get('pupil_mm',False)
+    verbose = options.get('verbose', False)
         
-    """
-    try:
-        =options['']
-    except:
-        =
-    pupil_smooth = getparm(options, 'pupil_smooth', 0);
-    pupil_highpass = getparm(options, 'pupil_highpass', 0);
-    pupil_lowpass = getparm(options, 'pupil_lowpass', 0);
-    pupil_bandpass = getparm(options, 'pupil_bandpass', []);
-    options.pupil_derivative = getparm(options, 'pupil_derivative', '');
-    pupil_mm = getparm(options, 'pupil_mm', 0);
-    verbose = getparm(options, 'verbose', 0);
-    """        
+    if pupil_smooth:
+        raise ValueError('pupil_smooth not implemented. try pupil_median?')
+    if pupil_highpass:
+        raise ValueError('pupil_highpass not implemented.')
+    if pupil_lowpass:
+        raise ValueError('pupil_lowpass not implemented.')
+    if pupil_bandpass:
+        raise ValueError('pupil_bandpass not implemented.')
+    if pupil_derivative:
+        raise ValueError('pupil_derivative not implemented.')
+    if pupil_mm:
+        raise ValueError('pupil_mm not implemented.')
+        
     matdata = scipy.io.loadmat(pupilfilepath)
     
     p=matdata['pupil_data']
@@ -1109,48 +1112,36 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     results=p['results'][0][0][-1][options['pupil_algorithm']]
     pupil_diameter=np.array(results[0][options['pupil_variable_name']][0][0])
     
-    fs_approximate = 30  # approx video framerate
+    fs_approximate = 10  # approx video framerate
     if pupil_deblink:
         dp = np.abs(np.diff(pupil_diameter,axis=0))
-        
-        # TODO: complete conversion of deblink code from Matlab
-        """ 
-          dp = abs(diff(pupil_diameter)); %take derivative of pupil diameter
-          %mark bins with derivative more than 6 standard deviations from the mean
-          blink = zeros(size(dp)); blink(dp > mean(dp) + 6*std(dp)) = 1;
-          %apply a 1-second smoothing filter
-          blink = smooth(blink, fs_approximate); blink = blink > 0;
-          %find blink onsets and offsets
-          on = zeros(size(blink)); on(diff(blink) == 1) = 1;
-          off = zeros(size(blink)); off(diff(blink) == -1) = 1;
-          %use linear interpolation to fill in the blinks
-          onidx = find(on);
-          offidx = find(off);
-          deblinked = pupil_diameter;
-          %ignore onsets without matching offsets
-          if length(onidx) > length(offidx)
-            onidx = onidx(1:length(offidx));
-          end
-          for k=1:length(onidx)
-            x1 = onidx(k);
-            x2 = offidx(k);
-            deblinked(x1:x2) = linspace(deblinked(x1), deblinked(x2), x2-x1+1);
-          end
-          if verbose
-            figure
-            hold on
-            plot(pupil_diameter, 'b')
-            plot(deblinked, 'k')
-            xlabel('Frame')
-            ylabel('Pupil')
-            legend('Raw', 'Deblinked')
-            title(sprintf('Artifacts detected: %d', sum(on)))
-            axis tight
-          end
-          pupil_diameter = deblinked;
-          fprintf('%s: deblinking trace\n', mfilename)
-        """
-      
+        blink = np.zeros(dp.shape)
+        blink[dp > np.mean(dp) + 6*np.std(dp)]= 1
+        box=np.ones([fs_approximate])/(fs_approximate)
+        blink=np.convolve(blink[:,0],box,mode='same')
+        onidx,=np.where(np.diff(blink) > 0)
+        offidx,=np.where(np.diff(blink) < 0)
+        if len(onidx)>len(offidx):
+            offidx=np.concatenate((offidx,np.array([len(blink)])))
+        deblinked = pupil_diameter.copy()
+        for i,x1 in enumerate(onidx):
+            x2 = offidx[i]
+            #print([i,x1,x2])
+            deblinked[x1:x2,0] = np.linspace(deblinked[x1], deblinked[x2-1], x2-x1)
+            
+        if verbose:
+            plt.figure()
+            plt.plot(pupil_diameter)
+            plt.plot(deblinked)
+            plt.xlabel('Frame')
+            plt.ylabel('Pupil')
+            plt.legend('Raw', 'Deblinked')
+            plt.title("Artifacts detected: {}".format(len(onidx)))
+        pupil_diameter=deblinked
+    
+    #
+    # resample and remove dropped frames
+    
     #find and parse pupil events
     pp = ['PUPIL,' in x['Note'] for i,x in exptevents.iterrows()]
     trials=list(exptevents.loc[pp,'Trial'])
@@ -1192,6 +1183,15 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
         
     strialidx=np.concatenate(([0],np.cumsum(tl)),axis=0)
     
+    if pupil_median:
+        kernel_size=int(round(pupil_median*rasterfs/2)*2+1)
+        big_rs=scipy.signal.medfilt(big_rs, kernel_size=kernel_size)
+        
+    # shift pupil trace by offset, usually 0.75 sec
+    offset_frames=int(pupil_offset*rasterfs)
+    big_rs=np.roll(big_rs,-offset_frames)
+    big_rs[-offset_frames:]=np.nan
+    
     return big_rs,strialidx
     
 
@@ -1225,9 +1225,8 @@ def baphy_load_data(parmfilepath,options={}):
     #options=options.update(default_options)
     
     print(options)
-    if 'pupil' not in options:
-        options['pupil']=False
-        
+    options['pupil'] = options.get('pupil',False)
+    
     # load parameter file
     globalparams, exptparams, exptevents = baphy_parm_read(parmfilepath)
     
