@@ -132,7 +132,7 @@ class Signal:
         #       So I guess either the save method or mat_to_csv needs an
         #       axis swap somewhere as well? Wasn't sure so I figured I
         #       would leave this for you. --jacob
-        # mat = np.swapaxes(mat, 0, 1)
+        mat = np.swapaxes(mat, 0, 1)
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)
             s = Signal(name=js['name'],

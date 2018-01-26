@@ -40,6 +40,9 @@ class Recording:
             s.save(directory)
         pass
 
+    def get_signal(self, signal_name):
+        pass
+
     def split_at_epoch(self, fraction):
         '''
         Calls split_at_rep() on all signal objects in this recording.
