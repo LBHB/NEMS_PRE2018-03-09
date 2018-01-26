@@ -44,7 +44,7 @@ def weight_channels_local(x, weights, baseline=None):
     x = weights @ x
     #x = np.swapaxes(x, -3, -2)
     if baseline is not None:
-        x += baseline[..., np.newaxis, np.newaxis]
+        x += baseline[..., np.newaxis]
     return x
 
 

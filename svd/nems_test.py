@@ -82,11 +82,11 @@ if 1:
     
     cellid="BRT007c-a3"
     batch=304 #PTD IC pupil
-    
+    modelname="parm20_psthpred_pupgainctl_fit01_nested5"
     #modelname="parm100pt_wcg02_fir15_behgain_fit01"
     #modelname="perfectpupil10_behgain_fit01"
     #modelname="parm100pt_wcg01_fir15_behgainctl_fit01"
-    modelname="parm20_psthpred_pupgain_fit01_nested10"
+    #modelname="parm20_psthpred_pupgain_fit01_nested10"
     #modelname="parm100_psth_pupgain_fit01"
 
 if 0:

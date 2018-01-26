@@ -496,9 +496,25 @@ def fb18ch10u(stack):
     stack.append(nm.loaders.load_mat, est_files=[file], fs=10, avg_resp=False, merge_files=True)
     stack.append(nm.est_val.crossval)
     
+def fb24ch50u(stack):
+    """
+    Loads a 24 channel, 100 Hz BAPHY .mat file using the provided cellid and batch,
+    then downsamples to 50 Hz.
+    Averages the response to each stimulus over its respective raster, and
+    applies a 5% estimation/validation split if the est/val datasets are not
+    specified in the file.
+    """
+    file = ut.baphy.get_celldb_file(
+        stack.meta['batch'],
+        stack.meta['cellid'],
+        fs=100, stimfmt='ozgf', chancount=24)
+    log.info("Initializing load_mat with file {0}".format(file))
+    stack.append(nm.loaders.load_mat, est_files=[file], fs=50, avg_resp=False, merge_files=True)
+    stack.append(nm.est_val.crossval)
+
 def fb24ch10u(stack):
     """
-    Loads an 24 channel, 100 Hz BAPHY .mat file using the provided cellid and batch,
+    Loads a 24 channel, 100 Hz BAPHY .mat file using the provided cellid and batch,
     then downsamples to 10 Hz.
     Averages the response to each stimulus over its respective raster, and
     applies a 5% estimation/validation split if the est/val datasets are not

@@ -287,13 +287,23 @@ def pop_factor_strf_eval(stack, base_modelname="fb18ch100_wcg02_fir15_fit01"):
     plt.figure()
     plt.subplot(3,1,1)
     plt.imshow(stack.modules[wcidx[-1]].coefs,aspect='auto')
+    plt.title('weights')
+    plt.xlabel('subspace channel')
+    plt.ylabel('unit')
     plt.colorbar()
     plt.subplot(3,1,2)
     plt.imshow(pred,aspect='auto')
+    plt.title('prediction')
+    plt.xlabel('time')
+    plt.ylabel('unit')
     plt.colorbar()
     plt.subplot(3,1,3)
     plt.imshow(resp,aspect='auto')
+    plt.title('actual response')
+    plt.xlabel('time')
+    plt.ylabel('unit')
     plt.colorbar()
+    plt.tight_layout()
     
     iso_rval=np.zeros([cellcount,1])
     for cellnum in range(0,cellcount):
@@ -340,6 +350,7 @@ def pop_factor_strf_eval(stack, base_modelname="fb18ch100_wcg02_fir15_fit01"):
     mean_iso=np.mean(iso_rval)
     mean_ss=np.mean(stack.modules[-1].r_val_perunit)
     plt.title("iso: {:3.2f} ss: {:3.2f}".format(mean_iso,mean_ss))
-    
+    plt.xlabel('pred corr (iso)')
+    plt.ylabel('pred corr (ss)')
     plt.tight_layout()
     return stack

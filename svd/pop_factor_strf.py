@@ -25,6 +25,8 @@ from sklearn.decomposition import PCA
 import copy
 import imp
 
+nu.io.AWS=False
+
 site='TAR010c16'
 #site='TAR017b10'
 #site='bbl086b09'
@@ -52,11 +54,11 @@ for ii in range(0,factorCount):
     
 
 plt.close('all')
-factorCount=4
+factorCount=7
 
 #modelname=fmodelname.replace("fchan100","ssfb18ch100")
 #modelname=modelname.replace("_fit01","")
-modelname="ssfb18ch100_wc02_stp1pc_fir15_dexp"
+modelname="ssfb18ch100_wc02_stp1pc_fir15"
 
 # fit the model
 stack=poplib.pop_factor_strf_init(site=site,factorCount=factorCount,batch=batch,fmodelname=fmodelname,modelname=modelname)
@@ -67,7 +69,7 @@ stack=poplib.pop_factor_strf_fit(stack)
 
 plt.close('all')
 
-poplib.pop_factor_strf_eval(stack, base_modelname="fb18ch100_wc02_stp1pc_fir15_dexp_fit01")
+poplib.pop_factor_strf_eval(stack, base_modelname="fb18ch100_wc02_stp1pc_fir15_fit01")
 
 mode='pdf'
 fig=plt.figure(1)
