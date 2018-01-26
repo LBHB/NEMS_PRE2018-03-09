@@ -41,13 +41,13 @@ parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 #pupilfilepath=nems_root+'signals/baphy_example/TAR010c16_p_NAT.pup.mat'
 
 options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
-event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
+event_times, spike_dict, stim_dict, state_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 
 # RDT example
 #cellid="oys035b-a2"
 #parmfilepath='/auto/data/daq/Oyster/oys035/oys035b04_p_RDT.m'
-#options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 
+#options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18,
 #         'cellid': cellid, 'pertrial': True}
 #event_times, spike_dict, stim_dict, stim1_dict, stim2_dict, state_dict = nems.utilities.baphy.baphy_load_recording_RDT(parmfilepath,options)
 
@@ -72,7 +72,7 @@ for i,d in event_times.loc[ff].iterrows():
     print("{0}-{1}".format(d['StartTime'],d['StopTime']))
     edges=np.arange(d['StartTime'],d['StopTime']+binlen,binlen)
     th,e=np.histogram(spike_dict[cellid],edges)
-    
+
     print("{0}-{1}: {2}".format(edges[0],edges[1],sum((spike_dict[cellid]>edges[0]) & (spike_dict[cellid]<edges[1]))))
     th=np.reshape(th,[1,-1])
     if h.size==0:
@@ -86,7 +86,7 @@ for i,d in event_times.loc[ff].iterrows():
             h[-1,:th.shape[1]]=th
         else:
             h=np.concatenate((h,th[:,:h.shape[1]]),axis=0)
-    
+
 m=np.nanmean(h,axis=0)
 
 plt.figure()

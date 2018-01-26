@@ -1162,13 +1162,21 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     p=eval("["+s[1])
     timestamp[-1]=p[0]
     firstframe[-1]=int(p[1])
+   
+    
+    # align pupil with other events, probably by removing extra bins from between trials
+    ff= (exptevents['Note'] == 'TRIALSTART')
+    start_events=exptevents.loc[ff,['StartTime']].reset_index()
+    start_events['StartBin']=(np.round(start_events['StartTime']*options['rasterfs'])).astype(int)
+    start_e=list(start_events['StartBin'])
+    
     
     #calculate frame count and duration of each trial
     duration = np.diff(timestamp) * 24*60*60
     frame_count = np.diff(firstframe)
     
     # warp/resample each trial to compensate for dropped frames
-    tl=np.zeros([ntrials])
+    strialidx=np.zeros([ntrials+1])
     big_rs=np.array([])
     
     for ii in range(0,ntrials):
@@ -1178,10 +1186,10 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
         ti = np.arange((1/rasterfs)/2, duration[ii]+(1/rasterfs)/2, 1/rasterfs)
         #print("{0} len(d)={1} len(ti)={2} fs={3}".format(ii,len(d),len(ti),fs))
         di=np.interp(ti, t, d)
-        tl[ii]=len(ti)
         big_rs=np.concatenate((big_rs,di),axis=0)
-        
-    strialidx=np.concatenate(([0],np.cumsum(tl)),axis=0)
+        if ii<ntrials-1 and len(big_rs)>start_e[ii+1]:
+            big_rs=big_rs[:start_e[ii+1]]
+        strialidx[ii+1]=len(big_rs)
     
     if pupil_median:
         kernel_size=int(round(pupil_median*rasterfs/2)*2+1)
@@ -1262,12 +1270,13 @@ def baphy_load_data(parmfilepath,options={}):
         if x==options['cellid'] or options['cellid']=='all':
             spike_dict[x]=spiketimes[i]
             
+    state_dict={}
     if options['pupil']:
         pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
-        pupiltrace,ptrialidx=baphy_load_pupil_trace(pupilfilepath,exptevents,options)
+        pupiltrace,ptrialidx=baphy_load_pupil_trace(pupilfilepath,exptevents,options)                
+        state_dict['pupiltrace']=pupiltrace
         
-            
-    return exptevents, stim, spike_dict, tags, stimparam, exptparams
+    return exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams
 
 
 def baphy_load_recording(parmfilepath,options={}):
@@ -1295,7 +1304,7 @@ def baphy_load_recording(parmfilepath,options={}):
         
     """
     # get the relatively un-pre-processed data
-    exptevents, stim, spike_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
+    exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
     
     # pre-process event list (event_times) to only contain useful events
     
@@ -1365,7 +1374,7 @@ def baphy_load_recording(parmfilepath,options={}):
     # sort by when the event occured in experiment time            
     event_times=event_times.sort_values(by=['StartTime','StopTime'])
     
-    return event_times, spike_dict, stim_dict
+    return event_times, spike_dict, stim_dict, state_dict
 
 
 def baphy_load_recording_RDT(parmfilepath,options={}):
@@ -1397,7 +1406,7 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
     """
     
     # get the relatively un-pre-processed data
-    exptevents, stim, spike_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
+    exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
     
     # pre-process event list (event_times) to only contain useful events
     
@@ -1444,10 +1453,9 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
        tarslot=np.argmin(BigStimMatrix[:,0,trialidx]>0)-1
        state[2,:,trialidx]=BigStimMatrix[tarslot,0,trialidx]
 
-    state_dict={}
     state_dict['repeating_phase']=np.reshape(state[0,:,:].T,[-1,1])
     state_dict['single_stream']=np.reshape(state[0,:,:].T,[-1,1])
     state_dict['targetid']=np.reshape(state[0,:,:].T,[-1,1])
     
-    return event_times, spike_dict, stim_dict, stim1_dict, stim2_dict, state_dict
+    return event_times, spike_dict, stim_dict, state_dict, stim1_dict, stim2_dict
 
