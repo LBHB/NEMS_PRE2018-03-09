@@ -1459,3 +1459,19 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
     
     return event_times, spike_dict, stim_dict, state_dict, stim1_dict, stim2_dict
 
+def spike_time_to_raster(spike_dict,fs=100,event_times=None):
+    
+    if event_times is not None:
+        maxtime=np.max(event_times["StopTime"])
+        
+    maxbin=int(fs*maxtime)+1
+    unitcount=len(spike_dict.keys())
+    raster=np.zeros([unitcount,maxbin])
+    
+    cellids=sorted(spike_dict)
+    for i,key in enumerate(cellids):
+        for t in spike_dict[key]:
+            if t<maxtime:
+                raster[i,int(np.floor(t*fs))]+=1
+    
+    return raster,cellids
