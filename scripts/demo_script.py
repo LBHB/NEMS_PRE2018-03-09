@@ -119,11 +119,14 @@ results = fit_basic(rec, modelspec)
 # returned, save all of them.
 
 # TODO: ndarrays not json serializable, so need to decide the best way to
-#       handle that.
+#       handle that since we're storing phi in the modelspec.
 #       Dealt with this before by always loading/saving with
-#       son.dumps(array.tolist) and
+#       json.dumps(array.tolist) and
 #       some numpy method that interpreted ndarray from a string.
-#       Would just need unpacker to deal with that I guess?
+#       --Could just have packer/unpacker to deal with that I guess?
+#       --Or wrap phi in a class that acts just like a dict,
+#         but we can define a custom JSONEncoder class for it.
+#
 #       Otherwise script is working.  --jacob 1-26-18
 if len(results) == 1:
     with open('../modelspecs/demo_script_model.json', mode='w+') as fp:

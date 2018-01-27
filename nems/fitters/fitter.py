@@ -1,9 +1,8 @@
 import time
+import numpy as np
 
-class Fitter:
+import nems.fitters.termination_conditions as tc
 
-    def fit(self, model, signals):
-        raise NotImplementedError
 
 def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
     """just for testing that everything is connected, can remove later."""
@@ -17,24 +16,24 @@ def bit_less_dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
     #       subscripts in code should be identical, would only change
     #       from stepinfo = {} to stepinfo = StepInfo()
     #       (see my comments in .termination_conditions.py) --jacob 1-26-18
-    stepinfo = {}
-
-    stepinfo['err'] = cost_fn(sigma=sigma)
-    stepinfo['start_time'] = time.time()
+    stepinfo = {
+            'num': 0,
+            'err': cost_fn(sigma=sigma),
+            'err_delta': np.inf,
+            'start_time': time.time()
+            }
 
     # fit loop
-    count = 0
-    # TODO: use a term cond func w/ SI
-    termination_condition = lambda count: (count == 10)
-    while not termination_condition(count):
+    stop_fit = lambda stepinfo: (tc.max_iterations_reached(stepinfo, 10)
+                                 or tc.fit_time_exceeded(stepinfo, 30))
+    while not stop_fit(stepinfo):
         print("sigma is now: {0}".format(sigma))
-        sigma[0] = count
+        sigma[0] = stepinfo['num']
         err = cost_fn(sigma=sigma)
         err_delta = err - stepinfo['err']
         stepinfo['err'] = err
         stepinfo['err_delta'] = err_delta
-        count += 1
-        stepinfo['num'] = count
-        print("loop # {0}, stepinfo is now: {1}".format(count, stepinfo))
+        stepinfo['num'] += 1
+        print("Stepinfo is now: {}".format(stepinfo))
 
     return sigma
