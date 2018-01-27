@@ -1,6 +1,6 @@
 from functools import partial
 
-from nems.fitters.api import dummy_fitter
+from nems.fitters.api import dummy_fitter, bit_less_dummy_fitter
 import nems.fitters.mappers
 import nems.modules.evaluators
 import nems.metrics.api
@@ -75,7 +75,7 @@ def fit_basic(data, modelspec):
     est_data, val_data = segmentor(data)
 
     # bit hacky at the moment, but trying not to interfere with or rewrite mse
-    # for now. -jacob
+    # for now (which expects a dict of arrays) -jacob
     metric = lambda data: nems.metrics.api.mse(
                                 {'pred': data.get_signal('pred').as_continuous(),
                                  'resp': data.get_signal('resp').as_continuous()}
@@ -106,7 +106,7 @@ def fit_basic(data, modelspec):
     # TODO: should fitter be exposed as an argument?
     #       would make sense if exposing space mapper, since fitter and mapper
     #       type are related.
-    fitter = dummy_fitter
+    fitter = bit_less_dummy_fitter
 
     # Results should be a list of modelspecs
     # (might only be one in list, but still should be packaged as a list)

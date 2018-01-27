@@ -117,6 +117,14 @@ results = fit_basic(rec, modelspec)
 
 # If only one result was returned, save it. But if multiple  modelspecs were
 # returned, save all of them.
+
+# TODO: ndarrays not json serializable, so need to decide the best way to
+#       handle that.
+#       Dealt with this before by always loading/saving with
+#       son.dumps(array.tolist) and
+#       some numpy method that interpreted ndarray from a string.
+#       Would just need unpacker to deal with that I guess?
+#       Otherwise script is working.  --jacob 1-26-18
 if len(results) == 1:
     with open('../modelspecs/demo_script_model.json', mode='w+') as fp:
         json.dump(results[0], fp)
