@@ -1,1 +1,1 @@
-from .fitter import dummy_fitter, bit_less_dummy_fitter
+from .fitter import dummy_fitter, bit_less_dummy_fitter, coordinate_descent

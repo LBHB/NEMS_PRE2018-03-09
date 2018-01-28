@@ -1,6 +1,7 @@
 from functools import partial
 
-from nems.fitters.api import dummy_fitter, bit_less_dummy_fitter
+from nems.fitters.api import dummy_fitter, bit_less_dummy_fitter, \
+                             coordinate_descent
 import nems.fitters.mappers
 import nems.modules.evaluators
 import nems.metrics.api
@@ -106,11 +107,11 @@ def fit_basic(data, modelspec):
     # TODO: should fitter be exposed as an argument?
     #       would make sense if exposing space mapper, since fitter and mapper
     #       type are related.
-    fitter = bit_less_dummy_fitter
+    fitter = coordinate_descent
 
     # Results should be a list of modelspecs
     # (might only be one in list, but still should be packaged as a list)
-    improved_sigma = fitter(sigma, cost_fn, bounds=None, fixed=None)
+    improved_sigma = fitter(sigma, cost_fn)
 
     improved_modelspec = unpacker(improved_sigma, modelspec)
     results = [improved_modelspec]

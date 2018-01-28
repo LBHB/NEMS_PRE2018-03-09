@@ -77,6 +77,8 @@ def error_non_decreasing(stepinfo, tolerance=1e-5):
     # Using absolute value because fitters might be
     # defining delta as  err_i - err_i+1  or  err_i+1 - err_i
     if np.abs(stepinfo['err_delta']) < tolerance:
+        print("Change in error: {0} was less than tolerance: {1}"
+              .format(stepinfo['err_delta'], tolerance))
         return True
     else:
         return False
