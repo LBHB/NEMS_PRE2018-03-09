@@ -39,7 +39,7 @@ def bit_less_dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
     return sigma
 
 def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
-                       tolerance=1e-5):
+                       tolerance=1e-7):
     stepinfo = {
             'num': 0,
             'err': cost_fn(sigma=sigma),
