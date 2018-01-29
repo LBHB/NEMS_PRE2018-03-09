@@ -1027,6 +1027,10 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
         print("Adjusting trial {0} by {1} sec".format(Trialidx,Offset_sec[Trialidx-1]))
         ff= (exptevents['Trial'] == Trialidx)
         exptevents.loc[ff,['StartTime','StopTime']]=exptevents.loc[ff,['StartTime','StopTime']]+Offset_sec[Trialidx-1]
+
+        ff= (exptevents['Trial'] == Trialidx) & (exptevents['StopTime'] > Offset_set[Trialidx])        
+        print('{0} events past end of trial?".format(np.sum(ff)))
+        exptevents.drop(ff)
     
     
     # convert spike times from samples since trial started to
