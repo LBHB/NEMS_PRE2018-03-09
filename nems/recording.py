@@ -13,6 +13,21 @@ class Recording:
             raise ValueError('Not all signals are from the same recording!')
         self.name = recordings[0]
 
+    # Testing out including __getitem__ and __setitem__ to make
+    # recording objects behave like dictionaries when subscripted.
+    # i.e. user can optionally do recording['signal_name'] instead
+    #  of recording.get_signal('signal_name').
+    # Might be some other nifty stuff we can do with this, but for now
+    # just a convenience.
+    # ref here:
+    # https://docs.python.org/3/reference/datamodel.html?emulating-container-types#emulating-container-types
+    # -jacob 1/26
+    def __getitem__(self, key):
+        return self.get_signal(key)
+
+    def __setitem__(self, key, val):
+        self.set_signal(key, val)
+
     @staticmethod
     def load(directory):
         '''
@@ -35,10 +50,41 @@ class Recording:
 
         if not no_subdir:
             directory = os.path.join(directory, self.name)
+        print(directory)
         os.mkdir(directory)
         for s in self.signals.values():
             s.save(directory)
         pass
+
+    def get_signal(self, signal_name):
+        """Returns the signal object with the given signal_name.
+
+        signal_name should be a string
+        An instance of the Signal class will be returned if the
+        given signal_name is a valid key.
+
+        """
+
+        try:
+            signal = self.signals[signal_name]
+            return signal
+        except KeyError as e:
+            # TODO: incorporate logging and change to log.exception()
+            print("No signal named: {0} in recording: {1}"
+                  .format(signal_name, self.name))
+            raise e
+
+    def set_signal(self, signal_name, signal):
+        """Sets the signal at key signal_name equal to the new Signal
+        instance given. The old signal reference at that key, if one
+        existed, will be overwritten.
+
+        """
+
+        if not isinstance(signal, Signal):
+            raise TypeError("Recording signals must be instances of"
+                            "of class Signal.")
+        self.signals[signal_name] = signal
 
     def split_at_epoch(self, fraction):
         '''
