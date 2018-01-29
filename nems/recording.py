@@ -50,6 +50,7 @@ class Recording:
 
         if not no_subdir:
             directory = os.path.join(directory, self.name)
+        print(directory)
         os.mkdir(directory)
         for s in self.signals.values():
             s.save(directory)
