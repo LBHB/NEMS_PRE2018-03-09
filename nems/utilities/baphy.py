@@ -1178,7 +1178,7 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     start_e=list(start_events['StartBin'])
     ff= (exptevents['Note'] == 'TRIALSTOP')
     stop_events=exptevents.loc[ff,['StartTime']].reset_index()
-    stop_events['StopBin']=(np.round(start_events['StartTime']*options['rasterfs'])).astype(int)
+    stop_events['StopBin']=(np.round(stop_events['StartTime']*options['rasterfs'])).astype(int)
     stop_e=list(stop_events['StopBin'])
     
     
@@ -1343,6 +1343,7 @@ def baphy_load_recording(parmfilepath,options={}):
               'OUTCOME,MISS': 'MISS_TRIAL',
               'BEHAVIOR,PUMPON,Pump': 'HIT_TRIAL'}
     this_event_times=event_times.copy()
+    any_behavior=False
     for trialidx in range(1,TrialCount+1):
         ff=((exptevents['Note']=='OUTCOME,FALSEALARM') | \
             (exptevents['Note']=='OUTCOME,MISS') | \
@@ -1355,7 +1356,13 @@ def baphy_load_recording(parmfilepath,options={}):
         
             this_event_times.loc[trialidx-1,'epoch_name']= \
                note_map[d['Note']]
-    event_times=pd.concat([event_times, this_event_times])
+            any_behavior=True
+    
+    if any_behavior:
+        # only concatenate newly labeled trials if events occured that reflect
+        # behavior. There's probably a less kludgy way of checking for this
+        # before actually running through the above loop
+        event_times=pd.concat([event_times, this_event_times])
                
     # remove events DURING or AFTER LICK
     print('Removing post-response stimuli')
