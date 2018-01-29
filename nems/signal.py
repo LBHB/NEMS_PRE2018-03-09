@@ -88,11 +88,12 @@ class Signal:
         epochfilepath = basepath + 'epoch.csv'
         jsonfilepath = basepath + '.json'
 
-        np.savetxt(csvfilepath, self.as_continuous(), delimiter=",", fmt=fmt)
+        mat = self.as_continuous()
+        mat = np.swapaxes(mat, 0, 1)
+        np.savetxt(csvfilepath, mat, delimiter=",", fmt=fmt)
         # TODO:
 #        if isinstance(self.epochs, pd.DataFrame):
 #            np.savetxt(epochfilepath, self.epochs, delimiter=",")
-
         with open(jsonfilepath, 'w') as fh:
             attributes = self._get_attributes()
             del attributes['epochs']
@@ -124,14 +125,6 @@ class Signal:
         else:
             epochs = None
         mat = mat.astype('float')
-        # TODO: @Ivar test_signal_save_load was failing due to
-        #       matrix shape being 200x3 instead of 3x200 on load.
-        #       Saw this swapaxes line, and removing it causes the test to pass.
-        #       However, removing it causes signals to not load correctly
-        #       when using actual data instead of the test data.
-        #       So I guess either the save method or mat_to_csv needs an
-        #       axis swap somewhere as well? Wasn't sure so I figured I
-        #       would leave this for you. --jacob
         mat = np.swapaxes(mat, 0, 1)
         with open(jsonfilepath, 'r') as f:
             js = json.load(f)

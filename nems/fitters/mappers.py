@@ -17,16 +17,18 @@ def simple_vector():
 
     """
 
-    def modelspec_to_vector(modelspec):
+    # modelspec to vector
+    def packer(modelspec):
         phi = [m['phi'] for m in modelspec]
         vec = phi_to_vector(phi)
         return vec
 
-    def vector_to_modelspec(vec, modelspec):
+    # vector to modelspec
+    def unpacker(vec, modelspec):
         phi_template = [m['phi'] for m in modelspec]
         phi = vector_to_phi(vec, phi_template)
         for i, p in enumerate(phi):
             modelspec[i]['phi'] = p
         return modelspec
 
-    return modelspec_to_vector, vector_to_modelspec
+    return packer, unpacker
