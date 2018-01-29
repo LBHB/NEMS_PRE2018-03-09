@@ -609,7 +609,8 @@ def get_batch_cells(batch=None, cellid=None, rawid=None):
 
     return d
 
-def get_batch_cell_data(batch=None, cellid=None, rawid=None):
+def get_batch_cell_data(batch=None, cellid=None, rawid=None, label=None
+                        ):
     # eg, sql="SELECT * from NarfData WHERE batch=301 and cellid="
     params = ()
     sql = "SELECT * FROM NarfData WHERE 1"
@@ -624,6 +625,10 @@ def get_batch_cell_data(batch=None, cellid=None, rawid=None):
     if not rawid is None:
        sql += " AND rawid=%s"
        params = params+(rawid,)
+       
+    if not label is None:
+       sql += " AND label like %s"
+       params = params+(label,)
        
     print(sql)
     print(params)

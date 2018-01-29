@@ -1339,36 +1339,51 @@ def baphy_load_recording(parmfilepath,options={}):
             stim_dict[tags[eventidx]]=stim[:,:,eventidx]
             
             # complicated experiment-specific part
-            if 'pertrial' in options and options['pertrial']:
-                tag_mask_start="TRIALSTART"
-                tag_mask_stop="TRIALSTOP"
-            else:
-                tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
-                tag_mask_stop="PostStimSilence , "+tags[eventidx]+" , Reference"
+            tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
+            tag_mask_stop="PostStimSilence , "+tags[eventidx]+" , Reference"
             
             ffstart=(exptevents['Note'] == tag_mask_start)
             ffstop=(exptevents['Note'] == tag_mask_stop)
             
-            # generate a general epoch specification
+            # create intial list of stimulus events
             this_event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
                                   exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
             this_event_times=this_event_times.drop(columns=['index'])
             this_event_times['epoch_name']=tags[eventidx]
-        
+
+            # screen for conflicts with target events
+            for i,d in this_event_times.iterrows():
+                f=(exptevents['StartTime']<d['StopTime']-0.01) & \
+                  (exptevents['StopTime']>d['StartTime']+0.01) & \
+                  (exptevents['Note'].str.contains('Target'))
+                ffid,=np.where(f)
+                for j in ffid:
+                    print("Stim (event {0}: {1:.2f}-{2:.2f} {3}".format(eventidx,d['StartTime'],
+                          d['StopTime'],d['epoch_name']))
+                    print("??? But did it happen?  ? Conflicting target: {0}-{1} {2}".format(exptevents['StartTime'][j],
+                          exptevents['StopTime'][j],exptevents['Note'][j]))
+            
+            # create final list of these stimulus events
+            this_event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
+                                  exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
+            this_event_times=this_event_times.drop(columns=['index'])
+            this_event_times['epoch_name']=tags[eventidx]
+
             event_times=pd.concat([event_times, this_event_times])
             
+            # generate list of corresponding pre/post events
             this_event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
                                   exptevents.loc[ffstart,['StopTime']].reset_index()], axis=1)
             this_event_times=this_event_times.drop(columns=['index'])
             this_event_times['epoch_name']='PreStimSilence'
-        
-            event_times=pd.concat([event_times, this_event_times])
             
+            event_times=pd.concat([event_times, this_event_times])
+
             this_event_times=pd.concat([exptevents.loc[ffstop,['StartTime']].reset_index(), 
                                   exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
             this_event_times=this_event_times.drop(columns=['index'])
             this_event_times['epoch_name']='PostStimSilence'
-        
+            
             event_times=pd.concat([event_times, this_event_times])
 
     # sort by when the event occured in experiment time            

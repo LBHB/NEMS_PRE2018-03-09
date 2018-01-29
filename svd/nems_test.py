@@ -74,7 +74,7 @@ if 0:
     #batch=294
     #modelname="perfectpupil50_pupgain_fit01"
     
-if 1:
+if 0:
     """ TORC-TONE """
     
     #cellid="TAR010c-22-1"
@@ -128,10 +128,11 @@ if 0:
     #modelname="parm50_wcg01_fir10_pupgainctl_fit01_nested5"
 
 """ pupil gain test -- 2 x VOC data """
-if 0:
+if 1:
     #cellid="eno052d-a1"
-    cellid="BOL005c-25-3"
+    #cellid="BOL005c-25-3"
     #cellid="eno023c-c1"
+    cellid="eno060e-a1"
     batch=294
     modelname="fb24ch10u_psthpred_pupgain_fit01_nested10"
     #modelname="perfectpupil50_pupgainctl_fit01_nested5"
