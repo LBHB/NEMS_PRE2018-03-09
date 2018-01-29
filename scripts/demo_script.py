@@ -1,11 +1,20 @@
 # A Template NEMS Script suitable for beginners
 # Please see docs/architecture.svg for a visual diagram of this code
 
+import os
 import json
+import nems.modelspec as ms
 
 from nems import initializers
 from nems.analysis.api import fit_basic
 from nems.recording import Recording
+
+
+# ----------------------------------------------------------------------------
+# CONFIGURATION
+signals_dir = '../signals'
+modelspecs_dir = '../modelspecs'
+
 
 # ----------------------------------------------------------------------------
 # DATA FETCHING
@@ -13,7 +22,8 @@ from nems.recording import Recording
 # GOAL: Get your data loaded into memory as a Recording object
 
 # Method #1: Load the data from a local directory
-rec = Recording.load('../signals/gus027b13_p_PPS/')
+rec = Recording.load(os.path.join(signals_dir, 'gus027b13_p_PPS'))
+
 # TODO: temporary hack to avoid errors resulting from epochs not being defined.
 for signal in rec.signals.values():
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
@@ -50,7 +60,7 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 #       handled inside an analysis by a segmentor? Designed fit_basic with
 #       that in mind, so maybe this doesn't go here anymore, or I may have
 #       had the wrong interpretation.    --jacob
-#est, val = rec.split_at_time(0.8)
+# est, val = rec.split_at_time(0.8)
 
 # Method #2: Split based on repetition number, rounded to the nearest rep.
 # est, val = rec.split_at_rep(0.8)
@@ -67,13 +77,9 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 
 # Method #1: create from "shorthand/default" keyword string
 modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1')
-print('Modelspec was:')
-print(modelspec)
-
-results = [modelspec]
 
 # Method #2: load a modelspec from disk
-# modelspec = json.load('../modelspecs/wc2_fir10_dexp.json')
+# modelspec = ms.load_modelspec('../modelspecs/wc2_fir10_dexp.json')
 
 # Method #3: Load it from a published jerb (TODO)
 # modelspec = ...
@@ -118,25 +124,7 @@ results = fit_basic(rec, modelspec)
 # If only one result was returned, save it. But if multiple  modelspecs were
 # returned, save all of them.
 
-# TODO: ndarrays not json serializable, so need to decide the best way to
-#       handle that since we're storing phi in the modelspec.
-#       Dealt with this before by always loading/saving with
-#       json.dumps(array.tolist) and
-#       some numpy method that interpreted ndarray from a string.
-#       --Could just have packer/unpacker to deal with that I guess?
-#       --Or wrap phi in a class that acts just like a dict,
-#         but we can define a custom JSONEncoder class for it.
-#
-#       Otherwise script is working.  --jacob 1-26-18
-if len(results) == 1:
-    with open('../modelspecs/demo_script_model.json', mode='w+') as fp:
-        json.dump(results[0], fp)
-else:
-    for i, m in enumerate(results):
-        s = '../modelspecs/demo_script_model_{:04i}.json'.format(i)
-        with open(s, mode='w+') as fp:
-            json.dump(m, fp)
-
+ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
 
 # ----------------------------------------------------------------------------
 # GENERATE PLOTS
