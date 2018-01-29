@@ -1176,6 +1176,10 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     start_events=exptevents.loc[ff,['StartTime']].reset_index()
     start_events['StartBin']=(np.round(start_events['StartTime']*options['rasterfs'])).astype(int)
     start_e=list(start_events['StartBin'])
+    ff= (exptevents['Note'] == 'TRIALSTOP')
+    stop_events=exptevents.loc[ff,['StartTime']].reset_index()
+    stop_events['StopBin']=(np.round(start_events['StartTime']*options['rasterfs'])).astype(int)
+    stop_e=list(stop_events['StopBin'])
     
     
     #calculate frame count and duration of each trial
@@ -1196,6 +1200,8 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
         big_rs=np.concatenate((big_rs,di),axis=0)
         if ii<ntrials-1 and len(big_rs)>start_e[ii+1]:
             big_rs=big_rs[:start_e[ii+1]]
+        elif ii==ntrials-1:
+            big_rs=big_rs[:stop_e[ii]]
         strialidx[ii+1]=len(big_rs)
     
     if pupil_median:
