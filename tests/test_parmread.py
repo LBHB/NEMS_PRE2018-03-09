@@ -37,7 +37,11 @@ cellid='TAR010c-CC-U'
 if USE_LOCAL_DATA:
     parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 else:
-    parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
+    #parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
+    #options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
+    parmfilepath='/auto/data/daq/Boleto/BOL005/BOL005c05_p_PPS_VOC.m'
+    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf',
+             'chancount': 18, 'cellid': 'all', 'pupil': True,'runclass': 'VOC'}
 
 #cellid='TAR017b-CC-U'
 #parmfilepath='/auto/data/daq/Tartufo/TAR017/TAR017b10_p_NAT.m'
@@ -45,7 +49,6 @@ else:
 #parmfilepath='/auto/data/daq/Enoki/eno024/eno024d10_p_NAT.m'
 #pupilfilepath=nems_root+'signals/baphy_example/TAR010c16_p_NAT.pup.mat'
 
-options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
 event_times, spike_dict, stim_dict, state_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
 
 
@@ -64,6 +67,7 @@ eventidx=1
 
 stimevents=list(stim_dict.keys())
 cellids=list(spike_dict.keys())
+cellids.sort()
 
 event_name=stimevents[eventidx]
 cellid=cellids[unitidx]

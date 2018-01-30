@@ -848,11 +848,7 @@ def baphy_mat2py(s):
 
 def baphy_parm_read(filepath):
     
-    try:
-        f = io.open(filepath, "r")
-    except:
-        filepath=filepath+".m"
-        f = io.open(filepath, "r")
+    f = io.open(filepath, "r")
     s=f.readlines(-1)
     
     globalparams={}
@@ -941,8 +937,15 @@ def baphy_stim_cachefile(exptparams,options,parmfilepath=None):
         return stim_cache_dir + dstr
 
     # otherwise use standard load stim from baphy format
-    RefObject=exptparams['TrialObject'][1]['ReferenceHandle'][1]
-    
+    if options['runclass'] is None:
+        RefObject=exptparams['TrialObject'][1]['ReferenceHandle'][1]
+    else:
+        runclass=exptparams['runclass'].split("_")
+        if runclass[1]==options["runclass"]:
+            RefObject=exptparams['TrialObject'][1]['TargetHandle'][1]
+        else:
+            RefObject=exptparams['TrialObject'][1]['ReferenceHandle'][1]
+            
     dstr=RefObject['descriptor']
     if dstr=='Torc':
         if 'RunClass' in exptparams['TrialObject'][1].keys():
@@ -1219,7 +1222,8 @@ def baphy_load_data(parmfilepath,options={}):
     input:
         parmfilepath: baphy parameter file
         options: dictionary of loading options
-        
+            runclass: matches Reference1 or Reference2 events, depending
+            
     current outputs:
         exptevents: pandas dataframe with one row per event. times in sec
               since experiment began
@@ -1240,8 +1244,6 @@ def baphy_load_data(parmfilepath,options={}):
     #                 'cellid': 'all'}
     #options=options.update(default_options)
     
-    print(options)
-    options['pupil'] = options.get('pupil',False)
     
     # add .m extension if missing
     if parmfilepath[-2:]!=".m":
@@ -1253,11 +1255,11 @@ def baphy_load_data(parmfilepath,options={}):
     #       or make s3 match LBHB?
     
     # figure out stimulus cachefile to load
-    pp,bb=os.path.split(parmfilepath)
-    
     stimfilepath=baphy_stim_cachefile(exptparams,options,parmfilepath)
     print("Cached stim: {0}".format(stimfilepath))
+    
     # figure out spike file to load
+    pp,bb=os.path.split(parmfilepath)
     spkfilepath=pp + '/' + spk_subdir + re.sub(r"\.m$",".spk.mat",bb)
     print("Spike file: {0}".format(spkfilepath))
     # figure out pupil file to load
@@ -1315,6 +1317,10 @@ def baphy_load_recording(parmfilepath,options={}):
         
     """
     # get the relatively un-pre-processed data
+    print(options)
+    options['pupil'] = options.get('pupil',False)
+    options['runclass'] = options.get('runclass',None)
+    
     exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
     
     # pre-process event list (event_times) to only contain useful events
@@ -1330,6 +1336,11 @@ def baphy_load_recording(parmfilepath,options={}):
                           exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
     event_times['epoch_name']="TRIAL"
     event_times=event_times.drop(columns=['index'])
+    
+    # figure out length of entire experiment
+    file_start_time=np.min(event_times['StartTime'])
+    file_stop_time=np.max(event_times['StopTime'])
+    te=pd.DataFrame(index=[0],columns=(event_times.columns))
     
     # add event characterizing outcome of each behavioral 
     # trial (if behavior)
@@ -1358,6 +1369,10 @@ def baphy_load_recording(parmfilepath,options={}):
         # behavior. There's probably a less kludgy way of checking for this
         # before actually running through the above loop
         event_times=pd.concat([event_times, this_event_times])
+        te.loc[0]=[file_start_time,file_stop_time,'ACTIVE_EXPERIMENT']
+    else:
+        te.loc[0]=[file_start_time,file_stop_time,'PASSIVE_EXPERIMENT']
+    event_times=pd.concat([event_times, te])
                
     # remove events DURING or AFTER LICK
     print('Removing post-response stimuli')
@@ -1407,8 +1422,8 @@ def baphy_load_recording(parmfilepath,options={}):
             tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
             tag_mask_stop="PostStimSilence , "+tags[eventidx]+" , Reference"
             
-            ffstart=(exptevents['Note'] == tag_mask_start)
-            ffstop=(exptevents['Note'] == tag_mask_stop)
+            ffstart=(exptevents['Note'].str.contains(tag_mask_start))
+            ffstop=(exptevents['Note'].str.contains(tag_mask_stop))
             
             # create intial list of stimulus events
             this_event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
