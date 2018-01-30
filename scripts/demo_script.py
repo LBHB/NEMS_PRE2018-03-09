@@ -34,7 +34,7 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
-# URL = "neuralprediction.org:3003/signals?batch=273&cellid=gus027b13-a1"
+# URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
 # rec = nems.utils.net.fetch_signals_over_http(URL)
 
 # Method #3: Load the data from S3: (TODO)
@@ -76,7 +76,7 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 # GOAL: Define the model that you wish to test
 
 # Method #1: create from "shorthand/default" keyword string
-modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1')
+modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1') 
 
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc2_fir10_dexp.json')

@@ -761,6 +761,56 @@ class Signal:
         unique_epoch_names = df['epoch_name'].unique()
         return unique_epoch_names
 
+    def multi_fold_by(self, list_of_epoch_names):
+        '''
+        Returns a dict mapping epochs from list_of_epoch_names
+        to the 3D matrices created by .fold_by(). This function is
+        particularly useful when used with its inverse, .replace_epochs().
+        '''
+        d = {ep: self.fold_by(ep) for ep in list_of_epoch_names}
+        return d
+
+    def replace_epochs(self, replacement_dict):
+        '''
+        Returns a new signal, created by replacing every occurrence of epochs
+        in this signal with whatever is found in the replacement_dict under
+        the same epoch_name.
+
+        If the replacement matrix shape is not the same as the original
+        epoch being replaced, an exception will be thrown.
+
+        If overlapping epochs are defined, then they will be replaced in
+        the order present in the epochs dataframe (i.e. sorting your
+        epochs dataframe may change the results you get!). But it is a bad
+        idea to replace overlapping epochs in a single operation anyway
+        '''
+        if self.epochs is None:
+            m = "Signal.epochs must be defined in order to replace epochs"
+            raise ValueError(m)
+
+        if not len(replacement_dict):
+            m = "replacement_dict must be defined in order to replace epochs"
+            raise ValueError(m)
+
+        rows = self.epochs['epoch_name'].isin(replacement_dict.keys())
+        epochs_to_replace = self.epochs[rows]
+
+        if not len(epochs_to_replace):
+            m = 'No matching epochs found. Unable to replace.'
+            raise ValueError(m)
+
+        mat = self.as_continuous()
+
+        # Define a little lambda to work on mat
+        def replacer(row):
+            newmat = replacement_dict[row['epoch_name']]
+            mat[:, row['start_index']:row['stop_index']] = newmat
+
+        # Now, mutate mat!
+        epochs_to_replace.apply(replacer, axis=1)
+
+        return self._modified_copy(mat)
+
 
 # def sanity_check_epochs(self, epoch_name):
 #     '''
