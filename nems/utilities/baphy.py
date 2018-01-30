@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Jun 14 09:33:47 2017
-
 @author: svd, changes added by njs
 """
 
@@ -97,7 +96,6 @@ def get_celldb_file(batch, cellid, fs=200, stimfmt='ozgf',
     """
     Given a stim/resp preprocessing parameters, figure out relevant cache filename.
     TODO: if cache file doesn't exist, have Matlab generate it
-
     @author: svd
     """
 
@@ -200,7 +198,6 @@ def load_spike_raster(spkfile, options, nargout=None):
     
     inputs:
         spkfile - name of .spk.mat file generated using meska
-
         options - structure can contain the following fields:
             channel - electrode channel (default 1)
             unit - unit number (default 1)
@@ -296,7 +293,6 @@ def load_pupil_raster(pupfile, options):
     
     inputs:
         spkfile - name of .spk.mat file generated using meska
-
         options - structure can contain the following fields:
             pupil: must be = 1 or will not load pupil
             rasterfs in Hz (default 1000)
@@ -615,7 +611,6 @@ def stim_cache_filename(stimfile, options={}):
     mfile syntax:
     % function [stim,stimparam]=loadstimfrombaphy(parmfile,startbin,stopbin, 
     %                   filtfmt,fsout[=1000],chancount[=30],forceregen[=0],includeprestim[=0],SoundHandle[='ReferenceHandle'],repcount[=1]);
-
     SVD 2018-01-15
     """
     
