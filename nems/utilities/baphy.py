@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Jun 14 09:33:47 2017
-
 @author: svd, changes added by njs
 """
 
@@ -97,7 +96,6 @@ def get_celldb_file(batch, cellid, fs=200, stimfmt='ozgf',
     """
     Given a stim/resp preprocessing parameters, figure out relevant cache filename.
     TODO: if cache file doesn't exist, have Matlab generate it
-
     @author: svd
     """
 
@@ -200,7 +198,6 @@ def load_spike_raster(spkfile, options, nargout=None):
     
     inputs:
         spkfile - name of .spk.mat file generated using meska
-
         options - structure can contain the following fields:
             channel - electrode channel (default 1)
             unit - unit number (default 1)
@@ -296,7 +293,6 @@ def load_pupil_raster(pupfile, options):
     
     inputs:
         spkfile - name of .spk.mat file generated using meska
-
         options - structure can contain the following fields:
             pupil: must be = 1 or will not load pupil
             rasterfs in Hz (default 1000)
@@ -615,7 +611,6 @@ def stim_cache_filename(stimfile, options={}):
     mfile syntax:
     % function [stim,stimparam]=loadstimfrombaphy(parmfile,startbin,stopbin, 
     %                   filtfmt,fsout[=1000],chancount[=30],forceregen[=0],includeprestim[=0],SoundHandle[='ReferenceHandle'],repcount[=1]);
-
     SVD 2018-01-15
     """
     
@@ -1176,6 +1171,10 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     start_events=exptevents.loc[ff,['StartTime']].reset_index()
     start_events['StartBin']=(np.round(start_events['StartTime']*options['rasterfs'])).astype(int)
     start_e=list(start_events['StartBin'])
+    ff= (exptevents['Note'] == 'TRIALSTOP')
+    stop_events=exptevents.loc[ff,['StartTime']].reset_index()
+    stop_events['StopBin']=(np.round(stop_events['StartTime']*options['rasterfs'])).astype(int)
+    stop_e=list(stop_events['StopBin'])
     
     
     #calculate frame count and duration of each trial
@@ -1196,6 +1195,8 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
         big_rs=np.concatenate((big_rs,di),axis=0)
         if ii<ntrials-1 and len(big_rs)>start_e[ii+1]:
             big_rs=big_rs[:start_e[ii+1]]
+        elif ii==ntrials-1:
+            big_rs=big_rs[:stop_e[ii]]
         strialidx[ii+1]=len(big_rs)
     
     if pupil_median:
@@ -1337,6 +1338,7 @@ def baphy_load_recording(parmfilepath,options={}):
               'OUTCOME,MISS': 'MISS_TRIAL',
               'BEHAVIOR,PUMPON,Pump': 'HIT_TRIAL'}
     this_event_times=event_times.copy()
+    any_behavior=False
     for trialidx in range(1,TrialCount+1):
         ff=((exptevents['Note']=='OUTCOME,FALSEALARM') | \
             (exptevents['Note']=='OUTCOME,MISS') | \
@@ -1349,7 +1351,13 @@ def baphy_load_recording(parmfilepath,options={}):
         
             this_event_times.loc[trialidx-1,'epoch_name']= \
                note_map[d['Note']]
-    event_times=pd.concat([event_times, this_event_times])
+            any_behavior=True
+    
+    if any_behavior:
+        # only concatenate newly labeled trials if events occured that reflect
+        # behavior. There's probably a less kludgy way of checking for this
+        # before actually running through the above loop
+        event_times=pd.concat([event_times, this_event_times])
                
     # remove events DURING or AFTER LICK
     print('Removing post-response stimuli')
