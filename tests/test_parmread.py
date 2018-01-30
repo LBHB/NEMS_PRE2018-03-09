@@ -37,11 +37,11 @@ cellid='TAR010c-CC-U'
 if USE_LOCAL_DATA:
     parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 else:
-    parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
-    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
-    #parmfilepath='/auto/data/daq/Boleto/BOL005/BOL005c05_p_PPS_VOC.m'
-    #options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf',
-    #         'chancount': 18, 'cellid': 'all', 'pupil': True,'runclass': 'VOC'}
+    #parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
+    #options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
+    parmfilepath='/auto/data/daq/Boleto/BOL005/BOL005c05_p_PPS_VOC.m'
+    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf',
+             'chancount': 18, 'cellid': 'all', 'pupil': True,'runclass': 'VOC'}
 
 #cellid='TAR017b-CC-U'
 #parmfilepath='/auto/data/daq/Tartufo/TAR017/TAR017b10_p_NAT.m'

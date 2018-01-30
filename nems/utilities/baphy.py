@@ -1337,6 +1337,11 @@ def baphy_load_recording(parmfilepath,options={}):
     event_times['epoch_name']="TRIAL"
     event_times=event_times.drop(columns=['index'])
     
+    # figure out length of entire experiment
+    file_start_time=np.min(event_times['StartTime'])
+    file_stop_time=np.max(event_times['StopTime'])
+    te=pd.DataFrame(index=[0],columns=(event_times.columns))
+    
     # add event characterizing outcome of each behavioral 
     # trial (if behavior)
     print('Creating trial outcome events')
@@ -1364,6 +1369,10 @@ def baphy_load_recording(parmfilepath,options={}):
         # behavior. There's probably a less kludgy way of checking for this
         # before actually running through the above loop
         event_times=pd.concat([event_times, this_event_times])
+        te.loc[0]=[file_start_time,file_stop_time,'ACTIVE_EXPERIMENT']
+    else:
+        te.loc[0]=[file_start_time,file_stop_time,'PASSIVE_EXPERIMENT']
+    event_times=pd.concat([event_times, te])
                
     # remove events DURING or AFTER LICK
     print('Removing post-response stimuli')
