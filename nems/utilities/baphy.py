@@ -29,14 +29,14 @@ except Exception as e:
     log.info(e)
     log.info('Running without db')
     db = None
-
+'''
 try:
     import nems_config.Storage_Config as sc
 except Exception as e:
     log.info(e)
     from nems_config.defaults import STORAGE_DEFAULTS
     sc = STORAGE_DEFAULTS
-
+'''
 # paths to baphy data -- standard locations on elephant
 stim_cache_dir='/auto/data/tmp/tstim/'  # location of cached stimuli
 spk_subdir='sorted/'   # location of spk.mat files relative to parmfiles
