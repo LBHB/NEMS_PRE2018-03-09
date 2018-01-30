@@ -16,10 +16,10 @@ class Signal:
         epochs : {None, DataFrame}
             Epochs are periods of time that are tagged with a name
             When defined, the DataFrame should have these first three columns:
-                 ('start_index', 'end_index', 'epoch_name')
+                 ('start_time', 'end_index', 'epoch_name')
             denoting the start and end of the time of an epoch, and what
             it is named. You may reuse the same name (because several epochs
-            might correspond to the same stimulus, for example). start_index
+            might correspond to the same stimulus, for example). start_time
             is inclusive, and end_index is not, like other indexing in python.
 
         ... TODO
@@ -92,8 +92,6 @@ class Signal:
         mat = np.swapaxes(mat, 0, 1)
         np.savetxt(csvfilepath, mat, delimiter=",", fmt=fmt)
         # TODO:
-#        if isinstance(self.epochs, pd.DataFrame):
-#            np.savetxt(epochfilepath, self.epochs, delimiter=",")
         with open(jsonfilepath, 'w') as fh:
             attributes = self._get_attributes()
             del attributes['epochs']
@@ -156,28 +154,6 @@ class Signal:
         '''
         return self._matrix.copy()
 
-    def as_trials(self):
-        '''
-        Return data as a 3D array of channel x trial x time
-
-        If trials are of uneven length, pads shorter trials with NaN. All trials
-        are aligned to the start.
-        '''
-        if self.epochs is None:
-            raise ValueError("Cannot reshape into trials without epochs info.\n"
-                             "To create default trial epochs, set epochs = "
-                             "signal.trial_epochs_from_reps(nreps=#). This can "
-                             "not be done automatically safely in all cases. ")
-
-        return self.fold_by('trial')
-
-    def as_average_trial(self):
-        '''
-        Return data as a 2D array of channel x time averaged across trials
-        '''
-        m = self.as_trials()
-        return np.nanmean(m, axis=0)
-
     def _get_attributes(self):
         md_attributes = ['name', 'chans', 'fs', 'meta', 'recording', 'epochs']
         return {name: getattr(self, name) for name in md_attributes}
@@ -209,53 +185,6 @@ class Signal:
         m_normed = (m - self.channel_min) / ptp - 1
         return self._modified_copy(m_normed)
 
-    def split_at_epoch(self, fraction):
-        '''
-        Returns a tuple of two signals split at fraction (rounded to the
-        nearest epoch) of the original signal. If you had 10 epochs of T time
-        samples, and split it at fraction=0.81, this would return (A, B) where
-        A is the first eight epochs and B are the last two epochs.
-        '''
-
-        # Get time index that the fraction corresponds to
-        ntimes_idx = max(1, int(self.ntimes * fraction))
-
-        # Epochs under the time go 'left', over go 'right'
-        # time index is rounded to the max index of the 'left' set
-        mask = self.epochs['end_index'] <= ntimes_idx
-        lepochs = self.epochs.loc[mask]
-        i = lepochs['end_index'].astype('i').max()
-        mask = self.epochs['start_index'] >= i
-        repochs = self.epochs.loc[mask]
-        # Get any epochs that were left out of left and right set.
-        # i.e. their start is before left's end, and their end is after
-        # right's start.
-        mask = self.epochs['start_index'] < i
-        mepochs = self.epochs.loc[mask]
-        mask = mepochs['end_index'] > i
-        mepochs = mepochs[mask]
-        # Rip dataframe into two halves, one with copied starts and another
-        # with copied ends, both with copied epoch names.
-        # Replace missing ends and starts, respectively, with i.
-        n = mepochs.shape[0]
-        lsplit = mepochs.copy()
-        rsplit = mepochs.copy()
-        lsplit['end_index'] = [i]*n
-        rsplit['start_index'] = [i]*n
-        lepochs = lepochs.append(lsplit, ignore_index=True)
-        repochs = repochs.append(rsplit, ignore_index=True)
-
-        data = self.as_continuous()
-        ldata = data[..., :i]
-        rdata = data[..., i:]
-
-        # Correct the index for the latter data
-        repochs[['start_index', 'end_index']] -= i
-
-        lsignal = self._modified_copy(data=ldata, epochs=lepochs)
-        rsignal = self._modified_copy(data=rdata, epochs=repochs)
-        return lsignal, rsignal
-
     def split_at_time(self, fraction):
         '''
         Splits this signal at 'fraction' of the total length of the time series
@@ -266,6 +195,7 @@ class Signal:
           assert(r.ntimes == 0.2 * mysig.ntimes)
         '''
         split_idx = max(1, int(self.ntimes * fraction))
+        split_time = split_idx/self.fs
 
         data = self.as_continuous()
         ldata = data[..., :split_idx]
@@ -275,16 +205,22 @@ class Signal:
             lepochs = None
             repochs = None
         else:
-            mask = self.epochs['end_index'] < split_idx
+            mask = self.epochs['start'] < split_time
             lepochs = self.epochs.loc[mask]
-            mask = self.epochs['start_index'] > split_idx
+            mask = self.epochs['end'] > split_idx
             repochs = self.epochs.loc[mask]
-            repochs[['start_index', 'end_index']] -= split_idx
+            repochs[['start', 'end']] -= split_idx
 
         lsignal = self._modified_copy(ldata, epochs=lepochs)
         rsignal = self._modified_copy(rdata, epochs=repochs)
 
         return lsignal, rsignal
+
+
+    def get_epochs(self, epoch_name):
+
+        mask = self.epochs['name'] == epoch_name
+        return self.epochs.loc[mask]
 
     def jackknifed_by_epochs(self, epoch_name, nsplits, split_idx, invert=False):
         '''
@@ -293,24 +229,23 @@ class Signal:
         to be NaN'd. If no epochs are found that match the regex, an exception
         is thrown. The epochs data structure itself is not changed.
         '''
-        mask = self.epochs['epoch_name'] == epoch_name
-        matched_epochs = self.epochs[mask]
+        raise NotImplementedError
+        epochs = self.get_epochs(epoch_name)
+        epoch_indices = (epochs * self.fs).astype('i')
 
-        if not matched_epochs.size:
+        if len(epochs) == 0:
             m = 'No epochs found matching that epoch_name. Unable to jackknife.'
             raise ValueError(m)
 
-        m = self.as_continuous()
+        data = self.as_continuous()
+        mask = np.zeros_like(data, dtype=np.bool)
+        for lb, ub in epoch_indices:
+            print(lb, ub, mask.shape)
+            mask[:, lb:ub] = 1
         if invert:
-            mask = np.ones_like(m, dtype=np.bool)
-        else:
-            mask = np.zeros_like(m, dtype=np.bool)
-        for _, row in matched_epochs.iterrows():
-            lower, upper = row[['start_index', 'end_index']].astype('i')
-            mask[:, lower:upper] = 0 if invert else 1
-
-        m[mask] = np.nan
-        return self._modified_copy(m)
+            mask = ~mask
+        data[mask] = np.nan
+        return self._modified_copy(data)
 
     def jackknifed_by_time(self, nsplits, split_idx, invert=False):
         '''
@@ -368,9 +303,9 @@ class Signal:
         epochs = []
         for signal in signals:
             ti = signal.epochs.copy()
-            ti['end_index'] += offset
-            ti['start_index'] += offset
-            offset += signal.ntimes
+            ti['end'] += offset
+            ti['start'] += offset
+            offset += signal.ntimes/signal.fs
             epochs.append(ti)
         epochs = pd.concat(epochs, ignore_index=True)
 
@@ -426,7 +361,7 @@ class Signal:
     # TODO: classmethod?
     # TODO: Have a flag 'allow_data_duplication=True' or False
     # that NaNs out data if it was already used in another epoch
-    def fold_by(self, epoch_name):
+    def extract_epochs(self, epoch_name):
         """
         Returns matrix with (O, C, T) where:
             O   is the number of occurences of epoch_name in the signal
@@ -454,89 +389,56 @@ class Signal:
             m = "Signal.epochs must be defined in order to fold by epochs"
             raise ValueError(m)
 
-        mask = self.epochs['epoch_name'] == (epoch_name)
-        matched_epochs = self.epochs[mask]
+        epochs = self.get_epochs(epoch_name)
+        epoch_indices = epochs[['start', 'end']] * self.fs
+        epoch_indices = epoch_indices.astype('i')
+        n_samples = np.max(epoch_indices['end']-epoch_indices['start'])
+        n_epochs = len(epoch_indices)
 
-        if not len(matched_epochs):
-            m = 'No matching epochs found. Unable to fold.'
-            raise ValueError(m)
+        epoch_data = np.full((n_epochs, self.nchans, n_samples), np.nan)
+        for i, (_, row) in enumerate(epoch_indices.iterrows()):
+            lb = np.clip(row['start'], 0, self.ntimes)
+            ub = np.clip(row['end'], 0, self.ntimes)
+            samples = ub-lb
+            epoch_data[i, :, :samples] = self._matrix[:, lb:ub]
 
-        samples = matched_epochs['end_index'] - matched_epochs['start_index']
-        n_epochs = matched_epochs.shape[0]
-        n_samples = samples.max().astype('i')
+        return epoch_data
 
-        folded_data = np.full((n_epochs, self.nchans, n_samples), np.nan)
-        for i, (_, row) in enumerate(matched_epochs.iterrows()):
-            lower, upper = row[['start_index', 'end_index']].astype('i')
-            samples = upper - lower
-            folded_data[i, :, :samples] = self._matrix[:, lower:upper]
 
-        return folded_data
-
+    def average_epoch(self, epoch_name):
+        epoch_data = self.extract_epochs(epoch_name)
+        return np.nanmean(epoch_data, axis=0)
 
     def trial_epochs_from_reps(self, nreps=1):
         """
         Creates a generic epochs DataFrame with a number of trials
         based on sample length and number of repetitions specified.
 
-        Ex: If signal._matrix has shape 3x100,
-            trial_epochs_from_reps(nreps=5) would generate a DataFrame of
-            of the form:
-                {'start_index': [0, 20, 40, 60, 80],
-                 'end_index': [20, 40, 60, 80, 100],
-                 'epoch_name': ['trial0', 'trial1', 'trial2',
-                                'trial3', 'trial4']}
+        Example
+        -------
+        If signal._matrix has shape 3x100 and the signal is sampled at 100 Hz,
+        trial_epochs_from_reps(nreps=5) would generate a DataFrame with 5 trials
+        (starting at 0, 0.2, 0.4, 0.6, 0.8 seconds).
 
-        Note: If the number of time samples is not evenly divisible by
-              the number of repetitions, then an additional trial will be
-              added to carry the remainder of the time samples.
-              (i.e. if there are 100 time samples and nreps=3, there will
-              be 3 trials of length 33 and a 4th trial of length 1)
-              TODO: is this good default behavior, or would it be better to
-                    either throw an error, chop off the remainder, or
-                    append the remainder to the nth trial?
-
-        Reminder: epochs indices behave similar to python list indices, so
-                  start_index is inclusive while end_index is exclusive,
-                  making the actual index values 0-99.
-
-        TODO: finish doc
-
-        TODO: Some way to get reps info from the data instead of
-              requiring user-provided?
-
-              Could use a default value based on length, like
-              nreps = np.ceil(n_samples/10) (and last trial would be
-              shorter than the others if n_samples not multiple of 10).
-
+        Note
+        ----
+        * The number of time samples must be evenly divisible by the number of
+          repetitions.
+        * Epoch indices behave similar to python list indices, so start is
+          inclusive while end is exclusive.
         """
+        trial_size = self.ntimes/nreps/self.fs
+        if self.ntimes % nreps:
+            m = 'Signal not evenly divisible into fixed-length trials'
+            raise ValueError(m)
 
-        trial_size = int(self.ntimes/nreps)
-        remainder = self.ntimes % nreps
-
-        starts = []
-        ends = []
-        names = []
-
-        for i in range(nreps):
-            start = (i)*trial_size
-            end = (i+1)*trial_size
-            starts.append(start)
-            ends.append(end)
-            names.append('trial')
-        if remainder:
-            start = (nreps)*trial_size
-            end = start+remainder
-            starts.append(start)
-            ends.append(end)
-            names.append('trial')
-
-        epochs = pd.DataFrame({'start_index': starts,
-                           'end_index': ends,
-                           'epoch_name': names},
-                          columns=['start_index', 'end_index', 'epoch_name'])
-
-        return epochs
+        starts = np.arange(nreps) * trial_size
+        ends = starts + trial_size
+        return pd.DataFrame({
+            'start': starts,
+            'end': ends,
+            'name': 'trial'
+        })
 
     def just_epochs_named(self, epoch_name):
         '''
@@ -810,6 +712,10 @@ class Signal:
         epochs_to_replace.apply(replacer, axis=1)
 
         return self._modified_copy(mat)
+
+    @property
+    def shape(self):
+        return self._matrix.shape
 
 
 # def sanity_check_epochs(self, epoch_name):

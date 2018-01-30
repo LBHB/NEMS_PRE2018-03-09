@@ -6,7 +6,6 @@ signals should be the same length and have the same sampling rate).
 
 Signals
 =======
-
 A `Signal` is a convenience class for slicing, averaging, jackknifing,
 truncating, splitting, saving, and loading tabular data that is stored in a CSV
 file + a JSON metadata sidecar. This class is intended to be useful for loading
@@ -88,3 +87,31 @@ The JSON file specifies optional attributes for the Signal, such as:
 
 You may augment the .meta with whatever information describes the experimental
 conditions under which that the data was observed.
+
+Operations
+..........
+
+Signals implement the Numpy universal function interface. This means that you
+can perform a variety of array operations on Signals:
+
+    # Add a DC offset of 5 to the signal
+    offset_signal = signal + 5
+
+    # Matrix multiplication
+    weighted_channels = weights @ signal
+
+    # Multi-signal operations (stim and pupil are signals)
+    pred = stim * pupil + stim * pupil**2 + stim * pupil**3
+
+    # Apply a linear filter to the signal. A new signal is created as fir
+    fir = lfilter(b, a, stim)
+
+    # Now, average across the filtered channels.
+    fir_mean = fir.mean(axis=0)
+
+When performing an operation on a signal, a new signal object is returned. The
+signal will be identical to the original object, albeit with
+appropriately-transformed data (e.g., sampling rate and epochs will be copied
+over). If you attempt to perform an operation (e.g., adding two signals) that
+do not match in some attribute (e.g., number of samples, sampling rate, etc.)
+you'll get an error.
