@@ -804,7 +804,7 @@ class Signal:
         # Define a little lambda to work on mat
         def replacer(row):
             newmat = replacement_dict[row['epoch_name']]
-            mat[:, row['start_index']:row['stop_index']] = newmat
+            mat[:, row['start_index']:row['end_index']] = newmat
 
         # Now, mutate mat!
         epochs_to_replace.apply(replacer, axis=1)
