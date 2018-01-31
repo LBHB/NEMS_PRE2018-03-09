@@ -169,79 +169,8 @@ def test_concatenate_channels(signal):
     assert sig1.as_continuous().shape == (3, 200)
     assert sig3.as_continuous().shape == (6, 200)
 
-
-def test_indexes_of_trues():
-    ary = np.array([True, False, True, False])
-    print("test 0")
-    assert([[0, 1], [2, 3]] == Signal.indexes_of_trues(ary))
-
-    ary = np.array([False, False, False, True, True, False])
-    print("test 1")
-    assert([[3, 5]] == Signal.indexes_of_trues(ary))
-
-    ary = np.array([True, True, True, False, False])
-    print("test 2")
-    assert([[0, 3]] == Signal.indexes_of_trues(ary))
-
-    ary = np.array([True, True, True, True, True, True])
-    print("test 3")
-    assert([[0, 6]] == Signal.indexes_of_trues(ary))
-
-    ary = np.array([False, False, False])
-    print("test 4")
-    assert([] == Signal.indexes_of_trues(ary))
-
-    ary = np.array([True, False, False])
-    print("test 5")
-    assert([[0, 1]] == Signal.indexes_of_trues(ary))
-
-    ary = np.array([True])
-    print("test 6")
-    assert([[0, 1]] == Signal.indexes_of_trues(ary))
-
-
-@pytest.mark.skip
-def test_extend_epoch(signal):
-    epochs = signal.extend_epoch('pupil_closed', 3/signal.fs, 0)
-    expected = np.array([[12, 60], [147, 190]])/signal.fs
-    assert np.all(expected == epochs)
-    assert([[12, 60], [147, 190]] == df.values.tolist())
-
-    df = signal.extend_epoch('pupil_closed', 0, 3)
-    assert([[15, 63], [150, 193]] == df.values.tolist())
-
-
-@pytest.mark.skip
-def test_combine_epochs(signal):
-    print('Testing intersection...')
-    df = signal.combine_epochs('pupil_closed', 'trial', op='intersection')
-    assert([[15, 60, nan], [150, 190, nan]] == df.values.tolist())
-
-    print('Testing union...')
-    df = signal.combine_epochs('pupil_closed', 'trial', op='union')
-    assert([[3, 200, nan]] == df.values.tolist())
-
-    print('Testing difference left...')
-    df = signal.combine_epochs('trial', 'pupil_closed', op='difference')
-    assert([[3, 15, nan],
-            [60, 150, nan],
-            [190, 200, nan]] == df.values.tolist())
-
-    print('Testing difference right...')
-    df = signal.combine_epochs('pupil_closed', 'trial', op='difference')
-    assert([] == df.values.tolist())
-
-
-@pytest.mark.skip
-def test_overlapping_epochs(signal):
-    print('Testing overlapping_epochs...')
-    df = signal.overlapping_epochs('pupil_closed', 'trial')
-    assert([[3, 200, np.nan]] == df.values.tolist())
-
-
-@pytest.mark.skip
-def test_match_epochs(signal):
-    print('Testing match_epochs')
-    assert(set(['pupil_closed', 'trial']) == set(signal.match_epochs('.*')))
-    assert(set(['pupil_closed']) == set(signal.match_epochs('^p')))
-    assert(set(['trial']) == set(signal.match_epochs('^t')))
+def test_add_epoch(signal):
+    epoch = np.array([[0, 200]])
+    signal.add_epoch('experiment', epoch)
+    assert len(signal.epochs) == 4
+    assert np.all(signal.get_epoch_bounds('experiment') == epoch)

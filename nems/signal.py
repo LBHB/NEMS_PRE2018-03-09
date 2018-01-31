@@ -582,76 +582,24 @@ class Signal:
         else:
             return None
 
-    def add_epochs(self, epoch_name, epoch_dataframe):
+    def add_epoch(self, epoch_name, epoch):
         '''
-        Adds the epoch_times to this signal's epochs data structure
-        under epoch_name. Will not add epochs if another epoch
-        of the same name already exists.
+        Add epoch to the internal epochs dataframe
+
+        Parameters
+        ----------
+        epoch_name : string
+            Name of epoch
+        epoch : 2D array of (M x 2)
+            The first column is the start time and second column is the end
+            time. M is the number of occurences of the epoch.
         '''
-        if type(epoch_dataframe) is not pd.DataFrame:
-            raise TypeError('epoch_times must be a dataframe')
-
-        mask = self.epochs['epoch_name'] == epoch_name
-        existing_matches = self.epochs[mask]
-
-        if not existing_matches.empty:
-            raise ValueError('Epochs named that already exist!')
-
-        epoch_dataframe['epoch_name'] = epoch_name
-        self.epochs.append(epoch_dataframe)
-
-    def extend_epoch(self, epoch_name, prepend, postpend):
-        '''
-        Subtract prepend from the start of every epoch named
-        'epoch_name', add postpend from the end, and return
-        a new dataframe containing the new epochs.
-
-        This does not alter self.epochs -- you must do that yourself:
-        # Create epochs starting 2.3 seconds before every blink
-        preblink_epochs = sig.resize_epochs('blink', 2.3, 0)
-        print(preblink_epochs)
-        sig.add_epochs(preblink_epochs)
-        '''
-        ep = self.just_epochs_named(epoch_name)
-        ep['start'] -= prepend
-        ep['end'] += postpend
-        ep = ep.drop('epoch_name', 1)
-        return ep
-
-    @staticmethod
-    def indexes_of_trues(boolean_array):
-        '''
-        Returns the a list of start, end indexes of every contiguous block
-        of True elements in numpy boolean_array. Just a helper function.
-        '''
-        assert(type(boolean_array) is np.ndarray)
-
-        idxs = np.where(np.diff(boolean_array))[0].tolist()
-
-        # Special case: first element is true
-        if boolean_array[0]:
-            idxs.insert(0, -1)
-
-        # Special case: last element is true
-        if boolean_array[-1]:
-            idxs.append(len(boolean_array)-1)
-
-        indexes = [[idxs[i]+1, idxs[i+1]+1] for i in range(0, len(idxs) - 1, 2)]
-
-        return indexes
+        df = pd.DataFrame(epoch, columns=['start', 'end'])
+        df['name'] = epoch_name
+        self.epochs = self.epochs.append(df, ignore_index=True)
 
     @property
     def shape(self):
         return self._matrix.shape
 
 
-# def sanity_check_epochs(self, epoch_name):
-#     '''
-#     There are several kinds of pathological epochs:
-#       1. Epochs with NaN for a start or end time
-#       2. Epochs where start comes after the end
-#       3. Epochs which are completely identical triplets
-#     This function searches for those and throws exceptions about them.
-#     '''
-#     # TODO
-#     pass

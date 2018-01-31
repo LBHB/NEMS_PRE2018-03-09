@@ -315,3 +315,41 @@ def epoch_contains(a, b, mode):
         mask = _epoch_contains_mask(b, a)
         a_in_b = mask.any(axis=2).any(axis=0)
         return b_in_a | a_in_b
+
+
+def adjust_epoch_bounds(a, pre=0, post=0):
+    '''
+
+    Parameters
+    ----------
+    a : 2D array of (M x 2)
+        The first column is the start time and second column is the end time. M
+        is the number of occurances of a.
+    pre : scalar
+        Value to add to start time of epoch
+    post : scalar
+        Value to add to end time of epoch
+
+    Example
+    -------
+    >>> epochs = np.array([[0.5, 1], [2.5, 3]])
+    >>> adjust_epoch_bounds(epochs, -0.5)
+    [[0, 1],
+     [2, 3]]
+
+    >>> adjust_epoch_bounds(epochs, 0.5, 1)
+    [[1, 2],
+     [3, 4]]
+    '''
+    return a + np.array([pre, post])
+
+
+def verify_epoch_integrity(epoch):
+    '''
+    There are several kinds of pathological epochs:
+      1. Epochs with NaN for a start or end time
+      2. Epochs where start comes after the end
+      3. Epochs which are completely identical triplets
+    This function searches for those and throws exceptions about them.
+    '''
+    raise NotImplementedError
