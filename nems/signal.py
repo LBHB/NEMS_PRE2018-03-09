@@ -349,19 +349,27 @@ class Signal:
             matrix=data,
             )
 
-    def get_epoch_bounds(self, epoch_name, trim=False):
+    def get_epoch_bounds(self, epoch, trim=False, fix_overlap=None):
         '''
         Get boundaries of named epoch.
 
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
         trim : boolean
             If True, ensure that epoch boundaries fall within the range of the
             signal. Epochs with boundaries falling outside the signal range will
             be truncated. For example, if an epoch runs from -1.5 to 10, it will
             be truncated to 0 to 10 (all signals start at time 0).
+        fix_overlap : {None, 'merge', 'first'}
+            Indicates how to handle overlapping epochs. If None, return
+            boundaries as-is. If 'merge', merge overlapping epochs into a single
+            epoch. If 'first', keep only the first of an overlapping set of
+            epochs.
 
         Returns
         -------
@@ -370,25 +378,50 @@ class Signal:
             first column is the start time and the second column is the end
             time.
         '''
-        mask = self.epochs['name'] == epoch_name
-        bounds = self.epochs.loc[mask, ['start', 'end']].values
+        # If string, pull the epochs out of the internal dataframe.
+        if isinstance(epoch, str):
+            if self.epochs is None:
+                m = "Signal does not have any epochs defined"
+                raise ValueError(m)
+            mask = self.epochs['name'] == epoch
+            bounds = self.epochs.loc[mask, ['start', 'end']].values
+
         if trim:
             bounds = np.clip(bounds, 0, self.ntimes*self.fs)
+
+        if fix_overlap is None:
+            pass
+        elif fix_overlap == 'merge':
+            bounds = merge_epoch(bounds)
+        elif fix_overlap == 'first':
+            bounds = remove_overlap(bounds)
+        else:
+            m = 'Unsupported mode, {}, for fix_overlap'.format(fix_overlap)
+            raise ValueError(m)
+
         return bounds
 
-    def get_epoch_indices(self, epoch_name, trim=False):
+    def get_epoch_indices(self, epoch, trim=False):
         '''
         Get boundaries of named epoch as index.
 
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
         trim : boolean
             If True, ensure that epoch boundaries fall within the range of the
             signal. Epochs with boundaries falling outside the signal range will
             be truncated. For example, if an epoch runs from -1.5 to 10, it will
             be truncated to 0 to 10 (all signals start at time 0).
+        fix_overlap : {None, 'merge', 'first'}
+            Indicates how to handle overlapping epochs. If None, return
+            boundaries as-is. If 'merge', merge overlapping epochs into a single
+            epoch. If 'first', keep only the first of an overlapping set of
+            epochs.
 
         Returns
         -------
@@ -397,17 +430,20 @@ class Signal:
             first column is the start time and the second column is the end
             time.
         '''
-        bounds = self.get_epoch_bounds(epoch_name, trim)
+        bounds = self.get_epoch_bounds(epoch, trim)
         return (bounds * self.fs).astype('i')
 
-    def extract_epoch(self, epoch_name):
+    def extract_epoch(self, epoch):
         '''
         Extracts all occurances of epoch from the signal.
 
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract.
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
 
         Returns
         -------
@@ -421,11 +457,7 @@ class Signal:
         Epochs tagged with the same name may have various lengths. Shorter
         epochs will be padded with NaN.
         '''
-        if self.epochs is None:
-            m = "Signal.epochs must be defined in order to fold by epochs"
-            raise ValueError(m)
-
-        epoch_indices = self.get_epoch_indices(epoch_name, trim=True)
+        epoch_indices = self.get_epoch_indices(epoch, trim=True)
         n_samples = np.max(epoch_indices[:, 1]-epoch_indices[:, 0])
         n_epochs = len(epoch_indices)
 
@@ -436,21 +468,25 @@ class Signal:
 
         return epoch_data
 
-    def average_epoch(self, epoch_name):
+    def average_epoch(self, epoch):
         '''
         Returns the average of the epoch.
 
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract.
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
+
         Returns
         -------
         mean_epoch : 2D array
             Two dimensinonal array of shape C, T where C is the number of
             channels, and T is the maximum length of the epoch in samples.
         '''
-        epoch_data = self.extract_epoch(epoch_name)
+        epoch_data = self.extract_epoch(epoch)
         return np.nanmean(epoch_data, axis=0)
 
     def extract_epochs(self, epoch_names):
@@ -469,20 +505,18 @@ class Signal:
             Keys are the names of the epochs, values are 3D arrays created by
             `extract_epoch`.
         '''
+        # TODO: Update this to work with a mapping of key -> Nx2 epoch
+        # structure as well.
         return {name: self.extract_epoch(name) for name in epoch_names}
 
-    def replace_epoch(self, epoch_name, epoch_data):
+    def replace_epoch(self, epoch, epoch_data):
         '''
         Returns a new signal, created by replacing every occurrence of
         epoch_name with epoch_data, assumed to be a 2D matrix of data
         (chans x time).
         '''
-        if self.epochs is None:
-            m = "Signal.epochs must be defined in order to replace epochs"
-            raise ValueError(m)
-
         data = self.as_continuous()
-        for lb, ub in self.get_epoch_bounds(epoch_name):
+        for lb, ub in self.get_epoch_bounds(epochs):
             data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)
@@ -502,26 +536,22 @@ class Signal:
         we do not recommend replacing overlapping epochs in a single
         operation because there is some ambiguity as to the result.
         '''
-        if self.epochs is None:
-            m = "Signal.epochs must be defined in order to replace epochs"
-            raise ValueError(m)
-
+        # TODO: Update this to work with a mapping of key -> Nx2 epoch
+        # structure as well.
         data = self.as_continuous()
-        for name, epoch_data in epoch_dict.items():
-            bounds = self.get_epoch_bounds(name)
-            for lb, ub in bounds:
+        for epoch, epoch_data in epoch_dict.items():
+            for lb, ub in self.get_epoch_bounds(epochs):
                 data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)
 
-    def select_epoch(self, epoch_name):
+    def select_epoch(self, epoch):
         '''
         Returns a new signal, the same as this, with everything NaN'd
         unless it is tagged with epoch_name.
         '''
         new_data = np.full(self.shape, np.nan)
-
-        for (lb, ub) in self.get_epoch_indices(epoch_name, trim=True):
+        for (lb, ub) in self.get_epoch_indices(epoch, trim=True):
             new_data[:, lb:ub] = self._matrix[:, lb:ub]
 
         return self._modified_copy(new_data)
@@ -532,8 +562,9 @@ class Signal:
         unless it is tagged with one of the epoch_names found in
         list_of_epoch_names.
         '''
+        # TODO: Update this to work with a mapping of key -> Nx2 epoch
+        # structure as well.
         new_data = np.full(self.shape, np.nan)
-
         for epoch_name in list_of_epoch_names:
             for (lb, ub) in self.get_epoch_indices(epoch_name, trim=True):
                 new_data[:, lb:ub] = self._matrix[:, lb:ub]
@@ -596,7 +627,10 @@ class Signal:
         '''
         df = pd.DataFrame(epoch, columns=['start', 'end'])
         df['name'] = epoch_name
-        self.epochs = self.epochs.append(df, ignore_index=True)
+        if self.epochs is not None:
+            self.epochs = self.epochs.append(df, ignore_index=True)
+        else:
+            self.epochs = df
 
     @property
     def shape(self):

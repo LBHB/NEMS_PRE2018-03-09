@@ -1,6 +1,40 @@
 import numpy as np
 
 
+def remove_overlap(a):
+    '''
+    Remove overlapping occurences by taking the first occurence
+    '''
+    a = a.copy()
+    a.sort(axis=0)
+    i = 0
+    n = len(a)
+    trimmed = []
+    while i < n:
+        lb, ub = a[i]
+        i += 1
+        trimmed.append((lb, ub))
+        while (i < n) and (ub >= a[i, 0]):
+            i += 1
+    return np.array(trimmed)
+
+
+def merge_epoch(a):
+    a = a.copy()
+    a.sort(axis=0)
+    i = 0
+    n = len(a)
+    merged = []
+    while i < n:
+        lb, ub = a[i]
+        i += 1
+        while (i < n) and (ub >= a[i, 0]):
+            ub = a[i, 1]
+            i += 1
+        merged.append((lb, ub))
+    return np.array(merged)
+
+
 def epoch_union(a, b):
     '''
     Compute the union of the epochs.
@@ -27,20 +61,8 @@ def epoch_union(a, b):
     b:      [   ]       [ ]     []      [    ]
     result: [    ]  [         ] []     [     ]
     '''
-    epochs = np.concatenate((a, b), axis=0)
-    epochs.sort(axis=0)
-    i = 0
-    n = len(epochs)
-    union = []
-
-    while i < n:
-        lb, ub = epochs[i]
-        i += 1
-        while (i < n) and (ub >= epochs[i, 0]):
-            ub = epochs[i, 1]
-            i += 1
-        union.append((lb, ub))
-    return np.array(union)
+    epoch = np.concatenate((a, b), axis=0)
+    return merge_epoch(epoch)
 
 
 def epoch_difference(a, b):

@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 from nems.epoch import (epoch_union, epoch_difference, epoch_intersection,
-                        epoch_contains, adjust_epoch_bounds)
+                        epoch_contains, adjust_epoch_bounds, remove_overlap)
 
 @pytest.fixture()
 def epoch_a():
@@ -103,4 +103,23 @@ def test_adjust_epoch_bounds(epoch_a):
 
     expected = epoch_a + np.array([0, 5])
     actual = adjust_epoch_bounds(epoch_a, 0, 5)
+    assert np.all(actual == expected)
+
+
+def test_remove_overlap():
+    epochs = np.array([
+        [0, 10],
+        [1, 15],
+        [5, 10],
+        [11, 32],
+        [40, 50],
+    ])
+
+    expected = np.array([
+        [0, 10],
+        [11, 32],
+        [40, 50],
+    ])
+
+    actual = remove_overlap(epochs)
     assert np.all(actual == expected)
