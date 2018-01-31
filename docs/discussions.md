@@ -199,3 +199,4 @@ We focused on Charlie's analysis, which largely rests on analyzing the data and 
 *PREPROCESSING*. We have also had discussions about "preprocessing" vs models. One crazy idea is to use a model with zero fittable parameters to do preprocessing, so that you can preprocess signals in an unambigious way. Then you feed those preprocessed signals into another model and do your fitting on that second model like normal.
 
 IMMUTABILITY OF EPOCHS. Right now, epochs are mutable because they are panda dataframes, but the rest of the Signal is immutable. In the future, if we want to test the equality of two signals, this is easiest if they are completely immutable because we can just test the references instead of testing every substructure of the data.
+
