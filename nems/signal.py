@@ -380,7 +380,7 @@ class Signal:
 
         then this will be true:
 
-           assert(signal.extract_epochs('trial').shape == (3, 3, 20))
+           assert(signal.fold_by('trial').shape == (3, 3, 20))
 
         i.e. 3 epochs x 3 channels x 20 time samples (longest). The three
         epochs would contain 10, 15, and 0 NaN values, respectively.
@@ -627,6 +627,32 @@ class Signal:
 
         return new_epoch
 
+    def epoch_mask_signal(self, epoch_name):
+        '''
+        Returns a new signal, the same as this, with everything NaN'd
+        unless it is tagged with epoch_name. If epoch_name is a string,
+        the self.epochs dataframe is used. If epoch_name is a dataframe,
+        then it will be used instead of self.epochs.
+
+        TODO: Examples
+        '''
+
+        if type(epoch_name) is pd.DataFrame:
+            mask = epoch_name
+        else:
+            mask = self.epochs['name'] == epoch_name
+
+        matched_epochs = self.epochs[mask]
+        new_data = np.zeros([1,self.ntimes])
+        for i,s in matched_epochs.iterrows():
+            start = int(s['start']*self.fs)
+            end = int(s['end']*self.fs)
+            new_data[:,start:end] = 1
+            
+        new_signal=self._modified_copy(new_data)
+        new_signal.chans=['mask: '+epoch_name]
+        return new_signal
+
     def select_epochs(self, epoch_name):
         '''
         Returns a new signal, the same as this, with everything NaN'd
@@ -640,17 +666,20 @@ class Signal:
         if type(epoch_name) is pd.DataFrame:
             mask = epoch_name
         else:
-            mask = self.epochs['epoch_name'] == epoch_name
+            mask = self.epochs['name'] == epoch_name
 
         matched_epochs = self.epochs[mask]
-        samples = matched_epochs['end_index'] - matched_epochs['start_index']
-
+        samples = (matched_epochs['end'] - matched_epochs['start'])*self.fs
+        samples = samples.astype('i')
         old_data = self.as_continuous()
         new_data = np.full(old_data.shape, np.nan)
-        for s in samples:
-            start = s['start_index']
-            end = s['end_index']
-            new_data[start:end] = old_data[start:end]
+        for i,s in matched_epochs.iterrows():
+            start = int(s['start']*self.fs)
+            end = int(s['end']*self.fs)
+            
+        new_data = np.full(self.shape, np.nan)
+        mask_signal=self.epoch_mask_signal(epoch_name)
+        new_data[:,mask_signal.as_continuous] = old_data[:,mask_signal.as_continuous]
 
         return self._modified_copy(new_data)
 
@@ -668,6 +697,7 @@ class Signal:
         Returns a dict mapping epochs from list_of_epoch_names
         to the 3D matrices created by .extract_epochs(). This function is
         particularly useful when used with its inverse, .replace_epochs().
+        SVD convert to from fold_by to extract_epochs
         '''
         d = {ep: self.extract_epochs(ep) for ep in list_of_epoch_names}
         return d

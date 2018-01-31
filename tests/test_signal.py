@@ -77,14 +77,14 @@ def test_as_continuous(signal):
     assert signal.as_continuous().shape == (3, 200)
 
 
-def test_extract_epochs(signal):
-    result = signal.extract_epochs('pupil_closed')
+def test_extract_epoch(signal):
+    result = signal.extract_epoch('pupil_closed')
     assert result.shape == (2, 3, 45)
 
 
 def test_trial_epochs_from_reps(signal):
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
-    result1 = signal.extract_epochs('trial')
+    result1 = signal.extract_epoch('trial')
     assert result1.shape == (10, 3, 20)
 
     with pytest.raises(ValueError):
@@ -93,7 +93,7 @@ def test_trial_epochs_from_reps(signal):
 
 def test_as_trials(signal):
     signal.epochs = signal.trial_epochs_from_reps(nreps=10)
-    result = signal.extract_epochs('trial')
+    result = signal.extract_epoch('trial')
     assert result.shape == (10, 3, 20)
 
 

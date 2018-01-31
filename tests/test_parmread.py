@@ -86,8 +86,8 @@ h=np.array([])
 ff = (event_times['name']==event_name)
 ## pull out each epoch from the spike times, generate a raster of spike rate
 for i,d in event_times.loc[ff].iterrows():
-    print("{0}-{1}".format(d['start'],d['stop']))
-    edges=np.arange(d['start'],d['stop']+binlen,binlen)
+    print("{0}-{1}".format(d['start'],d['end']))
+    edges=np.arange(d['start'],d['end']+binlen,binlen)
     th,e=np.histogram(spike_dict[cellid],edges)
     
     print("{0}-{1}: {2}".format(edges[0],edges[1],sum((spike_dict[cellid]>edges[0]) & (spike_dict[cellid]<edges[1]))))
