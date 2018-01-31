@@ -336,10 +336,11 @@ class Signal:
         for signal in signals:
             chans.extend(signal.chans)
 
-        epochs = []
-        for signal in signals:
-            epochs.append(signal.epochs)
-
+        #epochs = []
+        #for signal in signals:
+        #    epochs.append(signal.epochs)
+        epochs=signals[0].epochs
+        
         return Signal(
             name=base.name,
             recording=base.recording,
@@ -488,31 +489,46 @@ class Signal:
 
         return self._modified_copy(mat)
 
-    def select_epochs(self, epoch_name):
+    def epoch_mask_signal(self, epoch_name):
         '''
-        Returns a new signal, the same as this, with everything NaN'd
-        unless it is tagged with epoch_name. If epoch_name is a string,
-        the self.epochs dataframe is used. If epoch_name is a dataframe,
-        then it will be used instead of self.epochs.
+        Returns a new signal that's 1 during every period tagged with epoch name.
+
         TODO: Examples
         '''
 
         if type(epoch_name) is pd.DataFrame:
             mask = epoch_name
         else:
-            mask = self.epochs['epoch_name'] == epoch_name
+            mask = self.epochs['name'] == epoch_name
 
         matched_epochs = self.epochs[mask]
-        samples = matched_epochs['end_index'] - matched_epochs['start_index']
+        new_data = np.zeros([1,self.ntimes])
+        for i,s in matched_epochs.iterrows():
+            start = int(s['start']*self.fs)
+            end = int(s['end']*self.fs)
+            new_data[:,start:end] = 1
+            
+        new_signal=self._modified_copy(new_data)
+        new_signal.chans=['mask: '+epoch_name]
+        return new_signal
+
+    def select_epochs(self, epoch_name):
+        '''
+        Returns a new signal, the same as this, with everything NaN'd
+        unless it is tagged with epoch_name. If epoch_name is a string,
+        the self.epochs dataframe is used. If epoch_name is a dataframe,
+        then it will be used instead of self.epochs.
+
+        TODO: Examples
+        '''
 
         old_data = self.as_continuous()
-        new_data = np.full(old_data.shape, np.nan)
-        for s in samples:
-            start = s['start_index']
-            end = s['end_index']
-            new_data[start:end] = old_data[start:end]
+        mask_signal=self.epoch_mask_signal(epoch_name)
+        new_data = np.full(self.shape, np.nan)
+        new_data[:,mask_signal.as_continuous] = old_data[:,mask_signal.as_continuous]
 
         return self._modified_copy(new_data)
+    
 
     def trial_epochs_from_reps(self, nreps=1):
         """

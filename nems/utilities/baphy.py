@@ -835,6 +835,7 @@ def baphy_mat2py(s):
     
     s6=re.sub(r'([0-9]+) ', r"\g<0>,", s5)
     s6=re.sub(r'NaN ', r"np.nan,", s6)
+    s6=re.sub(r'Inf ', r"np.inf,", s6)
     
     s7=re.sub(r"XX([a-zA-Z0-9]+)'",r".\g<1>'",s6)
     s7=re.sub(r"XX([a-zA-Z0-9]+) ,",r".\g<1> ,",s7)
@@ -1214,6 +1215,9 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     big_rs=np.roll(big_rs,-offset_frames)
     big_rs[-offset_frames:]=np.nan
     
+    # shape to 1 x T to match NEMS signal specs
+    big_rs = big_rs[np.newaxis,:]
+    
     return big_rs,strialidx
     
 
@@ -1258,18 +1262,30 @@ def baphy_load_data(parmfilepath,options={}):
     #       or make s3 match LBHB?
     
     # figure out stimulus cachefile to load
-    stimfilepath=baphy_stim_cachefile(exptparams,options,parmfilepath)
-    print("Cached stim: {0}".format(stimfilepath))
-    
+    if options['stim']:
+        stimfilepath=baphy_stim_cachefile(exptparams,options,parmfilepath)
+        print("Cached stim: {0}".format(stimfilepath))
+        # load stimulus spectrogram
+        stim,tags,stimparam = baphy_load_specgram(stimfilepath)
+    else:
+        stim=np.array([])
+        if options['runclass'] is None:
+            stim_object='ReferenceHandle'
+        else:
+            runclass=exptparams['runclass'].split("_")
+            if runclass[1]==options["runclass"]:
+                stim_object='TargetHandle'
+            else:
+                stim_object='ReferenceHandle'
+                
+        tags=exptparams['TrialObject'][1][stim_object][1]['Names']
+        stimparam=[]
+        
     # figure out spike file to load
     pp,bb=os.path.split(parmfilepath)
     spkfilepath=pp + '/' + spk_subdir + re.sub(r"\.m$",".spk.mat",bb)
     print("Spike file: {0}".format(spkfilepath))
-    # figure out pupil file to load
-    
-    # load stimulus spectrogram
-    stim,tags,stimparam = baphy_load_specgram(stimfilepath)
-    
+        
     # load spike times
     sortinfo,spikefs=baphy_load_spike_data_raw(spkfilepath)
     
@@ -1322,6 +1338,7 @@ def baphy_load_recording(parmfilepath,options={}):
     # get the relatively un-pre-processed data
     print(options)
     options['pupil'] = options.get('pupil',False)
+    options['stim'] = options.get('stim',True)
     options['runclass'] = options.get('runclass',None)
     
     exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
@@ -1343,7 +1360,6 @@ def baphy_load_recording(parmfilepath,options={}):
     # figure out length of entire experiment
     file_start_time=np.min(event_times['start'])
     file_stop_time=np.max(event_times['end'])
-    te=pd.DataFrame(index=[0],columns=(event_times.columns))
     
     # add event characterizing outcome of each behavioral 
     # trial (if behavior)
@@ -1367,6 +1383,7 @@ def baphy_load_recording(parmfilepath,options={}):
                note_map[d['name']]
             any_behavior=True
     
+    te=pd.DataFrame(index=[0],columns=(event_times.columns))
     if any_behavior:
         # only concatenate newly labeled trials if events occured that reflect
         # behavior. There's probably a less kludgy way of checking for this
@@ -1400,26 +1417,27 @@ def baphy_load_recording(parmfilepath,options={}):
     #ff=(exptevents['Trial']==3)
     #exptevents.loc[ff]
     
+    stim_dict={}
+    
     if 'pertrial' in options and options['pertrial']:
         # NOT COMPLETE!
-        stim_dict={}
         
         # make stimulus events unique to each trial
         this_event_times=event_times.copy()
         for eventidx in range(0,TrialCount):
             event_name="TRIAL{0}".format(eventidx)
             this_event_times.loc[eventidx,'name']=event_name
-            stim_dict[event_name]=stim[:,:,eventidx]
+            if options['stim']:
+                stim_dict[event_name]=stim[:,:,eventidx]
         event_times=pd.concat([event_times, this_event_times])
         
     else:
-        stim_dict={}
-        
         # generate stimulus events unique to each distinct stimulus
         for eventidx in range(0,len(tags)):
             
-            # save stimulus for this event as separate dictionary entry
-            stim_dict[tags[eventidx]]=stim[:,:,eventidx]
+            if options['stim']:
+                # save stimulus for this event as separate dictionary entry
+                stim_dict[tags[eventidx]]=stim[:,:,eventidx]
             
             # complicated experiment-specific part
             tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
@@ -1442,12 +1460,14 @@ def baphy_load_recording(parmfilepath,options={}):
                   (exptevents['name'].str.contains('Target'))
                 ffid,=np.where(f)
                 for j in ffid:
-                    print("Stim (event {0}: {1:.2f}-{2:.2f} {3}".format(eventidx,d['start'],
-                          d['end'],d['name']))
-                    print("??? But did it happen?  ? Conflicting target: {0}-{1} {2}".format(exptevents['start'][j],
-                          exptevents['end'][j],exptevents['name'][j]))
+                    #print("Stim (event {0}: {1:.2f}-{2:.2f} {3}".format(eventidx,d['start'],
+                    #      d['end'],d['name']))
+                    #print("??? But did it happen?  ? Conflicting target: {0}-{1} {2}".format(exptevents['start'][j],
+                    #      exptevents['end'][j],exptevents['name'][j]))
                     keepevents[i]=False
-               
+              
+            print("Removed {0}/{1} events that overlap with target".format(
+                    np.sum(keepevents==False),len(keepevents)))
             # create final list of these stimulus events
             this_event_times=this_event_times[keepevents]
             tff,=np.where(ffstart)
@@ -1473,8 +1493,26 @@ def baphy_load_recording(parmfilepath,options={}):
             event_times=pd.concat([event_times, this_event_times])
 
     # add behavior events
-    
-
+    if exptparams['runclass']=='PTD':
+        # special events for tone in noise task
+        tar_idx_freq=exptparams['TrialObject'][1]['TargetIdxFreq']
+        tar_snr=exptparams['TrialObject'][1]['RelativeTarRefdB']
+        common_tar_idx,=np.where(tar_idx_freq==np.max(tar_idx_freq))
+        if len(tar_idx_freq)==1 or np.isinf(tar_snr[0]):
+            diff_event='PURETONE_BEHAVIOR'
+        elif np.isfinite(tar_snr[0]) & (np.max(common_tar_idx)<2):
+            diff_event='EASY_BEHAVIOR'
+        elif np.isfinite(tar_snr[0]) & (2 in common_tar_idx):
+            diff_event='MEDIUM_BEHAVIOR'
+        elif np.isfinite(tar_snr[0]) & (np.min(common_tar_idx)>2):
+            diff_event='HARD_BEHAVIOR'
+        else:
+            diff_event='PURETONE_BEHAVIOR'
+        te=pd.DataFrame(index=[0],columns=(event_times.columns))
+        te.loc[0]=[file_start_time,file_stop_time,diff_event]
+        event_times=pd.concat([event_times, te])
+        
+            
     # sort by when the event occured in experiment time            
     event_times=event_times.sort_values(by=['start','end'], ascending=[1, 0]).reset_index()
     event_times=event_times.drop(columns=['index'])
@@ -1569,14 +1607,15 @@ def spike_time_to_raster(spike_dict,fs=100,event_times=None):
     if event_times is not None:
         maxtime=np.max(event_times["end"])
         
-    maxbin=int(fs*maxtime)+1
+    maxbin=int(fs*maxtime)
     unitcount=len(spike_dict.keys())
     raster=np.zeros([unitcount,maxbin])
     
     cellids=sorted(spike_dict)
     for i,key in enumerate(cellids):
         for t in spike_dict[key]:
-            if t<maxtime:
-                raster[i,int(np.floor(t*fs))]+=1
+            b=int(np.floor(t*fs))
+            if b<maxbin:
+                raster[i,b]+=1
     
     return raster,cellids
