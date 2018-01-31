@@ -16,12 +16,11 @@ class Signal:
         epochs : {None, DataFrame}
             Epochs are periods of time that are tagged with a name
             When defined, the DataFrame should have these first three columns:
-                 ('start_time', 'end_index', 'epoch_name')
-            denoting the start and end of the time of an epoch, and what
-            it is named. You may reuse the same name (because several epochs
-            might correspond to the same stimulus, for example). start_time
-            is inclusive, and end_index is not, like other indexing in python.
-        ... TODO
+                 ('start', 'end', 'name')
+            denoting the start and end of the time of an epoch (in seconds).
+            You may use the same epoch name multiple times; this is common when
+            tagging epochs that correspond to repetitions of the same stimulus.
+        ...
         '''
         self._matrix = matrix
         self._matrix.flags.writeable = False  # Make it immutable
@@ -72,25 +71,25 @@ class Signal:
             raise ValueError(m.format(self.fs))
 
         if type(self._matrix) is not np.ndarray:
-            raise ValueError('matrix must be a np.ndarray:'
-                             + type(self._matrix))
+            raise ValueError('matrix must be a np.ndarray:' +
+                             type(self._matrix))
 
     def save(self, dirpath, fmt='%.18e'):
         '''
-        Save this signal to a CSV + JSON sidecar. If desired, you may
-        use optional parameter fmt (for example, fmt='%1.3e')
+        Save this signal to a CSV file + JSON sidecar. If desired,
+        you may use optional parameter fmt (for example, fmt='%1.3e')
         to alter the precision of the floating point matrices.
         '''
         filebase = self.recording + '.' + self.name
         basepath = os.path.join(dirpath, filebase)
         csvfilepath = basepath + '.csv'
-        epochfilepath = basepath + 'epoch.csv'
+        epochfilepath = basepath + '.epoch.csv'
         jsonfilepath = basepath + '.json'
 
         mat = self.as_continuous()
         mat = np.swapaxes(mat, 0, 1)
         np.savetxt(csvfilepath, mat, delimiter=",", fmt=fmt)
-        # TODO:
+        self.epochs.to_csv(epochfilepath, sep=',')
         with open(jsonfilepath, 'w') as fh:
             attributes = self._get_attributes()
             del attributes['epochs']
@@ -99,7 +98,7 @@ class Signal:
         return (csvfilepath, jsonfilepath)
 
     def copy(self):
-        """Wrapper for copy.copy(self)."""
+        ''' Shorthand wrapper for copy.copy(self). '''
         return copy.copy(self)
 
     @staticmethod
@@ -148,7 +147,7 @@ class Signal:
 
     def as_continuous(self):
         '''
-        Return data as a 2D array of channel x time
+        Return a copy of signal data, as a 2D numpy array (channel x time).
         '''
         return self._matrix.copy()
 
@@ -216,7 +215,7 @@ class Signal:
 
     def jackknifed_by_epochs(self, epoch_name, nsplits, split_idx, invert=False):
         '''
-        Returns a new signal, with epochs matching  NaN'd out.
+        Returns a new signal, with epochs matching epoch_name NaN'd out.
         Optional argument 'invert' causes everything BUT the matched epochs
         to be NaN'd. If no epochs are found that match the regex, an exception
         is thrown. The epochs data structure itself is not changed.
@@ -270,7 +269,7 @@ class Signal:
     def concatenate_time(cls, signals):
         '''
         Combines the signals along the time axis. All signals must have the
-        same number of channels and sampling rates.
+        same number of channels and the same sampling rates.
         '''
         # Make sure all objects passed are instances of the Signal class
         for signal in signals:
@@ -281,9 +280,9 @@ class Signal:
         base = signals[0]
         for signal in signals[1:]:
             if not base.fs == signal.fs:
-                raise ValueError('Cannot append signal with different fs')
+                raise ValueError('Cannot concat signals with unequal fs')
             if not base.chans == signal.chans:
-                raise ValueError('Cannot append signal with different channels')
+                raise ValueError('Cannot concat signals with unequal # of chans')
 
         # Now, concatenate data along time axis
         data = np.concatenate([s.as_continuous() for s in signals], axis=-1)
@@ -351,18 +350,28 @@ class Signal:
             matrix=data,
             )
 
-    def get_epoch_bounds(self, epoch_name, trim=False):
+    def get_epoch_bounds(self, epoch, trim=False, fix_overlap=None):
         '''
-        Get boundaries of named epoch
+        Get boundaries of named epoch.
+
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
         trim : boolean
             If True, ensure that epoch boundaries fall within the range of the
             signal. Epochs with boundaries falling outside the signal range will
             be truncated. For example, if an epoch runs from -1.5 to 10, it will
             be truncated to 0 to 10 (all signals start at time 0).
+        fix_overlap : {None, 'merge', 'first'}
+            Indicates how to handle overlapping epochs. If None, return
+            boundaries as-is. If 'merge', merge overlapping epochs into a single
+            epoch. If 'first', keep only the first of an overlapping set of
+            epochs.
+
         Returns
         -------
         bounds : 2D array (n_occurances x 2)
@@ -370,24 +379,51 @@ class Signal:
             first column is the start time and the second column is the end
             time.
         '''
-        mask = self.epochs['name'] == epoch_name
-        bounds = self.epochs.loc[mask, ['start', 'end']].values
+        # If string, pull the epochs out of the internal dataframe.
+        if isinstance(epoch, str):
+            if self.epochs is None:
+                m = "Signal does not have any epochs defined"
+                raise ValueError(m)
+            mask = self.epochs['name'] == epoch
+            bounds = self.epochs.loc[mask, ['start', 'end']].values
+
         if trim:
             bounds = np.clip(bounds, 0, self.ntimes*self.fs)
+
+        if fix_overlap is None:
+            pass
+        elif fix_overlap == 'merge':
+            bounds = merge_epoch(bounds)
+        elif fix_overlap == 'first':
+            bounds = remove_overlap(bounds)
+        else:
+            m = 'Unsupported mode, {}, for fix_overlap'.format(fix_overlap)
+            raise ValueError(m)
+
         return bounds
 
-    def get_epoch_indices(self, epoch_name, trim=False):
+    def get_epoch_indices(self, epoch, trim=False):
         '''
-        Get boundaries of named epoch as index
+        Get boundaries of named epoch as index.
+
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
         trim : boolean
             If True, ensure that epoch boundaries fall within the range of the
             signal. Epochs with boundaries falling outside the signal range will
             be truncated. For example, if an epoch runs from -1.5 to 10, it will
             be truncated to 0 to 10 (all signals start at time 0).
+        fix_overlap : {None, 'merge', 'first'}
+            Indicates how to handle overlapping epochs. If None, return
+            boundaries as-is. If 'merge', merge overlapping epochs into a single
+            epoch. If 'first', keep only the first of an overlapping set of
+            epochs.
+
         Returns
         -------
         bounds : 2D array (n_occurances x 2)
@@ -395,32 +431,34 @@ class Signal:
             first column is the start time and the second column is the end
             time.
         '''
-        bounds = self.get_epoch_bounds(epoch_name, trim)
+        bounds = self.get_epoch_bounds(epoch, trim)
         return (bounds * self.fs).astype('i')
 
-    def extract_epoch(self, epoch_name):
-        """
-        Extracts all occurances of epoch from the signal
+    def extract_epoch(self, epoch):
+        '''
+        Extracts all occurances of epoch from the signal.
+
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract.
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
+
         Returns
         -------
         epoch_data : 3D array
-            Three dimensinonal array of shape O, C, T where O is the number of
+            Three dimensional array of shape O, C, T where O is the number of
             occurances of the epoch, C is the number of channels, and T is the
             maximum length of the epoch in samples.
+
         Note
         ----
         Epochs tagged with the same name may have various lengths. Shorter
         epochs will be padded with NaN.
-        """
-        if self.epochs is None:
-            m = "Signal.epochs must be defined in order to fold by epochs"
-            raise ValueError(m)
-
-        epoch_indices = self.get_epoch_indices(epoch_name, trim=True)
+        '''
+        epoch_indices = self.get_epoch_indices(epoch, trim=True)
         n_samples = np.max(epoch_indices[:, 1]-epoch_indices[:, 0])
         n_epochs = len(epoch_indices)
 
@@ -431,114 +469,135 @@ class Signal:
 
         return epoch_data
 
-    def average_epoch(self, epoch_name):
-        """
-        Returns the average of the epoch
+    def average_epoch(self, epoch):
+        '''
+        Returns the average of the epoch.
+
         Parameters
         ----------
-        epoch_name : string
-            Name of epoch to extract.
+        epoch : {string, Nx2 array}
+            If string, name of epoch (as stored in internal dataframe) to
+            extract. If Nx2 array, the first column indicates the start time (in
+            seconds) and the second column indicates the end time (in seconds)
+            to extract.
+
         Returns
         -------
         mean_epoch : 2D array
             Two dimensinonal array of shape C, T where C is the number of
             channels, and T is the maximum length of the epoch in samples.
-        """
-        epoch_data = self.extract_epoch(epoch_name)
+        '''
+        epoch_data = self.extract_epoch(epoch)
         return np.nanmean(epoch_data, axis=0)
 
     def extract_epochs(self, epoch_names):
         '''
-        Returns dictionary of epoch datasets
+        Returns a dictionary of the data matching each element in epoch_names.
+
         Parameters
         ----------
         epoch_names : list
             List of epoch names to extract. These will be keys in the result
             dictionary.
+
         Returns
         -------
         epoch_datasets : dict
             Keys are the names of the epochs, values are 3D arrays created by
             `extract_epoch`.
         '''
+        # TODO: Update this to work with a mapping of key -> Nx2 epoch
+        # structure as well.
         return {name: self.extract_epoch(name) for name in epoch_names}
 
-    def embed_epoch(self, epoch_name, epoch_data):
+    def replace_epoch(self, epoch, epoch_data):
+        '''
+        Returns a new signal, created by replacing every occurrence of
+        epoch_name with epoch_data, assumed to be a 2D matrix of data
+        (chans x time).
+        '''
+        data = self.as_continuous()
+        for lb, ub in self.get_epoch_bounds(epochs):
+            data[:, lb:ub] = epoch_data
+
+        return self._modified_copy(data)
+
+    def replace_epochs(self, epoch_dict):
         '''
         Returns a new signal, created by replacing every occurrence of epochs
         in this signal with whatever is found in the replacement_dict under
-        the same epoch_name.
+        the same epoch_name key. Dict values are assumed to be 2D matrices.
+
         If the replacement matrix shape is not the same as the original
         epoch being replaced, an exception will be thrown.
+
         If overlapping epochs are defined, then they will be replaced in
         the order present in the epochs dataframe (i.e. sorting your
-        epochs dataframe may change the results you get!). But it is a bad
-        idea to replace overlapping epochs in a single operation anyway
+        epochs dataframe may change the results you get!). For this reason,
+        we do not recommend replacing overlapping epochs in a single
+        operation because there is some ambiguity as to the result.
         '''
-        if self.epochs is None:
-            m = "Signal.epochs must be defined in order to replace epochs"
-            raise ValueError(m)
-
+        # TODO: Update this to work with a mapping of key -> Nx2 epoch
+        # structure as well.
         data = self.as_continuous()
-        for name, epoch_data in epoch_data.items():
-            bounds = self.get_epoch_bounds(name)
-            if len(bounds) != len(epoch_data):
-                raise ValueError('Not enough repetitions in %s', name)
-            for lb, ub in bounds:
+        for epoch, epoch_data in epoch_dict.items():
+            for lb, ub in self.get_epoch_bounds(epochs):
                 data[:, lb:ub] = epoch_data
 
-        return self._modified_copy(mat)
+        return self._modified_copy(data)
 
-    def epoch_mask_signal(self, epoch_name):
+    def epoch_mask_signal(self, epoch):
         '''
         Returns a new signal that's 1 during every period tagged with epoch name.
 
         TODO: Examples
         '''
-
-        if type(epoch_name) is pd.DataFrame:
-            mask = epoch_name
-        else:
-            mask = self.epochs['name'] == epoch_name
-
-        matched_epochs = self.epochs[mask]
+             
         new_data = np.zeros([1,self.ntimes])
-        for i,s in matched_epochs.iterrows():
-            start = int(s['start']*self.fs)
-            end = int(s['end']*self.fs)
-            new_data[:,start:end] = 1
-            
-        new_signal=self._modified_copy(new_data)
-        new_signal.chans=['mask: '+epoch_name]
-        return new_signal
+        for (lb, ub) in self.get_epoch_indices(epoch, trim=True):
+            new_data[:, lb:ub] = 1
 
-    def select_epochs(self, epoch_name):
+        new_signal=self._modified_copy(new_data)
+        new_signal.chans=['mask: '+epoch]
+        return new_signal
+    
+    def select_epoch(self, epoch):
         '''
         Returns a new signal, the same as this, with everything NaN'd
-        unless it is tagged with epoch_name. If epoch_name is a string,
-        the self.epochs dataframe is used. If epoch_name is a dataframe,
-        then it will be used instead of self.epochs.
-
-        TODO: Examples
+        unless it is tagged with epoch_name.
         '''
-
-        old_data = self.as_continuous()
-        mask_signal=self.epoch_mask_signal(epoch_name)
         new_data = np.full(self.shape, np.nan)
-        new_data[:,mask_signal.as_continuous] = old_data[:,mask_signal.as_continuous]
+        for (lb, ub) in self.get_epoch_indices(epoch, trim=True):
+            new_data[:, lb:ub] = self._matrix[:, lb:ub]
 
         return self._modified_copy(new_data)
-    
+
+    def select_epochs(self, list_of_epoch_names):
+        '''
+        Returns a new signal, the same as this, with everything NaN'd
+        unless it is tagged with one of the epoch_names found in
+        list_of_epoch_names.
+        '''
+        # TODO: Update this to work with a mapping of key -> Nx2 epoch
+        # structure as well.
+        new_data = np.full(self.shape, np.nan)
+        for epoch_name in list_of_epoch_names:
+            for (lb, ub) in self.get_epoch_indices(epoch_name, trim=True):
+                new_data[:, lb:ub] = self._matrix[:, lb:ub]
+
+        return self._modified_copy(new_data)
 
     def trial_epochs_from_reps(self, nreps=1):
         """
         Creates a generic epochs DataFrame with a number of trials based on
         sample length and number of repetitions specified.
+
         Example
         -------
         If signal._matrix has shape 3x100 and the signal is sampled at 100 Hz,
         trial_epochs_from_reps(nreps=5) would generate a DataFrame with 5 trials
         (starting at 0, 0.2, 0.4, 0.6, 0.8 seconds).
+
         Note
         ----
         * The number of time samples must be evenly divisible by the number of
@@ -570,75 +629,27 @@ class Signal:
         else:
             return None
 
-    def add_epochs(self, epoch_name, epoch_dataframe):
+    def add_epoch(self, epoch_name, epoch):
         '''
-        Adds the epoch_times to this signal's epochs data structure
-        under epoch_name. Will not add epochs if another epoch
-        of the same name already exists.
+        Add epoch to the internal epochs dataframe
+
+        Parameters
+        ----------
+        epoch_name : string
+            Name of epoch
+        epoch : 2D array of (M x 2)
+            The first column is the start time and second column is the end
+            time. M is the number of occurences of the epoch.
         '''
-        if type(epoch_dataframe) is not pd.DataFrame:
-            raise TypeError('epoch_times must be a dataframe')
-
-        mask = self.epochs['epoch_name'] == epoch_name
-        existing_matches = self.epochs[mask]
-
-        if not existing_matches.empty:
-            raise ValueError('Epochs named that already exist!')
-
-        epoch_dataframe['epoch_name'] = epoch_name
-        self.epochs.append(epoch_dataframe)
-
-    def extend_epoch(self, epoch_name, prepend, postpend):
-        '''
-        Subtract prepend from the start_time of every epoch named
-        'epoch_name', add postpend from the end_time, and return
-        a new dataframe containing the new epochs.
-        This does not alter self.epochs -- you must do that yourself:
-        # Create epochs starting 200 samples before every blink
-        preblink_epochs = sig.resize_epochs('blink', 200, 0)
-        print(preblink_epochs)
-        sig.add_epochs(preblink_epochs)
-        '''
-        ep = self.just_epochs_named(epoch_name)
-        ep['start_index'] -= prepend
-        ep['end_index'] += postpend
-        ep = ep.drop('epoch_name', 1)  # Was: ep['epoch_name'] = None
-        return ep
-
-    @staticmethod
-    def indexes_of_trues(boolean_array):
-        '''
-        Returns the a list of start, end indexes of every contiguous block
-        of True elements in numpy boolean_array. Just a helper function.
-        '''
-        assert(type(boolean_array) is np.ndarray)
-
-        idxs = np.where(np.diff(boolean_array))[0].tolist()
-
-        # Special case: first element is true
-        if boolean_array[0]:
-            idxs.insert(0, -1)
-
-        # Special case: last element is true
-        if boolean_array[-1]:
-            idxs.append(len(boolean_array)-1)
-
-        indexes = [[idxs[i]+1, idxs[i+1]+1] for i in range(0, len(idxs) - 1, 2)]
-
-        return indexes
+        df = pd.DataFrame(epoch, columns=['start', 'end'])
+        df['name'] = epoch_name
+        if self.epochs is not None:
+            self.epochs = self.epochs.append(df, ignore_index=True)
+        else:
+            self.epochs = df
 
     @property
     def shape(self):
         return self._matrix.shape
 
 
-# def sanity_check_epochs(self, epoch_name):
-#     '''
-#     There are several kinds of pathological epochs:
-#       1. Epochs with NaN for a start or end time
-#       2. Epochs where start comes after the end
-#       3. Epochs which are completely identical triplets
-#     This function searches for those and throws exceptions about them.
-#     '''
-#     # TODO
-#     pass

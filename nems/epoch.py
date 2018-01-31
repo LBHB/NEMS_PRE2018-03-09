@@ -1,6 +1,40 @@
 import numpy as np
 
 
+def remove_overlap(a):
+    '''
+    Remove overlapping occurences by taking the first occurence
+    '''
+    a = a.copy()
+    a.sort(axis=0)
+    i = 0
+    n = len(a)
+    trimmed = []
+    while i < n:
+        lb, ub = a[i]
+        i += 1
+        trimmed.append((lb, ub))
+        while (i < n) and (ub >= a[i, 0]):
+            i += 1
+    return np.array(trimmed)
+
+
+def merge_epoch(a):
+    a = a.copy()
+    a.sort(axis=0)
+    i = 0
+    n = len(a)
+    merged = []
+    while i < n:
+        lb, ub = a[i]
+        i += 1
+        while (i < n) and (ub >= a[i, 0]):
+            ub = a[i, 1]
+            i += 1
+        merged.append((lb, ub))
+    return np.array(merged)
+
+
 def epoch_union(a, b):
     '''
     Compute the union of the epochs.
@@ -27,20 +61,8 @@ def epoch_union(a, b):
     b:      [   ]       [ ]     []      [    ]
     result: [    ]  [         ] []     [     ]
     '''
-    epochs = np.concatenate((a, b), axis=0)
-    epochs.sort(axis=0)
-    i = 0
-    n = len(epochs)
-    union = []
-
-    while i < n:
-        lb, ub = epochs[i]
-        i += 1
-        while (i < n) and (ub >= epochs[i, 0]):
-            ub = epochs[i, 1]
-            i += 1
-        union.append((lb, ub))
-    return np.array(union)
+    epoch = np.concatenate((a, b), axis=0)
+    return merge_epoch(epoch)
 
 
 def epoch_difference(a, b):
@@ -180,6 +202,8 @@ def epoch_intersection(a, b):
     b:      [   ]       [ ]     []      [    ]
     result:  [  ]       [ ]             []
     '''
+    # Convert to a list and then sort in reversed order such that pop() walks
+    # through the occurences from earliest in time to latest in time.
     a = a.tolist()
     a.sort(reverse=True)
     b = b.tolist()
@@ -266,3 +290,88 @@ def epoch_intersection(a, b):
     # Add all remaining epochs from a
     intersection.extend(a[::-1])
     return np.array(intersection)
+
+
+def _epoch_contains_mask(a, b):
+    mask = [(b >= lb) & (b < ub) for lb, ub in a]
+    return np.concatenate([m[np.newaxis] for m in mask], axis=0)
+
+
+def epoch_contains(a, b, mode):
+    '''
+    Tests whether an occurence of a contains an occurence of b.
+
+    Parameters
+    ----------
+    a : 2D array of (M x 2)
+        The first column is the start time and second column is the end time. M
+        is the number of occurances of a.
+    b : 2D array of (N x 2)
+        The first column is the start time and second column is the end time. N
+        is the number of occurances of b.
+    mode : {'start', 'end', 'both', 'any'}
+        Test to perform.
+        - 'start' requires only the start of b to be contained in a
+        - 'end' requires only the end of b to be contained in a
+        - 'both' requires both start and end in b to be contained in a
+        - 'any' is True anywhere b partially or completely overlaps with a
+
+    Returns
+    -------
+    mask : 1D array of len(a)
+        Boolean mask indicating whether the corresponding entry in a meets the
+        test criteria.
+    '''
+    mask = _epoch_contains_mask(a, b)
+    if mode == 'start':
+        return mask[:, :, 0].any(axis=1)
+    elif mode == 'end':
+        return mask[:, :, 1].any(axis=1)
+    elif mode == 'both':
+        return mask.all(axis=2).any(axis=1)
+    elif mode == 'any':
+        b_in_a = mask.any(axis=2).any(axis=1)
+        # This mask will not capture situations where an occurence of a is fully
+        # contained in an occurence of b. To test for this, we can flip the
+        # epochs and build a new mask to perform this special-case test.
+        mask = _epoch_contains_mask(b, a)
+        a_in_b = mask.any(axis=2).any(axis=0)
+        return b_in_a | a_in_b
+
+
+def adjust_epoch_bounds(a, pre=0, post=0):
+    '''
+
+    Parameters
+    ----------
+    a : 2D array of (M x 2)
+        The first column is the start time and second column is the end time. M
+        is the number of occurances of a.
+    pre : scalar
+        Value to add to start time of epoch
+    post : scalar
+        Value to add to end time of epoch
+
+    Example
+    -------
+    >>> epochs = np.array([[0.5, 1], [2.5, 3]])
+    >>> adjust_epoch_bounds(epochs, -0.5)
+    [[0, 1],
+     [2, 3]]
+
+    >>> adjust_epoch_bounds(epochs, 0.5, 1)
+    [[1, 2],
+     [3, 4]]
+    '''
+    return a + np.array([pre, post])
+
+
+def verify_epoch_integrity(epoch):
+    '''
+    There are several kinds of pathological epochs:
+      1. Epochs with NaN for a start or end time
+      2. Epochs where start comes after the end
+      3. Epochs which are completely identical triplets
+    This function searches for those and throws exceptions about them.
+    '''
+    raise NotImplementedError
