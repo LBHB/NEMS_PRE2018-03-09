@@ -380,7 +380,7 @@ class Signal:
 
         then this will be true:
 
-           assert(signal.fold_by('trial').shape == (3, 3, 20))
+           assert(signal.extract_epochs('trial').shape == (3, 3, 20))
 
         i.e. 3 epochs x 3 channels x 20 time samples (longest). The three
         epochs would contain 10, 15, and 0 NaN values, respectively.
@@ -663,13 +663,13 @@ class Signal:
         unique_epoch_names = df['epoch_name'].unique()
         return unique_epoch_names
 
-    def multi_fold_by(self, list_of_epoch_names):
+    def multi_extract_epochs(self, list_of_epoch_names):
         '''
         Returns a dict mapping epochs from list_of_epoch_names
-        to the 3D matrices created by .fold_by(). This function is
+        to the 3D matrices created by .extract_epochs(). This function is
         particularly useful when used with its inverse, .replace_epochs().
         '''
-        d = {ep: self.fold_by(ep) for ep in list_of_epoch_names}
+        d = {ep: self.extract_epochs(ep) for ep in list_of_epoch_names}
         return d
 
     def replace_epochs(self, replacement_dict):

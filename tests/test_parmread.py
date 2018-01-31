@@ -16,6 +16,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import nems.utilities.baphy
+import nems.signal
 
 # figure out filepath for demo files
 USE_LOCAL_DATA=False
@@ -37,11 +38,11 @@ cellid='TAR010c-CC-U'
 if USE_LOCAL_DATA:
     parmfilepath=nems.utilities.baphy.stim_cache_dir+'TAR010c16_p_NAT.m'
 else:
-    #parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
-    #options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
-    parmfilepath='/auto/data/daq/Boleto/BOL005/BOL005c05_p_PPS_VOC.m'
-    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf',
-             'chancount': 18, 'cellid': 'all', 'pupil': True,'runclass': 'VOC'}
+    parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
+    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
+    #parmfilepath='/auto/data/daq/Boleto/BOL005/BOL005c05_p_PPS_VOC.m'
+    #options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf',
+    #         'chancount': 18, 'cellid': 'all', 'pupil': True,'runclass': 'VOC'}
 
 #cellid='TAR017b-CC-U'
 #parmfilepath='/auto/data/daq/Tartufo/TAR017/TAR017b10_p_NAT.m'
@@ -60,6 +61,12 @@ event_times, spike_dict, stim_dict, state_dict = nems.utilities.baphy.baphy_load
 #event_times, spike_dict, stim_dict, stim1_dict, stim2_dict, state_dict = nems.utilities.baphy.baphy_load_recording_RDT(parmfilepath,options)
 
 
+raster_all,cellids=nems.utilities.baphy.spike_time_to_raster(spike_dict,fs=options['rasterfs'],event_times=event_times)
+
+resp=nems.signal.Signal(fs=options['rasterfs'],matrix=raster_all,name='resp',recording=cellid,chans=cellids,epochs=event_times)
+
+r=resp.extract_epochs('00Oxford_male2b.wav')
+
 # compute raster for specific unit and stimulus id with sampling rate rasterfs
 
 unitidx=0 # which unit
@@ -76,11 +83,11 @@ cellid=cellids[unitidx]
 
 binlen=1.0/options['rasterfs']
 h=np.array([])
-ff = (event_times['epoch_name']==event_name)
+ff = (event_times['name']==event_name)
 ## pull out each epoch from the spike times, generate a raster of spike rate
 for i,d in event_times.loc[ff].iterrows():
-    print("{0}-{1}".format(d['StartTime'],d['StopTime']))
-    edges=np.arange(d['StartTime'],d['StopTime']+binlen,binlen)
+    print("{0}-{1}".format(d['start'],d['stop']))
+    edges=np.arange(d['start'],d['stop']+binlen,binlen)
     th,e=np.histogram(spike_dict[cellid],edges)
     
     print("{0}-{1}: {2}".format(edges[0],edges[1],sum((spike_dict[cellid]>edges[0]) & (spike_dict[cellid]<edges[1]))))
