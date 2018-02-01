@@ -2,7 +2,7 @@
 
 ## What is a recording?
 
-A `Recording` is collection of [signals](signals.md) sampled simultaneously over the same time period.
+A `Recording` is collection of [signals](signals.md) sampled simultaneously over the same time period. The key point is that all the signals' time indexes line up, which implies that they were sampled at the same rate and have their arrays have the same length in the time dimension.
 
 Recordings provide a way for you to group related data, for example when simultaneously recording neural activity (a signal with several channels, one per neuron), the ambient sound heard (another signal) , and the test subject motion (yet another signal, whose channels describe XYZ coordinates). Because all three signals occurred at the same time and may need to be considered together during analysis, they should be part of the same `Recording`.
 

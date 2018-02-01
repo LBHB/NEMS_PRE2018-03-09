@@ -1,6 +1,8 @@
 # Signals
 
-`Signals` are the fundamental objects for storing timeseries data. The represent a value that changes in time, like the volume level of a speaker, the voltage across the membrane of a neuron, or the coordinates of a moving insect. They are objects designed to be useful for signal processing operations and data selection.
+`Signals` are the fundamental NEMS objects for storing timeseries data. The represent a value that changes in time, like the volume level of a speaker, the voltage across the membrane of a neuron, or the coordinates of a moving insect. 
+
+`Signals` are objects designed to be useful for signal processing operations, slicing, averaging, jackknifing, truncating, splitting, saving/loading, dividing data into estimation and validation subsets, selecting parts of data where a condition is true, concatenating data sets together, and other common data wrangling tasks.
 
 You can create `Signal` objects [from a file](#loading-signals-from-files), [from another signal](#creating-signals-from-other-signals), or [from a matrix](#creating-signals-from-numpy-arrays).
 
@@ -161,5 +163,27 @@ If you want to have a model that uses the data from 100 neurons, you can either 
 Future work tickets:
 
 - TODO: Subclassed Signal that rasterizes from an spike time list
-- TODO: Decide/Document how signals can implement the numpy interface
+- TODO: Prototype how signals can implement the numpy interface (See next section)
 
+### Signals Implement the Numpy Interface
+
+Signals implement the Numpy universal function interface. This means that you can perform a variety of array operations on Signals:
+
+    # Add a DC offset of 5 to the signal
+    offset_signal = signal + 5
+
+    # Matrix multiplication
+    weighted_channels = weights @ signal
+
+    # Multi-signal operations (stim and pupil are signals)
+    pred = stim * pupil + stim * pupil**2 + stim * pupil**3
+
+    # Apply a linear filter to the signal. A new signal is created as fir
+    fir = lfilter(b, a, stim)
+
+    # Now, average across the filtered channels.
+    fir_mean = fir.mean(axis=0)
+
+When performing an operation on a signal, a new signal object is returned. The signal will be identical to the original object, albeit with appropriately-transformed data (e.g., sampling rate and epochs will be copied over). 
+
+If you attempt to perform an operation (e.g., adding two signals) that do not match in some attribute (e.g., number of samples, sampling rate, etc.) you'll get an error.
