@@ -7,23 +7,20 @@ are attached to Signal objects. A Recording, which contains a collection of
 signals, has methods that allow us to manipulate the entire collection based on
 a superset of the epochs in each signal.
 
-A single epoch has three values::
+An epoch has three values:
 
-	start_time, end_time, epoch_name
+	start, end, name
 
-where `start_time` and `end_time` denote the beginning and end of the epoch in
-seconds and `epoch_name` is a descriptive string (see [how to name epochs](##
-Epoch naming). For events (single points in time), the `start_time` will
-contain the timestamp of the event and `end_time` will be NaN.
+where `start` and `end` denote the beginning and end of the epoch in
+seconds and `name` is a descriptive string (see [how to name epochs](##
+epoch-naming). For events (single points in time), the `start` will
+contain the timestamp of the event and `end` will be NaN.
 
-Multiple epochs are stored in a pandas DataFrame containing three columns
-(`start_time`, `end_time` and `epoch_name`).
+Epochs are stored in [Signal Objects](signals.md) under the `.epochs` field in a pandas DataFrame containing three columns (`start`, `end` and `epoch_name`).
 
-For the rest of this document, let's use example epoch data in which trials are
-40-100 msec long, and there are several TORCs of 20 msec duration played before
-a tone-in-TORC detection task:
+For the rest of this document, let's consider some example epoch data in which trials are 40-100 msec long, and there are several TORCs of 20 msec duration played before a tone-in-TORC detection task. For those unfamiliar with the task, it is essentially that of trying to pick out when a simple sinusoidal tone played simulatenously with a confounding sound of some kind, in this case a [TORC](http://todo/link-to-paper).
 
-	start       end  	    name
+	start           end  	        name
 
 	0.00  		0.060   	ExperimentalTrial
 	0.00  		0.05  		PreStimSilence
@@ -48,22 +45,18 @@ a tone-in-TORC detection task:
 	0.075   	0.080  		PostStimSilence
 	0.080   	0.0100  	TimeOut
 
-In the example above, note that some epochs are duplicated but with different
-names. For example, compare the first `TORC_3983` with the first `Reference`.
-This is a way of indicating that `TORC_3983` is a `Reference` token. This
-approach facilitates analysis where one may wish to select all reference TORCs
-and compare them to all TORCs that occur simultaneously with a pure tone
-(compare the second occurence of `TORC_3983` with `PureTone12`).
+In the example above, note that some epochs have the same name, such as "ExperimentalTrial". If the same epoch name appears several times, we call each appearance an /occurrance/ of a given epoch. We will be lazy with our terminology and treat all of the epochs tagged the same as being part of the same epoch. 
 
-This set of epochs tells us quite a bit about what's going on in the
-experiment. In the first trial two reference TORCs are played (`TORC_3983`,
-`TORC_572`), then a tone-in-TORC is played (`TORC_3983`, `PureTone12`), and the
-animal correctly licks. In the second trial, the animal licks during the
-reference sound and gets a time out.
+Note also that epochs may overlap. For example, compare the first `TORC_3983` with the first `Reference`. This is a way of indicating that `TORC_3983` is a `Reference` token. This approach facilitates analysis where one may wish to select all reference TORCs and compare them to all TORCs that occur simultaneously with a pure tone (compare the second occurence of `TORC_3983` with `PureTone12`).
+
+This set of epochs tells us quite a bit about what's going on in the experiment. In the first trial two reference TORCs are played (`TORC_3983`, `TORC_572`), then a tone-in-TORC is played (`TORC_3983`, `PureTone12`), and the animal correctly licks. In the second trial, the animal licks during the reference sound and gets a time out.
+
 
 ## How signals use epochs
 
-A signal object can use epochs to perform two basic operations:
+TODO: This section does not appear to be current anymore? -- Ivar
+
+A [signal object](signal.md) can use epochs to perform two basic operations:
 
 * Mask regions of data. For example, perhaps licking introduces EMG artifacts
   in to the LFP recordings. In this case, you may want to mask all regions in
@@ -277,7 +270,7 @@ Zero-length epochs are events. They work best with `epochs_contain`:
 
 They will not work with set operations.
 
-## Cross-validation (i.e., jackknifes)
+## Cross-validation and Jackknifes
 
 	from nems.data.epochs import jacknife_epochs
 	stim = recording.get_signal('stim')

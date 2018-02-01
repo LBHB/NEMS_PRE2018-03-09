@@ -6,6 +6,14 @@ You can create `Signal` objects [from a file](#loading-signals-from-files), [fro
 
 An important note for beginners: once created, a `Signal` object cannot be changed -- it is /immutable/, just like tuples in Python. This is intentional and enables specific optimizations while also preventing entire classes of errors. But don't worry: we have made it easy to create new `Signal` objects based on other ones.
 
+## What is a signal?
+
+Fundamentally, a `Signal` represents C channels being sampled for some period of time. Because NEMS is designed for signal processing, we usually assume that the sampling occurs T times at regular intervals, in which case the signal is "rasterized" at a particular sampling rate, and we represent the signal as an C x T array.
+
+You may request this array using the `.as_continuous()` method of any signal.
+
+A Signal can represent any type of data, such as subject pupil diameter, Local Field Potential (LFP), or a measurement of average neural spike rate during each discrete sampling period. 
+
 
 ## Loading Signals from files
 
@@ -124,6 +132,28 @@ sig = Signal(recording='my_recording_name',
 sig.save('../signals/my-new-signal')
 ```
 
+## Signal Subclasses
+
+We will now discuss two subclasses of signals that can be useful to reduce data storage on disk, but are otherwise functionally identical. 
+
+### Subclass: EventSignals
+
+Now, the signal processing view of a `Signal` is "external" view that we actually use during signal processing. However, as the sampling rate gets faster and faster, the C x T representation of a Signal becomes more and more wasteful. For events that occur only occasionally, we can save space if we store a list of discrete event times, rather than having a matrix of mostly zeros with only a few ones. 
+
+In this case, we use a subclass of the `Signal` object called an `EventsSignal`, which may be rastered into time bins at any sampling frequency desired, and then used as a normal Signal from there on.
+
+
+### Subclass: RepeatedSignal
+
+A second special case occurs, for example, when we have stimuli that are repeated tens or hundreds of times. While such a stimulus can certainly be represented with a C x T array, it is again a wasteful representation. 
+
+In such cases, the `RepeatedSignal` subclass of the `Signal` object is useful. Rather than store a large raster, it stores a single copy of each unique event and rasterizes it only as requested. 
+
+For example, say we have a P-channel spectrogram and several different stimuli of different lengths S_1, S_2, etc. The `RepetitiveSignal` internally stores a `{name1: [C x S_1], name2: [C x S_2], ...}` dictionary, in which the keys are the names/labels of the stimuli and the [C x S_*] arrays are what to insert. 
+
+The `RepetitiveSignal` object thus rasterizes signals on demand by using a signal`s `.epochs` datastructure and the `.replace_epochs()` function to produce a C x T matrix only when needed.
+
+
 ## Closing Thoughts on Signals
 
 If you want to have a model that uses the data from 100 neurons, you can either have a single 100-channel Signal, or 100 one-channel signals. It's up to you.
@@ -132,3 +162,4 @@ Future work tickets:
 
 - TODO: Subclassed Signal that rasterizes from an spike time list
 - TODO: Decide/Document how signals can implement the numpy interface
+
