@@ -335,10 +335,11 @@ class Signal:
         for signal in signals:
             chans.extend(signal.chans)
 
-        epochs = []
-        for signal in signals:
-            epochs.append(signal.epochs)
-
+        #epochs = []
+        #for signal in signals:
+        #    epochs.append(signal.epochs)
+        epochs=signals[0].epochs
+        
         return Signal(
             name=base.name,
             recording=base.recording,
@@ -545,6 +546,21 @@ class Signal:
 
         return self._modified_copy(data)
 
+    def epoch_mask_signal(self, epoch):
+        '''
+        Returns a new signal that's 1 during every period tagged with epoch name.
+
+        TODO: Examples
+        '''
+             
+        new_data = np.zeros([1,self.ntimes])
+        for (lb, ub) in self.get_epoch_indices(epoch, trim=True):
+            new_data[:, lb:ub] = 1
+
+        new_signal=self._modified_copy(new_data)
+        new_signal.chans=['mask: '+epoch]
+        return new_signal
+    
     def select_epoch(self, epoch):
         '''
         Returns a new signal, the same as this, with everything NaN'd
