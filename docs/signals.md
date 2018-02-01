@@ -1,8 +1,8 @@
 # Signals
 
-`Signals` are the fundamental objects for storing timeseries data. The represent a value that changes in time, like the volume level of a speaker, the voltage across the membrane of a neuron, or the movement of an insect. They are objects designed to be useful for signal processing operations.
+`Signals` are the fundamental objects for storing timeseries data. The represent a value that changes in time, like the volume level of a speaker, the voltage across the membrane of a neuron, or the coordinates of a moving insect. They are objects designed to be useful for signal processing operations and data selection.
 
-You can create `Signal` objects from a file, from a matrix, or from another `Signal`. 
+You can create `Signal` objects [from a file](#loading-signals-from-files), [from another signal](#creating-signals-from-other-signals), or [from a matrix](#creating-signals-from-numpy-arrays).
 
 An important note for beginners: once created, a `Signal` object cannot be changed -- it is /immutable/, just like tuples in Python. This is intentional and enables specific optimizations while also preventing entire classes of errors. But don't worry: we have made it easy to create new `Signal` objects based on other ones.
 
@@ -16,14 +16,16 @@ Optionally, you will also often have an "epochs" file, which helps tag interesti
 Loading a `Signal` from a file is trivial:
 ```
 from nems.signal import Signal
-sig = Signal.load('/path/to/my/signalfiles'))
+sig = Signal.load('/path/to/my/signalfiles')
 ```
 
-Creating your own CSV files is also pretty straightforward, but you need to understand the format. Read on if that interests you, or jump ahead if you would rather make it from a numpy array.
+Creating your own CSV files is pretty straightforward, but you need to understand the format. Read on if that interests you, or [jump ahead if you would rather make Signal objects from a numpy array](#creating-signals-from-numpy-arrays).
 
 ### Example Signal CSV File
 
-For this example, make a new directory in the `signals/` directory called `testrec`because we are pretending we made a test recording. Inside that directory, make a file called `testrec_pupil.csv` and put the following inside the file:
+For this example, make a new directory in the `signals/` directory called `testrec` because we are pretending we made a test recording, and usually we group a collection of signals together into a data structure called a `Recording`.
+
+Inside the `testrec` directory, make a file called `testrec_pupil.csv` and put the following CSV data inside it:
 
 ```
 2.0, 2.1
@@ -36,7 +38,7 @@ For this example, make a new directory in the `signals/` directory called `testr
 
 In the CSV file, each row represents an instant in time, and each column is a "channel" of information of this signal. Channels can be anything you want -- they are just there to help you group several dimensions together.
 
-We'll pretend the first channel is the diameter of a test subject's left pupil and the second channel is their right eye. There are only two channels and six time samples here, but in many experiments you will have tens of channels and thousands or millions of time samples.
+For this example, we'll pretend the first channel is the diameter of a test subject's left pupil and the second channel is their right eye. There are only two channels and six time samples here, but in many experiments you will have tens of channels and thousands or millions of time samples.
 
 ### Example Signal JSON File
 
@@ -50,9 +52,9 @@ In the `signals/testrec/` directory, make another file called `testrec_pupil.jso
 
 Here,
 
-- `recording` is the name of the recording. We group collections of signals into "recordings", which is a name. 
-- `name` is the name that you want to call this signal. 
-- `fs` is the sampling rate in Hz. Generally it will be 10, 50, or even 00Hz, but for our test example, we assume that a measurement of the pupil diameter was only taken every 10 seconds, so `fs=0.1`.
+- `recording` is the name of the recording. We group collections of signals into "recordings", which is just a name to help us group simulatneously recorded signals. 
+- `name` is the name by which you want to refer to this signal. Generally it should match your file name so as not to be confusing.
+- `fs` is the sampling rate in Hz. Generally it will be 10, 50, or even 44,200Hz, but for our test example, we assume that a measurement of the pupil diameter was only taken every 10 seconds, so `fs=0.1`.
 - `chans` is the name of each channel (i.e. column in the CSV file), from left to right. 
 - `meta` is extra information about the recording, such as the time of day it was taken, the experimenter, the subject, their age, or other relevant information. You may place anything you want here as long as it is a valid JSON data structure.
 
@@ -61,34 +63,66 @@ Here,
 Assuming that your signal directory looks like this:
 
 ```
-── testrec/
-   ├── testrec.pupil.csv
-   ├── testrec.pupil.json
+├── signals
+│   └── testrec
+│       ├── testrec_pupil.csv
+│       └── testrec_pupil.json
 ```
 
-You should now be able to load the pupil signal by making a file called `scripts/pupil_analysis.py` with the contents:
+You should now be able to load the pupil signal by creating a file at `scripts/pupil_analysis.py` with the contents:
 
 ```
 from nems.signal import Signal
 
 # Note that we don't append the suffix .json or .csv
 # because we are loading two files simultaneously
-sig = Signal.load('../signals/testrec/testrec_pupil'))
+sig = Signal.load('signals/testrec/testrec_pupil')
 ```
 
-That's it! You can start using your `Signal` now.
+And launch it from your terminal with:
+
+```
+cd /path/to/nems
+python3 scripts/pupil_analysis.py
+```
+
+That's it! You can start using your `Signal` now. Read on to find a short guide to interesting operations that you can do with a Signal. 
 
 ## Creating Signals from Other Signals
 
-It's really common to make one signal from another signal.
+It's really common to make one signal from another signal. At the moment, we have a variety of methods that are rather in development flux, but the ones that produce new signals include:
 
-TODO
+```
+    def normalized_by_mean(self):
+    def normalized_by_bounds(self):
+    def split_at_time(self, fraction):
+    def jackknifed_by_epochs(self, epoch_name, nsplits, split_idx, invert=False):
+    def jackknifed_by_time(self, nsplits, split_idx, invert=False):
+    def concatenate_time(cls, signals):
+    def concatenate_channels(cls, signals):
+```
+
+TODO: Link to python-generated documentation here. 
 
 ## Creating Signals from Numpy Arrays
 
-This is the least common and least recommended way of creating signals, but it definitely has its applications.
+This technique for creating signals is most common when importing or loading data from a custom format. In general, we encourage you to avoid saving your data in custom formats so that data files are more easily shared, but if you have special needs, then writing your own custom signal loader or subclass of `Signal` is completely acceptable.
 
-TODO
+```
+from nems.signal import Signal
+
+numpy_array = load_my_custom_data_format(...)
+
+# Not shown here, but we suggest using optional arguments "epochs" and "meta"
+# as well as recording, name, matrix, and fs.
+sig = Signal(recording='my_recording_name',
+             name='my_signal_name',
+             matrix=numpy_array,
+             fs=200)
+
+# Optional: save it as a signal for next time or for easy sharing
+sig.save('../signals/my-new-signal')
+```
 
 ## Closing Thoughts on Signals
 
@@ -96,6 +130,5 @@ If you want to have a model that uses the data from 100 neurons, you can either 
 
 Future work tickets:
 
-- TODO: Rasterizing signals from an spike time list
-- TODO: 
-
+- TODO: Subclassed Signal that rasterizes from an spike time list
+- TODO: Decide/Document how signals can implement the numpy interface
