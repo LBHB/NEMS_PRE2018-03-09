@@ -339,7 +339,7 @@ class Signal:
         #for signal in signals:
         #    epochs.append(signal.epochs)
         epochs=signals[0].epochs
-        
+
         return Signal(
             name=base.name,
             recording=base.recording,
@@ -546,21 +546,27 @@ class Signal:
 
         return self._modified_copy(data)
 
-    def epoch_mask_signal(self, epoch):
+    def epoch_to_signal(self, epoch_name):
         '''
-        Returns a new signal that's 1 during every period tagged with epoch name.
+        Convert an epoch to a signal using the same sampling rate and duration
+        as this signal.
 
-        TODO: Examples
+        Parameters
+        ----------
+        epoch_name : string
+            Epoch to convert to a signal
+
+        Returns
+        -------
+        signal : instance of Signal
+            A signal whose value is 1 for each occurence of the epoch, 0
+            otherwise.
         '''
-             
-        new_data = np.zeros([1,self.ntimes])
-        for (lb, ub) in self.get_epoch_indices(epoch, trim=True):
-            new_data[:, lb:ub] = 1
+        data = np.zeros([1,self.ntimes], dtype=np.bool)
+        for lb, ub in self.get_epoch_indices(epoch_name, trim=True):
+            data[:, lb:ub] = 1
+        return self._modified_copy(data, chans=[epoch_name])
 
-        new_signal=self._modified_copy(new_data)
-        new_signal.chans=['mask: '+epoch]
-        return new_signal
-    
     def select_epoch(self, epoch):
         '''
         Returns a new signal, the same as this, with everything NaN'd
