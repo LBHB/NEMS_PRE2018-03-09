@@ -9,12 +9,13 @@ NEMS is the Neural Encoding Model System. It is helpful for fitting a mathematic
    - [Signals](docs/signals.md)
    - [Recordings](docs/recordings.md)
    - [Epochs](docs/epochs.md)
-   - [Data](docs/data.md)
-   - [Distributions](docs/distributions.ipynb)
 3. Organizing your Models
-   - [Modelspecs](docs/modelspecs.md)
+   - [Modelspecs](docs/modelspecs.md) -- TODO
+   - [Modules](docs/modules.md) -- TODO
+   - [Distributions](docs/distributions.ipynb)
 4. Fitting your Models
-   - [Fitters](docs/fitters.md)
+   - [Priors](docs/priors.md) -- TODO
+   - [Fitters](docs/fitters.md) -- TODO
 5. Detailed Guides
    - [Architectural Diagram](docs/architecture.svg)
    - Creating your own modules
