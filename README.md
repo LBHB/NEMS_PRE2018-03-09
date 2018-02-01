@@ -22,6 +22,5 @@ NEMS is the Neural Encoding Model System. It is helpful for fitting a mathematic
    - Sharing modules, models, and data with others
 6. Contributing to NEMS
    - [How To Contribute](docs/contributing.md)
-   - [Project Goals](docs/goals.md)
    - [Design Discussion Archive](docs/discussions.md)
    - [Development History](docs/history.md)
