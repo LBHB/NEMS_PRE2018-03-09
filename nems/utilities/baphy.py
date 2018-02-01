@@ -1031,7 +1031,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
     # adjust times in exptevents to approximate time since experiment started
     # rather than time since trial started (native format)
     for Trialidx in range(1,TrialCount+1):
-        print("Adjusting trial {0} by {1} sec".format(Trialidx,Offset_sec[Trialidx-1]))
+        #print("Adjusting trial {0} by {1} sec".format(Trialidx,Offset_sec[Trialidx-1]))
         ff= (exptevents['Trial'] == Trialidx)
         exptevents.loc[ff,['start','end']]=exptevents.loc[ff,['start','end']]+Offset_sec[Trialidx-1]
 
@@ -1040,6 +1040,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
         #print("{0} events past end of trial?".format(len(badevents)))
         #exptevents.drop(badevents)
     
+    print("Adjusting trial {0} by {1} sec".format(Trialidx,Offset_sec[Trialidx-1]))
     
     # convert spike times from samples since trial started to
     # (approximate) seconds since experiment started (matched to exptevents)
@@ -1128,15 +1129,23 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
         blink[dp > np.mean(dp) + 6*np.std(dp)]= 1
         box=np.ones([fs_approximate])/(fs_approximate)
         blink=np.convolve(blink[:,0],box,mode='same')
+        blink[blink>0]=1
+        blink[blink<=0]=0
         onidx,=np.where(np.diff(blink) > 0)
         offidx,=np.where(np.diff(blink) < 0)
+        if onidx[0]>offidx[0]:
+            onidx=np.concatenate((np.array([0]),onidx))
         if len(onidx)>len(offidx):
             offidx=np.concatenate((offidx,np.array([len(blink)])))
         deblinked = pupil_diameter.copy()
         for i,x1 in enumerate(onidx):
             x2 = offidx[i]
-            #print([i,x1,x2])
-            deblinked[x1:x2,0] = np.linspace(deblinked[x1], deblinked[x2-1], x2-x1)
+            if x2<x1:
+                print([i,x1,x2])
+                print("WHAT'S UP??")
+            else:
+                #print([i,x1,x2])
+                deblinked[x1:x2,0] = np.linspace(deblinked[x1], deblinked[x2-1], x2-x1)
             
         if verbose:
             plt.figure()
@@ -1465,9 +1474,10 @@ def baphy_load_recording(parmfilepath,options={}):
                     #print("??? But did it happen?  ? Conflicting target: {0}-{1} {2}".format(exptevents['start'][j],
                     #      exptevents['end'][j],exptevents['name'][j]))
                     keepevents[i]=False
-              
-            print("Removed {0}/{1} events that overlap with target".format(
-                    np.sum(keepevents==False),len(keepevents)))
+                    
+            if np.sum(keepevents==False):
+                print("Removed {0}/{1} events that overlap with target".format(
+                        np.sum(keepevents==False),len(keepevents)))
             # create final list of these stimulus events
             this_event_times=this_event_times[keepevents]
             tff,=np.where(ffstart)
@@ -1475,6 +1485,8 @@ def baphy_load_recording(parmfilepath,options={}):
             tff,=np.where(ffstop)
             ffstop[tff[keepevents==False]]=False
 
+            event_times=pd.concat([event_times, this_event_times])
+            this_event_times['name']="REFERENCE"            
             event_times=pd.concat([event_times, this_event_times])
             
             # generate list of corresponding pre/post events
@@ -1493,12 +1505,13 @@ def baphy_load_recording(parmfilepath,options={}):
             event_times=pd.concat([event_times, this_event_times])
 
     # add behavior events
-    if exptparams['runclass']=='PTD':
+    if exptparams['runclass']=='PTD' and any_behavior:
         # special events for tone in noise task
         tar_idx_freq=exptparams['TrialObject'][1]['TargetIdxFreq']
         tar_snr=exptparams['TrialObject'][1]['RelativeTarRefdB']
         common_tar_idx,=np.where(tar_idx_freq==np.max(tar_idx_freq))
-        if len(tar_idx_freq)==1 or np.isinf(tar_snr[0]):
+        
+        if isinstance(tar_idx_freq, (int)) or len(tar_idx_freq)==1 or np.isinf(tar_snr[0]):
             diff_event='PURETONE_BEHAVIOR'
         elif np.isfinite(tar_snr[0]) & (np.max(common_tar_idx)<2):
             diff_event='EASY_BEHAVIOR'

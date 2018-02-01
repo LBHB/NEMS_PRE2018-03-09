@@ -517,7 +517,7 @@ class Signal:
         (chans x time).
         '''
         data = self.as_continuous()
-        for lb, ub in self.get_epoch_bounds(epochs):
+        for lb, ub in self.get_epoch_indices(epochs):
             data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)
@@ -541,7 +541,13 @@ class Signal:
         # structure as well.
         data = self.as_continuous()
         for epoch, epoch_data in epoch_dict.items():
-            for lb, ub in self.get_epoch_bounds(epochs):
+            for lb, ub in self.get_epoch_indices(epoch):
+                
+                # SVD kludge to deal with rounding from floating-point time
+                # to integer bin index
+                if ub-lb<epoch_data.shape[1]:
+                    ub+=epoch_data.shape[1]-(ub-lb)
+                    
                 data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)
