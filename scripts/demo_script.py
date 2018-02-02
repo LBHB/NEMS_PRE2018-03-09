@@ -75,8 +75,8 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 
 # GOAL: Define the model that you wish to test
 
-# Method #1: create from "shorthand/default" keyword string
-modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1') 
+# Method #1: create from "shorthand" keyword string
+modelspec = initializers.from_keywords('fir10x1_dexp1') 
 
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc2_fir10_dexp.json')
