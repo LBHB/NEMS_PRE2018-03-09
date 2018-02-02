@@ -24,15 +24,6 @@ modelspecs_dir = '../modelspecs'
 # Method #1: Load the data from a local directory
 rec = Recording.load(os.path.join(signals_dir, 'gus027b13_p_PPS'))
 
-# TODO: temporary hack to avoid errors resulting from epochs not being defined.
-for signal in rec.signals.values():
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
-# If there isn't a 'pred' signal yet, copy over 'stim' as the starting point.
-# TODO: still getting a key error for 'pred' in fit_basic when
-#       calling lambda on metric. Not sure why, since it's explicitly added.
-rec.signals['pred'] = rec.signals['stim'].copy()
-
-
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
 # rec = nems.utils.net.fetch_signals_over_http(URL)

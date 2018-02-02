@@ -201,3 +201,13 @@ We focused on Charlie's analysis, which largely rests on analyzing the data and 
 IMMUTABILITY OF EPOCHS. Right now, epochs are mutable because they are panda dataframes, but the rest of the Signal is immutable. In the future, if we want to test the equality of two signals, this is easiest if they are completely immutable because we can just test the references instead of testing every substructure of the data.
 
 OCCURRENCES vs REPETITIONS. A thought as we standardize our terminology and home in on best practice for signals and epochs. I suggest we use the word "occurrences" rather than "repetitions" when the number of times an epoch appears in a signal. To me, "repetitions" implies that each one is repeated/identical. This is fine for stimuli, but not true for responses. On the other hand, "occurrences" is not specific as to whether the occurrences are identical or not. Does that sound good?
+
+
+Re: a comment in demo_script.py
+```# TODO: temporary hack to avoid errors resulting from epochs not being defined.
+#for signal in rec.signals.values():
+#    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+# If there isn't a 'pred' signal yet, copy over 'stim' as the starting point.
+# TODO: still getting a key error for 'pred' in fit_basic when
+#       calling lambda on metric. Not sure why, since it's explicitly added.```
+I'm going to remove these; the former doesn't appear to be causing errors anymore, and the latter I think should be handled with explicit keywords. (see modelspecs.md, I just wrote it today) (edited)

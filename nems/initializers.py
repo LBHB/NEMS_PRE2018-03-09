@@ -12,6 +12,10 @@ def from_keywords(keyword_string, registry=keywords.defaults):
     keywords = split_keywords(keyword_string)
 
     # Lookup the modelspec fragments in the registry
-    modelspec = [registry[kw] for kw in keywords]
+    modelspec = []
+    for kw in keywords:
+        d = registry[kw]
+        d['id'] = kw
+        modelspec.append(d)
 
     return modelspec
