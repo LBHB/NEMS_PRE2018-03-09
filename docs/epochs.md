@@ -2,23 +2,17 @@
 
 ## What's an Epoch?
 
-An epoch is an event or period of time that has been tagged with a name. Epochs
-are attached to Signal objects. A Recording, which contains a collection of
-signals, has methods that allow us to manipulate the entire collection based on
-a superset of the epochs in each signal.
+An epoch is an event or period of time that has been tagged with a name. Epochs are attached to Signal objects. A Recording, which contains a collection of signals, has methods that allow us to manipulate the entire collection based on a superset of the epochs in each signal.
 
 An epoch has three values:
 
 	start, end, name
 
-where `start` and `end` denote the beginning and end of the epoch in
-seconds and `name` is a descriptive string (see [how to name epochs](##
-epoch-naming). For events (single points in time), the `start` will
-contain the timestamp of the event and `end` will be NaN.
+where `start` and `end` denote the beginning and end of the epoch in seconds and `name` is a descriptive string (see [how to name epochs](## epoch-naming). For events (single points in time), the `start` will contain the timestamp of the event and `end` will be NaN. Right now support for events are limited (or nonexistent). As use-cases arise, we will implement support for these.
 
-Epochs are stored in [Signal Objects](signals.md) under the `.epochs` field in a pandas DataFrame containing three columns (`start`, `end` and `epoch_name`).
+Epochs are stored in [Signal Objects](signals.md) under the `.epochs` attribute in a pandas DataFrame containing three columns (`start`, `end` and `name`).
 
-For the rest of this document, let's consider some example epoch data in which trials are 40-100 msec long, and there are several TORCs of 20 msec duration played before a tone-in-TORC detection task. For those unfamiliar with the task, it is essentially that of trying to pick out when a simple sinusoidal tone played simulatenously with a confounding sound of some kind, in this case a [TORC](http://todo/link-to-paper).
+For the rest of this document, let's consider some example epoch data in which trials are 40-100 msec long, and there are several TORCs of 20 msec duration played before a tone-in-TORC detection task. In this task, the subject is asked to detect when a tone is played in a sequence of background tokens (known as [TORCs](http://todo/link-to-paper)).
 
 	start           end  	        name
 
@@ -45,7 +39,7 @@ For the rest of this document, let's consider some example epoch data in which t
 	0.075   	0.080  		PostStimSilence
 	0.080   	0.0100  	TimeOut
 
-In the example above, note that some epochs have the same name, such as "ExperimentalTrial". If the same epoch name appears several times, we call each appearance an /occurrance/ of a given epoch. We will be lazy with our terminology and treat all of the epochs tagged the same as being part of the same epoch. 
+In the example above, note that some epochs have the same name, such as "ExperimentalTrial". If the same name appears several times, we call each appearance an /occurrance/ of a given epoch.
 
 Note also that epochs may overlap. For example, compare the first `TORC_3983` with the first `Reference`. This is a way of indicating that `TORC_3983` is a `Reference` token. This approach facilitates analysis where one may wish to select all reference TORCs and compare them to all TORCs that occur simultaneously with a pure tone (compare the second occurence of `TORC_3983` with `PureTone12`).
 
@@ -54,67 +48,34 @@ This set of epochs tells us quite a bit about what's going on in the experiment.
 
 ## How signals use epochs
 
-TODO: This section does not appear to be current anymore? -- Ivar
-
 A [signal object](signal.md) can use epochs to perform two basic operations:
 
-* Mask regions of data. For example, perhaps licking introduces EMG artifacts
-  in to the LFP recordings. In this case, you may want to mask all regions in
-  the LFP recording during a lick so that your analysis isn't affected by these
-  artifacts:
+* Mask regions of data. For example, perhaps licking introduces EMG artifacts in to the LFP recordings. In this case, you may want to mask all regions in the LFP recording during a lick so that your analysis isn't affected by these artifacts:
 
-  	 signal.mask_epochs('Licking', inplace=True)
+  	 masked_signal = signal.mask_epoch('Licking')
 
-  As you will see later, this masking can also be used to generate subsets of
-  data for cross-validation when fitting models. Signals also have a
-  `select_epochs` method, which is the inverse of `mask_epochs`:
+  As you will see later, this masking can also be used to generate subsets of data for cross-validation when fitting models. Signals also have a `select_epochs` method, which is the inverse of `mask_epochs`:
 
-  	 signal.select_epochs('Reference', inplace=True)
+  	 selected_signal = signal.select_epoch('Reference')
 
-  **Brad's comment - We need to think about what happens when we mask and/or
-  select epochs. Are these operations cumulative, or does the selection mask
-  reset on each call to `mask_epochs` or `select_epochs`? 
-  
-  I would argue that the selection mask gets reset each time because it's not
-  clear if successive selection operations be OR, AND or XOR (we *could*
-  specify a grammar for this or have a method for `select_epochs` and
-  `mask_epochs` that indicate whether that operation is OR, AND or XORed to the
-  current selection mask, but it gets complicated). Really, if someone needs
-  fancy selection behavior, then they should preprocess the epochs first to
-  contain the information they need such that a single call to `mask_epochs` or
-  `select_epochs` accomplishes what they want).**
+* Extract regions of data. For example, perhaps you want to plot the average response to a particular epoch:
 
-* Extract regions of data. For example, perhaps you want to plot the average
-  response to a particular epoch:
-
-     all_epochs = signal.extract_epochs('TORC_3983')
-	 average_epoch = np.nanmean(all_epochs, axis=0)
+     torc = signal.extract_epoch('TORC_3983')
+	 average_torc = np.nanmean(torc, axis=0)
 
 ## Epoch manipulation
 
 Signal objects offer the following methods:
 
-* Getting the epochs stored inside the signal. You can either request the full
-  set of epochs using `signal.get_epochs` or a subset using
-  `signal.get_epochs(epoch_name)`. This will return a DataFrame with the
-  selected epochs.
+* Getting boundaries of an epoch stored inside the signal using `signal.get_epoch_bounds(epoch_name)`. This will return a Nx2 array (where N is the number of occurances, the first column is start time and the second column is end time).
 
-* Adding epochs to the ones stored inside the signal. You can do this using
-  `signal.add_epochs(epoch_name, epochs)`.
+* Adding epochs to the ones stored inside the signal. You can do this using `signal.add_epoch(epoch_name, epochs)`.
 
-However, fancy manipulation of epochs (e.g., selecting epochs that contain
-another epoch, resizing epoch boundaries, computing the union of two epochs,
-etc.) must be done outside the signal object. You can then add the
-newly-created epochs back to the signal object.
+Fancy manipulation of epochs (e.g., selecting epochs that contain another epoch, resizing epoch boundaries, computing the union of two epochs, etc.) must be done outside the signal object. You can then add the newly-created epochs back to the signal object.
 
 ### General epoch manipulation
 
-Internally, signal objects store epochs in a DataFrame with three columns
-('start', 'end', 'name'). However, when working with epochs outside of the
-signal object, the epochs will be a 2D array of shape Nx2 (where N is the
-number of occurences of that epoch, the first column is start time and second
-column is end time).  In the example below, we have four occurances of the
-epoch, with the last epoch running from 300 to 301 msec:
+Internally, signal objects store epochs in a DataFrame with three columns ('start', 'end', 'name'). However, when working with epochs outside of the signal object, the epochs will be a 2D array of shape Nx2 (where N is the number of occurences of that epoch, the first column is start time and second column is end time).  In the example below, we have four occurances of the epoch, with the last epoch running from 300 to 301 msec:
 
     [[0.049  0.049],
      [0.066  0.087],
@@ -130,12 +91,11 @@ If we want to take only the correc trials (defined as when the animal licks
 during a detection task):
 
 	from nems.data.epochs import epoch_contain
-
 	correct_epoch = epoch_contain(dt_epoch, l_epoch, mode='start')
 
 Then, we can finally do (to NaN everything but the correct epochs):
 
-	signal.select_epoch(correct_epochs)
+	masked_signal = signal.select_epoch(correct_epochs)
 
 Great! You can save that for later by adding it to the epochs in the Signal:
 
@@ -147,8 +107,7 @@ Then anytime afterward we can simply do:
 
 ### Manipulating epoch boundaries
 
-You can use set theory to manipulate epoch boundaries by subtracting or adding
-one epoch to the other:
+You can use set theory to manipulate epoch boundaries by subtracting or adding one epoch to the other:
 
 	from nems.data.epochs import epoch_intersection, epoch_difference
 
@@ -170,13 +129,7 @@ Instead of masking data with `signal.select_epoch()` and
 	data = signal.extract_epoch('TORC_3983')
 	average_response = np.nanmean(data, axis=0)
 
-Here, `extract_epoch` returns a 3D array with the first axis containing each
-occurence of `TORC_3983`. The remaining two axes are channels and time. In this
-particular situation, the durations of each occurence of `TORC_3983` are
-identical. However, in some situations, the duration of epochs may vary from
-occurence to occurence. In this case, shorter epochs will be padded with NaN
-values so the length matches the longest occurence. To get the average, use
-`np.nanmean`.
+Here, `extract_epoch` returns a 3D array with the first axis containing each occurence of `TORC_3983`. The remaining two axes are channels and time. In this particular situation, the durations of each occurence of `TORC_3983` are identical. However, in some situations, the duration of epochs may vary from occurence to occurence. In this case, shorter epochs will be padded with NaN values so the length matches the longest occurence. To get the average, use `np.nanmean`.
 
 ### How do I get the average response in prestim vs poststim, regardless of behavior?
 
@@ -192,8 +145,7 @@ This might be useful for identifying a baseline that is altered by behavior.
 
 ### How do I get the average stimulus 300ms before every mistaken lick?
 
-What if we want to know what the animal heard just before it licked
-accidentally? Or if the TORC was maybe too close to the reference tone?
+What if we want to know what the animal heard just before it licked accidentally? Or if the TORC was maybe too close to the reference tone?
 
 	# Pull out the epoch we want to analyze
 	trial_epoch = signal.get_epoch_bounds('Trials')
@@ -214,24 +166,11 @@ accidentally? Or if the TORC was maybe too close to the reference tone?
 	data = signal.as_continous()
 	some_plot_function(data)
 
-Note that `extract_epoch` may end up duplicating data. For example, if the
-animal licked 10 times a second and you were looking at the 3 seconds prior to
-each lick, your data will overlap, meaning you just duplicated your total data
-about 1/2 * 3 * 10 = 15 times! This may negatively alter certain computations
-of the mean in some sense, and in such circumstances, you may want to use the
-argument `allow_data_duplication=False` for `signal.extract_epoch()`.
+Note that `extract_epoch` may end up duplicating data. For example, if the animal licked 10 times a second and you were looking at the 3 seconds prior to each lick, your data will overlap, meaning you just duplicated your total data about 1/2 * 3 * 10 = 15 times! This may negatively alter certain computations of the mean in some sense, and in such circumstances, you may want to use the argument `allow_data_duplication=False` for `signal.extract_epoch()`.
 
 ### How do I use epoch info from two different signals in the same recording?
 
-Like signal objects, recording objects offer `mask_epoch` and `extract_epoch`
-methods. However, you still need to combine the epochs manually. In the above
-examples, we assumed that a single signal will contain information about both
-the stimulus and whether the animal licked or not. However, that may not always
-be the case. Perhaps the "stimulus" signal will contain information about the
-stimulus and trials while the "lick" signal will contain information about the
-lick epochs (i.e., how the animal responded). For example, if we want to find
-anytim the animal blinked or licked and treat those as artifacts and mask the
-full recording when they occured).
+Like signal objects, recording objects offer `mask_epoch` and `extract_epoch` methods. However, you still need to combine the epochs manually. In the above examples, we assumed that a single signal will contain information about both the stimulus and whether the animal licked or not. However, that may not always be the case. Perhaps the "stimulus" signal will contain information about the stimulus and trials while the "lick" signal will contain information about the lick epochs (i.e., how the animal responded). For example, if we want to find anytim the animal blinked or licked and treat those as artifacts and mask the full recording when they occured).
 
     # The recording version of `get_epoch_bounds` takes the signal name as the
     # first argument and epoch name as the second argument.
@@ -243,19 +182,11 @@ full recording when they occured).
 
 ## Epoch naming
 
-Be descriptive. If you give a stimulus a unique name, then when it occurs in
-other Recordings,  you can simply concatenate the two recordings and still
-select exactly the same data.
+Be descriptive. If you give a stimulus a unique name, then when it occurs in other Recordings,  you can simply concatenate the two recordings and still select exactly the same data.
 
-Avoid implicit indexes like `trial1`, `trial2`, `trial3`; prefer using just
-`trial` and the folding functionality of `.fold_by('trial')`, which gives you a
-matrix. If you have truly different stimuli, you may named them `stim01`,
-`stim02`, but descriptive names like `cookoo_bird.wav`, and `train_horn.wav`
-are better.
+Avoid implicit indexes like `trial1`, `trial2`, `trial3`; prefer using just `trial` and the folding functionality of `.fold_by('trial')`, which gives you a matrix. If you have truly different stimuli, you may named them `stim01`, `stim02`, but descriptive names like `cookoo_bird.wav`, and `train_horn.wav` are better.
 
-Remember that the idea behind epochs is to tag the content of data, much like
-HTML marks up text to tell what it is. It's totally fine to tag the exact same
-epoch with multiple names, if that will help you perform queries on it later.
+Remember that the idea behind epochs is to tag the content of data, much like HTML marks up text to tell what it is. It's totally fine to tag the exact same epoch with multiple names, if that will help you perform queries on it later.
 
 ## What happens with zero-length epochs?
 
