@@ -6,13 +6,29 @@ contain the updated phi provided by the fitter when used in this manner.
 
 """
 
-from . import api
+# from . import api
+from importlib import import_module 
+lookup_table = {}  # TODO: Replace with real memoization/joblib later
+
+
+def split_to_api_and_fn(mystring):
+    matches = mystring.split(sep='.')
+    api = '.'.join(matches[:-1])
+    fn_name = matches[-1]
+    return api, fn_name
+
 
 def matrix_eval(data, modelspec):
     d_in = data.get_signal('stim').as_continuous()
     stack = [d_in]
     for m in modelspec:
-        fn = getattr(api, m['api'])
+        if m['fn'] in lookup_table:
+            fn = lookup_table[m['fn']]
+        else:
+            api, fn_name = split_to_api_and_fn(m['fn'])
+            api_obj = import_module(api)
+            fn = getattr(api_obj, fn_name)
+            lookup_table[m['fn']] = fn
         phi = m['phi'].values()
         kwargs = m['fn_kwargs']
         d_out = fn(d_in, *phi, **kwargs)

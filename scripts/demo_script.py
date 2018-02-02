@@ -47,11 +47,7 @@ rec = Recording.load(os.path.join(signals_dir, 'gus027b13_p_PPS'))
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
 
-# TODO: @Ivar -- per architecture.svg looked like this was going to be
-#       handled inside an analysis by a segmentor? Designed fit_basic with
-#       that in mind, so maybe this doesn't go here anymore, or I may have
-#       had the wrong interpretation.    --jacob
-# est, val = rec.split_at_time(0.8)
+est, val = rec.split_at_time(0.8)
 
 # Method #2: Split based on repetition number, rounded to the nearest rep.
 # est, val = rec.split_at_rep(0.8)
@@ -87,12 +83,7 @@ modelspec = initializers.from_keywords('fir10x1_dexp1')
 #       in descending order of how they performed on the fitter's metric.
 
 # Option 1: Use gradient descent (Fast)
-# TODO: @Ivar -- Raised question in fit_basic of whether fitter should be
-#       exposed as argument to the analysis. Looks like that may have been
-#       your original intention here? But I think if the fitter is exposed,
-#       then the FitSpaceMapper also needs to be exposed since the type of
-#       mapping needed may change depending on which fitter is use.
-results = fit_basic(rec, modelspec)
+results = fit_basic(est, modelspec)
 
 # Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
 # results = nems.analysis.fit_basic(est, modelspec,
