@@ -632,8 +632,8 @@ def get_batch_cell_data(batch=None, cellid=None, rawid=None, label=None
        sql += " AND label like %s"
        params = params+(label,)
        
-    print(sql)
-    print(params)
+    #print(sql)
+    #print(params)
     d = pd.read_sql(sql=sql, con=engine, params=params)
     d.set_index(['cellid', 'groupid', 'label', 'rawid'], inplace=True)
     d=d['filepath'].unstack('label')

@@ -113,13 +113,13 @@ for i,parmfilepath in enumerate(files):
         pupil=pupil.concatenate_time([pupil,t_pupil])
       
 # generate state signals
-hit_trials=pupil.epoch_mask_signal('HIT_TRIAL')
-miss_trials=pupil.epoch_mask_signal('MISS_TRIAL')
-fa_trials=pupil.epoch_mask_signal('FA_TRIAL')
-puretone_trials=pupil.epoch_mask_signal('PURETONE_BEHAVIOR')
-easy_trials=pupil.epoch_mask_signal('EASY_BEHAVIOR')
-hard_trials=pupil.epoch_mask_signal('HARD_BEHAVIOR')
-behavior_state=pupil.epoch_mask_signal('ACTIVE_EXPERIMENT')
+hit_trials=pupil.epoch_to_signal('HIT_TRIAL')
+miss_trials=pupil.epoch_to_signal('MISS_TRIAL')
+fa_trials=pupil.epoch_to_signal('FA_TRIAL')
+puretone_trials=pupil.epoch_to_signal('PURETONE_BEHAVIOR')
+easy_trials=pupil.epoch_to_signal('EASY_BEHAVIOR')
+hard_trials=pupil.epoch_to_signal('HARD_BEHAVIOR')
+behavior_state=pupil.epoch_to_signal('ACTIVE_EXPERIMENT')
 state=pupil.concatenate_channels([puretone_trials,easy_trials,hard_trials,pupil,hit_trials,fa_trials])
 
 ff=event_times['name'].str.contains('TORC')
