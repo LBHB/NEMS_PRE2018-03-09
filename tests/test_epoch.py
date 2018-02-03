@@ -35,6 +35,20 @@ def test_intersection(epoch_a, epoch_b):
     result = epoch_intersection(epoch_a, epoch_b)
     assert np.all(result == expected)
 
+def test_empty_intersection():
+    a = np.array([
+        [  0, 20],
+        [ 50, 70]
+    ])
+
+    b = np.array([
+        [ 25, 30],
+        [ 30, 45]
+    ])
+
+    with pytest.raises(RuntimeWarning,
+                       message="Expected RuntimeWarning for size 0"):
+        result = epoch_intersection(a, b)
 
 def test_union(epoch_a, epoch_b):
     expected = np.array([
@@ -59,6 +73,15 @@ def test_difference(epoch_a, epoch_b):
     result = epoch_difference(epoch_a, epoch_b)
     assert np.all(result == expected)
 
+def test_empty_difference():
+    a = b = np.array([
+        [  0,  50],
+        [ 50, 100]
+    ])
+
+    with pytest.raises(RuntimeWarning,
+                       message="Expected RuntimeWarning for size 0"):
+        result = epoch_difference(a, b)
 
 def test_contains(epoch_a, epoch_b):
     expected_any = np.array([
@@ -123,3 +146,4 @@ def test_remove_overlap():
 
     actual = remove_overlap(epochs)
     assert np.all(actual == expected)
+

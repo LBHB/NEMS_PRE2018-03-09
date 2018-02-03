@@ -4,6 +4,9 @@ import json
 import pandas as pd
 import numpy as np
 
+from nems.epoch import (epoch_union, epoch_difference, epoch_intersection,
+                        epoch_contains, adjust_epoch_bounds, remove_overlap,
+                        merge_epoch,)
 
 class Signal:
 
@@ -459,6 +462,9 @@ class Signal:
         epochs will be padded with NaN.
         '''
         epoch_indices = self.get_epoch_indices(epoch, trim=True)
+        if epoch_indices.size == 0:
+            raise IndexError("No matching epochs to extract for: {}"
+                             .format(epoch))
         n_samples = np.max(epoch_indices[:, 1]-epoch_indices[:, 0])
         n_epochs = len(epoch_indices)
 
@@ -513,11 +519,15 @@ class Signal:
     def replace_epoch(self, epoch, epoch_data):
         '''
         Returns a new signal, created by replacing every occurrence of
-        epoch_name with epoch_data, assumed to be a 2D matrix of data
+        epoch with epoch_data, assumed to be a 2D matrix of data
         (chans x time).
         '''
         data = self.as_continuous()
-        for lb, ub in self.get_epoch_indices(epochs):
+        indices = self.get_epoch_indices(epoch)
+        if indices.size == 0:
+            raise RuntimeWarning("No occurences of epoch were found: \n{}\n"
+                                 "Nothing to replace.".format(epoch))
+        for lb, ub in indices:
             data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)
@@ -545,8 +555,8 @@ class Signal:
 
                 # SVD kludge to deal with rounding from floating-point time
                 # to integer bin index
-                if ub-lb<epoch_data.shape[1]:
-                    ub+=epoch_data.shape[1]-(ub-lb)
+                if ub-lb < epoch_data.shape[1]:
+                    ub += epoch_data.shape[1]-(ub-lb)
 
                 data[:, lb:ub] = epoch_data
 
@@ -581,7 +591,10 @@ class Signal:
         new_data = np.full(self.shape, np.nan)
         for (lb, ub) in self.get_epoch_indices(epoch, trim=True):
             new_data[:, lb:ub] = self._matrix[:, lb:ub]
-
+        if np.all(np.isnan(new_data)):
+            raise RuntimeWarning("No matched occurrences for epoch: \n{}\n"
+                                 "Returned signal will be only NaN."
+                                 .format(epoch))
         return self._modified_copy(new_data)
 
     def select_epochs(self, list_of_epoch_names):
@@ -596,7 +609,10 @@ class Signal:
         for epoch_name in list_of_epoch_names:
             for (lb, ub) in self.get_epoch_indices(epoch_name, trim=True):
                 new_data[:, lb:ub] = self._matrix[:, lb:ub]
-
+        if np.all(np.isnan(new_data)):
+            raise RuntimeWarning("No matched occurrences for epochs: \n{}\n"
+                                 "Returned signal will be only NaN."
+                                 .format(list_of_epoch_names))
         return self._modified_copy(new_data)
 
     def trial_epochs_from_reps(self, nreps=1):
@@ -617,6 +633,7 @@ class Signal:
         * Epoch indices behave similar to python list indices, so start is
           inclusive while end is exclusive.
         """
+
         trial_size = self.ntimes/nreps/self.fs
         if self.ntimes % nreps:
             m = 'Signal not evenly divisible into fixed-length trials'

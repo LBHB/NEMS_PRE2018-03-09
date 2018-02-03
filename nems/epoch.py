@@ -173,7 +173,11 @@ def epoch_difference(a, b):
 
     # Add all remaining epochs from a
     difference.extend(a[::-1])
-    return np.array(difference)
+    result = np.array(difference)
+    if result.size == 0:
+        raise RuntimeWarning("Epochs did not intersect, resulting array"
+                             "is empty.")
+    return result
 
 
 def epoch_intersection(a, b):
@@ -289,7 +293,11 @@ def epoch_intersection(a, b):
 
     # Add all remaining epochs from a
     intersection.extend(a[::-1])
-    return np.array(intersection)
+    result = np.array(intersection)
+    if result.size == 0:
+        raise RuntimeWarning("Epochs did not intersect, resulting array"
+                             "is empty.")
+    return result
 
 
 def _epoch_contains_mask(a, b):
