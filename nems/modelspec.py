@@ -3,7 +3,7 @@ import json
 import fnmatch
 import numpy as np
 
-# Functions and classes for saving and loading modelspecs
+# Functions for saving and loading modelspecs
 
 
 # This next class from:

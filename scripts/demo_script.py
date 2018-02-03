@@ -24,15 +24,6 @@ modelspecs_dir = '../modelspecs'
 # Method #1: Load the data from a local directory
 rec = Recording.load(os.path.join(signals_dir, 'gus027b13_p_PPS'))
 
-# TODO: temporary hack to avoid errors resulting from epochs not being defined.
-for signal in rec.signals.values():
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
-# If there isn't a 'pred' signal yet, copy over 'stim' as the starting point.
-# TODO: still getting a key error for 'pred' in fit_basic when
-#       calling lambda on metric. Not sure why, since it's explicitly added.
-rec.signals['pred'] = rec.signals['stim'].copy()
-
-
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
 # rec = nems.utils.net.fetch_signals_over_http(URL)
@@ -56,11 +47,7 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
 
-# TODO: @Ivar -- per architecture.svg looked like this was going to be
-#       handled inside an analysis by a segmentor? Designed fit_basic with
-#       that in mind, so maybe this doesn't go here anymore, or I may have
-#       had the wrong interpretation.    --jacob
-# est, val = rec.split_at_time(0.8)
+est, val = rec.split_at_time(0.8)
 
 # Method #2: Split based on repetition number, rounded to the nearest rep.
 # est, val = rec.split_at_rep(0.8)
@@ -75,8 +62,8 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 
 # GOAL: Define the model that you wish to test
 
-# Method #1: create from "shorthand/default" keyword string
-modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1') 
+# Method #1: create from "shorthand" keyword string
+modelspec = initializers.from_keywords('fir10x1_dexp1') 
 
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc2_fir10_dexp.json')
@@ -96,12 +83,7 @@ modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1')
 #       in descending order of how they performed on the fitter's metric.
 
 # Option 1: Use gradient descent (Fast)
-# TODO: @Ivar -- Raised question in fit_basic of whether fitter should be
-#       exposed as argument to the analysis. Looks like that may have been
-#       your original intention here? But I think if the fitter is exposed,
-#       then the FitSpaceMapper also needs to be exposed since the type of
-#       mapping needed may change depending on which fitter is use.
-results = fit_basic(rec, modelspec)
+results = fit_basic(est, modelspec)
 
 # Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
 # results = nems.analysis.fit_basic(est, modelspec,
