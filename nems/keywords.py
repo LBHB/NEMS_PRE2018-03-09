@@ -1,10 +1,11 @@
 # This dict maps keywords to fragments of a modelspec
+
 # TODO: added api tag for easy imports from nems.modules.api.
 #       Maybe not the best approach? Just trying to get demo running for now.
 # TODO: added some dummy phi values to fir and dexp, currently those
 #       functions have all pos. args. so have to be specified.
 defaults = {'wc1': {'fn': 'nems.modules.weight_channels.weight_channels',
-                    'fn_kwargs': {},
+                    'fn_kwargs': {'input': 'pred'},
                     'prior': [],
                     'phi': {}},
             'wc2': {'fn': 'nems.modules.weight_channels.weight_channels',

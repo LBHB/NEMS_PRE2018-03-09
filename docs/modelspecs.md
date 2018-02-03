@@ -139,8 +139,9 @@ my_modelspec = initializers.from_keywords('wc18x1_mork1_dexp1',
 
 These simple functions are mostly to encourage uniform pattern for model and file names. You may override the default file name if desired, but for compatability, the NEMS defaults for a model are generated using:
 
-    1. The keyword string used to define the modelspec
-    2. The shorthand name of the data files used to fit model parameters
+    1. The keyword string that define the modelspec
+    4. The fitter used to find the parameters
+    2. The shorthand name of Recording object used to fit model parameters
     3. The date and time, in ISO8601 format (Suggestion: 2018-02-02T19:02Z)
 
 
