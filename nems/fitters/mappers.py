@@ -1,12 +1,9 @@
-"""Defines mapping functions that return a packer and unpacker (in that order)
+"""
+Defines mapping functions that return a packer and unpacker (in that order)
 corresponding to the type of sigma expected by a fitter.
 
-TOOD: Proposed naming convention is to use whatever the modelspec is being
-      turned into as the name for the function, but maybe something else makes
-      more sense?
-
-TODO: might make more sense to put this in an analysis.utils module?
-      since analyses are what actually use the packer/unpackers.
+Our proposed naming convention is to use whatever the modelspec is being
+turned into as the name for the mapper function.
 """
 
 from .util import phi_to_vector, vector_to_phi
