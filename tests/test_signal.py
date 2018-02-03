@@ -26,7 +26,7 @@ def signal(signal_name='dummy_signal', recording_name='dummy_recording', fs=50,
         'start': [3, 15, 150],
         'end': [200, 60, 190],
         'name': ['trial', 'pupil_closed', 'pupil_closed']
-    })
+        })
     epochs['start'] /= fs
     epochs['end'] /= fs
     kwargs = {
@@ -68,9 +68,29 @@ def test_signal_save_load(signal, signal_tmpdir):
 
     save_directory = os.path.join(str(signal_tmpdir), signals_found[0])
     signal_loaded = Signal.load(save_directory)
+
     assert np.all(signal._matrix == signal_loaded._matrix)
 
     # TODO: add a test for the various signal attributes
+
+def test_epoch_save_load(signal, signal_tmpdir):
+    '''
+    Test that epochs save and load properly
+    '''
+
+    before = signal.epochs
+
+    signal.save(str(signal_tmpdir), fmt='%1.3e')
+    signals_found = Signal.list_signals(str(signal_tmpdir))
+    save_directory = os.path.join(str(signal_tmpdir), signals_found[0])
+    signal_loaded = Signal.load(save_directory)
+
+    after = signal_loaded.epochs
+    print("Dataframes equal?\n"
+          "Before:\n{0}\n"
+          "After:\n{1}\n"
+          .format(before, after))
+    assert before.equals(after)
 
 
 def test_as_continuous(signal):

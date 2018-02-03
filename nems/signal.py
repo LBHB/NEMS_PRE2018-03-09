@@ -89,7 +89,7 @@ class Signal:
         mat = self.as_continuous()
         mat = np.swapaxes(mat, 0, 1)
         np.savetxt(csvfilepath, mat, delimiter=",", fmt=fmt)
-        self.epochs.to_csv(epochfilepath, sep=',')
+        self.epochs.to_csv(epochfilepath, sep=',', index=False)
         with open(jsonfilepath, 'w') as fh:
             attributes = self._get_attributes()
             del attributes['epochs']
@@ -116,7 +116,7 @@ class Signal:
         jsonfilepath = basepath + '.json'
         mat = pd.read_csv(csvfilepath, header=None).values
         if os.path.isfile(epochfilepath):
-            epochs = pd.read_csv(epochfilepath, header=None).values
+            epochs = pd.read_csv(epochfilepath)
         else:
             epochs = None
         mat = mat.astype('float')
@@ -542,12 +542,12 @@ class Signal:
         data = self.as_continuous()
         for epoch, epoch_data in epoch_dict.items():
             for lb, ub in self.get_epoch_indices(epoch):
-                
+
                 # SVD kludge to deal with rounding from floating-point time
                 # to integer bin index
                 if ub-lb<epoch_data.shape[1]:
                     ub+=epoch_data.shape[1]-(ub-lb)
-                    
+
                 data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)
