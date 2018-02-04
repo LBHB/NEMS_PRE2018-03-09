@@ -1,6 +1,8 @@
 import os
 import copy
 import json
+import re
+
 import pandas as pd
 import numpy as np
 
@@ -27,6 +29,10 @@ class Signal:
         '''
         self._matrix = matrix
         self._matrix.flags.writeable = False  # Make it immutable
+        for s in [name, recording, chans]:
+            if not s:
+                continue
+            self._verify_string_syntax(s)
         self.name = name
         self.recording = recording
         self.chans = chans
@@ -136,6 +142,47 @@ class Signal:
             return s
 
     @staticmethod
+    def from_merged_signals(signals):
+        '''
+        Returns a new signal object by combining a list of signals
+        of the same shape. For each signal, every element must be
+        NaN unless it is NaN in all other signals.
+
+        Ex:
+            s1: [   1,   2,   3, NaN, NaN, NaN]
+            s2: [ NaN, NaN, NaN,   4,   5,   6]
+        would merge to:
+            s3: [   1,   2,   3,   4,   5,   6]
+
+        But this would result in error:
+            s4: [   1,   2,   3,   4, NaN, NaN]
+            s5: [ NaN, NaN, NaN,   4,   5,   6]
+
+        TODO: add tests for this
+        '''
+        shape = signals[0].shape
+        masks = []
+        for i, s in enumerate(signals):
+            if s.shape != shape:
+                raise ValueError("All signals must have the same shape.")
+            else:
+                masks.append(np.isnan(s))
+        check_nans = np.ones(shape)
+        for mask in masks:
+            check_nans *= mask
+        if np.any(check_nans):
+            raise ValueError("Overlapping non-NaN values found in signals.")
+
+        stacked = np.dstack(signals)
+        merged = np.nansum(stacked, axis=2)
+        # use the first signal as a template
+        # for setting fs, chans, etc.
+        # TODO: Some other way to do this that would make more sense?
+        #       Could just return the array and let user figure out
+        #       how they want to set up the new signal object.
+        return signals[0]._modified_copy(merged)
+
+    @staticmethod
     def list_signals(directory):
         '''
         Returns a list of all CSV/JSON signal files found in DIRECTORY,
@@ -147,6 +194,24 @@ class Signal:
         jsons = [just_fileroot(f) for f in files if f.endswith('.json')]
         overlap = set.intersection(set(csvs), set(jsons))
         return list(overlap)
+
+    def _verify_string_syntax(self, s):
+        allowed = '[a-z0-9_]'
+        disallowed = re.compile('[^a-z0-9_]')
+        matches = []
+        print("s is: {}\ntype is: {}".format(s, str(type(s))))
+        if isinstance(s, list):
+            for i in s:
+                match = disallowed.findall(i)
+                matches.extend(match)
+        else:
+            match = disallowed.findall(s)
+            matches.extend(match)
+        matches = disallowed.findall(s)
+        if matches:
+            raise ValueError("Disallowed characters contained in: {0}\n"
+                             "Allowed characters: {1}"
+                             .format(s, allowed))
 
     def as_continuous(self):
         '''
