@@ -2,13 +2,12 @@ import os
 import copy
 import json
 import re
+import itertools
 
 import pandas as pd
 import numpy as np
 
-from nems.epoch import (epoch_union, epoch_difference, epoch_intersection,
-                        epoch_contains, adjust_epoch_bounds, remove_overlap,
-                        merge_epoch,)
+from nems.epoch import remove_overlap, merge_epoch
 
 class Signal:
 
@@ -24,15 +23,11 @@ class Signal:
                  ('start', 'end', 'name')
             denoting the start and end of the time of an epoch (in seconds).
             You may use the same epoch name multiple times; this is common when
-            tagging epochs that correspond to repetitions of the same stimulus.
+            tagging epochs that correspond to occurrences of the same stimulus.
         ...
         '''
         self._matrix = matrix
         self._matrix.flags.writeable = False  # Make it immutable
-        for s in [name, recording, chans]:
-            if not s:
-                continue
-            self._verify_string_syntax(s)
         self.name = name
         self.recording = recording
         self.chans = chans
@@ -74,7 +69,10 @@ class Signal:
             if not all(typesok):
                 raise ValueError('Chans must be a list of strings:' +
                                  str(self.chans) + str(typesok))
-
+        #for s in [name, recording, chans]:
+        #    if not s:
+        #        continue
+        #    self._verify_string_syntax(s)
         if self.fs < 0:
             m = 'Sampling rate of signal must be a positive number. Got {}.'
             raise ValueError(m.format(self.fs))
@@ -161,25 +159,37 @@ class Signal:
         TODO: add tests for this
         '''
         shape = signals[0].shape
+        arrays = [s.as_continuous() for s in signals]
         masks = []
-        for i, s in enumerate(signals):
-            if s.shape != shape:
+        for i, a in enumerate(arrays):
+            if a.shape != shape:
                 raise ValueError("All signals must have the same shape.")
             else:
-                masks.append(np.isnan(s))
-        check_nans = np.ones(shape)
-        for mask in masks:
-            check_nans *= mask
-        if np.any(check_nans):
-            raise ValueError("Overlapping non-NaN values found in signals.")
+                masks.append(np.isfinite(a))
 
-        stacked = np.dstack(signals)
-        merged = np.nansum(stacked, axis=2)
+        # TODO: can't get this check to work.
+        for i, j in itertools.combinations(masks, 2):
+            overlap = np.logical_and(i, j)
+            if np.any(overlap):
+                raise ValueError("Overlapping non-NaN values found in signals.")
+
+        stacked = np.stack(arrays, axis=0)
+        merged = np.nansum(stacked, axis=0)
         # use the first signal as a template
         # for setting fs, chans, etc.
-        # TODO: Some other way to do this that would make more sense?
+        # TODO: @Ivar
+        #       Some other way to do this that would make more sense?
         #       Could just return the array and let user figure out
         #       how they want to set up the new signal object.
+        #
+        #       Alternatively, just refer all checks to self and
+        #       assume the user is invoking the method using one of
+        #       the signal objects they want to merge? i.e. for
+        #       merging 10 signals, instead of calling this static method
+        #       on a list of:
+        #           new_sig = Signal.from_merged_signals([s1, s2, ... s10]),
+        #       do this:
+        #           new_sig = s1.merge_signals([s2, s3 ... s10])
         return signals[0]._modified_copy(merged)
 
     @staticmethod
@@ -288,7 +298,9 @@ class Signal:
         to be NaN'd. If no epochs are found that match the regex, an exception
         is thrown. The epochs data structure itself is not changed.
         '''
+
         raise NotImplementedError
+        '''
         epochs = self.get_epochs(epoch_name)
         epoch_indices = (epochs * self.fs).astype('i')
 
@@ -301,6 +313,49 @@ class Signal:
         for lb, ub in epoch_indices:
             print(lb, ub, mask.shape)
             mask[:, lb:ub] = 1
+        if invert:
+            mask = ~mask
+        data[mask] = np.nan
+        return self._modified_copy(data)
+        '''
+
+        # new desired behavior:
+        # for n jackknifes, return every n minus ith occurence of epoch
+        # ex:
+        #   jk_by_epochs(trial, 20, 0)
+        # would select the 20th, 40th, .. etc occurence.
+        #   jk_by_epochs(trial, 20, 1)
+        # would select the 19th, 39th, .. etc occurence.
+
+        epochs = self.get_epoch_bounds(epoch_name, trim=True)
+        occurrences, _ = epochs.shape
+        if occurrences < nsplits:
+            raise ValueError("Can't divide {0} occurences into {1} splits"
+                             .format(occurrences, nsplits))
+        if split_idx < 0:
+            split_idx = np.abs(split_idx)
+            raise RuntimeWarning("split_idx cannot be negative. \nidx: {0}"
+                                 "will be treated as its absolute value."
+                                 .format(split_idx))
+        if split_idx > nsplits:
+            while split_idx > nsplits:
+                split_idx -= nsplits
+            raise RuntimeWarning("split_idx cannot be greater than nsplits."
+                                 "idx adjusted to: {0}".format(split_idx))
+
+        # TODO: not working yet.
+        data = self.as_continuous()
+        splits = []
+        idx = nsplits-split_idx-1
+        while idx < occurrences:
+            # TODO: bit hacky, but I couldn't get the numpy methods
+            #       to get index objects correctly.
+            lb, ub = epochs[idx][0], epochs[idx][1]
+            splits.append(slice(lb, ub))
+            idx += nsplits
+        mask = np.zeros_like(data)
+        for bounds in splits:
+            mask[:, bounds] = 1
         if invert:
             mask = ~mask
         data[mask] = np.nan
@@ -417,6 +472,22 @@ class Signal:
             epochs=epochs,
             matrix=data,
             )
+
+    def extract_channels(self, chans):
+        '''
+        Returns a new signal object containing only the specified
+        channel indices.
+        '''
+        array = self.as_continuous()
+        if isinstance(chans, int):
+            chans = [chans]
+        c,t = self.shape
+        removals = []
+        for i in range(c):
+            if i not in chans:
+                removals.append(i)
+        new_array = np.delete(array, removals, axis=0)
+        return self._modified_copy(new_array)
 
     def get_epoch_bounds(self, epoch, trim=False, fix_overlap=None):
         '''

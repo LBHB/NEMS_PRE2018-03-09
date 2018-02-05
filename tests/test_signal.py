@@ -146,19 +146,17 @@ def test_split_at_time(signal):
 
 @pytest.mark.skip
 def test_jackknifed_by_epochs(signal):
-    # set epochs to trial0 - trial9, length 20 each
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    signal.epochs = signal.trial_epochs_from_reps(nreps=50)
 
-    s1 = signal.jackknifed_by_epochs('trial', 10, 1)
+    s1 = signal.jackknifed_by_epochs('trial', 50, 0)
     assert s1._matrix.shape == (3, 200) # shape shouldn't change
-    assert np.isnan(s1._matrix).sum() == 60 # 3 chans x 20 samples x 1 epoch
+    assert np.isnan(s1._matrix).sum() == 12 # 3 chans x 4 time bins x 1 occurs
 
-    s2 = signal.jackknifed_by_epochs('trial$')
-    # (5|7|9)
-    assert np.isnan(s2._matrix).sum() == 180 # 3 chans x 20 samples x 3 epochs
+    s2 = signal.jackknifed_by_epochs('trial', 25, 0)
+    assert np.isnan(s2._matrix).sum() == 24 # 3 chans x 4 time bins x 2 occurs
 
-    s3 = signal.jackknifed_by_epochs('trial', invert=True)
-    assert np.isnan(s3._matrix).sum() == 540 # 3 chans x 20 samples x 9 epochs
+    s3 = signal.jackknifed_by_epochs('trial', 25, 0, invert=True)
+    assert np.isnan(s3._matrix).sum() == 576 # 3 chans x 4 time bins x 48 occrs
 
 
 def test_jackknifed_by_time(signal):
@@ -194,3 +192,33 @@ def test_add_epoch(signal):
     signal.add_epoch('experiment', epoch)
     assert len(signal.epochs) == 4
     assert np.all(signal.get_epoch_bounds('experiment') == epoch)
+
+def test_merge_signals(signal):
+    signals = []
+    for i in range(10):
+        jk = signal.jackknifed_by_time(10, i, invert=True)
+        signals.append(jk)
+    merged = Signal.from_merged_signals(signals)
+    # merged and signal should be identical
+    assert np.sum(np.isnan(merged.as_continuous())) == 0
+    assert np.array_equal(signal.as_continuous(), merged.as_continuous())
+    assert signal.epochs.equals(merged.epochs)
+
+    # TODO: above passes, but below does not
+    with pytest.raises(ValueError, message=("Overlapping non-NaN values,"
+                                            "should throw an error.")):
+        signals = []
+        for i in range(2):
+            jk = signal.jackknifed_by_time(2, i, invert=False)
+            signals.append(jk)
+        merged = Signal.from_merged_signals(signals)
+
+def test_extract_channels(signal):
+    two_sig = signal.extract_channels([0, 1])
+    assert two_sig.shape == (2, 200)
+    one_sig = signal.extract_channels(2)
+    assert one_sig.shape == (1, 200)
+    recombined = Signal.concatenate_channels([two_sig, one_sig])
+    before = signal.as_continuous()
+    after = recombined.as_continuous()
+    assert np.array_equal(before, after)
