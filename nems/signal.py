@@ -7,7 +7,7 @@ import itertools
 import pandas as pd
 import numpy as np
 
-from nems.epoch import remove_overlap, merge_epoch
+from nems.epoch import remove_overlap, merge_epoch, verify_epoch_integrity
 
 class Signal:
 
@@ -38,11 +38,9 @@ class Signal:
         # Verify that we have a long time series
         (C, T) = self._matrix.shape
         if T < C:
-            m = 'Incorrect matrix dimensions: (C, T) is {}. ' \
+            m = 'Incorrect matrix dimensions?: (C, T) is {}. ' \
                 'We expect a long time series, but T < C'
-            # TODO: Raise some kind of warning here instead?
-            #       Could be (probably rare) cases where T does end up < C
-            raise ValueError(m.format((C, T)))
+            raise RuntimeWarning(m.format((C, T)))
 
         self.nchans = C
         self.ntimes = T
@@ -80,6 +78,9 @@ class Signal:
         if type(self._matrix) is not np.ndarray:
             raise ValueError('matrix must be a np.ndarray:' +
                              type(self._matrix))
+
+        # not implemented yet in epoch.py -- 2/4/2018f
+        #verify_epoch_integrity(self.epochs)
 
     def save(self, dirpath, fmt='%.18e'):
         '''
@@ -155,8 +156,6 @@ class Signal:
         But this would result in error:
             s4: [   1,   2,   3,   4, NaN, NaN]
             s5: [ NaN, NaN, NaN,   4,   5,   6]
-
-        TODO: add tests for this
         '''
         shape = signals[0].shape
         arrays = [s.as_continuous() for s in signals]
@@ -177,8 +176,7 @@ class Signal:
         merged = np.nansum(stacked, axis=0)
         # use the first signal as a template
         # for setting fs, chans, etc.
-        # TODO: @Ivar
-        #       Some other way to do this that would make more sense?
+        # TODO: Some other way to do this that would make more sense?
         #       Could just return the array and let user figure out
         #       how they want to set up the new signal object.
         #
