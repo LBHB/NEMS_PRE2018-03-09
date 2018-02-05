@@ -2,7 +2,7 @@ import os
 import copy
 import json
 import re
-import itertools
+import math
 
 import pandas as pd
 import numpy as np
@@ -237,75 +237,81 @@ class Signal:
 
         return lsignal, rsignal
 
-    def jackknifed_by_epochs(self, epoch_name, nsplits, split_idx, invert=False):
+    def jackknifed_by_epochs(self, njacks, jack_idx, epoch_name,
+                             tiled=True,
+                             invert=False):
         '''
         Returns a new signal, with epochs matching epoch_name NaN'd out.
         Optional argument 'invert' causes everything BUT the matched epochs
-        to be NaN'd. If no epochs are found that match the regex, an exception
-        is thrown. The epochs data structure itself is not changed.
+        to be NaN'd. njacks determines the number of jackknifes to divide 
+        the epochs into, and jack_idx determines which one to return.
+
+        'Tiled' makes each jackknife use every njacks'th occurrence, and is
+        probably best explained by the following example...
+
+        If there are 18 occurrences of an epoch, njacks=5, invert=False,
+        and tiled=True, then the five jackknifes will have these
+        epochs NaN'd out:
+
+           jacknife[0]:  0, 5, 10, 15
+           jacknife[1]:  1, 6, 11, 16
+           jacknife[2]:  2, 7, 12, 17
+           jacknife[3]:  3, 8, 13
+           jacknife[4]:  4, 9, 14
+
+        Note that the last two jackknifes have one fewer occurrences.
+
+        If tiled=False, then the pattern of NaN'd epochs becomes sequential:
+
+           jacknife[0]:   0,  1,  2,  3
+           jacknife[1]:   4,  5,  6,  7,
+           jacknife[2]:   8,  9, 10, 11,
+           jacknife[3]:  12, 13, 14, 15,
+           jacknife[4]:  16, 17
+
+        Here we can see the last jackknife has 2 fewer occurrences.
+
+        In any case, an exception will be thrown if epoch_name is not found,
+        or when there are fewer occurrences than njacks.
         '''
-
-        raise NotImplementedError
-        '''
-        epochs = self.get_epochs(epoch_name)
-        epoch_indices = (epochs * self.fs).astype('i')
-
-        if len(epochs) == 0:
-            m = 'No epochs found matching that epoch_name. Unable to jackknife.'
-            raise ValueError(m)
-
-        data = self.as_continuous()
-        mask = np.zeros_like(data, dtype=np.bool)
-        for lb, ub in epoch_indices:
-            print(lb, ub, mask.shape)
-            mask[:, lb:ub] = 1
-        if invert:
-            mask = ~mask
-        data[mask] = np.nan
-        return self._modified_copy(data)
-        '''
-
-        # new desired behavior:
-        # for n jackknifes, return every n minus ith occurence of epoch
-        # ex:
-        #   jk_by_epochs(trial, 20, 0)
-        # would select the 20th, 40th, .. etc occurence.
-        #   jk_by_epochs(trial, 20, 1)
-        # would select the 19th, 39th, .. etc occurence.
 
         epochs = self.get_epoch_bounds(epoch_name, trim=True)
         occurrences, _ = epochs.shape
-        if occurrences < nsplits:
-            raise ValueError("Can't divide {0} occurences into {1} splits"
-                             .format(occurrences, nsplits))
-        if split_idx < 0:
-            split_idx = np.abs(split_idx)
-            raise RuntimeWarning("split_idx cannot be negative. \nidx: {0}"
-                                 "will be treated as its absolute value."
-                                 .format(split_idx))
-        if split_idx > nsplits:
-            while split_idx > nsplits:
-                split_idx -= nsplits
-            raise RuntimeWarning("split_idx cannot be greater than nsplits."
-                                 "idx adjusted to: {0}".format(split_idx))
 
-        # TODO: not working yet.
-        data = self.as_continuous()
-        splits = []
-        idx = nsplits-split_idx-1
-        while idx < occurrences:
-            # TODO: bit hacky, but I couldn't get the numpy methods
-            #       to get index objects correctly.
-            lb, ub = epochs[idx][0], epochs[idx][1]
-            splits.append(slice(lb, ub))
-            idx += nsplits
-        mask = np.zeros_like(data)
-        for bounds in splits:
-            mask[:, bounds] = 1
-        if invert:
-            mask = ~mask
-        data[mask] = np.nan
-        return self._modified_copy(data)
+        if occurrences < njacks:
+            raise ValueError("Can't divide {0} occurrences into {1} jackknifes"
+                             .format(occurrences, njacks))
+
+        if jack_idx < 0 or njacks < 0:
+            raise ValueError("Neither jack_idx nor njacks may be negative")
+
+        nrows = math.ceil(occurrences / njacks)
+        idx_matrix = np.arange(nrows * njacks)
+
+        if tiled:
+            idx_matrix = np.reshape(njacks, nrows)
+        else:
+            np.reshape(nrows, njacks)
+            idx_matrix = np.swapaxes(idx_matrix, 0, 1)
+
+        print(idx_matrix)
+
+        if not invert:
+            # Nan out only the epochs selected
+            m = self.as_continuous()
+            for idx in idx_matrix[jack_idx, :]:
+                start, end = epochs[idx]
+                m[:, start:end] = np.nan
+        else:
+            # Nan everything BUT the epochs selected
+            data = self.as_continuous()
+            m = np.empty(data.shape)
+            m[:] = np.nan
+            for idx in idx_matrix[jack_idx, :]:
+                start, end = epochs[idx]
+                m[:, start:end] = data[:, start:end]
+
+        return self._modified_copy(m)
 
     def jackknifed_by_time(self, njacks, jack_idx, invert=False):
         '''
@@ -325,7 +331,7 @@ class Signal:
         else:
             split_end = (jack_idx + 1) * splitsize
 
-        m = self.as_continuous().copy()
+        m = self.as_continuous()
         if not invert:
             m[..., split_start:split_end] = np.nan
         else:
@@ -607,7 +613,7 @@ class Signal:
         data = self.as_continuous()
         indices = self.get_epoch_indices(epoch)
         if indices.size == 0:
-            raise RuntimeWarning("No occurences of epoch were found: \n{}\n"
+            raise RuntimeWarning("No occurrences of epoch were found: \n{}\n"
                                  "Nothing to replace.".format(epoch))
         for lb, ub in indices:
             data[:, lb:ub] = epoch_data
@@ -657,7 +663,7 @@ class Signal:
         Returns
         -------
         signal : instance of Signal
-            A signal whose value is 1 for each occurence of the epoch, 0
+            A signal whose value is 1 for each occurrence of the epoch, 0
             otherwise.
         '''
         data = np.zeros([1,self.ntimes], dtype=np.bool)
@@ -729,16 +735,6 @@ class Signal:
             'name': 'trial'
         })
 
-        '''
-        Returns a copy of a view of just the epochs matching epoch_name.
-        If no matching epochs are found, returns None.
-        '''
-        idxs = self.epochs[self.epochs['epoch_name'] == epoch_name]
-
-        if any(idxs):
-            return idxs.copy()
-        else:
-            return None
 
     def add_epoch(self, epoch_name, epoch):
         '''
@@ -750,7 +746,7 @@ class Signal:
             Name of epoch
         epoch : 2D array of (M x 2)
             The first column is the start time and second column is the end
-            time. M is the number of occurences of the epoch.
+            time. M is the number of occurrences of the epoch.
         '''
         df = pd.DataFrame(epoch, columns=['start', 'end'])
         df['name'] = epoch_name
