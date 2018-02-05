@@ -5,6 +5,9 @@ from .signal import Signal
 class Recording:
 
     def __init__(self, signals):
+        """ 
+        signals should be a dictionary of signal obects
+        """
         self.signals = signals
 
         # Verify that all signals are from the same recording

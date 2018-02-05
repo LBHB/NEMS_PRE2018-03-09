@@ -11,6 +11,7 @@ import io
 import re
 import numpy as np
 import scipy.io
+import scipy.stats
 #import nems.recording as Recording
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -26,6 +27,10 @@ if USE_LOCAL_DATA:
     nems_root='/'.join(t[:-2]) + '/'
     nems.utilities.baphy.stim_cache_dir=nems_root+'signals/baphy_example/'
     nems.utilities.baphy.spk_subdir=''
+
+USE_DB=True
+if USE_DB:
+    import nems.db as nd
 
 # Nat sound + pupil example
 #cellid='TAR010c-CC-U'
@@ -58,11 +63,25 @@ if USE_LOCAL_DATA:
 # Behavior example
 import nems.signal
 
-cellid='BRT007c-a2'
-files=['/auto/data/daq/Beartooth/BRT007/BRT007c05_a_PTD.m',
-       '/auto/data/daq/Beartooth/BRT007/BRT007c06_p_PTD.m',
-       '/auto/data/daq/Beartooth/BRT007/BRT007c07_a_PTD.m']
-options={'rasterfs': 25, 'includeprestim': True, 'stimfmt': 'parm', 
+cellid='BRT007c-a1'
+#cellid='bbl071d-a2'
+batch=304
+
+cellid='TAR010c-06-1'
+batch=301
+
+if USE_DB:
+    d=get_batch_cell_data(batch=batch, cellid=cellid, label='parm') 
+    files=list(d['parm'])
+    
+else:
+    files=['/auto/data/daq/Beartooth/BRT007/BRT007c04_p_PTD.m',
+           '/auto/data/daq/Beartooth/BRT007/BRT007c05_a_PTD.m',
+           '/auto/data/daq/Beartooth/BRT007/BRT007c06_p_PTD.m',
+           '/auto/data/daq/Beartooth/BRT007/BRT007c07_a_PTD.m',
+           '/auto/data/daq/Beartooth/BRT007/BRT007c09_p_PTD.m']
+
+options={'rasterfs': 20, 'includeprestim': True, 'stimfmt': 'parm', 
          'chancount': 0, 'cellid': cellid, 'pupil': True, 'stim': False,
          'pupil_deblink': True, 'pupil_median': 1}
 
@@ -73,24 +92,141 @@ for i,parmfilepath in enumerate(files):
     # generate spike raster
     raster_all,cellids=nems.utilities.baphy.spike_time_to_raster(spike_dict,fs=options['rasterfs'],event_times=event_times)
     
+    rlen=raster_all.shape[1]
+    plen=state_dict['pupiltrace'].shape[1]
+    if plen>rlen:
+        state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(plen-rlen)]
+    elif rlen>plen:
+        state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(rlen-plen)]
+        
     # generate response signal
     t_resp=nems.signal.Signal(fs=options['rasterfs'],matrix=raster_all,name='resp',recording=cellid,chans=cellids,epochs=event_times)
     
-    # generate state signals
-    pupil=nems.signal.Signal(fs=options['rasterfs'],matrix=state_dict['pupiltrace'],name='state',recording=cellid,chans=['pupil'],epochs=event_times)
-    hit_trials=pupil.epoch_mask_signal('HIT_TRIAL')
-    miss_trials=pupil.epoch_mask_signal('MISS_TRIAL')
-    behavior_state=pupil.epoch_mask_signal('ACTIVE_EXPERIMENT')
-    t_state=pupil.concatenate_channels([pupil,hit_trials,miss_trials,behavior_state])
+    # generate pupil signals
+    t_pupil=nems.signal.Signal(fs=options['rasterfs'],matrix=state_dict['pupiltrace'],name='state',recording=cellid,chans=['pupil'],epochs=event_times)
+    
     if i==0:
         resp=t_resp
-        state=t_state
+        pupil=t_pupil
     else:
         resp=resp.concatenate_time([resp,t_resp])
-        state=state.concatenate_time([state,t_state])
-        
+        pupil=pupil.concatenate_time([pupil,t_pupil])
+      
+# generate state signals
+hit_trials=pupil.epoch_to_signal('HIT_TRIAL')
+miss_trials=pupil.epoch_to_signal('MISS_TRIAL')
+fa_trials=pupil.epoch_to_signal('FA_TRIAL')
+puretone_trials=pupil.epoch_to_signal('PURETONE_BEHAVIOR')
+easy_trials=pupil.epoch_to_signal('EASY_BEHAVIOR')
+hard_trials=pupil.epoch_to_signal('HARD_BEHAVIOR')
+behavior_state=pupil.epoch_to_signal('ACTIVE_EXPERIMENT')
+state=pupil.concatenate_channels([puretone_trials,easy_trials,hard_trials,pupil,hit_trials,fa_trials])
+
+ff=event_times['name'].str.contains('TORC')
+stim_names=list(event_times.loc[ff,'name'].unique())
+stim_names.sort()
+
+r_dict=resp.extract_epochs(stim_names)
+for k,x in r_dict.items():
+    r_dict[k]=np.nanmean(x,axis=0)
+r2=resp.replace_epochs(r_dict)
+
+r3=r2.select_epoch('REFERENCE')
+s3=state.select_epoch('REFERENCE')
+
+r=resp.as_continuous().T
+p0=r3.as_continuous().T
+s=state.as_continuous().T
+
+ff=np.isfinite(p0)
+r=r[ff,np.newaxis]
+p0=p0[ff,np.newaxis]
+s=s[ff[:,0],:]
+
+# normalize s to have mean zero, variance 1
+cols=state.chans
+stds=np.std(s,axis=0)
+s=s[:,stds>0]
+sg,=np.where(stds>0)
+cols=[cols[i] for i in sg]
+
+s=s-np.mean(s,axis=0,keepdims=True)
+s=s/np.std(s,axis=0,keepdims=True)
+m0=np.mean(p0)
+p0=p0-m0
+
+X=np.concatenate([p0,m0*s,p0*s],axis=1)
+
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+
+Xlabels=['p0'] + [x.replace(" ","_").replace(":","")+'_bs' for x in cols]+ \
+    [x.replace(" ","_").replace(":","")+'_gn' for x in cols]
+d=pd.DataFrame(data=X, columns=Xlabels)
+d['r']=r
+
+formula='r ~ ' + " + ".join(Xlabels)
+results = smf.ols(formula, data=d).fit()
+print(results.summary())
+
+pred=np.matmul(X,results.params[1:])+results.params[0]
+
 plt.figure()
-plt.plot(state.as_continuous().T)
+plt.plot(r, linewidth=1)
+plt.plot(p0+m0, linewidth=1)
+plt.plot(pred, linewidth=1)
+c=cols
+for i in range(0,s.shape[1]):
+    x=s[:,i]
+    x=x-x.min()
+    x=x/x.max()
+    plt.plot(x-(i+1)*1.1)
+    
+    if results.pvalues[i+2]<0.01:
+        sb='**'
+    elif results.pvalues[i+2]<0.05:
+        sb='*'
+    else:
+        sb=''
+    if results.pvalues[i+len(cols)]<0.01:
+        sg='**'
+    elif results.pvalues[i+len(cols)]<0.05:
+        sg='*'
+    else:
+        sg=''
+       
+    plt.text(0,-(i+1)*1.1,"{0} (b {1:.2f}{2} g {3:.2f}{4})".format(
+            c[i],results.params[i+2],sb,results.params[i+len(cols)],sg))
+
+plt.title("Cell {0} (batch {1})".format(cellid,batch))
+
+
+if 0:
+    # simpler model
+
+    Y=r
+    X=np.concatenate([s,p0,np.ones(p0.shape)],axis=1)
+    res=np.linalg.lstsq(X,Y)
+    beta=res[0]
+    pred=np.matmul(X,beta)
+    
+    plt.figure()
+    plt.plot(r, linewidth=1)
+    plt.plot(p0, linewidth=1)
+    plt.plot(pred, linewidth=1)
+    c=state.chans
+    for i in range(0,s.shape[1]):
+        x=s[:,i]
+        x=x-x.min()
+        x=x/x.max()
+        plt.plot(x-(i+1)*1.1)
+        plt.text(0,-(i+1)*1.1,"{0} (b {1:.2f})".format(c[i],beta[i,0]))
+    
+    plt.title("Cell {0} (batch {1})".format(cellid,batch))
+
+
+
 
 
 if 0:

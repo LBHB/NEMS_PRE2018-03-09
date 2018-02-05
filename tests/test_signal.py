@@ -26,7 +26,7 @@ def signal(signal_name='dummy_signal', recording_name='dummy_recording', fs=50,
         'start': [3, 15, 150],
         'end': [200, 60, 190],
         'name': ['trial', 'pupil_closed', 'pupil_closed']
-    })
+        })
     epochs['start'] /= fs
     epochs['end'] /= fs
     kwargs = {
@@ -68,9 +68,29 @@ def test_signal_save_load(signal, signal_tmpdir):
 
     save_directory = os.path.join(str(signal_tmpdir), signals_found[0])
     signal_loaded = Signal.load(save_directory)
+
     assert np.all(signal._matrix == signal_loaded._matrix)
 
     # TODO: add a test for the various signal attributes
+
+def test_epoch_save_load(signal, signal_tmpdir):
+    '''
+    Test that epochs save and load properly
+    '''
+
+    before = signal.epochs
+
+    signal.save(str(signal_tmpdir), fmt='%1.3e')
+    signals_found = Signal.list_signals(str(signal_tmpdir))
+    save_directory = os.path.join(str(signal_tmpdir), signals_found[0])
+    signal_loaded = Signal.load(save_directory)
+
+    after = signal_loaded.epochs
+    print("Dataframes equal?\n"
+          "Before:\n{0}\n"
+          "After:\n{1}\n"
+          .format(before, after))
+    assert before.equals(after)
 
 
 def test_as_continuous(signal):
@@ -82,23 +102,23 @@ def test_extract_epoch(signal):
     assert result.shape == (2, 3, 45)
 
 
-def test_trial_epochs_from_reps(signal):
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+def test_trial_epochs_from_occurrences(signal):
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=10)
     result1 = signal.extract_epoch('trial')
     assert result1.shape == (10, 3, 20)
 
     with pytest.raises(ValueError):
-        signal.epochs = signal.trial_epochs_from_reps(nreps=11)
+        signal.epochs = signal.trial_epochs_from_occurrences(occurrences=11)
 
 
 def test_as_trials(signal):
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=10)
     result = signal.extract_epoch('trial')
     assert result.shape == (10, 3, 20)
 
 
 def test_as_average_trial(signal):
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=10)
     result = signal.average_epoch('trial')
     assert result.shape == (3, 20)
 
@@ -126,19 +146,17 @@ def test_split_at_time(signal):
 
 @pytest.mark.skip
 def test_jackknifed_by_epochs(signal):
-    # set epochs to trial0 - trial9, length 20 each
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=50)
 
-    s1 = signal.jackknifed_by_epochs('trial', 10, 1)
+    s1 = signal.jackknifed_by_epochs('trial', 50, 0)
     assert s1._matrix.shape == (3, 200) # shape shouldn't change
-    assert np.isnan(s1._matrix).sum() == 60 # 3 chans x 20 samples x 1 epoch
+    assert np.isnan(s1._matrix).sum() == 12 # 3 chans x 4 time bins x 1 occurs
 
-    s2 = signal.jackknifed_by_epochs('trial$')
-    # (5|7|9)
-    assert np.isnan(s2._matrix).sum() == 180 # 3 chans x 20 samples x 3 epochs
+    s2 = signal.jackknifed_by_epochs('trial', 25, 0)
+    assert np.isnan(s2._matrix).sum() == 24 # 3 chans x 4 time bins x 2 occurs
 
-    s3 = signal.jackknifed_by_epochs('trial', invert=True)
-    assert np.isnan(s3._matrix).sum() == 540 # 3 chans x 20 samples x 9 epochs
+    s3 = signal.jackknifed_by_epochs('trial', 25, 0, invert=True)
+    assert np.isnan(s3._matrix).sum() == 576 # 3 chans x 4 time bins x 48 occrs
 
 
 def test_jackknifed_by_time(signal):
@@ -174,3 +192,33 @@ def test_add_epoch(signal):
     signal.add_epoch('experiment', epoch)
     assert len(signal.epochs) == 4
     assert np.all(signal.get_epoch_bounds('experiment') == epoch)
+
+def test_merge_signals(signal):
+    signals = []
+    for i in range(10):
+        jk = signal.jackknifed_by_time(10, i, invert=True)
+        signals.append(jk)
+    merged = Signal.from_merged_signals(signals)
+    # merged and signal should be identical
+    assert np.sum(np.isnan(merged.as_continuous())) == 0
+    assert np.array_equal(signal.as_continuous(), merged.as_continuous())
+    assert signal.epochs.equals(merged.epochs)
+
+    # TODO: above passes, but below does not
+    with pytest.raises(ValueError, message=("Overlapping non-NaN values,"
+                                            "should throw an error.")):
+        signals = []
+        for i in range(2):
+            jk = signal.jackknifed_by_time(2, i, invert=False)
+            signals.append(jk)
+        merged = Signal.from_merged_signals(signals)
+
+def test_extract_channels(signal):
+    two_sig = signal.extract_channels([0, 1])
+    assert two_sig.shape == (2, 200)
+    one_sig = signal.extract_channels(2)
+    assert one_sig.shape == (1, 200)
+    recombined = Signal.concatenate_channels([two_sig, one_sig])
+    before = signal.as_continuous()
+    after = recombined.as_continuous()
+    assert np.array_equal(before, after)
