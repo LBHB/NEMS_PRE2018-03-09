@@ -144,19 +144,15 @@ def test_split_at_time(signal):
     assert r.as_continuous().shape == (3, 38)
 
 
-@pytest.mark.skip
+# @pytest.mark.skip
 def test_jackknifed_by_epochs(signal):
     signal.epochs = signal.trial_epochs_from_occurrences(occurrences=50)
 
-    s1 = signal.jackknifed_by_epochs('trial', 50, 0)
+    s1 = signal.jackknifed_by_epochs(10, 0, 'trial', tiled=False, invert=True)
+    s2 = signal.jackknifed_by_epochs(10, 0, 'trial', tiled=True, invert=True)
+
     assert s1._matrix.shape == (3, 200) # shape shouldn't change
-    assert np.isnan(s1._matrix).sum() == 12 # 3 chans x 4 time bins x 1 occurs
-
-    s2 = signal.jackknifed_by_epochs('trial', 25, 0)
-    assert np.isnan(s2._matrix).sum() == 24 # 3 chans x 4 time bins x 2 occurs
-
-    s3 = signal.jackknifed_by_epochs('trial', 25, 0, invert=True)
-    assert np.isnan(s3._matrix).sum() == 576 # 3 chans x 4 time bins x 48 occrs
+    assert(1770.0 == np.nansum(s1.as_continuous()[:]))
 
 
 def test_jackknifed_by_time(signal):

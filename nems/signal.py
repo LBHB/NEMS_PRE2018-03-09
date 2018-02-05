@@ -275,8 +275,8 @@ class Signal:
         or when there are fewer occurrences than njacks.
         '''
 
-        epochs = self.get_epoch_bounds(epoch_name, trim=True)
-        epoch_indices = (epochs * self.fs).astype('i')
+        epochs = self.get_epoch_bounds(epoch_name)
+        epoch_indices = (epochs * self.fs).astype('i').tolist()
         occurrences, _ = epochs.shape
 
         if len(epochs) == 0:
@@ -294,16 +294,17 @@ class Signal:
         idx_matrix = np.arange(nrows * njacks)
 
         if tiled:
-            idx_matrix = np.reshape(njacks, nrows)
-        else:
-            np.reshape(nrows, njacks)
+            idx_matrix = idx_matrix.reshape(nrows, njacks)
             idx_matrix = np.swapaxes(idx_matrix, 0, 1)
+        else:
+            idx_matrix = idx_matrix.reshape(njacks, nrows)
 
         data = self.as_continuous()
         mask = np.zeros_like(data, dtype=np.bool)
 
-        for idx in idx_matrix[jack_idx, :]:
-            for lb, ub in epoch_indices:
+        for idx in idx_matrix[jack_idx].tolist():
+            if idx < occurrences:
+                lb, ub = epoch_indices[idx]
                 mask[:, lb:ub] = 1
 
         if invert:
@@ -311,7 +312,7 @@ class Signal:
 
         data[mask] = np.nan
 
-        return self._modified_copy(m)
+        return self._modified_copy(data)
 
     def jackknifed_by_time(self, njacks, jack_idx, invert=False):
         '''
