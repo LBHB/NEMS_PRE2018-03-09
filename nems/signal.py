@@ -243,7 +243,7 @@ class Signal:
         '''
         Returns a new signal, with epochs matching epoch_name NaN'd out.
         Optional argument 'invert' causes everything BUT the matched epochs
-        to be NaN'd. njacks determines the number of jackknifes to divide 
+        to be NaN'd. njacks determines the number of jackknifes to divide
         the epochs into, and jack_idx determines which one to return.
 
         'Tiled' makes each jackknife use every njacks'th occurrence, and is
@@ -276,7 +276,12 @@ class Signal:
         '''
 
         epochs = self.get_epoch_bounds(epoch_name, trim=True)
+        epoch_indices = (epochs * self.fs).astype('i')
         occurrences, _ = epochs.shape
+
+        if len(epochs) == 0:
+            m = 'No epochs found matching that epoch_name. Unable to jackknife.'
+            raise ValueError(m)
 
         if occurrences < njacks:
             raise ValueError("Can't divide {0} occurrences into {1} jackknifes"
@@ -294,22 +299,17 @@ class Signal:
             np.reshape(nrows, njacks)
             idx_matrix = np.swapaxes(idx_matrix, 0, 1)
 
-        print(idx_matrix)
+        data = self.as_continuous()
+        mask = np.zeros_like(data, dtype=np.bool)
 
-        if not invert:
-            # Nan out only the epochs selected
-            m = self.as_continuous()
-            for idx in idx_matrix[jack_idx, :]:
-                start, end = epochs[idx]
-                m[:, start:end] = np.nan
-        else:
-            # Nan everything BUT the epochs selected
-            data = self.as_continuous()
-            m = np.empty(data.shape)
-            m[:] = np.nan
-            for idx in idx_matrix[jack_idx, :]:
-                start, end = epochs[idx]
-                m[:, start:end] = data[:, start:end]
+        for idx in idx_matrix[jack_idx, :]:
+            for lb, ub in epoch_indices:
+                mask[:, lb:ub] = 1
+
+        if invert:
+            mask = ~mask
+
+        data[mask] = np.nan
 
         return self._modified_copy(m)
 
@@ -806,7 +806,6 @@ def merge_selections(signals):
     for a in arys:
         if not np.array_equal(a[np.isfinite(a)],
                               the_mean[np.isfinite(a)]):
-            print(a, the_mean)
             raise ValueError("Overlapping, unequal non-NaN values found.")
 
     # Use the first signal as a template for setting fs, chans, etc.
