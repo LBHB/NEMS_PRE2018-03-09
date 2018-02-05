@@ -67,10 +67,13 @@ class Signal:
             if not all(typesok):
                 raise ValueError('Chans must be a list of strings:' +
                                  str(self.chans) + str(typesok))
-        #for s in [name, recording, chans]:
-        #    if not s:
-        #        continue
-        #    self._verify_string_syntax(s)
+
+        # Test that all names use only lowercase letters and numbers 0-9
+        for s in [name, recording] + chans:
+            if s and not self._string_syntax_valid(s):
+                raise ValueError("Disallowed characters contained in: {0}\n"
+                                 .format(s))
+
         if self.fs < 0:
             m = 'Sampling rate of signal must be a positive number. Got {}.'
             raise ValueError(m.format(self.fs))
@@ -203,23 +206,18 @@ class Signal:
         overlap = set.intersection(set(csvs), set(jsons))
         return list(overlap)
 
-    def _verify_string_syntax(self, s):
-        allowed = '[a-z0-9_]'
+    @staticmethod
+    def _string_syntax_valid(s):
+        '''
+        Returns True iff the string is valid for use in signal names,
+        recording names, or channel names. Else False.
+        '''
         disallowed = re.compile('[^a-z0-9_]')
-        matches = []
-        print("s is: {}\ntype is: {}".format(s, str(type(s))))
-        if isinstance(s, list):
-            for i in s:
-                match = disallowed.findall(i)
-                matches.extend(match)
+        match = disallowed.findall(s)
+        if match:
+            return False
         else:
-            match = disallowed.findall(s)
-            matches.extend(match)
-        matches = disallowed.findall(s)
-        if matches:
-            raise ValueError("Disallowed characters contained in: {0}\n"
-                             "Allowed characters: {1}"
-                             .format(s, allowed))
+            return True
 
     def as_continuous(self):
         '''

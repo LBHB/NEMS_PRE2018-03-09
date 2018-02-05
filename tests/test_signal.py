@@ -222,3 +222,8 @@ def test_extract_channels(signal):
     before = signal.as_continuous()
     after = recombined.as_continuous()
     assert np.array_equal(before, after)
+
+def test_string_syntax_valid(signal):
+    assert(signal._string_syntax_valid('this_is_fine'))
+    assert(not signal._string_syntax_valid('THIS_IS_NOT_FINE'))
+    assert(not signal._string_syntax_valid('not ok either'))
