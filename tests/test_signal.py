@@ -146,7 +146,6 @@ def test_split_at_time(signal):
 
 def test_jackknife_by_epoch(signal):
     signal.epochs = signal.trial_epochs_from_occurrences(occurrences=50)
-
     s1 = signal.jackknife_by_epoch(10, 0, 'trial', tiled=False, invert=True)
     assert s1._matrix.shape == (3, 200)  # shape shouldn't change
     assert(1770.0 == np.nansum(s1.as_continuous()[:]))
@@ -237,5 +236,13 @@ def test_extract_channels(signal):
 def test_string_syntax_valid(signal):
     assert(signal._string_syntax_valid('this_is_fine'))
     assert(signal._string_syntax_valid('THIS_IS_FINE_TOO'))
-    assert(not signal._string_syntax_valid('not ok either'))
+    assert(not signal._string_syntax_valid('But this is not ok'))
 
+
+def test_jackknifes_by_epoch(signal):
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=50)
+    for est, val in signal.jackknifes_by_epoch(10, 'trial'):
+        print(np.nansum(est.as_continuous()[:]),
+              np.nansum(val.as_continuous()[:]),)
+    # This is not much of a test -- I'm just running the generator fn!
+    assert(True)

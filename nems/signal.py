@@ -314,15 +314,17 @@ class Signal:
 
         return self._modified_copy(data)
 
-    def jackknifes_by_epoch(self, njacks, epoch_name,
-                            tiled=True, invert=False):
+    def jackknifes_by_epoch(self, njacks, epoch_name, tiled=True):
         '''
-        Convenience fn. Returns generator for jackknifes_by_epoch().
+        Convenience fn. Returns generator that returns njacks tuples of
+        (est, val) made using jackknife_by_epoch().
         '''
         jack_idx = 0
         while jack_idx < njacks:
-            yield self.jackknife_by_epoch(njacks, jack_idx, epoch_name,
-                                          tiled=tiled, invert=invert)
+            yield (self.jackknife_by_epoch(njacks, jack_idx, epoch_name,
+                                           tiled=tiled, invert=False),
+                   self.jackknife_by_epoch(njacks, jack_idx, epoch_name,
+                                           tiled=tiled, invert=True))
             jack_idx += 1
 
     def jackknife_by_time(self, njacks, jack_idx, invert=False):
@@ -352,13 +354,15 @@ class Signal:
             m[mask] = np.nan
         return self._modified_copy(m.reshape(self.nchans, -1))
 
-    def jackknifes_by_time(self, njacks, invert=False):
+    def jackknifes_by_time(self, njacks):
         '''
-        Convenience fn. Returns generator for jackknife_by_time().
+        Convenience fn. Returns generator that returns njacks tuples of
+        (est, val) made using jackknife_by_time().
         '''
         jack_idx = 0
         while jack_idx < njacks:
-            yield self.jackknife_by_time(njacks, jack_idx, invert=invert)
+            yield (self.jackknife_by_time(njacks, jack_idx, invert=False),
+                   self.jackknife_by_time(njacks, jack_idx, invert=True))
             jack_idx += 1
 
     @classmethod
