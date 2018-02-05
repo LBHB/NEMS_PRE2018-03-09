@@ -751,31 +751,31 @@ class Signal:
                                  .format(list_of_epoch_names))
         return self._modified_copy(new_data)
 
-    def trial_epochs_from_reps(self, nreps=1):
+    def trial_epochs_from_occurrences(self, occurrences=1):
         """
         Creates a generic epochs DataFrame with a number of trials based on
-        sample length and number of repetitions specified.
+        sample length and number of occurrences specified.
 
         Example
         -------
         If signal._matrix has shape 3x100 and the signal is sampled at 100 Hz,
-        trial_epochs_from_reps(nreps=5) would generate a DataFrame with 5 trials
-        (starting at 0, 0.2, 0.4, 0.6, 0.8 seconds).
+        trial_epochs_from_occurrences(occurrences=5) would generate a DataFrame
+        with 5 trials (starting at 0, 0.2, 0.4, 0.6, 0.8 seconds).
 
         Note
         ----
         * The number of time samples must be evenly divisible by the number of
-          repetitions.
+          occurrences.
         * Epoch indices behave similar to python list indices, so start is
           inclusive while end is exclusive.
         """
 
-        trial_size = self.ntimes/nreps/self.fs
-        if self.ntimes % nreps:
+        trial_size = self.ntimes/occurrences/self.fs
+        if self.ntimes % occurrences:
             m = 'Signal not evenly divisible into fixed-length trials'
             raise ValueError(m)
 
-        starts = np.arange(nreps) * trial_size
+        starts = np.arange(occurrences) * trial_size
         ends = starts + trial_size
         return pd.DataFrame({
             'start': starts,

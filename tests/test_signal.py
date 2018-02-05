@@ -102,23 +102,23 @@ def test_extract_epoch(signal):
     assert result.shape == (2, 3, 45)
 
 
-def test_trial_epochs_from_reps(signal):
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+def test_trial_epochs_from_occurrences(signal):
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=10)
     result1 = signal.extract_epoch('trial')
     assert result1.shape == (10, 3, 20)
 
     with pytest.raises(ValueError):
-        signal.epochs = signal.trial_epochs_from_reps(nreps=11)
+        signal.epochs = signal.trial_epochs_from_occurrences(occurrences=11)
 
 
 def test_as_trials(signal):
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=10)
     result = signal.extract_epoch('trial')
     assert result.shape == (10, 3, 20)
 
 
 def test_as_average_trial(signal):
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=10)
     result = signal.average_epoch('trial')
     assert result.shape == (3, 20)
 
@@ -146,7 +146,7 @@ def test_split_at_time(signal):
 
 @pytest.mark.skip
 def test_jackknifed_by_epochs(signal):
-    signal.epochs = signal.trial_epochs_from_reps(nreps=50)
+    signal.epochs = signal.trial_epochs_from_occurrences(occurrences=50)
 
     s1 = signal.jackknifed_by_epochs('trial', 50, 0)
     assert s1._matrix.shape == (3, 200) # shape shouldn't change
