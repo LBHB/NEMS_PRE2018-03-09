@@ -144,56 +144,6 @@ class Signal:
             return s
 
     @staticmethod
-    def from_merged_signals(signals):
-        '''
-        Returns a new signal object by combining a list of signals
-        of the same shape. For each signal, every element must be
-        NaN unless it is NaN in all other signals.
-
-        Ex:
-            s1: [   1,   2,   3, NaN, NaN, NaN]
-            s2: [ NaN, NaN, NaN,   4,   5,   6]
-        would merge to:
-            s3: [   1,   2,   3,   4,   5,   6]
-
-        But this would result in error:
-            s4: [   1,   2,   3,   4, NaN, NaN]
-            s5: [ NaN, NaN, NaN,   4,   5,   6]
-        '''
-        shape = signals[0].shape
-        arrays = [s.as_continuous() for s in signals]
-        masks = []
-        for i, a in enumerate(arrays):
-            if a.shape != shape:
-                raise ValueError("All signals must have the same shape.")
-            else:
-                masks.append(np.isfinite(a))
-
-        # TODO: can't get this check to work.
-        for i, j in itertools.combinations(masks, 2):
-            overlap = np.logical_and(i, j)
-            if np.any(overlap):
-                raise ValueError("Overlapping non-NaN values found in signals.")
-
-        stacked = np.stack(arrays, axis=0)
-        merged = np.nansum(stacked, axis=0)
-        # use the first signal as a template
-        # for setting fs, chans, etc.
-        # TODO: Some other way to do this that would make more sense?
-        #       Could just return the array and let user figure out
-        #       how they want to set up the new signal object.
-        #
-        #       Alternatively, just refer all checks to self and
-        #       assume the user is invoking the method using one of
-        #       the signal objects they want to merge? i.e. for
-        #       merging 10 signals, instead of calling this static method
-        #       on a list of:
-        #           new_sig = Signal.from_merged_signals([s1, s2, ... s10]),
-        #       do this:
-        #           new_sig = s1.merge_signals([s2, s3 ... s10])
-        return signals[0]._modified_copy(merged)
-
-    @staticmethod
     def list_signals(directory):
         '''
         Returns a list of all CSV/JSON signal files found in DIRECTORY,
@@ -357,23 +307,23 @@ class Signal:
         data[mask] = np.nan
         return self._modified_copy(data)
 
-    def jackknifed_by_time(self, nsplits, split_idx, invert=False):
+    def jackknifed_by_time(self, njacks, jack_idx, invert=False):
         '''
         Returns a new signal, with some data NaN'd out based on its position
-        in the time stream. split_idx is indexed from 0; if you have 20 splits,
+        in the time stream. jack_idx is indexed from 0; if you have 20 splits,
         the first is #0 and the last is #19.
         Optional argument 'invert' causes everything BUT the jackknife to be NaN.
         '''
-        splitsize = int(self.ntimes / nsplits)
+        splitsize = int(self.ntimes / njacks)
         if splitsize < 1:
             m = 'Too many jackknifes? Splitsize was {}'
             raise ValueError(m.format(splitsize))
 
-        split_start = split_idx * splitsize
-        if split_idx == nsplits - 1:
+        split_start = jack_idx * splitsize
+        if jack_idx == njacks - 1:
             split_end = self.ntimes
         else:
-            split_end = (split_idx + 1) * splitsize
+            split_end = (jack_idx + 1) * splitsize
 
         m = self.as_continuous().copy()
         if not invert:
@@ -814,3 +764,54 @@ class Signal:
         return self._matrix.shape
 
 
+# -----------------------------------------------------------------------------
+# Functions that work on multiple signal objects
+
+def merge_selections(signals):
+    '''
+    Returns a new signal object by combining a list of signals of the same
+    shape that are assumed to be non-overlapping selections. The returned
+    signal will have identical metadata to the first signal in the list.
+
+    For signals to be non-overlapping, every corresponding element of
+    every signal must be NaN unless it is NaN in all other signals, or
+    it is identical to all other values that are non-NaN.
+
+    Ex:
+    s1: [   1,   2,   3, NaN, NaN, NaN]
+    s2: [ NaN, NaN, NaN,   4,   5,   6]
+
+    would merge to:
+    s3: [   1,   2,   3,   4,   5,   6]
+
+    But this would result in error:
+    s4: [   1,   2,   3,   4, NaN, NaN]
+    s5: [ NaN, NaN, NaN,   4,   5,   6]
+
+    Because the index position of  4 was non-NaN in more than one signal.
+    '''
+
+    # Check that all signals have the same shape, fs, and chans
+    for s in signals:
+        if s.shape != signals[0].shape:
+            raise ValueError("All signals must have the same shape.")
+        if s.fs != signals[0].fs:
+            raise ValueError("All signals must have the same fs.")
+        if s.chans != signals[0].chans:
+            raise ValueError("All signals must have the same chans.")
+
+    # Make a big 3D array from the 2D arrays
+    arys = [s.as_continuous() for s in signals]
+    bigary = np.stack(arys, axis=2)
+
+    # If there are no overlapping values, then nanmean() will be equal
+    # to the value found in each position
+    the_mean = np.nanmean(bigary, axis=2)
+    for a in arys:
+        if not np.array_equal(a[np.isfinite(a)],
+                              the_mean[np.isfinite(a)]):
+            print(a, the_mean)
+            raise ValueError("Overlapping, unequal non-NaN values found.")
+
+    # Use the first signal as a template for setting fs, chans, etc.
+    return signals[0]._modified_copy(the_mean)

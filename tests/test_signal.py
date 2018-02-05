@@ -6,7 +6,7 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 import nems.signal
-from nems.signal import Signal
+from nems.signal import Signal, merge_selections
 
 
 @pytest.fixture()
@@ -187,31 +187,48 @@ def test_concatenate_channels(signal):
     assert sig1.as_continuous().shape == (3, 200)
     assert sig3.as_continuous().shape == (6, 200)
 
+
 def test_add_epoch(signal):
     epoch = np.array([[0, 200]])
     signal.add_epoch('experiment', epoch)
     assert len(signal.epochs) == 4
     assert np.all(signal.get_epoch_bounds('experiment') == epoch)
 
-def test_merge_signals(signal):
+
+def test_merge_selections(signal):
     signals = []
     for i in range(10):
         jk = signal.jackknifed_by_time(10, i, invert=True)
         signals.append(jk)
-    merged = Signal.from_merged_signals(signals)
+
+    merged = merge_selections(signals)
+
     # merged and signal should be identical
     assert np.sum(np.isnan(merged.as_continuous())) == 0
     assert np.array_equal(signal.as_continuous(), merged.as_continuous())
     assert signal.epochs.equals(merged.epochs)
 
-    # TODO: above passes, but below does not
-    with pytest.raises(ValueError, message=("Overlapping non-NaN values,"
-                                            "should throw an error.")):
-        signals = []
-        for i in range(2):
-            jk = signal.jackknifed_by_time(2, i, invert=False)
-            signals.append(jk)
-        merged = Signal.from_merged_signals(signals)
+    # This should not throw an exception
+    merge_selections([signal, signal, signal])
+
+    normalized = signal.normalized_by_mean()
+
+    # This SHOULD throw an exception because they totally overlap
+    with pytest.raises(ValueError):
+        merge_selections([signal, normalized])
+
+    jk2 = normalized.jackknifed_by_time(10, 2, invert=True)
+    jk3 = signal.jackknifed_by_time(10, 3, invert=True)
+    jk4 = signal.jackknifed_by_time(10, 4, invert=True)
+
+    # This will NOT throw an exception because they don't overlap
+    merged = merge_selections([jk2, jk3])
+    merged = merge_selections([jk2, jk4])
+
+    # This SHOULD throw an exception
+    with pytest.raises(ValueError):
+        merged = merge_selections([signal, jk2])
+
 
 def test_extract_channels(signal):
     two_sig = signal.extract_channels([0, 1])
@@ -223,7 +240,9 @@ def test_extract_channels(signal):
     after = recombined.as_continuous()
     assert np.array_equal(before, after)
 
+
 def test_string_syntax_valid(signal):
     assert(signal._string_syntax_valid('this_is_fine'))
     assert(not signal._string_syntax_valid('THIS_IS_NOT_FINE'))
     assert(not signal._string_syntax_valid('not ok either'))
+
