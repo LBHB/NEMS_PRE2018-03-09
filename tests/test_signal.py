@@ -144,20 +144,17 @@ def test_split_at_time(signal):
     assert r.as_continuous().shape == (3, 38)
 
 
-# @pytest.mark.skip
-def test_jackknifed_by_epochs(signal):
+def test_jackknife_by_epoch(signal):
     signal.epochs = signal.trial_epochs_from_occurrences(occurrences=50)
 
-    s1 = signal.jackknifed_by_epochs(10, 0, 'trial', tiled=False, invert=True)
-    s2 = signal.jackknifed_by_epochs(10, 0, 'trial', tiled=True, invert=True)
-
-    assert s1._matrix.shape == (3, 200) # shape shouldn't change
+    s1 = signal.jackknife_by_epoch(10, 0, 'trial', tiled=False, invert=True)
+    assert s1._matrix.shape == (3, 200)  # shape shouldn't change
     assert(1770.0 == np.nansum(s1.as_continuous()[:]))
 
 
-def test_jackknifed_by_time(signal):
-    jsig = signal.jackknifed_by_time(20, 2)
-    isig = signal.jackknifed_by_time(20, 2, invert=True)
+def test_jackknife_by_time(signal):
+    jsig = signal.jackknife_by_time(20, 2)
+    isig = signal.jackknife_by_time(20, 2, invert=True)
 
     jdata = jsig.as_continuous()
     idata = isig.as_continuous()
@@ -170,7 +167,7 @@ def test_jackknifed_by_time(signal):
 
 def test_concatenate_time(signal):
     sig1 = signal
-    sig2 = sig1.jackknifed_by_time(20, 2)
+    sig2 = sig1.jackknife_by_time(20, 2)
     sig3 = Signal.concatenate_time([sig1, sig2])
     assert sig1.as_continuous().shape == (3, 200)
     assert sig3.as_continuous().shape == (3, 400)
@@ -178,7 +175,7 @@ def test_concatenate_time(signal):
 
 def test_concatenate_channels(signal):
     sig1 = signal
-    sig2 = sig1.jackknifed_by_time(20, 2)
+    sig2 = sig1.jackknife_by_time(20, 2)
     sig3 = Signal.concatenate_channels([sig1, sig2])
     assert sig1.as_continuous().shape == (3, 200)
     assert sig3.as_continuous().shape == (6, 200)
@@ -194,7 +191,7 @@ def test_add_epoch(signal):
 def test_merge_selections(signal):
     signals = []
     for i in range(10):
-        jk = signal.jackknifed_by_time(10, i, invert=True)
+        jk = signal.jackknife_by_time(10, i, invert=True)
         signals.append(jk)
 
     merged = merge_selections(signals)
@@ -213,9 +210,9 @@ def test_merge_selections(signal):
     with pytest.raises(ValueError):
         merge_selections([signal, normalized])
 
-    jk2 = normalized.jackknifed_by_time(10, 2, invert=True)
-    jk3 = signal.jackknifed_by_time(10, 3, invert=True)
-    jk4 = signal.jackknifed_by_time(10, 4, invert=True)
+    jk2 = normalized.jackknife_by_time(10, 2, invert=True)
+    jk3 = signal.jackknife_by_time(10, 3, invert=True)
+    jk4 = signal.jackknife_by_time(10, 4, invert=True)
 
     # This will NOT throw an exception because they don't overlap
     merged = merge_selections([jk2, jk3])
@@ -239,6 +236,6 @@ def test_extract_channels(signal):
 
 def test_string_syntax_valid(signal):
     assert(signal._string_syntax_valid('this_is_fine'))
-    assert(not signal._string_syntax_valid('THIS_IS_NOT_FINE'))
+    assert(signal._string_syntax_valid('THIS_IS_FINE_TOO'))
     assert(not signal._string_syntax_valid('not ok either'))
 

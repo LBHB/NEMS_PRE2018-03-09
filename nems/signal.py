@@ -162,7 +162,7 @@ class Signal:
         Returns True iff the string is valid for use in signal names,
         recording names, or channel names. Else False.
         '''
-        disallowed = re.compile('[^a-z0-9_]')
+        disallowed = re.compile('[^a-zA-Z0-9_]')
         match = disallowed.findall(s)
         if match:
             return False
@@ -237,9 +237,9 @@ class Signal:
 
         return lsignal, rsignal
 
-    def jackknifed_by_epochs(self, njacks, jack_idx, epoch_name,
-                             tiled=True,
-                             invert=False):
+    def jackknife_by_epoch(self, njacks, jack_idx, epoch_name,
+                           tiled=True,
+                           invert=False):
         '''
         Returns a new signal, with epochs matching epoch_name NaN'd out.
         Optional argument 'invert' causes everything BUT the matched epochs
@@ -314,7 +314,18 @@ class Signal:
 
         return self._modified_copy(data)
 
-    def jackknifed_by_time(self, njacks, jack_idx, invert=False):
+    def jackknifes_by_epoch(self, njacks, epoch_name,
+                            tiled=True, invert=False):
+        '''
+        Convenience fn. Returns generator for jackknifes_by_epoch().
+        '''
+        jack_idx = 0
+        while jack_idx < njacks:
+            yield self.jackknife_by_epoch(njacks, jack_idx, epoch_name,
+                                          tiled=tiled, invert=invert)
+            jack_idx += 1
+
+    def jackknife_by_time(self, njacks, jack_idx, invert=False):
         '''
         Returns a new signal, with some data NaN'd out based on its position
         in the time stream. jack_idx is indexed from 0; if you have 20 splits,
@@ -340,6 +351,15 @@ class Signal:
             mask[:, split_start:split_end] = 0
             m[mask] = np.nan
         return self._modified_copy(m.reshape(self.nchans, -1))
+
+    def jackknifes_by_time(self, njacks, invert=False):
+        '''
+        Convenience fn. Returns generator for jackknife_by_time().
+        '''
+        jack_idx = 0
+        while jack_idx < njacks:
+            yield self.jackknife_by_time(njacks, jack_idx, invert=invert)
+            jack_idx += 1
 
     @classmethod
     def concatenate_time(cls, signals):
