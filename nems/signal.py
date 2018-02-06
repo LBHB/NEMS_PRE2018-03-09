@@ -760,7 +760,6 @@ class Signal:
             'name': 'trial'
         })
 
-
     def add_epoch(self, epoch_name, epoch):
         '''
         Add epoch to the internal epochs dataframe
