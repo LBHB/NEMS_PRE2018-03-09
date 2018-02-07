@@ -31,7 +31,8 @@ def matrix_eval(data, modelspec):
             lookup_table[m['fn']] = fn
         phi = m['phi'].values()
         kwargs = m['fn_kwargs']
-        d_out = fn(d_in, *phi, **kwargs)
+        # d_out = fn(d_in, *phi, **kwargs)
+        d_out = fn(d_in, *phi)
         stack.append(d_out.copy())
         d_in = d_out
 
@@ -43,7 +44,8 @@ def matrix_eval(data, modelspec):
     # Use stim signal as template for pred, since meta attributes should
     # be the same even though array values updated.
     pred = data.get_signal('stim')._modified_copy(stack[-1])
-    data.set_signal('pred', pred)
+    pred.name = 'pred'
+    data.add_signal(pred)
     return data
 
 def signal_eval(data, modelspec):

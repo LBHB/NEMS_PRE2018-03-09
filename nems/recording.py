@@ -158,8 +158,5 @@ class Recording:
         return Recording(merged_signals)
 
         # TODO: copy the epochs as well
-    def select_epoch:
-        raise NotImplementedError    # TODO
-
-    def select_epochs:
+    def select_epoch():
         raise NotImplementedError    # TODO

@@ -1,54 +1,35 @@
-import time
 import numpy as np
 
 import nems.fitters.termination_conditions as tc
 
 
 def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
-    """just for testing that everything is connected, can remove later."""
-    err = cost_fn(sigma=sigma)
-    print("I did a 'fit'! err was: {0}".format(err))
-    return sigma
+    '''
+    This fitter does not actually take meaningful steps; it merely
+    varies the first element of the sigma vector to be equal to the step
+    number. It is intended purely for testing and example purposes so
+    that you can see how to re-use termination conditions to write
+    your own fitter.
+    '''
+    # Define a stepinfo and termination condition function 'stop_fit'
+    stepinfo, update_stepinfo = tc.create_stepinfo()
+    stop_fit = lambda : (tc.error_non_decreasing(stepinfo, 1e-5) or
+                         tc.max_iterations_reached(stepinfo, 1000))
 
-def bit_less_dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
-    # TODO: change stepinfo to class acting as thin wrapper around
-    #       a dict? just to make expected attributes more explicit.
-    #       subscripts in code should be identical, would only change
-    #       from stepinfo = {} to stepinfo = StepInfo()
-    #       (see my comments in .termination_conditions.py) --jacob 1-26-18
-    stepinfo = {
-            'num': 0,
-            'err': cost_fn(sigma=sigma),
-            'err_delta': np.inf,
-            'start_time': time.time()
-            }
-
-    # fit loop
-    stop_fit = lambda stepinfo: (tc.max_iterations_reached(stepinfo, 10)
-                                 or tc.fit_time_exceeded(stepinfo, 30))
-    while not stop_fit(stepinfo):
-        print("sigma is now: {0}".format(sigma))
-        sigma[0] = stepinfo['num']
+    while not stop_fit():
+        sigma[0] = stepinfo['stepnum']  # Take a fake step
         err = cost_fn(sigma=sigma)
-        err_delta = err - stepinfo['err']
-        stepinfo['err'] = err
-        stepinfo['err_delta'] = err_delta
-        stepinfo['num'] += 1
-        print("Stepinfo is now: {}".format(stepinfo))
+        update_stepinfo(err=err, sigma=sigma)
 
     return sigma
+
 
 def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
                        tolerance=1e-7):
-    stepinfo = {
-            'num': 0,
-            'err': cost_fn(sigma=sigma),
-            'err_delta': np.inf,
-            'start_time': time.time()
-            }
+    stepinfo, update_stepinfo = tc.create_stepinfo()
+    stop_fit = lambda : (tc.error_non_decreasing(stepinfo, tolerance) or
+                         tc.max_iterations_reached(stepinfo, 1000))
 
-    stop_fit = lambda stepinfo: (tc.error_non_decreasing(stepinfo, tolerance)
-                                 or tc.max_iterations_reached(stepinfo, 1000))
     while not stop_fit(stepinfo):
         n_parameters = len(sigma)
         step_errors = np.zeros([n_parameters, 2])
@@ -76,9 +57,7 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
 
         # update stepinfo
         err = cost_fn(sigma=sigma)
-        stepinfo['num'] += 1
-        stepinfo['err_delta'] = stepinfo['err'] - err
-        stepinfo['err'] = err
+        update_stepinfo(err=err)
 
         if stepinfo['err_delta'] < 0:
             print("Error got worse, reducing step size from: {0} to: {1}"
