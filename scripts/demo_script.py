@@ -3,15 +3,18 @@
 
 import os
 import json
+import logging
 import nems.modelspec as ms
 
 from nems import initializers
 from nems.analysis.api import fit_basic
 from nems.recording import Recording
 
-
 # ----------------------------------------------------------------------------
 # CONFIGURATION
+
+logging.basicConfig(level=logging.INFO)
+
 signals_dir = '../signals'
 modelspecs_dir = '../modelspecs'
 

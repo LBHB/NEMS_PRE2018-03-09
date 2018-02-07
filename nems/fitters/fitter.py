@@ -30,7 +30,7 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
     stop_fit = lambda : (tc.error_non_decreasing(stepinfo, tolerance) or
                          tc.max_iterations_reached(stepinfo, 1000))
 
-    while not stop_fit(stepinfo):
+    while not stop_fit():
         n_parameters = len(sigma)
         step_errors = np.zeros([n_parameters, 2])
         for i in range(0, n_parameters):
