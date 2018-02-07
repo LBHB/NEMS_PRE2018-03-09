@@ -15,7 +15,6 @@ from nems.recording import Recording
 signals_dir = '../signals'
 modelspecs_dir = '../modelspecs'
 
-
 # ----------------------------------------------------------------------------
 # DATA FETCHING
 
@@ -66,7 +65,7 @@ est, val = rec.split_at_time(0.8)
 modelspec = initializers.from_keywords('fir10x1_dexp1') 
 
 # Method #2: load a modelspec from disk
-# modelspec = ms.load_modelspec('../modelspecs/wc2_fir10_dexp.json')
+# modelspec = ms.load_modelspec('../modelspecs/wc1_fir10x1_dexp1.json')
 
 # Method #3: Load it from a published jerb (TODO)
 # modelspec = ...

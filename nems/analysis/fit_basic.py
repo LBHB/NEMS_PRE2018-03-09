@@ -1,14 +1,13 @@
 from functools import partial
 
-from nems.fitters.api import dummy_fitter, bit_less_dummy_fitter, \
-                             coordinate_descent
+from nems.fitters.api import dummy_fitter, coordinate_descent
 import nems.fitters.mappers
 import nems.modules.evaluators
 import nems.metrics.api
 
 
 def fit_basic(data, modelspec,
-              fitter=bit_less_dummy_fitter,
+              fitter=dummy_fitter,
               segmentor=lambda data: data,
               mapper=nems.fitters.mappers.simple_vector,
               metric=lambda data: nems.metrics.api.mse(

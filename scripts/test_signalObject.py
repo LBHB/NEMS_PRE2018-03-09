@@ -39,7 +39,7 @@ sig = Signal(fs=100,
 
 # Fold matrix over all stimuli, returning a dictionary where keys are stimuli 
 # each value in the dictionary is (reps X cell X bins)
-folded_matrix = sig.multi_fold_by(stim_dict.keys())
+folded_matrix = sig.extract_epochs(stim_dict.keys())
 
 # Average over all reps of each stim and save into dict called psth. Same 
 # formate as folded_matrix
@@ -47,7 +47,7 @@ psth = dict()
 for k in folded_matrix.keys():
     psth[k] = np.mean(folded_matrix[k],
                       axis=0)
-    
+
 # Invert the folding to unwrap the psth back out into a predicted spike_dict by 
 # simply replacing all epochs in the signal with their psth
 psth_sig = sig.replace_epochs(psth)

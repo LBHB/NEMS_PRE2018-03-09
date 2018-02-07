@@ -377,9 +377,11 @@ def adjust_epoch_bounds(a, pre=0, post=0):
 def verify_epoch_integrity(epoch):
     '''
     There are several kinds of pathological epochs:
-      1. Epochs with NaN for a start time (end is OK)
+      1. Epochs with NaN for a start time. (It is OK if end is NaN.)
       2. Epochs where start comes after the end
       3. Epochs which are completely identical to existing triplets
+         (i.e. redundant duplicates)
     This function searches for those and throws exceptions about them.
     '''
+    # TODO
     raise NotImplementedError
