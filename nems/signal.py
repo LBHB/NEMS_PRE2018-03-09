@@ -162,7 +162,7 @@ class Signal:
         Returns True iff the string is valid for use in signal names,
         recording names, or channel names. Else False.
         '''
-        disallowed = re.compile('[^a-zA-Z0-9_]')
+        disallowed = re.compile('[^a-zA-Z0-9_\-]')
         match = disallowed.findall(s)
         if match:
             return False
