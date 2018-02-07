@@ -1,22 +1,3 @@
-"""Defines evaluator functions that accept a modelspec and some data,
-and output the same data with 'pred' updated.
-
-Typically used as part of a cost function. Modelspec should already
-contain the updated phi provided by the fitter when used in this manner.
-
-"""
-
-# from . import api
-from importlib import import_module 
-lookup_table = {}  # TODO: Replace with real memoization/joblib later
-
-
-def split_to_api_and_fn(mystring):
-    matches = mystring.split(sep='.')
-    api = '.'.join(matches[:-1])
-    fn_name = matches[-1]
-    return api, fn_name
-
 
 def matrix_eval(data, modelspec):
     d_in = data.get_signal('stim').as_continuous()
@@ -46,21 +27,4 @@ def matrix_eval(data, modelspec):
     pred = data.get_signal('stim')._modified_copy(stack[-1])
     pred.name = 'pred'
     data.add_signal(pred)
-    return data
-
-def signal_eval(data, modelspec):
-    # Same as matrix_eval, but passes the signal object around instead of
-    # just the data matrix.
-
-    d_in = data.get_signal('stim').copy()
-    stack = [d_in]
-    for m in modelspec:
-        fn = getattr(api, m['api'])
-        phi = m['phi'].values()
-        kwargs = m['fn_kwargs']
-        d_out = fn(d_in, *phi, **kwargs)
-        stack.append(d_out.copy())
-        d_in = d_out
-
-    data.set_signal('pred', stack[-1])
     return data

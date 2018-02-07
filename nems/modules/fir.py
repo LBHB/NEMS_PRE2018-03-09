@@ -75,12 +75,4 @@ class FIR(Module):
             self.output_name: output,
         }
 
-    def get_priors(self, initial_data):
-        x = initial_data[self.input_name]
-        n_inputs = x.shape[0]
-        prior_shape = n_inputs, self.n_taps
-        c_mu = np.full(prior_shape, 1/self.n_taps, dtype='float32')
-        c_sd = np.ones(prior_shape, dtype='float32')
-        return {
-            'coefficients': Normal(mu=c_mu, sd=c_sd),
-        }
+

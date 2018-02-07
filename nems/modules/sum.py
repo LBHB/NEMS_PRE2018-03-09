@@ -1,14 +1,9 @@
-from .module import Module
+import numpy as np
 
 
-class Sum(Module):
-
-    def __init__(self, input_name, output_name):
-        self.input_name = input_name
-        self.output_name = output_name
-
-    def evaluate(self, data, phi):
-        x = data[self.input_name]
-        return {
-            self.output_name: x.sum(axis=0, keepdims=True)
-        }
+def sum_channels(rec=None, i=None, o=None):
+    '''
+    (NaN-)sums all the channels together.
+    '''
+    fn = lambda x: np.nansum(x, axis=0, keepdims=True)
+    return rec.add_signal(rec[i].transform(fn, o))

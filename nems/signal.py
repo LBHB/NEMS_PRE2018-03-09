@@ -779,6 +779,23 @@ class Signal:
         else:
             self.epochs = df
 
+    def transform(self, fn, newname=None):
+        '''
+        Applies this signal's 2d .as_continuous() matrix representation to
+        function fn, which must be a pure (curried) function of one argument.
+
+        It then packs the return value of fn into a new signal object,
+        identical to this one but with different data.
+
+        Optional argument newname allows a new signal name to be returned.
+        '''
+        x = self.as_continuous()
+        y = fn(x)
+        newsig = self._modified_copy(y)
+        if newname:
+            newsig.name = newname
+        return newsig
+
     @property
     def shape(self):
         return self._matrix.shape

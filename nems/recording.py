@@ -74,7 +74,7 @@ class Recording:
     def add_signal(self, signal):
         '''
         Adds the signal equal to this recording. Any existing signal
-        with the same name will be overwritten.
+        with the same name will be overwritten. No return value.
         '''
         if not isinstance(signal, Signal):
             raise TypeError("Recording signals must be instances of"

@@ -65,7 +65,7 @@ est, val = rec.split_at_time(0.8)
 # GOAL: Define the model that you wish to test
 
 # Method #1: create from "shorthand" keyword string
-modelspec = initializers.from_keywords('fir10x1_dexp1') 
+modelspec = initializers.from_keywords('wc40x1')
 
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc1_fir10x1_dexp1.json')
