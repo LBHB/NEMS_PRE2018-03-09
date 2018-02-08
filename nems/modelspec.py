@@ -96,6 +96,8 @@ def evaluate(rec, modelspec):
         fn = _lookup_fn_at(m['fn'])
         kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
         new_signals = fn(rec=d, **kwargs)
+        if type(new_signals) is not list:
+            raise ValueError('Fn did not return list of signals: {}'.format(m))
         for s in new_signals:
             d.add_signal(s)
     return d
