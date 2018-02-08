@@ -1,8 +1,7 @@
 import numpy as np
 
 
-def double_exponential(rec=None, i=None, o=None, base=None,
-                       amplitude=None, shift=None, kappa=None):
+def double_exponential(rec, i, o, base, amplitude, shift, kappa):
     '''
     A double exponential applied to all channels of a single signal.
        rec        Recording object
@@ -14,4 +13,4 @@ def double_exponential(rec=None, i=None, o=None, base=None,
        kappa      Sigmoid curvature (higher is...steeper? TODO)
     '''
     fn = lambda x : base + amplitude * np.exp(-np.exp(-kappa * (x - shift)))
-    return rec.add_signal(rec[i].transform(fn, o))
+    return [rec[i].transform(fn, o)]

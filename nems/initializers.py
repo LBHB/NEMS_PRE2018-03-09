@@ -118,3 +118,55 @@ def from_keywords(keyword_string, registry=keywords.defaults):
     #     return {
     #         'coefficients': Normal(mu=c_mu, sd=c_sd),
     #     }
+
+
+# def theano_convolution_node(x, coefficients):
+#     import theano
+#     from theano.tensor.signal.conv import conv2d
+#     theano.config.compute_test_value = 'ignore'
+
+#     def conv1d(a, b):
+#         a = a.dimshuffle(['x', 0])
+#         b = b.dimshuffle(['x', 0])
+#         result = conv2d(a, b, border_mode='full')[0]
+#         return result
+
+#     output, updates = theano.scan(conv1d, sequences=[x, coefficients])
+#     return output.sum(axis=0)
+#     # to make the convolution a function and test it
+#     #conv_rows = theano.function(inputs=[signal, coefficients],  outputs=final_output,
+#     #                            updates=updates)
+
+
+#     #v1_value = np.arange((12)).reshape((2, 6)).astype(theano.config.floatX)
+#     #c1_value = np.arange((4)).reshape((2, 2)).astype(theano.config.floatX)
+
+#     #conv_rows(v1_value, c1_value)
+
+
+# class FIR(Module):
+
+#     def __init__(self, n_taps, input_name='pred', output_name='pred'):
+#         self.n_taps = n_taps
+#         self.input_name = input_name
+#         self.output_name = output_name
+
+#     def evaluate(self, data, phi):
+#         coefficients = phi['coefficients']
+#         x = data[self.input_name]
+#         return {
+#             self.output_name: fir_filter(x, coefficients)
+#         }
+
+#     def generate_tensor(self, data, phi):
+#         coefficients = phi['coefficients']
+#         x = data[self.input_name]
+#         output = theano_convolution_node(x, coefficients)
+#         discard = self.n_taps-1
+#         output = output[discard:]
+
+#         return {
+#             self.output_name: output,
+#         }
+
+

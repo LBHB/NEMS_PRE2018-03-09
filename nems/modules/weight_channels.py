@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def weight_channels(rec=None, i=None, o=None, coefficients=None):
+def weight_channels(rec, i, o, coefficients):
     '''
     Parameters
     ----------
