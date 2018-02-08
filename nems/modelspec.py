@@ -85,13 +85,13 @@ def _lookup_fn_at(fn_path):
         lookup_table[fn_path] = fn
     return fn
 
-
 def evaluate(rec, modelspec):
     '''
     Given a recording object and a modelspec, return a prediction.
     Does not alter its arguments in any way.
     '''
-    d = copy.deepcopy(rec)  # This is a private, mutable copy
+    # d = copy.deepcopy(rec)  # Paranoid, but 100% safe
+    d = copy.copy(rec)  # About 10x faster & fine if Signals are immutable
     for m in modelspec:
         fn = _lookup_fn_at(m['fn'])
         kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts

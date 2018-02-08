@@ -1,18 +1,15 @@
 import os
-import copy
 import json
 import re
 import math
-
 import pandas as pd
 import numpy as np
-
 from nems.epoch import remove_overlap, merge_epoch, verify_epoch_integrity
 
 class Signal:
 
     def __init__(self, fs, matrix, name, recording, chans=None, epochs=None,
-                 meta=None):
+                 meta=None, safety_checks=True):
         '''
         Parameters
         ----------
@@ -37,7 +34,7 @@ class Signal:
 
         # Verify that we have a long time series
         (C, T) = self._matrix.shape
-        if T < C:
+        if safety_checks and T < C:
             m = 'Incorrect matrix dimensions?: (C, T) is {}. ' \
                 'We expect a long time series, but T < C'
             raise RuntimeWarning(m.format((C, T)))
@@ -46,21 +43,22 @@ class Signal:
         self.ntimes = T
 
         # Cached properties for speed; their use is however optional
-        self.channel_max = np.nanmax(self._matrix, axis=-1, keepdims=True)
-        self.channel_min = np.nanmin(self._matrix, axis=-1, keepdims=True)
-        self.channel_mean = np.nanmean(self._matrix, axis=-1, keepdims=True)
-        self.channel_var = np.nanvar(self._matrix, axis=-1, keepdims=True)
-        self.channel_std = np.nanstd(self._matrix, axis=-1, keepdims=True)
+        # TODO: Can these be made lazy? There is actually a big performance hit in precalculating these
+        #self.channel_max = np.nanmax(self._matrix, axis=-1, keepdims=True)
+        #self.channel_min = np.nanmin(self._matrix, axis=-1, keepdims=True)
+        #self.channel_mean = np.nanmean(self._matrix, axis=-1, keepdims=True)
+        #self.channel_var = np.nanvar(self._matrix, axis=-1, keepdims=True)
+        #self.channel_std = np.nanstd(self._matrix, axis=-1, keepdims=True)
 
-        if not isinstance(self.name, str):
+        if safety_checks and not isinstance(self.name, str):
             m = 'Name of signal must be a string: {}'.format(self.name)
             raise ValueError(m)
 
-        if not isinstance(self.recording, str):
+        if safety_checks and not isinstance(self.recording, str):
             m = 'Name of recording must be a string: {}'.format(self.recording)
             raise ValueError(m)
 
-        if self.chans:
+        if safety_checks and self.chans:
             if type(self.chans) is not list:
                 raise ValueError('Chans must be a list.')
             typesok = [(True if type(c) is str else False) for c in self.chans]
@@ -69,16 +67,17 @@ class Signal:
                                  str(self.chans) + str(typesok))
 
         # Test that all names use only lowercase letters and numbers 0-9
-        for s in [name, recording] + chans:
-            if s and not self._string_syntax_valid(s):
-                raise ValueError("Disallowed characters contained in: {0}\n"
-                                 .format(s))
+        if safety_checks:
+            for s in [name, recording] + chans:
+                if s and not self._string_syntax_valid(s):
+                    raise ValueError("Disallowed characters in: {0}\n"
+                                     .format(s))
 
-        if self.fs < 0:
+        if safety_checks and self.fs < 0:
             m = 'Sampling rate of signal must be a positive number. Got {}.'
             raise ValueError(m.format(self.fs))
 
-        if type(self._matrix) is not np.ndarray:
+        if safety_checks and type(self._matrix) is not np.ndarray:
             raise ValueError('matrix must be a np.ndarray:' +
                              type(self._matrix))
 
@@ -107,10 +106,6 @@ class Signal:
             json.dump(attributes, fh)
 
         return (csvfilepath, jsonfilepath)
-
-    def copy(self):
-        ''' Shorthand wrapper for copy.copy(self). '''
-        return copy.copy(self)
 
     @staticmethod
     def load(basepath):
@@ -185,7 +180,7 @@ class Signal:
         '''
         attributes = self._get_attributes()
         attributes.update(kwargs)
-        return Signal(matrix=data, **attributes)
+        return Signal(matrix=data, safety_checks=False, **attributes)
 
     def normalized_by_mean(self):
         '''
@@ -407,7 +402,8 @@ class Signal:
             fs=base.fs,
             meta=base.meta,
             matrix=data,
-            epochs=epochs
+            epochs=epochs,
+            safety_checks=False
         )
 
     @classmethod
@@ -448,6 +444,7 @@ class Signal:
             meta=base.meta,
             epochs=epochs,
             matrix=data,
+            safety_checks=False
             )
 
     def extract_channels(self, chans):
@@ -789,7 +786,8 @@ class Signal:
 
         Optional argument newname allows a new signal name to be returned.
         '''
-        x = self.as_continuous()
+        # x = self.as_continuous()   # Always Safe but makes a copy
+        x = self._matrix  # Much faster; TODO: Test if throws warnings
         y = fn(x)
         newsig = self._modified_copy(y)
         if newname:

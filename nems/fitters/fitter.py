@@ -1,5 +1,4 @@
 import numpy as np
-
 import nems.fitters.termination_conditions as tc
 
 
