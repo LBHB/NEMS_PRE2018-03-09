@@ -100,3 +100,18 @@ def target_err_reached(stepinfo, target=0.0):
         return True
     else:
         return False
+
+def less_than_equal(a, b):
+    '''
+    Returns true when a is less than or equal to b.
+    Generic condition for fitters that want to check conditions
+    specific to that function, but want to keep formatting consistent.
+
+    Note: This is not a smart function, it is only a wrapper for
+          a simple <= expression exactly as it is evalualted by
+          Python by default.
+    '''
+    if a <= b:
+        return True
+    else:
+        return False

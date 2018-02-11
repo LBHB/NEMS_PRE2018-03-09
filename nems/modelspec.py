@@ -85,14 +85,14 @@ def _lookup_fn_at(fn_path):
         lookup_table[fn_path] = fn
     return fn
 
-def evaluate(rec, modelspec):
+def evaluate(rec, modelspec, stop=-1):
     '''
     Given a recording object and a modelspec, return a prediction.
     Does not alter its arguments in any way.
     '''
     # d = copy.deepcopy(rec)  # Paranoid, but 100% safe
     d = copy.copy(rec)  # About 10x faster & fine if Signals are immutable
-    for m in modelspec:
+    for m in modelspec[:stop]:
         fn = _lookup_fn_at(m['fn'])
         kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
         new_signals = fn(rec=d, **kwargs)
@@ -107,4 +107,3 @@ def evaluate(rec, modelspec):
 # 2. Error checking. Is anything like this needed?
 #    if not (rec and i and o and base and amplitude and shift and kappa):
 #        raise ValueError('Not all arguments given to double_exponential')
-

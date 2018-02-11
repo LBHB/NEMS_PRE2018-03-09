@@ -4,11 +4,14 @@
 import os
 import json
 import logging
-import nems.modelspec as ms
 
+import matplotlib.pyplot as plt
+
+import nems.modelspec as ms
 from nems import initializers
 from nems.analysis.api import fit_basic
 from nems.recording import Recording
+import nems.plots.api as np
 
 # ----------------------------------------------------------------------------
 # CONFIGURATION
@@ -131,6 +134,20 @@ ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
 # Optional: View the posterior parameter probability distributions
 # nems.plot.posterior(val, results)
 
+# TODO: set up epochs for gus
+#np.plot_stim_occurrence(rec, modelspec, ms.evaluate)
+
+fig = plt.figure(figsize=(6, 4))
+
+ax1 = plt.subplot(311)
+np.pred_vs_act_scatter(val, modelspec, ms.evaluate, ax=ax1)
+ax2 = plt.subplot(312)
+np.pred_vs_act_psth(val, modelspec, ms.evaluate, ax=ax2)
+ax3 = plt.subplot(313)
+np.pred_vs_act_psth_smooth(val, modelspec, ms.evaluate, ax=ax3)
+
+plt.tight_layout()
+plt.show()
 
 # ----------------------------------------------------------------------------
 # SHARE YOUR RESULTS

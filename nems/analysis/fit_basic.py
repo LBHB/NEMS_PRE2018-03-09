@@ -1,12 +1,12 @@
 from functools import partial
 
-from nems.fitters.api import dummy_fitter, coordinate_descent
+from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 import nems.fitters.mappers
 import nems.modelspec
 import nems.metrics.api
 
 def fit_basic(data, modelspec,
-              fitter=dummy_fitter,
+              fitter=coordinate_descent,
               segmentor=lambda data: data,  # Default pass-thru
               mapper=nems.fitters.mappers.simple_vector,
               metric=lambda data: nems.metrics.api.mse(
@@ -50,11 +50,13 @@ def fit_basic(data, modelspec,
     # TODO - unpacks sigma and updates modelspec, then evaluates modelspec
     #        on the estimation/fit data and
     #        uses metric to return some form of error
-    def cost_function(unpacker, modelspec, data_subset, evaluator, metric,
-                      sigma=None):
+    def cost_function(sigma, unpacker, modelspec, data_subset,
+                      evaluator, metric):
         updated_spec = unpacker(sigma)
         updated_data_subset = evaluator(data_subset, updated_spec)
         error = metric(updated_data_subset)
+        #print("inside cost function, current error: {}".format(error))
+        #print("\ncurrent sigma: {}".format(sigma))
         return error
 
     # Freeze everything but sigma, since that's all the fitter should be
