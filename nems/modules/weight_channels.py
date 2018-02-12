@@ -1,4 +1,8 @@
-import numpy as np
+from functools import partial
+
+
+def _weight_channels(x, coefficients):
+    return coefficients @ x
 
 
 def weight_channels(rec, i, o, coefficients):
@@ -12,5 +16,6 @@ def weight_channels(rec, i, o, coefficients):
         equal to the number of channels in the input array
         (e.g., `x.shape[-3] == coefficients.shape[-1]`).
     '''
-    fn = lambda x: coefficients @ x
-    return [rec[i].transform(fn, o)]
+    # fn = lambda x: coefficients @ x
+    fn = partial(_weight_channels, coefficients=coefficients)
+    return [rec[i].transform(fn).rename(o)]

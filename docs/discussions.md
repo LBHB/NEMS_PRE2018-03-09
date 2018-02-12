@@ -241,3 +241,53 @@ Yes, we will probably make two analyses at some point:
 2. The inner analysis, which may or may not not segment the est dataset during the fitting process.
 
 But for the moment, we'll leave the outer loop in demo_script.py.
+
+----
+
+I really like the addition of a `signal.transform` method, but I'm wondering if it should take function args and kwargs that can be passed to the function (this is a common practice in Numpy and Pandas? See https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.apply.html and https://docs.scipy.org/doc/numpy/reference/generated/numpy.apply_along_axis.html.
+So, the signature would look like:
+
+```
+## OPTION 1
+def transform(self, fn, newname=None, args, **kwargs):
+	# args must be a tuple
+	
+# can call as
+signal.transform(fn, 'pred1', (a, b), foo=32)
+# or (if no newname)
+signal.transform(fn, args=(a, b), foo=32)
+​
+## OPTION 2
+def transform(self, fn, newname, *args, **kwargs):
+	# args must be a tuple
+	# newname is required argument
+	
+# can call as
+signal.transform(fn, 'pred1', a, b, foo=32)
+# meaning, keep the original name when transforming
+signal.transform(fn, None, a, b, foo=32)
+​
+## OPTION 3
+def transform(self, fn, *args, **kwargs):
+	# note no newname
+	
+def rename(self, name):
+	# do the rename
+	
+# can call as
+signal.transform(fn, a, b, foo=32).rename('pred1')
+​
+## OPTION 4
+# Why bother storing the name of the signal inside the class? Let the recording manage it.
+​
+pred1 = signal.transform(fn, a, b, foo=32)
+​
+# At this point, the signal now has a name (by property of being stored in the recording)
+recording['pred1'] = pred1
+```
+
+Reply:
+
+I like the suggestion of making transform's function signature more like apply, that's a good change. And I think you are right that the rename and the transform are probably best if decomposable actions, so I'll go with option 3. I think option 4 is a bit risky when trying to save individual signals, because you might lose track of the name.
+
+---

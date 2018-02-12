@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 import scipy.signal
 
@@ -27,5 +28,6 @@ def _fir_filter(x, coefficients):
 
 
 def fir_filter(rec, i, o, coefficients):
-    fn = lambda x: _fir_filter(x, coefficients)
-    return [rec[i].transform(fn, o)]
+    # fn = lambda x: _fir_filter(x, coefficients)
+    fn = partial(_fir_filter, coefficients=coefficients)
+    return [rec[i].transform(fn).rename(o)]
