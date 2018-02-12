@@ -90,6 +90,12 @@ def fit_samples(data, modelspec, n_samples=1,
 
     for i in range(n_samples):
         # TODO: implement the sample_phi function in nems.priors
-        this_mspec = sample_phi(modelspec)
-        improved_mspec = fit_basic(data, this_mspec, fitter, segmentor,
-                                   mapper, metric)
+        phi_list = sample_phi(modelspec)
+        this_mspec = modelspec.copy()
+        this_data = data.copy()
+        for m, phi in zip(this_mspec, phi_list):
+            m['phi'] = phi
+        result = fit_basic(this_data, this_mspec, fitter, segmentor, mapper,
+                            metric)
+        err = metric(this_data)
+

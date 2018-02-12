@@ -72,7 +72,8 @@ def phis_from_priors(modelspec, i=0, j=-1):
             m['phi'][k] = dist.sample()
 
 def sample_phi(modelspec):
-    """Given a modelspec, return a phi dictionary with
+    """
+    Given a modelspec, return a list of phi dictionaries with
     the value for each parameter of each module sampled
     from their respective distributions.
     """
