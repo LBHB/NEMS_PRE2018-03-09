@@ -3,7 +3,6 @@ import scipy as scp
 
 import nems.fitters.termination_conditions as tc
 
-
 def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
     '''
     This fitter does not actually take meaningful steps; it merely
@@ -24,9 +23,9 @@ def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
 
     return sigma
 
-
 def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
                        step_min=1e-5, tolerance=1e-5, max_iter=500):
+
     stepinfo, update_stepinfo = tc.create_stepinfo()
     stop_fit = lambda : (tc.error_non_decreasing(stepinfo, tolerance)
                          or tc.max_iterations_reached(stepinfo, max_iter)

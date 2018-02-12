@@ -4,6 +4,7 @@ from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 import nems.fitters.mappers
 import nems.modelspec
 import nems.metrics.api
+from nems.priors import sample_phi
 
 def fit_basic(data, modelspec,
               fitter=coordinate_descent,
@@ -76,3 +77,19 @@ def fit_basic(data, modelspec,
     results = [improved_modelspec]
 
     return results
+
+def fit_samples(data, modelspec, n_samples=1,
+                fitter=coordinate_descent,
+                segmentor=lambda data: data,  # Default pass-thru
+                mapper=nems.fitters.mappers.simple_vector,
+                metric=lambda data: nems.metrics.api.mse(
+                                {'pred': data.get_signal('pred').as_continuous(),
+                                 'resp': data.get_signal('resp').as_continuous()}
+                                )):
+    raise NotImplementedError
+
+    for i in range(n_samples):
+        # TODO: implement the sample_phi function in nems.priors
+        this_mspec = sample_phi(modelspec)
+        improved_mspec = fit_basic(data, this_mspec, fitter, segmentor,
+                                   mapper, metric)
