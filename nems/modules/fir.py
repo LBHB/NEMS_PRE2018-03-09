@@ -29,5 +29,6 @@ def _fir_filter(x, coefficients):
 
 def fir_filter(rec, i, o, coefficients):
     # fn = lambda x: _fir_filter(x, coefficients)
-    fn = partial(_fir_filter, coefficients=coefficients)
-    return [rec[i].transform(fn).rename(o)]
+    #fn = partial(_fir_filter, coefficients=coefficients)
+    return [rec[i].transform(_fir_filter,
+                             (coefficients)).rename(o)]
