@@ -1,8 +1,5 @@
-from functools import partial
-
-
-def _weight_channels(x, coefficients):
-    return coefficients @ x
+def _weight_channels(x, coefs):
+    return coefs @ x
 
 
 def weight_channels(rec, i, o, coefficients):
@@ -16,9 +13,4 @@ def weight_channels(rec, i, o, coefficients):
         equal to the number of channels in the input array
         (e.g., `x.shape[-3] == coefficients.shape[-1]`).
     '''
-    # fn = lambda x: coefficients @ x
-    #fn = partial(_weight_channels, coefficients=coefficients)
-    #return [rec[i].transform(_double_exponential,
-    #                         args=(base, amplitude, shift, kappa)).rename(o)]
-    return [rec[i].transform(_weight_channels,
-                             (coefficients)).rename(o)]
+    return [rec[i].transform(_weight_channels, (coefficients)).rename(o)]
