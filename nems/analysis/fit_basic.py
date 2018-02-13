@@ -1,10 +1,10 @@
 from functools import partial
 
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
+import nems.priors
 import nems.fitters.mappers
 import nems.modelspec
 import nems.metrics.api
-from nems.priors import sample_phi
 
 def fit_basic(data, modelspec,
               fitter=coordinate_descent,
@@ -78,6 +78,8 @@ def fit_basic(data, modelspec,
 
     return results
 
+
+# TODO: Remove this?
 def fit_samples(data, modelspec, n_samples=1,
                 fitter=coordinate_descent,
                 segmentor=lambda data: data,  # Default pass-thru
@@ -90,12 +92,13 @@ def fit_samples(data, modelspec, n_samples=1,
 
     for i in range(n_samples):
         # TODO: implement the sample_phi function in nems.priors
-        phi_list = sample_phi(modelspec)
-        this_mspec = modelspec.copy()
+        this_mspec = nems.priors.set_random_phi(modelspec)
         this_data = data.copy()
-        for m, phi in zip(this_mspec, phi_list):
-            m['phi'] = phi
-        result = fit_basic(this_data, this_mspec, fitter, segmentor, mapper,
-                            metric)
-        err = metric(this_data)
+        best_models = fit_basic(this_data, this_mspec, fitter, segmentor,
+                                mapper, metric)
+        pred = nems.modelspec.evaluate(this_data, best_models[0])
+        err = metric(pred)
+        
+
+    return result
 

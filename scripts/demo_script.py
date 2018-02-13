@@ -2,16 +2,15 @@
 # Please see docs/architecture.svg for a visual diagram of this code
 
 import os
-import json
 import logging
-
 import matplotlib.pyplot as plt
-
+import nems
+import nems.initializers
 import nems.modelspec as ms
-from nems import initializers
+import nems.plots.api as nplt
 from nems.analysis.api import fit_basic
 from nems.recording import Recording
-import nems.plots.api as np
+
 
 # ----------------------------------------------------------------------------
 # CONFIGURATION
@@ -68,8 +67,10 @@ est, val = rec.split_at_time(0.8)
 # GOAL: Define the model that you wish to test
 
 # Method #1: create from "shorthand" keyword string
-modelspec = initializers.from_keywords('wc40x1_fir10x1_dexp1')
+modelspec = nems.initializers.from_keywords('wc40x1_fir10x1_dexp1')
 
+
+# print(modelspec)
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc1_fir10x1_dexp1.json')
 
@@ -79,7 +80,10 @@ modelspec = initializers.from_keywords('wc40x1_fir10x1_dexp1')
 # Method #4: specify it manually (TODO)
 # modelspec = ...
 
-
+# Optional: Set phi to a random sample from modelspec distribution
+print("before:", modelspec)
+modelspec = nems.priors.set_random_phi(modelspec)
+print("after:", modelspec)
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
 
@@ -135,24 +139,29 @@ ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
 # nems.plot.posterior(val, results)
 
 # TODO: set up epochs for gus
-#np.plot_stim_occurrence(rec, modelspec, ms.evaluate)
+#nplt.plot_stim_occurrence(rec, modelspec, ms.evaluate)
 
 fig = plt.figure(figsize=(6, 4))
 
 ax1 = plt.subplot(311)
-np.pred_vs_act_scatter(val, modelspec, ms.evaluate, ax=ax1)
+nplt.pred_vs_act_scatter(val, modelspec, ms.evaluate, ax=ax1)
 ax2 = plt.subplot(312)
-np.pred_vs_act_psth(val, modelspec, ms.evaluate, ax=ax2)
+nplt.pred_vs_act_psth(val, modelspec, ms.evaluate, ax=ax2)
 ax3 = plt.subplot(313)
-np.pred_vs_act_psth_smooth(val, modelspec, ms.evaluate, ax=ax3)
+nplt.pred_vs_act_psth_smooth(val, modelspec, ms.evaluate, ax=ax3)
 
 plt.tight_layout()
 plt.show()
+
+
+# plot_all_at_once(modelspec, [pred_vs_act_scatter,
+#                              pred_vs_act_ptsh,
+#                              pred_vs_act_smooth])
 
 # ----------------------------------------------------------------------------
 # SHARE YOUR RESULTS
 
 # GOAL: Upload your resulting models so that you can see how well your model
-#       did relative to other peoples' models. Save your results to a DB.
+#       did relative to other peoples' models. Save your results to a DB.b
 
 # TODO

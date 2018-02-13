@@ -21,6 +21,46 @@ def from_keywords(keyword_string, registry=keywords.defaults):
     return modelspec
 
 
+# def set_priors(modelspec, priors, i=0, j=-1):
+#     """
+#     Given a modelspec and a list of prior specifications, assigns
+#     each prior to the modelspec entry at the corresponding index.
+#     Kwargs i and j can be specified to set arbitrary
+#     start and end indices, respectively.
+
+#     modelspec : dict
+#         See nems/docs/modelspec.md
+
+#     priors : list
+#         Each entry should be a dictionary with a key for
+#         each of the parameters contained within the related
+#         modelspec entry's phi dict. The values should be
+#         tuples of (str: disribution class, list: distribution xargs).
+
+#         Ex: priors = {
+#                 'parameter_a': ('Normal', [0, 1]),
+#                 'parameter_b': ('HalfNormal', [0.5, 0.5])
+#                 }
+
+#     For example, given a modelspec with five entries:
+#         _set_priors(modelspec, [p0, p1, p2])
+#     Would assign p1, p2, and p3 to modelspec entries 0, 1, and 2, respectively.
+#     However,
+#         _set_priors(modelspec, [p0, p1, p2], i=2, j=5)
+#     Would assign p1, p2, and p3 to entries 2, 3, and 4, respectively.
+
+#     If the length of the priors list is greater than the length
+#     of the modelspec, the excess priors will be ignored with
+#     a warning.
+#     """
+#     if len(priors) > len(modelspec):
+#         raise RuntimeWarning("More priors than modelspec entries,"
+#                              "priors list will be truncated.")
+#         priors = priors[:len(modelspec)]
+
+#     for m, p in zip(modelspec[i:j], priors):
+#         m['priors'] = p
+
 
 ################################################################################
 ### DEXP 

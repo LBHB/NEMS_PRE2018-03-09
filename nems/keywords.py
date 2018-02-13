@@ -18,5 +18,16 @@ defaults = {'wc40x1': {'fn': 'nems.modules.weight_channels.weight_channels',
             'dexp1': {'fn': 'nems.modules.nonlinearity.double_exponential',
                       'fn_kwargs': {'i': 'pred',
                                     'o': 'pred'},
-                      'phi': {'base': 1.0, 'amplitude': 1.0,
-                              'shift': 1.0, 'kappa': 1.0}}}
+                      'phi': {'amplitude': 2.0},
+                      'prior': {'base': ('Normal', [0, 10])}
+                      }}
+
+# If not specified in the modelspec, these priors will be used
+default_priors = {'nems.modules.fir.fir_filter':
+                  {'coefficients': ('Normal', [[[0, 0, 1, 0, 0, 0, 0, 0, 0, 0]],
+                                               [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]])},
+                  'nems.modules.nonlinearity.double_exponential':
+                  {'base': ('Normal', [0, 1]),
+                   'amplitude': ('HalfNormal', [0.5, 0.5]),
+                   'shift': ('Normal', [0, 1]),
+                   'kappa': ('HalfNormal', [0.5, 0.5])}}
