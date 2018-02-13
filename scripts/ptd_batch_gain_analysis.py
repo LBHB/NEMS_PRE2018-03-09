@@ -55,22 +55,25 @@ def ptd_load_recording(cellid,batch,options):
         else:
             resp=resp.concatenate_time([resp,t_resp])
         
-        if options['pupil']:
-            rlen=raster_all.shape[1]
-            plen=state_dict['pupiltrace'].shape[1]
-            if plen>rlen:
-                state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(plen-rlen)]
-            elif rlen>plen:
-                state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(rlen-plen)]
+        try:
+            if options['pupil']:
+                rlen=raster_all.shape[1]
+                plen=state_dict['pupiltrace'].shape[1]
+                if plen>rlen:
+                    state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(plen-rlen)]
+                elif rlen>plen:
+                    state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(rlen-plen)]
+                
+                # generate pupil signals
+                t_pupil=nems.signal.Signal(fs=options['rasterfs'],matrix=state_dict['pupiltrace'],name='state',recording=cellid,chans=['pupil'],epochs=event_times)
             
-            # generate pupil signals
-            t_pupil=nems.signal.Signal(fs=options['rasterfs'],matrix=state_dict['pupiltrace'],name='state',recording=cellid,chans=['pupil'],epochs=event_times)
-        
-            if i==0:
-                pupil=t_pupil
-            else:
-                pupil=pupil.concatenate_time([pupil,t_pupil])
-    
+                if i==0:
+                    pupil=t_pupil
+                else:
+                    pupil=pupil.concatenate_time([pupil,t_pupil])
+        except:
+            options['pupil']=False
+            
     resp.meta=options
     
     if options['pupil']:
@@ -93,7 +96,9 @@ def ptd_gain_model(recording,options):
    
     options['zero_pupil'] = options.get('zero_pupil',False)
     options['zero_pp'] = options.get('zero_pp',False)
-
+    SHOW_PLOT=options.get('plot_results',True)
+    options['plot_ax']=options.get('plot_ax',None)
+    
     if options['pupil']:
         pupil=recording.get_signal('state')
                     
@@ -131,12 +136,17 @@ def ptd_gain_model(recording,options):
         pupil=resp.epoch_to_signal('XXX')
         pupil.chans=['pupil']
         
-    if options['pupil']:
+    if batch in [301,304]:
         #state=resp.concatenate_channels([puretone_trials,easy_trials,hard_trials,pupil,hit_trials,fa_trials])
         #state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,pupil])
         state=resp.concatenate_channels([pre_passive,behavior_state,pupil])
     else:
-        state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,fa_trials,miss_trials])
+        try:
+            state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,pupil])
+        except:
+            pupil=resp.epoch_to_signal('XXX')
+            pupil.chans=['pupil']
+            state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,pupil])
 
     state.name='state'
     
@@ -174,11 +184,13 @@ def ptd_gain_model(recording,options):
     cols=[cols[i] for i in keepstates]
     
     # OLD: normalize s to have mean zero, variance 1
-    #s=s-np.mean(s,axis=0,keepdims=True)
-    #s=s/np.std(s,axis=0,keepdims=True)
+    s=s-np.mean(s,axis=0,keepdims=True)
+    s=s/np.std(s,axis=0,keepdims=True)
+    s=(s-np.min(s,axis=0,keepdims=True))/2
     # Instead, normalize s to have min zero, max 1
-    s=s-np.min(s,axis=0,keepdims=True)
-    s=s/np.max(s,axis=0,keepdims=True)
+    #s=s-np.min(s,axis=0,keepdims=True)
+    #s=s/np.max(s,axis=0,keepdims=True)
+    print(np.max(s,axis=0))
     
     spont=r2.select_epoch('PreStimSilence')
     sp=spont.as_continuous().T
@@ -236,15 +248,18 @@ def ptd_gain_model(recording,options):
     res['pvalues'][k]=1 # results.pvalues
     res['rvalues'][np.concatenate(([0],keepstates+1))]=xc
     
-    SHOW_PLOT=True
     if SHOW_PLOT:
-        
-        plt.figure()
+        if options['plot_ax'] is None:
+            plt.figure()
+        else:
+            plt.axes(options['plot_ax'])
+            
         r1=scipy.signal.decimate(r,q=5,axis=0)
         p1=scipy.signal.decimate(pred,q=5,axis=0)
-        plt.plot(r1, linewidth=1)
+        t=np.arange(0,r1.shape[0])/options["rasterfs"]*5
+        plt.plot(t,r1, linewidth=1)
         #plt.plot(p0+m0, linewidth=1)
-        plt.plot(p1, linewidth=1)
+        plt.plot(t,p1, linewidth=1,alpha=0.5)
         c=cols
         for i in range(0,s.shape[1]):
             x=s[:,i]
@@ -253,7 +268,8 @@ def ptd_gain_model(recording,options):
             
             x=x[2::5]
             
-            plt.plot(x-(i+1)*1.2)
+            t=np.arange(0,x.shape[0])/options["rasterfs"]*5
+            plt.plot(t,x-(i+1)*1.2)
             
             if res['pvalues'][i+2]<0.01:
                 sb='**'
@@ -269,14 +285,14 @@ def ptd_gain_model(recording,options):
                 plt.text(0,-(i+1)*1.2,"{0} (b {1:.2f}{2})".format(
                         c[i],res['params'][i+2],sb))
             else:
-                if res['pvalues'][i+len(cols)+2]<0.01:
+                if res['pvalues'][i+len(state.chans)+2]<0.01:
                     sg='**'
-                elif res['pvalues'][i+len(cols)+2]<0.05:
+                elif res['pvalues'][i+len(state.chans)+2]<0.05:
                     sg='*'
                 else:
                     sg=''
                 plt.text(0,-(i+1)*1.2,"{0} (b {1:.2f}{2} g {3:.2f}{4})".format(
-                        c[i],res['params'][i+2],sb,res['params'][i+len(cols)+2],sg))
+                        c[i],res['params'][keepstates[i]+2],sb,res['params'][keepstates[i]+len(state.chans)+2],sg))
         
         plt.title("Cell {0} (batch {1})".format(cellid,batch))
     
@@ -301,8 +317,9 @@ def jack_model(X,r,Xlabels,jack_count=10):
         
         formula='r ~ ' + " + ".join(Xlabels)
         
-        results = smf.ols(formula, data=d).fit_regularized(alpha=0.005, L1_wt=0.9)
+        results = smf.ols(formula, data=d).fit_regularized(alpha=0.002, L1_wt=0.99)
         #results = smf.ols(formula, data=d).fit()
+        #results = smf.gls(formula, data=d).fit()
         params=results.params[:,np.newaxis]
         if i==0:
             param_set=params
@@ -318,8 +335,8 @@ def scatter_comp(beta,compare_set,xlabels,axs=None):
     if axs is None:
         axs=plt.gca()
         
-    mmin=-0.5
-    mmax=0.5
+    mmin=-0.25
+    mmax=0.75
         
     i0=[i for i, x in enumerate(xlabels) if x==compare_set[0]]
     i1=[i for i, x in enumerate(xlabels) if x==compare_set[1]]
@@ -352,23 +369,32 @@ def scatter_comp(beta,compare_set,xlabels,axs=None):
 #batch=304
 #batch=301
 
+if 'batch' not in locals():
+    batch=301
+    
+print("Analyzing batch {0}".format(batch))
+
 if batch==305:
-    options={'rasterfs': 20, 'includeprestim': True, 'stimfmt': 'parm', 
-             'chancount': 0, 'pupil': False, 'stim': False}
-else:
-    options={'rasterfs': 20, 'includeprestim': True, 'stimfmt': 'parm', 
+    options={'rasterfs': 10, 'includeprestim': True, 'stimfmt': 'parm', 
              'chancount': 0, 'pupil': True, 'stim': False,
-             'pupil_deblink': True, 'pupil_median': 1}
+             'plot_results': False, 'plot_ax': None}
+else:
+    options={'rasterfs': 10, 'includeprestim': True, 'stimfmt': 'parm', 
+             'chancount': 0, 'pupil': True, 'stim': False,
+             'zero_pp': True,
+             'pupil_deblink': True, 'pupil_median': 1,
+             'plot_results': False, 'plot_ax': None}
 
 REGEN=False
-RELOAD=True
+RELOAD=False
+REFIT=True
 if REGEN:
     plt.close('all')
     cell_data=nd.get_batch_cells(batch=batch)
     cellids=list(cell_data['cellid'].unique())
     
     recordings=[]
-    save_path="/auto/data/tmp/batch{0}_fs20_stim_none/".format(batch)
+    save_path="/auto/data/tmp/batch{0}_fs{1}_stim_none/".format(batch,options["rasterfs"])
     for cellid in cellids:
         recordings=recordings+[ptd_load_recording(cellid,batch,options.copy())]
         recordings[-1].save(save_path)
@@ -377,27 +403,32 @@ elif RELOAD:
     cellids=list(cell_data['cellid'].unique())
     recordings=[]
     for cellid in cellids:
-        save_path="/auto/data/tmp/batch{0}_fs20_stim_none/{1}".format(batch,cellid)
+        save_path="/auto/data/tmp/batch{0}_fs{1}_stim_none/{2}".format(batch,options["rasterfs"],cellid)
         print("Loading from {0}".format(save_path))
         recordings=recordings+[nems.recording.Recording.load(save_path)]
 else:
-    print("TODO: load")
+    print("Assuming data are loaded")
+
+if REFIT:
+    plt.close('all')
+    res=[]
+    res2=[]
     
-plt.close('all')
-res=[]
-res2=[]
-for i,cellid in enumerate(cellids):
-    print("{0} fitting for cell {1}".format(i,cellid))
-    res=res+[ptd_gain_model(recordings[i],options)]
-    if (batch==304) | (batch==301):
-        opt2=options.copy()
-        opt2['zero_pupil']=True
-        res2=res2+[ptd_gain_model(recordings[i],opt2)]
-    else:
-        opt2=options.copy()
-        opt2['zero_pp']=True
-        res2=res2+[ptd_gain_model(recordings[i],opt2)]
+    for i,cellid in enumerate(cellids):
+        print("{0} fitting for cell {1}".format(i,cellid))
         
+        res=res+[ptd_gain_model(recordings[i],options)]
+        if (batch==304) | (batch==301):
+            opt2=options.copy()
+            opt2['zero_pupil']=True
+            res2=res2+[ptd_gain_model(recordings[i],opt2)]
+        else:
+            opt2=options.copy()
+            opt2['zero_pp']=True
+            res2=res2+[ptd_gain_model(recordings[i],opt2)]
+else:
+    print("Assuming models have been fit")
+    
 #plt.close('all')
 beta=np.concatenate([x['params'][2:,np.newaxis] for x in res], axis=1)
 sig=np.concatenate([x['pvalues'][2:,np.newaxis] for x in res], axis=1)
@@ -421,7 +452,34 @@ plt.plot(rvalues[1:,:]-rvalues[0:1,:],'.')
 
 plt.tight_layout()
 
+example_list=['TAR010c-06-1','TAR010c-22-1',
+              'TAR010c-60-1','TAR010c-44-1',
+              'bbl074g-a1','bbl081d-a1','BRT006d-a1','BRT007c-a1',
+              'BRT009a-a1','BRT015c-a1','BRT016f-a1','BRT017g-a1']
 
+PLOT_EXAMPLES=True
+if PLOT_EXAMPLES:
+    plt.close('all')
+
+    options["plot_results"]=True
+    options["pupil"]=True
+    options['zero_pupil']=False
+    opt2=options.copy()
+    opt2['zero_pupil']=True
+    for cellid in example_list:
+        cidx=-1
+        for i, x in enumerate(cellids):
+            if x==cellid:
+                cidx=i
+                
+        if cidx>0:
+            print("{0}".format(cellids[cidx]))
+            plt.figure()
+            options['plot_ax']=plt.subplot(2,1,1)
+            ptd_gain_model(recordings[cidx],options)
+            opt2['plot_ax']=plt.subplot(2,1,2)
+            ptd_gain_model(recordings[cidx],opt2)
+            plt.tight_layout()
 
 if (batch==304) | (batch==301):
     plt.figure()
@@ -432,6 +490,12 @@ if (batch==304) | (batch==301):
     tsig=np.concatenate((sig,sig2[3:5,:]),axis=0)
     
     txlabels=xlabels+['PRE_NO_PUP_gn','ACTIVE_NO_PUP_gn']
+    
+    print("{0} {1} {2}".format(txlabels[4],txlabels[5],txlabels[7]))
+    for cc in range(0,tbeta.shape[1]):
+        print("{0:2d} {1} {2:8.3f} {3:8.3f} {4:8.3f}".format(cc,cellids[cc],
+              tbeta[4,cc],tbeta[5,cc],tbeta[7,cc]))
+        
     
     axs = plt.subplot(2,2,1)
     compare_set=['ACTIVE_EXPERIMENT_gn','ACTIVE_NO_PUP_gn']
@@ -446,7 +510,7 @@ if (batch==304) | (batch==301):
     scatter_comp(tbeta,compare_set,txlabels,axs)
     
     axs = plt.subplot(2,2,4)
-    compare_set=['pupil_bs','pupil_gn']
+    compare_set=['ACTIVE_EXPERIMENT_gn','pupil_gn']
     scatter_comp(beta,compare_set,xlabels,axs)
     
     plt.tight_layout()

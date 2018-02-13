@@ -20,28 +20,18 @@ import nems.db as nd
 
 # figure out filepath for demo files
 
-# Behavior example
-#cellid='BRT007c-a2'
-#parmfilepath='/auto/data/daq/Beartooth/BRT007/BRT007c05_a_PTD.m'
-#options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'parm', 'chancount': 0, 'cellid': cellid}
-#event_times, spike_dict, stim_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
-
-cellid='bbl086b-04-1'
+cellid='TAR010c-07-1'
 batch=271
-d=nd.get_batch_cell_data(cellid=cellid,batch=batch,label='parm')
-
-parmfilepath=d['parm'][0]
+# database can be used to locate files, but need to configure nems
+#d=nd.get_batch_cell_data(cellid=cellid,batch=batch,label='parm')
+#parmfilepath=d['parm'][0]
+# less responsive site
+#parmfilepath='/auto/data/daq/Babybell/bbl086/bbl086b09_p_NAT.m'
+#several units recorded here
+parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
 
 options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
 event_times, spike_dict, stim_dict, state_dict = nu.baphy.baphy_load_recording(parmfilepath,options)
-
-
-# RDT example
-#cellid="oys035b-a2"
-#parmfilepath='/auto/data/daq/Oyster/oys035/oys035b04_p_RDT.m'
-#options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 
-#         'cellid': cellid, 'pertrial': True}
-#event_times, spike_dict, stim_dict, stim1_dict, stim2_dict, state_dict = nems.utilities.baphy.baphy_load_recording_RDT(parmfilepath,options)
 
 
 # compute raster for specific unit and stimulus id with sampling rate rasterfs
