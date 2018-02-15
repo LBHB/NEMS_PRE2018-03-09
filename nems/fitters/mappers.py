@@ -21,13 +21,13 @@ def simple_vector(initial_modelspec):
 
     def packer(modelspec):
         ''' Converts a modelspec to a vector. '''
-        phi = [m['phi'] for m in modelspec]
+        phi = [m.get('phi') for m in modelspec]
         vec = phi_to_vector(phi)
         return vec
 
     def unpacker(vec):
         ''' Converts a vector back into a modelspec. '''
-        phi_template = [m['phi'] for m in initial_modelspec]
+        phi_template = [m.get('phi') for m in initial_modelspec]
         phi = vector_to_phi(vec, phi_template)
         tmp_modelspec = initial_modelspec
         for i, p in enumerate(phi):

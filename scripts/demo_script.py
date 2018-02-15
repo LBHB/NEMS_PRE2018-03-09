@@ -11,7 +11,6 @@ import nems.plots.api as nplt
 from nems.analysis.api import fit_basic
 from nems.recording import Recording
 
-
 # ----------------------------------------------------------------------------
 # CONFIGURATION
 
@@ -69,7 +68,6 @@ est, val = rec.split_at_time(0.8)
 # Method #1: create from "shorthand" keyword string
 modelspec = nems.initializers.from_keywords('wc40x1_fir10x1_dexp1')
 
-
 # print(modelspec)
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc1_fir10x1_dexp1.json')
@@ -81,9 +79,8 @@ modelspec = nems.initializers.from_keywords('wc40x1_fir10x1_dexp1')
 # modelspec = ...
 
 # Optional: Set phi to a random sample from modelspec distribution
-print("before:", modelspec)
 modelspec = nems.priors.set_random_phi(modelspec)
-print("after:", modelspec)
+
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
 

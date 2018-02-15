@@ -6,6 +6,7 @@ import nems.fitters.mappers
 import nems.modelspec
 import nems.metrics.api
 
+
 def fit_basic(data, modelspec,
               fitter=coordinate_descent,
               segmentor=lambda data: data,  # Default pass-thru

@@ -167,3 +167,99 @@ Items in discussion:
 2. Should keywords be generated from many small individual files so that we can track changes in git? Or is this 'defaults' and 'private' dictionary approach sufficient for now?
 3. What should the "default" filename for models be?
 4. Where should the "fitter" metadata be appended? Are the metedata properties of a modelspec the superset of all of the modules?
+
+
+## Priors
+
+*Priors*: I pushed support for initializing phi from priors to the dev branch today. There are three functions that return modified (copies) of modelspecs with the phi initialized from the priors. 
+
+```
+
+new_modelspec = nems.priors.set_mean_phi(modelspec)
+
+# or
+
+new_modelspec = nems.priors.set_random_phi(modelspec)
+
+# or
+
+new_modelspec = nems.priors.set_percentile_phi(modelspec, 0.1)
+
+```
+
+
+A value of phi initialized using the idea of specific and general preferences:
+
+1. Prefer a phi parameter already set in the module;
+
+2. Otherwise, generate any uninitialized phi parameters from the `prior` of that module, if one exists;
+
+3. Otherwise, fall back on priors defined the `default_priors` data structure to make any remaining uninitialized phi parameters.
+
+You may mix and match. If you look at `keywords.py` below, you can see that I manually set the initial value of 'amplitude', manually define a prior for `base`, and let the the 'shift' and 'kappa' values be set by default.
+
+```defaults = {'wc40x1': {'fn': 'nems.modules.weight_channels.weight_channels',
+
+                       'fn_kwargs': {'i': 'stim',
+
+                                     'o': 'pred'},
+
+                       'phi': {'coefficients': [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+
+                                                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+
+                                                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+
+                                                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+
+                                                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+
+                                                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+
+                                                 1.0, 1.0, 1.0, 1.0]]}},
+
+            'fir10x1': {'fn': 'nems.modules.fir.fir_filter',
+
+                        'fn_kwargs': {'i': 'pred',
+
+                                      'o': 'pred'},
+
+                        'phi': {'coefficients': [[0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+
+                                                  0.0, 0.0, 0.0, 0.0, 0.0]]}},
+
+            'dexp1': {'fn': 'nems.modules.nonlinearity.double_exponential',
+
+                      'fn_kwargs': {'i': 'pred',
+
+                                    'o': 'pred'},
+
+                      'phi': {'amplitude': 2.0},
+
+                      'prior': {'base': ('Normal', [0, 10])}
+
+                      }}
+
+
+
+# If not specified in the modelspec, these priors will be used
+
+default_priors = {'nems.modules.fir.fir_filter':
+
+                  {'coefficients': ('Normal', [[[0, 0, 1, 0, 0, 0, 0, 0, 0, 0]],
+
+                                               [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]])},
+
+                  'nems.modules.nonlinearity.double_exponential':
+
+                  {'base': ('Normal', [0, 1]),
+
+                   'amplitude': ('HalfNormal', [0.5, 0.5]),
+
+                   'shift': ('Normal', [0, 1]),
+
+                   'kappa': ('HalfNormal', [0.5, 0.5])}}
+
+```
+
+Note that in general, the size of the priors determine the size of `phi`. The exception to this is `default_priors` which should always be 1D so that people can use those very vague values as starting places for custom initializations with initializers. 

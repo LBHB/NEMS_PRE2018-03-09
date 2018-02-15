@@ -241,3 +241,12 @@ Yes, we will probably make two analyses at some point:
 2. The inner analysis, which may or may not not segment the est dataset during the fitting process.
 
 But for the moment, we'll leave the outer loop in demo_script.py.
+---
+
+Ideas on initializers:
+
+Initializers are like:  f(data, incomplete_modelspec) -> modelspec_with_priors. Or maybe f(data, parameters) -> modelspec_with_priors, where the parameters could be either 'vague' keywords or whatever needed? 
+
+The goal is that after initialization, when fitting is ready to start, we have a modelspec containing priors and keywords that help us find this model later.
+
+There will be many kinds of initializers: if you have a particularly weird model, you may want to prefit it in some weird way. If you want to start from another model, you might use the "start near this existing fit model" initializer. I leave it up to everybody to make their own initializers for specifically hard problems. Otherwise keywords may "just work" for simpler things.

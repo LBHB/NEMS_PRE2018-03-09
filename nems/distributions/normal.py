@@ -33,7 +33,7 @@ class Normal(Distribution):
     [3, 3]
     '''
 
-    def __init__(self, mu, sd, shape=None):
+    def __init__(self, mu, sd):
         self.mu = mu
         self.sd = sd
 
@@ -44,4 +44,4 @@ class Normal(Distribution):
     def __repr__(self):
         mu = self.value_to_string(self.mu)
         sd = self.value_to_string(self.sd)
-        return 'Normal(μ={}, σ={})'.format(mu, sd)
+        return "('Normal', {{'mu': {}, 'sd': {}}})".format(mu, sd)
