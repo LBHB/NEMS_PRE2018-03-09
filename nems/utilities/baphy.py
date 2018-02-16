@@ -21,6 +21,8 @@ import io
 import pandas as pd
 import nems.utilities as nu
 import matplotlib.pyplot as plt
+import nems.signal
+import nems.recording
 
 try:
     import nems.db as db
@@ -1330,7 +1332,7 @@ def baphy_load_data(parmfilepath,options={}):
     return exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams
 
 
-def baphy_load_recording(parmfilepath,options={}):
+def baphy_load_dataset(parmfilepath,options={}):
     
     """
     this can be used to generate a recording object
@@ -1460,8 +1462,9 @@ def baphy_load_recording(parmfilepath,options={}):
             
             if options['stim']:
                 # save stimulus for this event as separate dictionary entry
-                stim_dict[tags[eventidx]]=stim[:,:,eventidx]
-            
+                stim_dict["STIM_"+tags[eventidx]]=stim[:,:,eventidx]
+            else:
+                stim_dict["STIM_"+tags[eventidx]]=np.array([[]])
             # complicated experiment-specific part
             tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
             tag_mask_stop="PostStimSilence , "+tags[eventidx]+" , Reference"
@@ -1473,7 +1476,7 @@ def baphy_load_recording(parmfilepath,options={}):
             this_event_times=pd.concat([exptevents.loc[ffstart,['start']].reset_index(), 
                                   exptevents.loc[ffstop,['end']].reset_index()], axis=1)
             this_event_times=this_event_times.drop(columns=['index'])
-            this_event_times['name']=tags[eventidx]
+            this_event_times['name']="STIM_"+tags[eventidx]
 
             # screen for conflicts with target events
             keepevents=np.ones(len(this_event_times))==1
@@ -1647,3 +1650,92 @@ def spike_time_to_raster(spike_dict,fs=100,event_times=None):
                 raster[i,b]+=1
     
     return raster,cellids
+
+def stim_dict_to_matrix(stim_dict,fs=100,event_times=None):
+    
+    if event_times is not None:
+        maxtime=np.max(event_times["end"])
+    
+    tags=list(stim_dict.keys())
+    
+    
+    maxbin=int(fs*maxtime)
+    chancount=stim_dict[tags[0]].shape[0]
+    stim=np.zeros([chancount,maxbin])
+    
+    cellids=sorted(spike_dict)
+    for i,key in enumerate(cellids):
+        for t in spike_dict[key]:
+            b=int(np.floor(t*fs))
+            if b<maxbin:
+                raster[i,b]+=1
+    
+    return raster,cellids
+
+def baphy_load_recording(cellid,batch,options):
+    
+    d=db.get_batch_cell_data(batch=batch, cellid=cellid, label='parm') 
+    files=list(d['parm'])
+   
+    options['cellid']=cellid
+    options['batch']=batch
+
+    for i,parmfilepath in enumerate(files):
+        
+        event_times, spike_dict, stim_dict, state_dict = baphy_load_dataset(parmfilepath,options)
+        d2=event_times.loc[0].copy()
+        if (i==0) & (d2['name']=='PASSIVE_EXPERIMENT'):
+            d2['name']='PRE_PASSIVE'
+            event_times=event_times.append(d2)
+        elif d2['name']=='PASSIVE_EXPERIMENT':
+            d2['name']='POST_PASSIVE'
+            event_times=event_times.append(d2)
+        
+        # generate spike raster
+        raster_all,cellids=spike_time_to_raster(spike_dict,fs=options['rasterfs'],event_times=event_times)
+        
+        # generate response signal
+        t_resp=nems.signal.Signal(fs=options['rasterfs'],matrix=raster_all,name='resp',recording=cellid,chans=cellids,epochs=event_times)
+        if i==0:
+            resp=t_resp
+        else:
+            resp=resp.concatenate_time([resp,t_resp])
+        
+        try:
+            options['pupil']=True
+            # create pupil signal if it exists
+            rlen=raster_all.shape[1]
+            plen=state_dict['pupiltrace'].shape[1]
+            if plen>rlen:
+                state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(plen-rlen)]
+            elif rlen>plen:
+                state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(rlen-plen)]
+                
+            # generate pupil signals
+            t_pupil=nems.signal.Signal(fs=options['rasterfs'],matrix=state_dict['pupiltrace'],name='pupil',recording=cellid,chans=['pupil'],epochs=event_times)
+            
+            if i==0:
+                pupil=t_pupil
+            else:
+                pupil=pupil.concatenate_time([pupil,t_pupil])
+        except:
+            options['pupil']=False
+            
+        if options['stim']:
+            
+            s=stim_dict_to_matrix(stim_dict,fs=options['rasterfs'],event_times=event_times)
+            
+            
+    resp.meta=options
+    
+    if options['pupil']:
+        signals={'resp': resp, 'pupil': pupil}
+    else:
+        signals={'resp': resp}
+    if options['stim']:
+        print("Stim loading not yet supported for recording")
+        signals['stim']=stim
+        
+    rec=nems.recording.Recording(signals=signals)
+   
+    return rec
