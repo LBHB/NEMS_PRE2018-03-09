@@ -61,6 +61,13 @@ class Distribution:
         size = [n] + list(self.shape)
         return self.distribution.rvs(size=size)
 
+    def tolist(self):
+        d = self.__dict__
+        del d['distribution']
+        name = type(self).__name__
+        l = [name, d]
+        return l
+
     # TODO: Move to plots.py
     def plot(self, ax=None, **plot_kw):
         # Get mi and max percentiles across the full set of priors.

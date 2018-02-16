@@ -1,7 +1,9 @@
+import time
 import numpy as np
 import scipy as scp
 
 import nems.fitters.termination_conditions as tc
+
 
 def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
     '''
@@ -22,6 +24,7 @@ def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
         update_stepinfo(err=err, sigma=sigma)
 
     return sigma
+
 
 def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
                        step_min=1e-5, tolerance=1e-5, max_iter=500):
@@ -66,10 +69,13 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
                   .format(step_size, step_size*step_change))
             step_size *= step_change
 
-        if stepinfo['stepnum'] % 20 == 0:
-            print("sigma is now: {}".format(sigma))
+        # if stepinfo['stepnum'] % 20 == 0:
+        #     print("sigma is now: {}".format(sigma))
     print("Final error: {}".format(stepinfo['err']))
+    now = time.time()
+    print("Run Time: {}".format(now - stepinfo['start_time']))
     return sigma
+
 
 def scipy_minimize(sigma, cost_fn,
                    fit_kwargs={'method':'L-BFGS-B',

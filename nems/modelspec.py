@@ -6,7 +6,7 @@ import numpy as np
 
 from importlib import import_module
 from nems.utils import split_to_api_and_fn
-
+from nems.distributions.distribution import Distribution
 # Functions for saving, loading, and evaluating modelspecs
 
 
@@ -14,7 +14,8 @@ from nems.utils import split_to_api_and_fn
 # https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array
 class NumpyAwareJSONEncoder(json.JSONEncoder):
     def default(self, obj):
-        print(obj, type(obj))
+        if issubclass(type(obj), Distribution):
+            return obj.tolist()
         if isinstance(obj, np.ndarray):  # and obj.ndim == 1:
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)

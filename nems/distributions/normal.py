@@ -42,7 +42,4 @@ class Normal(Distribution):
         self.distribution = stats.norm(loc=self.mu, scale=self.sd)
 
     def __repr__(self):
-        mu = self.value_to_string(self.mu)
-        sd = self.value_to_string(self.sd)
-        return '["Normal", {{"mu": {}, "sd": {}}}]'.format(mu, sd)
- 
+        return str(self.to_list())

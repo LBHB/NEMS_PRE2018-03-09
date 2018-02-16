@@ -89,8 +89,8 @@ modelspec = nems.priors.set_random_phi(modelspec)
 #       in descending order of how they performed on the fitter's metric.
 
 # Option 1: Use gradient descent (Fast)
-#results = fit_basic(est, modelspec)
-results = [modelspec]
+results = fit_basic(est, modelspec)
+# results = [modelspec]
 
 # Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
 # results = nems.analysis.fit_basic(est, modelspec,
