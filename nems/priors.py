@@ -20,6 +20,9 @@ import nems.distributions.api
 default_priors = {'nems.modules.fir.fir_filter':
                   {'coefficients': ('Normal', {'mu': [0], 'sd': [1]})},
 
+                  'nems.modules.levelshift.levelshift':
+                  {'level': ('Normal', {'mu': [0], 'sd': [10]})},
+
                   'nems.modules.nonlinearity.double_exponential':
                   {'base': ('Normal', {'mu': [0], 'sd': [1]}),
                    'amplitude': ('Normal', {'mu': [0.5], 'sd': [0.5]}),

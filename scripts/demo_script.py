@@ -66,7 +66,7 @@ est, val = rec.split_at_time(0.8)
 # GOAL: Define the model that you wish to test
 
 # Method #1: create from "shorthand" keyword string
-modelspec = nems.initializers.from_keywords('wc40x1_fir10x1_dexp1')
+modelspec = nems.initializers.from_keywords('wc40x1_lvl1_fir10x1_dexp1')
 
 # print(modelspec)
 # Method #2: load a modelspec from disk
@@ -89,7 +89,8 @@ modelspec = nems.priors.set_random_phi(modelspec)
 #       in descending order of how they performed on the fitter's metric.
 
 # Option 1: Use gradient descent (Fast)
-results = fit_basic(est, modelspec)
+#results = fit_basic(est, modelspec)
+results = [modelspec]
 
 # Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
 # results = nems.analysis.fit_basic(est, modelspec,

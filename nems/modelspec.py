@@ -14,6 +14,7 @@ from nems.utils import split_to_api_and_fn
 # https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array
 class NumpyAwareJSONEncoder(json.JSONEncoder):
     def default(self, obj):
+        print(obj, type(obj))
         if isinstance(obj, np.ndarray):  # and obj.ndim == 1:
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)

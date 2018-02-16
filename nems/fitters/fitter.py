@@ -66,7 +66,7 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
                   .format(step_size, step_size*step_change))
             step_size *= step_change
 
-        if stepinfo['stepnum']%5 == 0:
+        if stepinfo['stepnum'] % 20 == 0:
             print("sigma is now: {}".format(sigma))
     print("Final error: {}".format(stepinfo['err']))
     return sigma

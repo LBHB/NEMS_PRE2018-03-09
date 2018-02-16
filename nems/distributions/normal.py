@@ -44,4 +44,5 @@ class Normal(Distribution):
     def __repr__(self):
         mu = self.value_to_string(self.mu)
         sd = self.value_to_string(self.sd)
-        return "('Normal', {{'mu': {}, 'sd': {}}})".format(mu, sd)
+        return '["Normal", {{"mu": {}, "sd": {}}}]'.format(mu, sd)
+ 
