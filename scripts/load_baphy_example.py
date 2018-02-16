@@ -17,20 +17,26 @@ import matplotlib.pyplot as plt
 
 import nems.utilities as nu
 import nems.db as nd
+import nems.utilities.baphy
+
+# find all cells in A1 / natural sound dataset
+batch=271
+
+d=nd.get_batch_cells(batch=batch)
+print(d['cellid'])
 
 # figure out filepath for demo files
-
 cellid='TAR010c-07-1'
-batch=271
-# database can be used to locate files, but need to configure nems
-#d=nd.get_batch_cell_data(cellid=cellid,batch=batch,label='parm')
-#parmfilepath=d['parm'][0]
-# less responsive site
-#parmfilepath='/auto/data/daq/Babybell/bbl086/bbl086b09_p_NAT.m'
-#several units recorded here
-parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
 
-options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
+# database can be used to locate files, but need to configure nems
+d=nd.get_batch_cell_data(cellid=cellid,batch=batch,label='parm')
+parmfilepath=d['parm'][0]
+
+# less responsive site
+#cellid='all'   # set cellid='all' to load all cells recorded at this site
+#parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
+
+options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': cellid, 'pupil': True}
 event_times, spike_dict, stim_dict, state_dict = nu.baphy.baphy_load_recording(parmfilepath,options)
 
 

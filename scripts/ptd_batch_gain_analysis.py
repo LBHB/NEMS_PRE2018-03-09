@@ -142,11 +142,11 @@ def ptd_gain_model(recording,options):
         state=resp.concatenate_channels([pre_passive,behavior_state,pupil])
     else:
         try:
-            state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,pupil])
+            state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,pupil,hit_trials,fa_trials])
         except:
             pupil=resp.epoch_to_signal('XXX')
             pupil.chans=['pupil']
-            state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,pupil])
+            state=resp.concatenate_channels([pre_passive,puretone_trials,easy_trials,hard_trials,pupil,hit_trials,fa_trials])
 
     state.name='state'
     
@@ -386,7 +386,7 @@ else:
              'plot_results': False, 'plot_ax': None}
 
 REGEN=False
-RELOAD=False
+RELOAD=True
 REFIT=True
 if REGEN:
     plt.close('all')
@@ -519,8 +519,8 @@ else:
 
     beta2=np.concatenate([x['params'][2:,np.newaxis] for x in res2], axis=1)
     sig2=np.concatenate([x['pvalues'][2:,np.newaxis] for x in res2], axis=1)
-    tbeta=np.concatenate((beta,beta2[7:10,:]),axis=0)
-    tsig=np.concatenate((sig,sig2[7:10,:]),axis=0)
+    tbeta=np.concatenate((beta,beta2[8:11,:]),axis=0)
+    tsig=np.concatenate((sig,sig2[8:11,:]),axis=0)
     
     txlabels=xlabels+['PURE_NO_PRE_gn','EASY_NO_PRE_gn','HARD_NO_PRE_gn']
 
