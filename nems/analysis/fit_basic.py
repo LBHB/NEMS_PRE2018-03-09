@@ -40,11 +40,12 @@ def fit_basic(data, modelspec,
     by this fitter.
     '''
 
-    # Ensure that phi exists for all modules; choose mean if non-existent
-    for m in modelspec:
+    # Ensure that phi exists for all modules; choose prior mean if not found
+    for i, m in enumerate(modelspec):
         if not m.get('phi'):
-            logging.warn('Phi not found for module, using mean of prior: {}'.format(m))
+            logging.debug('Phi not found for module, using mean of prior: {}'.format(m))
             m = nems.priors.set_mean_phi([m])[0]  # Inits phi for 1 module
+            modelspec[i] = m
 
     # Create the mapper object that translates to and from modelspecs.
     # It has two methods that, when defined as mathematical functions, are:

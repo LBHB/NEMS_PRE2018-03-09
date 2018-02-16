@@ -79,9 +79,6 @@ modelspec = nems.initializers.from_keywords('wc40x1_lvl1_fir10x1_dexp1')
 # Method #4: specify it manually (TODO)
 # modelspec = ...
 
-# Optional: Set phi to a random sample from modelspec distribution
-# modelspec = nems.priors.set_random_phi(modelspec)
-
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
 
