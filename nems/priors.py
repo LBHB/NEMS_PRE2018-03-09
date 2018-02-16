@@ -1,4 +1,5 @@
 import logging as log
+from nems.distributions.distribution import Distribution
 import nems.keywords
 import nems.distributions.api
 
@@ -27,7 +28,7 @@ default_priors = {'nems.modules.fir.fir_filter':
                   {'base': ('Normal', {'mu': [0], 'sd': [1]}),
                    'amplitude': ('Normal', {'mu': [0.5], 'sd': [0.5]}),
                    'shift': ('Normal', {'mu': [0], 'sd': [1]}),
-                   'kappa': ('Normal', {'mu': [0.5], 'sd': [0.5]})}}
+                   'kappa': ('Normal', {'mu': [0], 'sd': [0.1]})}}
 
 
 def _get_module_prior(module, default_priors=default_priors):
@@ -36,8 +37,8 @@ def _get_module_prior(module, default_priors=default_priors):
     exists in module, its distributions are used to replace any default
     priors listed in keywords/default_priors.
     '''
-    general_prior = default_priors.get(module['fn'])
     specific_prior = module.get('prior')
+    general_prior = default_priors.get(module['fn'])
 
     if general_prior and specific_prior:
         prior = {**general_prior, **specific_prior}
@@ -48,8 +49,11 @@ def _get_module_prior(module, default_priors=default_priors):
     else:
         return None
 
-    # Now instantiate the prior distribution objects
+    # Instantiate the Distribution objects if needed.
     for arg_name in prior:
+        if issubclass(type(prior[arg_name]), Distribution):
+            # Skip this; it is already instantiated
+            continue
         dist_type, dist_params = prior[arg_name]
         dist_class = getattr(nems.distributions.api, dist_type)
         dist = dist_class(**dist_params)

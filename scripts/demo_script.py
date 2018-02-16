@@ -3,12 +3,13 @@
 
 import os
 import logging
+import random
 import matplotlib.pyplot as plt
 import nems
 import nems.initializers
 import nems.modelspec as ms
 import nems.plots.api as nplt
-from nems.analysis.api import fit_basic
+import nems.analysis.api
 from nems.recording import Recording
 
 # ----------------------------------------------------------------------------
@@ -68,7 +69,6 @@ est, val = rec.split_at_time(0.8)
 # Method #1: create from "shorthand" keyword string
 modelspec = nems.initializers.from_keywords('wc40x1_lvl1_fir10x1_dexp1')
 
-# print(modelspec)
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc1_fir10x1_dexp1.json')
 
@@ -88,19 +88,33 @@ modelspec = nems.priors.set_random_phi(modelspec)
 #       Note that: nems.analysis.* will return a list of modelspecs, sorted
 #       in descending order of how they performed on the fitter's metric.
 
-# Option 1: Use gradient descent (Fast)
-results = fit_basic(est, modelspec)
-# results = [modelspec]
+# Option 1: Use gradient descent on whole data set(Fast)
+# results = nems.analysis.api.fit_basic(est, modelspec)
 
-# Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
+# Option 2: Split the est data into 10 pieces, fit them, and average
+# results = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
+# result = average(result
+
+# Option 3: Fit 10 jackknifes of the data, and return all of them.
+# results = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=10)
+
+# Option 4: Divide estimation data into 10 subsets; fit all sets separately
+results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=10)
+
+# Option 5: Start from random starting points 10 times
+#results = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
+
+# TODO: Perturb around the modelspec to get confidence intervals
+
+# TODO: Use simulated annealing (Slow, arguably gets stuck less often)
 # results = nems.analysis.fit_basic(est, modelspec,
 #                                   fitter=nems.fitter.annealing)
 
-# Option 3: Use Metropolis algorithm (Very slow, gives confidence interval)
+# TODO: Use Metropolis algorithm (Very slow, gives confidence interval)
 # results = nems.analysis.fit_basic(est, modelspec,
 #                                   fitter=nems.fitter.metropolis)
 
-# Option 4: Use 10-fold cross-validated evaluation
+# TODO: Use 10-fold cross-validated evaluation
 # fitter = partial(nems.cross_validator.cross_validate_wrapper, gradient_descent, 10)
 # results = nems.analysis.fit_cv(est, modelspec, folds=10)
 

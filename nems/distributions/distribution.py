@@ -63,7 +63,8 @@ class Distribution:
 
     def tolist(self):
         d = self.__dict__
-        del d['distribution']
+        if 'distribution' in d:
+            del d['distribution']
         name = type(self).__name__
         l = [name, d]
         return l

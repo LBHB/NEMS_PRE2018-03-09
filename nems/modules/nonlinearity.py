@@ -12,5 +12,5 @@ def double_exponential(rec, i, o, base, amplitude, shift, kappa):
        shift      Centerpoint of the sigmoid along x axis
        kappa      Sigmoid curvature (higher is...steeper? TODO)
     '''
-    fn = lambda x : base + amplitude * np.exp(-np.exp(-kappa * (x - shift)))
+    fn = lambda x : base + amplitude * np.exp(-np.exp(-np.exp(kappa) * (x - shift)))
     return [rec[i].transform(fn, o)]

@@ -322,12 +322,14 @@ class Signal:
                                            tiled=tiled, invert=True))
             jack_idx += 1
 
-    def jackknife_by_time(self, njacks, jack_idx, invert=False):
+    def jackknife_by_time(self, njacks, jack_idx, invert=False, excise=False):
         '''
         Returns a new signal, with some data NaN'd out based on its position
         in the time stream. jack_idx is indexed from 0; if you have 20 splits,
         the first is #0 and the last is #19.
         Optional argument 'invert' causes everything BUT the jackknife to be NaN.
+        Optional argument 'excise' removes the elements that would've been NaN
+        and thus changes the size of the signal.
         '''
         splitsize = int(self.ntimes / njacks)
         if splitsize < 1:
@@ -341,13 +343,21 @@ class Signal:
             split_end = (jack_idx + 1) * splitsize
 
         m = self.as_continuous()
-        if not invert:
-            m[..., split_start:split_end] = np.nan
+        if excise:
+            if invert:
+                o = np.empty((self.nchans, split_end - split_start))
+                o = m[:, split_start:split_end]
+            else:
+                o = np.delete(m, slice(split_start, split_end), axis=-1)
+            return self._modified_copy(o.reshape(self.nchans, -1))
         else:
-            mask = np.ones_like(m, dtype=np.bool)
-            mask[:, split_start:split_end] = 0
-            m[mask] = np.nan
-        return self._modified_copy(m.reshape(self.nchans, -1))
+            if not invert:
+                m[..., split_start:split_end] = np.nan
+            else:
+                mask = np.ones_like(m, dtype=np.bool)
+                mask[:, split_start:split_end] = 0
+                m[mask] = np.nan
+            return self._modified_copy(m.reshape(self.nchans, -1))
 
     def jackknifes_by_time(self, njacks):
         '''
