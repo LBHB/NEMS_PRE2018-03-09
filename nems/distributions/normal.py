@@ -42,4 +42,4 @@ class Normal(Distribution):
         self.distribution = stats.norm(loc=self.mu, scale=self.sd)
 
     def __repr__(self):
-        return str(self.to_list())
+        return str(self.tolist())

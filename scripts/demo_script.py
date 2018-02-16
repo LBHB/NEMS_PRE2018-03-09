@@ -99,7 +99,7 @@ modelspec = nems.priors.set_random_phi(modelspec)
 # results = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=10)
 
 # Option 4: Divide estimation data into 10 subsets; fit all sets separately
-results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=10)
+results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
 # Option 5: Start from random starting points 10 times
 #results = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)

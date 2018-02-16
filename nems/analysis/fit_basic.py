@@ -1,3 +1,4 @@
+import copy
 import logging
 from functools import partial
 
@@ -57,8 +58,8 @@ def fit_basic(data, modelspec,
         data_subset = segmentor(data)
         updated_data_subset = evaluator(data_subset, updated_spec)
         error = metric(updated_data_subset)
-        #print("inside cost function, current error: {}".format(error))
-        #print("\ncurrent sigma: {}".format(sigma))
+        logging.debug("inside cost function, current error: {}".format(error))
+        logging.debug("\ncurrent sigma: {}".format(sigma))
         return error
 
     # Freeze everything but sigma, since that's all the fitter should be
@@ -75,8 +76,7 @@ def fit_basic(data, modelspec,
     # (might only be one in list, but still should be packaged as a list)
     improved_sigma = fitter(sigma, cost_fn)
     improved_modelspec = unpacker(improved_sigma)
-    results = [improved_modelspec]
-
+    results = [copy.deepcopy(improved_modelspec)]
     return results
 
 
@@ -101,7 +101,7 @@ def fit_jackknifes(data, modelspec, njacks=10):
     '''
     models = []
     for i in range(njacks):
-        logging.info("Fitting jackknife {}/{}".format(i, njacks))
+        logging.info("Fitting jackknife {}/{}".format(i+1, njacks))
         jk = data.jackknife_by_time(njacks, i)
         models += fit_basic(jk, modelspec, fitter=scipy_minimize)
 
@@ -115,7 +115,7 @@ def fit_subsets(data, modelspec, nsplits=10):
     '''
     models = []
     for i in range(nsplits):
-        logging.info("Fitting subset {}/{}".format(i, nsplits))
+        logging.info("Fitting subset {}/{}".format(i+1, nsplits))
         split = data.jackknife_by_time(nsplits, i, invert=True, excise=True)
         models += fit_basic(split, modelspec, fitter=scipy_minimize)
 
@@ -128,7 +128,7 @@ def fit_from_priors(data, modelspec, ntimes=10):
     '''
     models = []
     for i in range(ntimes):
-        logging.info("Fitting from random start: {}/{}".format(i, ntimes))
+        logging.info("Fitting from random start: {}/{}".format(i+1, ntimes))
         ms = nems.priors.set_random_phi(modelspec)
         models += fit_basic(data, ms, fitter=scipy_minimize)
 
