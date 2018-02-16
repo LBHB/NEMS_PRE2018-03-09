@@ -3,10 +3,11 @@ import copy
 import json
 import fnmatch
 import numpy as np
+import importlib
 
-from importlib import import_module
-from nems.utils import split_to_api_and_fn
+import nems.utils
 from nems.distributions.distribution import Distribution
+
 # Functions for saving, loading, and evaluating modelspecs
 
 
@@ -19,6 +20,38 @@ class NumpyAwareJSONEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):  # and obj.ndim == 1:
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
+
+
+def get_modelspec_metadata(modelspec):
+    '''
+    Returns a dict of the metadata for this modelspec.
+    '''
+    # TODO: Consider putting this elsewhere?
+    return modelspec[0].get('meta', {})
+
+
+def set_modelspec_metadata(modelspec, key, value):
+    '''
+    Sets a key/value pair in the modelspec's metadata. Purely by convention,
+    metadata info for the entire modelspec is stored in the first module.
+    '''
+    if not modelspec[0].get('meta'):
+        modelspec[0]['meta'] = {}
+    modelspec[0]['meta'][key] = value
+    return modelspec
+
+
+def guess_modelspec_name(modelspec):
+    '''
+    Tries to guess a good file name for this modelspec.
+    '''
+    meta = get_modelspec_metadata(modelspec)
+    recording_name = meta.get('recording', 'unknown_recording')
+    keyword_string = '_'.join([m['id'] for m in modelspec])
+    fitter_name = meta.get('fitter', 'unknown_fitter')
+    date = nems.utils.iso8601_datestring()
+    guess = '.'.join([recording_name, keyword_string, fitter_name, date])
+    return guess
 
 
 def _modelspec_filename(basepath, number):
@@ -34,16 +67,21 @@ def save_modelspec(modelspec, filepath):
         json.dump(modelspec, f, cls=NumpyAwareJSONEncoder)
 
 
-def save_modelspecs(directory, basename, modelspecs):
+def save_modelspecs(directory, modelspecs, basename=None):
     '''
     Saves one or more modelspecs to disk with stereotyped filenames:
         directory/basename.0000.json
         directory/basename.0001.json
         directory/basename.0002.json
         ...etc...
+    Basename will be automatically generated if not provided.
     '''
-    basepath = os.path.join(directory, basename)
     for idx, modelspec in enumerate(modelspecs):
+        if not basename:
+            bname = guess_modelspec_name(modelspec)
+        else:
+            bname = basename
+        basepath = os.path.join(directory, bname)
         filepath = _modelspec_filename(basepath, idx)
         save_modelspec(modelspec, filepath)
 
@@ -81,11 +119,12 @@ def _lookup_fn_at(fn_path):
     if fn_path in lookup_table:
         fn = lookup_table[fn_path]
     else:
-        api, fn_name = split_to_api_and_fn(fn_path)
-        api_obj = import_module(api)
+        api, fn_name = nems.utils.split_to_api_and_fn(fn_path)
+        api_obj = importlib.import_module(api)
         fn = getattr(api_obj, fn_name)
         lookup_table[fn_path] = fn
     return fn
+
 
 def evaluate(rec, modelspec, stop=-1):
     '''
