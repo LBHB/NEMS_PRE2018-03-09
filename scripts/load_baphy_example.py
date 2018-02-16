@@ -37,7 +37,7 @@ parmfilepath=d['parm'][0]
 #parmfilepath='/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
 
 options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': cellid, 'pupil': True}
-event_times, spike_dict, stim_dict, state_dict = nu.baphy.baphy_load_recording(parmfilepath,options)
+event_times, spike_dict, stim_dict, state_dict = nu.baphy.baphy_load_dataset(parmfilepath,options)
 
 
 # compute raster for specific unit and stimulus id with sampling rate rasterfs

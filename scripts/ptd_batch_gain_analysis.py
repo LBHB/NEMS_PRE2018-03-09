@@ -26,66 +26,12 @@ import nems.recording
 import nems.db as nd
 
 
-def ptd_load_recording(cellid,batch,options):
-    
-    d=nd.get_batch_cell_data(batch=batch, cellid=cellid, label='parm') 
-    files=list(d['parm'])
-   
-    options['cellid']=cellid
-    options['batch']=batch
-
-    for i,parmfilepath in enumerate(files):
-        
-        event_times, spike_dict, stim_dict, state_dict = nems.utilities.baphy.baphy_load_recording(parmfilepath,options)
-        d2=event_times.loc[0].copy()
-        if (i==0) & (d2['name']=='PASSIVE_EXPERIMENT'):
-            d2['name']='PRE_PASSIVE'
-            event_times=event_times.append(d2)
-        elif d2['name']=='PASSIVE_EXPERIMENT':
-            d2['name']='POST_PASSIVE'
-            event_times=event_times.append(d2)
-        
-        # generate spike raster
-        raster_all,cellids=nems.utilities.baphy.spike_time_to_raster(spike_dict,fs=options['rasterfs'],event_times=event_times)
-        
-        # generate response signal
-        t_resp=nems.signal.Signal(fs=options['rasterfs'],matrix=raster_all,name='resp',recording=cellid,chans=cellids,epochs=event_times)
-        if i==0:
-            resp=t_resp
-        else:
-            resp=resp.concatenate_time([resp,t_resp])
-        
-        try:
-            if options['pupil']:
-                rlen=raster_all.shape[1]
-                plen=state_dict['pupiltrace'].shape[1]
-                if plen>rlen:
-                    state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(plen-rlen)]
-                elif rlen>plen:
-                    state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(rlen-plen)]
-                
-                # generate pupil signals
-                t_pupil=nems.signal.Signal(fs=options['rasterfs'],matrix=state_dict['pupiltrace'],name='state',recording=cellid,chans=['pupil'],epochs=event_times)
-            
-                if i==0:
-                    pupil=t_pupil
-                else:
-                    pupil=pupil.concatenate_time([pupil,t_pupil])
-        except:
-            options['pupil']=False
-            
-    resp.meta=options
-    
-    if options['pupil']:
-        signals={'resp': resp, 'state': pupil}
-    else:
-        signals={'resp': resp}
-       
-    rec=nems.recording.Recording(signals=signals)
-   
-    return rec
-
 def ptd_gain_model(recording,options):
+    """
+    fit a model that scales the PSTH by various state variables
+    
+    TODO-allow options to specify list of variables to use for fitting
+    """
     
     GAIN_ONLY=0
     DC_ONLY=0
@@ -100,8 +46,8 @@ def ptd_gain_model(recording,options):
     options['plot_ax']=options.get('plot_ax',None)
     
     if options['pupil']:
-        pupil=recording.get_signal('state')
-                    
+        pupil=recording.get_signal('pupil')
+        
     # determine if pre- and post-passive both occured
     fpre=(resp.epochs['name']=="PRE_PASSIVE")
     fpost=(resp.epochs['name']=="POST_PASSIVE")
@@ -389,6 +335,7 @@ REGEN=False
 RELOAD=True
 REFIT=True
 if REGEN:
+    # load data from baphy files and save to nems format
     plt.close('all')
     cell_data=nd.get_batch_cells(batch=batch)
     cellids=list(cell_data['cellid'].unique())
@@ -396,9 +343,10 @@ if REGEN:
     recordings=[]
     save_path="/auto/data/tmp/batch{0}_fs{1}_stim_none/".format(batch,options["rasterfs"])
     for cellid in cellids:
-        recordings=recordings+[ptd_load_recording(cellid,batch,options.copy())]
+        recordings=recordings+[nems.utilities.baphy.baphy_load_recording(cellid,batch,options.copy())]
         recordings[-1].save(save_path)
 elif RELOAD:
+    # load data from baphy format
     cell_data=nd.get_batch_cells(batch=batch)
     cellids=list(cell_data['cellid'].unique())
     recordings=[]
@@ -407,6 +355,7 @@ elif RELOAD:
         print("Loading from {0}".format(save_path))
         recordings=recordings+[nems.recording.Recording.load(save_path)]
 else:
+    # don't load or regen, recordings are already in memory
     print("Assuming data are loaded")
 
 if REFIT:
