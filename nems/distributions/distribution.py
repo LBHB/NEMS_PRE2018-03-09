@@ -9,11 +9,14 @@ class Distribution:
 
     @classmethod
     def value_to_string(cls, value):
-        if value.ndim == 0:
-            return 'scalar'
-        else:
-            shape = ', '.join(str(v) for v in value.shape)
-            return 'array({})'.format(shape)
+        return str(value)
+       # @brad: Do we need this? What's it for? I'm going to let
+       #        concrete classes decide this rather than here. -- Ivar
+        # if value.ndim == 0:
+        #     return 'scalar'
+        # else:
+        #     shape = ', '.join(str(v) for v in value.shape)
+        #     return 'array({})'.format(shape)
 
     def mean(self):
         '''
@@ -54,10 +57,19 @@ class Distribution:
 
     def sample(self, n=None):
         if n is None:
-            return self.distribution.rvs()
+            return self.distribution.rvs().reshape(self.shape)
         size = [n] + list(self.shape)
         return self.distribution.rvs(size=size)
 
+    def tolist(self):
+        d = self.__dict__
+        if 'distribution' in d:
+            del d['distribution']
+        name = type(self).__name__
+        l = [name, d]
+        return l
+
+    # TODO: Move to plots.py
     def plot(self, ax=None, **plot_kw):
         # Get mi and max percentiles across the full set of priors.
         prior_min = self.percentile(0.01)

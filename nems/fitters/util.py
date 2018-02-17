@@ -22,6 +22,8 @@ def phi_to_vector(phi):
 
     vector = []
     for p in phi:
+        if p is None:
+            continue
         for k in sorted(p.keys()):
             value = p[k]
             if np.isscalar(value):
@@ -50,6 +52,10 @@ def vector_to_phi(vector, phi_template):
     phi = []
     for p_template in phi_template:
         p = {}
+        if p_template is None:
+            phi.append(p)
+            continue
+
         for k in sorted(p_template.keys()):
             value_template = p_template[k]
             if np.isscalar(value_template):

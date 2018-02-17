@@ -99,9 +99,6 @@ ENV/
 .mypy_cache/
 
 # nems-specific
-saved_analysis/
-saved_images/
-saved_models/
 #signals/
 *~
 .DS_Store
