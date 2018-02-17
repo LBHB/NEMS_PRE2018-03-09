@@ -89,7 +89,7 @@ modelspec = nems.priors.set_random_phi(modelspec)
 #       in descending order of how they performed on the fitter's metric.
 
 # Option 1: Use gradient descent on whole data set(Fast)
-# results = nems.analysis.api.fit_basic(est, modelspec)
+#results = nems.analysis.api.fit_basic(est, modelspec)
 
 # Option 2: Split the est data into 10 pieces, fit them, and average
 # results = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
@@ -142,29 +142,40 @@ ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
 # nems.plot.predictions(val, results)
 
 # Optional: Compute the confidence intervals on your results
-# nems.plot.confidence_intervals(val, results)
+# nems.plot.confidence_intervals(val, results) # TODO
 
 # Optional: View the prediction of the best result according to MSE
-# nems.plot.best_estimator(val, results, metric=nems.metrics.mse)
+# nems.plot.best_estimator(val, results, metric=nems.metrics.mse) # TODO
 
 # Optional: View the posterior parameter probability distributions
-# nems.plot.posterior(val, results)
+# nems.plot.posterior(val, results) # TODO
 
+one_modelspec = results[0]
 # TODO: set up epochs for gus
 #nplt.plot_stim_occurrence(rec, modelspec, ms.evaluate)
 
+
+# TODO: package this part into a script
 fig = plt.figure(figsize=(6, 4))
 
-ax1 = plt.subplot(311)
-nplt.pred_vs_act_scatter(val, modelspec, ms.evaluate, ax=ax1)
-ax2 = plt.subplot(312)
-nplt.pred_vs_act_psth(val, modelspec, ms.evaluate, ax=ax2)
-ax3 = plt.subplot(313)
-nplt.pred_vs_act_psth_smooth(val, modelspec, ms.evaluate, ax=ax3)
+ax1 = plt.subplot(211)
+nplt.pred_vs_act_scatter(val, one_modelspec, ms.evaluate, ax=ax1)
+ax2 = plt.subplot(212)
+nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
+#ax3 = plt.subplot(313)
+#nplt.pred_vs_act_psth_smooth(val, one_modelspec, ms.evaluate, ax=ax3)
 
 plt.tight_layout()
 plt.show()
 
+# TODO: test plots with several modelspecs.
+#       just need some simple iterative wrappers?
+several_modelspecs = results
+
+
+# TODO: test plots with modelspec loaded from file
+#loaded_modelspecs = ms.load_modelspecs(modelspecs_dir, 'demo_script_model')
+# ...TODO
 
 # plot_all_at_once(modelspec, [pred_vs_act_scatter,
 #                              pred_vs_act_ptsh,

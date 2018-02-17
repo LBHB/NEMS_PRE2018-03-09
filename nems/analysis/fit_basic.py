@@ -115,6 +115,11 @@ def fit_subsets(data, modelspec, nsplits=10):
     '''
     models = []
     for i in range(nsplits):
+        # TODO: Minor glitch: when fitting, print output from fitter
+        #       comes back *after* logging from next iteration
+        #       (i.e. "fitting 1/3"
+        #             "fitting 2/3"
+        #             "final error <for 1/3>: 0.111")
         logging.info("Fitting subset {}/{}".format(i+1, nsplits))
         split = data.jackknife_by_time(nsplits, i, invert=True, excise=True)
         models += fit_basic(split, modelspec, fitter=scipy_minimize)

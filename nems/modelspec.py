@@ -61,7 +61,8 @@ def load_modelspecs(directory, basename):
     Returns a list of modelspecs loaded from directory/basename.*.json
     '''
     regex = '^' + basename + '\.{\d+}\.json'
-    files = fnmatch.filter(os.listdir(basename), regex)
+    # TODO: fnmatch is not matching pattern correctly
+    files = fnmatch.filter(os.listdir(directory), regex)
     modelspecs = [json.load(f) for f in files]
     return modelspecs
 

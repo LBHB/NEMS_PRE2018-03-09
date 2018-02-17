@@ -27,7 +27,7 @@ def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
 
 
 def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
-                       step_min=1e-5, tolerance=1e-5, max_iter=500):
+                       step_min=1e-5, tolerance=1e-2, max_iter=100):
 
     stepinfo, update_stepinfo = tc.create_stepinfo()
     stop_fit = lambda : (tc.error_non_decreasing(stepinfo, tolerance)
