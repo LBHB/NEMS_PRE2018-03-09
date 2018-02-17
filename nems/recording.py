@@ -116,21 +116,22 @@ class Recording:
         # return Recording(signals=split)
 
     def jackknife_by_time(self, nsplits, split_idx, only_signals=None,
-                          invert=False):
+                          invert=False, excise=False):
         '''
         By default, calls jackknifed_by_time on all signals and returns a new
         set of data.  If you would only like to jackknife certain signals,
         while copying all other signals intact, provide their names in a
         list to optional argument 'only_signals'.
         '''
-        raise NotImplementedError        # TODO
-        # new_sigs = {}
-        # for sn in self.signals.keys():
-        #     if (not only_signals or sn in set(only_signals)):
-        #         s = sn
-        #         new_sigs[sn] = s.jackknifed_by_time(nsplits, split_idx,
-        #                                             invert=invert)
-        # return Recording(signals=new_sigs)
+        if excise and only_signals:
+            raise Exception('Excising only some signals makes signals ragged!')
+        new_sigs = {}
+        for sn in self.signals.keys():
+            if (not only_signals or sn in set(only_signals)):
+                s = self.signals[sn]
+                new_sigs[sn] = s.jackknife_by_time(nsplits, split_idx,
+                                                   invert=invert, excise=excise)
+        return Recording(signals=new_sigs)
 
     def jackknifes_by_epoch(self, nsplits, epoch_name, only_signals=None):
         raise NotImplementedError         # TODO

@@ -43,6 +43,11 @@ defkey('fir10x1',
                   ('Normal', {'mu': [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
                               'sd': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]})}})
 
+defkey('lvl1',
+       {'fn': 'nems.modules.levelshift.levelshift',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred'}})
+
 defkey('dexp1',
        {'fn': 'nems.modules.nonlinearity.double_exponential',
         'fn_kwargs': {'i': 'pred',

@@ -51,11 +51,12 @@ def vector_to_phi(vector, phi_template):
     offset = 0
     phi = []
     for p_template in phi_template:
-        if p_template is None:
-            continue
         p = {}
-        for k in sorted(p_template.keys()):
+        if p_template is None:
+            phi.append(p)
+            continue
 
+        for k in sorted(p_template.keys()):
             value_template = p_template[k]
             if np.isscalar(value_template):
                 value = vector[offset]
