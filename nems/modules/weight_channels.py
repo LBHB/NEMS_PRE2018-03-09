@@ -12,5 +12,5 @@ def weight_channels(rec, i, o, coefficients):
         equal to the number of channels in the input array
         (e.g., `x.shape[-3] == coefficients.shape[-1]`).
     '''
-    fn = lambda x: coefficients @ x 
+    fn = lambda x: coefficients @ x
     return [rec[i].transform(fn, o)]

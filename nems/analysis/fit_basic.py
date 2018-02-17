@@ -5,9 +5,10 @@ from functools import partial
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 import nems.priors
 import nems.fitters.mappers
-import nems.modelspec
+import nems.modelspec as ms
 import nems.metrics.api
 import nems.segmentors
+
 
 def fit_basic(data, modelspec,
               fitter=coordinate_descent,
@@ -16,7 +17,8 @@ def fit_basic(data, modelspec,
               metric=lambda data: nems.metrics.api.mse(
                                 {'pred': data.get_signal('pred').as_continuous(),
                                  'resp': data.get_signal('resp').as_continuous()}
-                                )):
+                                ),
+              metaname='fit_basic'):
     '''
     Required Arguments:
      data          A recording object
@@ -38,7 +40,14 @@ def fit_basic(data, modelspec,
     by this fitter.
     '''
 
-    # Create the mapper object that translats to and from modelspecs.
+    # Ensure that phi exists for all modules; choose prior mean if not found
+    for i, m in enumerate(modelspec):
+        if not m.get('phi'):
+            logging.debug('Phi not found for module, using mean of prior: {}'.format(m))
+            m = nems.priors.set_mean_phi([m])[0]  # Inits phi for 1 module
+            modelspec[i] = m
+
+    # Create the mapper object that translates to and from modelspecs.
     # It has two methods that, when defined as mathematical functions, are:
     #    .pack(modelspec) -> fitspace_point
     #    .unpack(fitspace_point) -> modelspec
@@ -76,6 +85,8 @@ def fit_basic(data, modelspec,
     # (might only be one in list, but still should be packaged as a list)
     improved_sigma = fitter(sigma, cost_fn)
     improved_modelspec = unpacker(improved_sigma)
+    ms.set_modelspec_metadata(improved_modelspec, 'fitter', metaname)
+    ms.set_modelspec_metadata(improved_modelspec, 'recording', data.name)
     results = [copy.deepcopy(improved_modelspec)]
     return results
 
@@ -91,7 +102,8 @@ def fit_random_subsets(data, modelspec, nsplits=1, rebuild_every=10000):
     segmentor = maker(nsplits=nsplits, rebuild_every=rebuild_every,
                       invert=True, excise=True)
     return fit_basic(data, modelspec,
-                     segmentor=segmentor)
+                     segmentor=segmentor,
+                     metaname='fit_random_subsets')
 
 
 def fit_jackknifes(data, modelspec, njacks=10):
@@ -103,7 +115,8 @@ def fit_jackknifes(data, modelspec, njacks=10):
     for i in range(njacks):
         logging.info("Fitting jackknife {}/{}".format(i+1, njacks))
         jk = data.jackknife_by_time(njacks, i)
-        models += fit_basic(jk, modelspec, fitter=scipy_minimize)
+        models += fit_basic(jk, modelspec, fitter=scipy_minimize,
+                            metaname='fit_jackknifes')
 
     return models
 
@@ -122,7 +135,8 @@ def fit_subsets(data, modelspec, nsplits=10):
         #             "final error <for 1/3>: 0.111")
         logging.info("Fitting subset {}/{}".format(i+1, nsplits))
         split = data.jackknife_by_time(nsplits, i, invert=True, excise=True)
-        models += fit_basic(split, modelspec, fitter=scipy_minimize)
+        models += fit_basic(split, modelspec, fitter=scipy_minimize,
+                            metaname='fit_subset')
 
     return models
 
@@ -135,6 +149,7 @@ def fit_from_priors(data, modelspec, ntimes=10):
     for i in range(ntimes):
         logging.info("Fitting from random start: {}/{}".format(i+1, ntimes))
         ms = nems.priors.set_random_phi(modelspec)
-        models += fit_basic(data, ms, fitter=scipy_minimize)
+        models += fit_basic(data, ms, fitter=scipy_minimize,
+                            metaname='fit_from_priors')
 
     return models

@@ -17,7 +17,7 @@ def from_keywords(keyword_string, registry=keywords.defaults):
         d = registry[kw]
         d['id'] = kw
         modelspec.append(d)
-
+        
     return modelspec
 
 

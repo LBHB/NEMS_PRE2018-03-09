@@ -1,4 +1,5 @@
 import time
+import logging
 import numpy as np
 import scipy as scp
 
@@ -65,15 +66,16 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
 
         # If change was negative, try reducing step size.
         if stepinfo['err_delta'] > 0:
-            print("Error got worse, reducing step size from: {0} to: {1}"
+            logging.info("Error got worse, reducing step size from: {0} to: {1}"
                   .format(step_size, step_size*step_change))
             step_size *= step_change
 
-        # if stepinfo['stepnum'] % 20 == 0:
-        #     print("sigma is now: {}".format(sigma))
-    print("Final error: {}".format(stepinfo['err']))
+        if stepinfo['stepnum'] % 20 == 0:
+            logging.debug("sigma is now: {}".format(sigma))
+
+    logging.info("Final error: {}".format(stepinfo['err']))
     now = time.time()
-    print("Run Time: {}".format(now - stepinfo['start_time']))
+    logging.info("Run Time: {}".format(now - stepinfo['start_time']))
     return sigma
 
 
@@ -103,6 +105,6 @@ def scipy_minimize(sigma, cost_fn,
     #       all set up yet?
     result = scp.optimize.minimize(cost_fn, sigma)
     sigma = result.x
-    print("scipy_minimize fit complete.\n"
-          "final error: {0}".format(cost_fn(sigma)))
+    logging.info("scipy_minimize fit complete.\n",
+                 "final error: {0}".format(cost_fn(sigma)))
     return sigma

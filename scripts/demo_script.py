@@ -10,6 +10,7 @@ import nems.initializers
 import nems.modelspec as ms
 import nems.plots.api as nplt
 import nems.analysis.api
+import nems.utils
 from nems.recording import Recording
 
 # ----------------------------------------------------------------------------
@@ -78,9 +79,6 @@ modelspec = nems.initializers.from_keywords('wc40x1_lvl1_fir10x1_dexp1')
 # Method #4: specify it manually (TODO)
 # modelspec = ...
 
-# Optional: Set phi to a random sample from modelspec distribution
-modelspec = nems.priors.set_random_phi(modelspec)
-
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
 
@@ -93,7 +91,7 @@ modelspec = nems.priors.set_random_phi(modelspec)
 
 # Option 2: Split the est data into 10 pieces, fit them, and average
 # results = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
-# result = average(result
+# result = average(results...)
 
 # Option 3: Fit 10 jackknifes of the data, and return all of them.
 # results = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=10)
@@ -102,7 +100,7 @@ modelspec = nems.priors.set_random_phi(modelspec)
 results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
 # Option 5: Start from random starting points 10 times
-#results = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
+# results = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
 
 # TODO: Perturb around the modelspec to get confidence intervals
 
@@ -127,7 +125,7 @@ results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 # If only one result was returned, save it. But if multiple  modelspecs were
 # returned, save all of them.
 
-ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
+ms.save_modelspecs(modelspecs_dir, results)
 
 # ----------------------------------------------------------------------------
 # GENERATE PLOTS
@@ -152,7 +150,7 @@ ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
 
 one_modelspec = results[0]
 # TODO: set up epochs for gus
-#nplt.plot_stim_occurrence(rec, modelspec, ms.evaluate)
+# nplt.plot_stim_occurrence(rec, modelspec, ms.evaluate)
 
 
 # TODO: package this part into a script
@@ -166,7 +164,7 @@ nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
 #nplt.pred_vs_act_psth_smooth(val, one_modelspec, ms.evaluate, ax=ax3)
 
 plt.tight_layout()
-plt.show()
+#plt.show()
 
 # TODO: test plots with several modelspecs.
 #       just need some simple iterative wrappers?
