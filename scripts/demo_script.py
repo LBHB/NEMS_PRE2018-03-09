@@ -27,7 +27,7 @@ modelspecs_dir = '../modelspecs'
 # GOAL: Get your data loaded into memory as a Recording object
 
 # Method #1: Load the data from a local directory
-rec = Recording.load(os.path.join(signals_dir, 'gus027b13_p_PPS'))
+rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
@@ -68,7 +68,7 @@ est, val = rec.split_at_time(0.8)
 # GOAL: Define the model that you wish to test
 
 # Method #1: create from "shorthand" keyword string
-modelspec = nems.initializers.from_keywords('wc40x1_lvl1_fir10x1_dexp1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1_dexp1')
 
 # Method #2: load a modelspec from disk
 # modelspec = ms.load_modelspec('../modelspecs/wc1_fir10x1_dexp1.json')

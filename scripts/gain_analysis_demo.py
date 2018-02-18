@@ -257,12 +257,14 @@ def scatter_comp(beta,compare_set,xlabels,axs=None):
         
     
 # batches must be defined:
+# 271 - A1 NAT all
+# 289 - A1 NAT+pupil
 # 301- A1 PTD + pupil
 # 304- IC TIN + pupil
 # 305- IC TIN  
     
 if 'batch' not in locals():
-    batch=301
+    batch=271
     
 print("Analyzing batch {0}".format(batch))
 
@@ -276,7 +278,17 @@ options={'rasterfs': 10, 'includeprestim': True, 'stimfmt': 'parm',
 # it's only coded to test for active vs. passive effects. ie, 
 # state_lists[0] is active / passive shuffled
 # state_lists[1] is active / passive actual
-if batch==301:
+if batch==289:
+    # A1 NAT+pupil
+    state_lists=[['pupil'],
+                 ['pupil']]
+    state_shuffles=[[0],[]]
+    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 
+             'chancount': 18, 'pupil': True, 'stim': True,
+             'pupil_deblink': True, 'pupil_median': 1,
+             'plot_results': True, 'plot_ax': None}
+    
+elif batch==301:
     state_lists=[['ACTIVE_EXPERIMENT'],
                  ['ACTIVE_EXPERIMENT'],
                  ['ACTIVE_EXPERIMENT','pupil'],
@@ -303,9 +315,14 @@ elif batch==305:
 else:
     raise BaseException("value of batch not valid")
 
+if options['stim']:
+    stimfmt=options['stimfmt']
+else:
+    stimfmt='none'
+    
 
 # regenerate or reload recordings as needed
-REGEN=False
+REGEN=True
 RELOAD=True
 REFIT=False
 if REGEN:
@@ -315,17 +332,21 @@ if REGEN:
     cellids=list(cell_data['cellid'].unique())
     
     recordings=[]
-    save_path="/auto/data/tmp/batch{0}_fs{1}_stim_none/".format(batch,options["rasterfs"])
-    for cellid in cellids:
-        recordings=recordings+[nems.utilities.baphy.baphy_load_recording(cellid,batch,options.copy())]
-        recordings[-1].save(save_path)
+    save_path="/auto/data/tmp/batch{0}_fs{1}_stim_{2}/".format(batch,options["rasterfs"],stimfmt)
+    for cellid in cellids[40:]:
+        try:
+            
+            recordings=recordings+[nems.utilities.baphy.baphy_load_recording(cellid,batch,options.copy())]
+            recordings[-1].save(save_path)
+        except:
+            print("failed on cell {0}".format(cellid))
 elif RELOAD:
     # load data from baphy format
     cell_data=nd.get_batch_cells(batch=batch)
     cellids=list(cell_data['cellid'].unique())
     recordings=[]
     for cellid in cellids:
-        save_path="/auto/data/tmp/batch{0}_fs{1}_stim_none/{2}".format(batch,options["rasterfs"],cellid)
+        save_path="/auto/data/tmp/batch{0}_fs{1}_stim_{2}/{3}".format(batch,options["rasterfs"],stimfmt,cellid)
         print("Loading from {0}".format(save_path))
         recordings=recordings+[nems.recording.Recording.load(save_path)]
 else:

@@ -65,10 +65,15 @@ class Signal:
             if not all(typesok):
                 raise ValueError('Chans must be a list of strings:' +
                                  str(self.chans) + str(typesok))
+            # Test that channel names use only lowercase letters and numbers 0-9
+            for s in self.chans:
+                if s and not self._string_syntax_valid(s):
+                    raise ValueError("Disallowed characters in: {0}\n"
+                                     .format(s))
 
-        # Test that all names use only lowercase letters and numbers 0-9
+        # Test that other names use only lowercase letters and numbers 0-9
         if safety_checks:
-            for s in [name, recording] + chans:
+            for s in [name, recording]:
                 if s and not self._string_syntax_valid(s):
                     raise ValueError("Disallowed characters in: {0}\n"
                                      .format(s))
@@ -677,7 +682,8 @@ class Signal:
                 # to integer bin index
                 if ub-lb < epoch_data.shape[1]:
                     ub += epoch_data.shape[1]-(ub-lb)
-
+                elif ub-lb > epoch_data.shape[1]:
+                    ub -= (ub-lb)-epoch_data.shape[1]
                 data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)

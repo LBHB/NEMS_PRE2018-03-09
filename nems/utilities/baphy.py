@@ -1659,24 +1659,18 @@ def spike_time_to_raster(spike_dict,fs=100,event_times=None):
 
 def stim_dict_to_matrix(stim_dict,fs=100,event_times=None):
     
-    if event_times is not None:
-        maxtime=np.max(event_times["end"])
-    
-    tags=list(stim_dict.keys())
-    
-    
+    maxtime=np.max(event_times["end"])
     maxbin=int(fs*maxtime)
+    
+    tags=list(stim_dict.keys())    
     chancount=stim_dict[tags[0]].shape[0]
-    stim=np.zeros([chancount,maxbin])
     
-    cellids=sorted(spike_dict)
-    for i,key in enumerate(cellids):
-        for t in spike_dict[key]:
-            b=int(np.floor(t*fs))
-            if b<maxbin:
-                raster[i,b]+=1
+    z=np.zeros([chancount,maxbin])
     
-    return raster,cellids
+    empty_stim=nems.signal.Signal(matrix=z,fs=fs,name='stim',epochs=event_times,recording='rec')
+    stim=empty_stim.replace_epochs(stim_dict)
+    
+    return stim
 
 def baphy_load_recording(cellid,batch,options):
     
@@ -1729,8 +1723,8 @@ def baphy_load_recording(cellid,batch,options):
             
         if options['stim']:
             
-            s=stim_dict_to_matrix(stim_dict,fs=options['rasterfs'],event_times=event_times)
-            
+            stim=stim_dict_to_matrix(stim_dict,fs=options['rasterfs'],event_times=event_times)
+            stim.recording=cellid
             
     resp.meta=options
     
@@ -1738,11 +1732,10 @@ def baphy_load_recording(cellid,batch,options):
         signals={'resp': resp, 'pupil': pupil}
     else:
         signals={'resp': resp}
+        
     if options['stim']:
-        print("Stim loading not yet supported for recording")
         signals['stim']=stim
         
     rec=nems.recording.Recording(signals=signals)
    
     return rec
->>>>>>> 564c0ea0994277d8597418dfc97f2fd469ae6222
