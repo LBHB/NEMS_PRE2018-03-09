@@ -13,7 +13,6 @@ def plot_scatter(signals, ax=None, xlabel='Signal One', ylabel='Signal Two'):
     y_values = signals[1].as_continuous()[0, :]
     y = np.array(np.squeeze(y_values))
 
-    plt.plot(x, 'ko', y, 'bo')
+    plt.plot(x, y, 'ko')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.legend([s.name for s in signals[0:2]])
