@@ -98,10 +98,24 @@ def load_modelspecs(directory, basename):
     '''
     Returns a list of modelspecs loaded from directory/basename.*.json
     '''
-    regex = '^' + basename + '\.{\d+}\.json'
-    # TODO: fnmatch is not matching pattern correctly
-    files = fnmatch.filter(os.listdir(directory), regex)
-    modelspecs = [json.load(f) for f in files]
+    #regex = '^' + basename + '\.{\d+}\.json'
+    # TODO: fnmatch is not matching pattern correctly, replacing
+    #       with basic string matching for now.  -jacob 2/17/2018
+    #files = fnmatch.filter(os.listdir(directory), regex)
+    #       Also fnmatch was returning list of strings? But
+    #       json.load expecting file object
+    #modelspecs = [json.load(f) for f in files]
+    dir_list = os.listdir(directory)
+    files = [os.path.join(directory, s) for s in dir_list if basename in s]
+    modelspecs = []
+    for file in files:
+        with open(file, 'r') as f:
+            try:
+                m = json.load(f)
+            except json.JSONDecodeError as e:
+                print("Couldn't load modelspec: {0}"
+                      "Error: {1}".format(file, e))
+            modelspecs.append(m)
     return modelspecs
 
 
