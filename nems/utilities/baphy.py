@@ -1633,7 +1633,12 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
     
     return event_times, spike_dict, stim_dict, state_dict, stim1_dict, stim2_dict
 
+
 def spike_time_to_raster(spike_dict,fs=100,event_times=None):
+    """
+    convert list of spike times to a raster of spike rate, with duration 
+    matching max end time in the event_times list
+    """
     
     if event_times is not None:
         maxtime=np.max(event_times["end"])
@@ -1650,6 +1655,7 @@ def spike_time_to_raster(spike_dict,fs=100,event_times=None):
                 raster[i,b]+=1
     
     return raster,cellids
+
 
 def stim_dict_to_matrix(stim_dict,fs=100,event_times=None):
     
@@ -1739,3 +1745,4 @@ def baphy_load_recording(cellid,batch,options):
     rec=nems.recording.Recording(signals=signals)
    
     return rec
+>>>>>>> 564c0ea0994277d8597418dfc97f2fd469ae6222
