@@ -249,6 +249,16 @@ class Signal:
 
         return lsignal, rsignal
 
+    def split_by_epochs(self, epochs_for_est, epochs_for_val):
+        '''
+        Returns a tuple of estimation and validation data splits: (est, val).
+        Arguments should be lists of epochs that define the estimation and
+        validation sets. Both est and val will have non-matching data NaN'd out.
+        '''
+        est = self.select_epochs(epochs_for_est)
+        val = self.select_epochs(epochs_for_val)
+        return (est, val)
+
     def jackknife_by_epoch(self, njacks, jack_idx, epoch_name,
                            tiled=True,
                            invert=False):

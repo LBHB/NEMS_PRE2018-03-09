@@ -7,6 +7,7 @@ import random
 import matplotlib.pyplot as plt
 import nems
 import nems.initializers
+import nems.epoch as ep
 import nems.modelspec as ms
 import nems.plots.api as nplt
 import nems.analysis.api
@@ -51,9 +52,17 @@ rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
 # GOAL: Split your data into estimation and validation sets so that you can
 #       know when your model exhibits overfitting.
 
+# Method #0: Try to guess which stimuli have the most reps
+est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
+
+
+print(ep.group_epochs_by_occurrence_counts(est['stim'].epochs))
+print(est['stim'].select_epochs())
+
+exit()
+
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
-
 est, val = rec.split_at_time(0.8)
 
 # Method #2: Split based on repetition number, rounded to the nearest rep.

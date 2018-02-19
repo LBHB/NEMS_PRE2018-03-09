@@ -385,3 +385,34 @@ def verify_epoch_integrity(epoch):
     '''
     # TODO
     raise NotImplementedError
+
+
+def epoch_occurrences(epochs, regex=None):
+    '''
+    Returns a dataframe of the number of occurrences of each epoch. Optionally,
+    provide regex to match only certain epoch names. 
+    '''
+    epoch_counts = epochs.name.value_counts()
+    if regex:
+        epoch_counts = epoch_counts.filter(regex=regex, axis='rows')
+    return epoch_counts
+
+
+def group_epochs_by_occurrence_counts(epochs):
+    ''' 
+    Returns a dictionary mapping the number of occurrences to a list of epoch names.
+    This is essentially the inverse mapping of epoch_occurrences().
+    '''
+    d = {}
+    # Build a dict of n_occurrences -> [epoch_name1, epoch_name2, etc]
+    for row in epochs.iteritems():
+        name, count = row
+        if count in d:
+            d[count].append(name)
+        else:
+            d[count] = [name]
+    return d
+
+
+
+
