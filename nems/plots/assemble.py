@@ -15,3 +15,9 @@ def simple_grid(partial_plots, nrows=1, ncols=1, figsize=(12,9)):
         partial_plots[i]()
 
     return fig
+
+def get_predictions(modelspecs, evaluator):
+    """TODO. Given a list of modelspecs and an evaluator function,
+    returns a list of predictions that can be plotted."""
+    raise NotImplementedError
+

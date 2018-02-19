@@ -228,9 +228,21 @@ class Signal:
         else:
             mask = self.epochs['start'] < split_time
             lepochs = self.epochs.loc[mask]
-            mask = self.epochs['end'] > split_idx
+            mask = self.epochs['end'] > split_time
             repochs = self.epochs.loc[mask]
-            repochs[['start', 'end']] -= split_idx
+            repochs[['start', 'end']] -= split_time
+
+        # If epochs were present initially but missing after split,
+        # raise a warning.
+        portion = None
+        if lepochs.size == 0:
+            portion = 'first'
+        elif repochs.size == 0:
+            portion = 'second'
+        if portion:
+            raise RuntimeWarning("Epochs for {0} portion of signal: {1}"
+                                 "ended up empty after splitting by time."
+                                 .format(portion, self.name))
 
         lsignal = self._modified_copy(ldata, epochs=lepochs)
         rsignal = self._modified_copy(rdata, epochs=repochs)
@@ -588,8 +600,9 @@ class Signal:
         '''
         epoch_indices = self.get_epoch_indices(epoch, trim=True)
         if epoch_indices.size == 0:
-            raise IndexError("No matching epochs to extract for: {}"
-                             .format(epoch))
+            raise IndexError("No matching epochs to extract for: {0}\n"
+                             "In signal: {1}"
+                             .format(epoch, self.name))
         n_samples = np.max(epoch_indices[:, 1]-epoch_indices[:, 0])
         n_epochs = len(epoch_indices)
 
@@ -599,6 +612,12 @@ class Signal:
             epoch_data[i, :, :samples] = self._matrix[:, lb:ub]
 
         return epoch_data
+
+    def count_epoch(self, epoch):
+        """Returns the number of occurrences of the given epoch."""
+        epoch_indices = self.get_epoch_indices(epoch, trim=True)
+        count = len(epoch_indices)
+        return count
 
     def average_epoch(self, epoch):
         '''

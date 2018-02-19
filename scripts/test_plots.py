@@ -1,4 +1,5 @@
 import os
+import random
 
 import matplotlib.pyplot as plt
 
@@ -15,36 +16,47 @@ modelspecs_dir = '../modelspecs'
 #       were for when the modelspec was fitted?
 #       Will this information be in the modelspec metadata?
 #       Sometihng like meta: {'segmentor': ('split_at_time', 0.8)}?
-rec = Recording.load(os.path.join(signals_dir, 'gus027b13_p_PPS'))
+rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
 est, val = rec.split_at_time(0.8)
-loaded_modelspecs = ms.load_modelspecs(modelspecs_dir, 'demo_script_model')
-# add some fake epochs for testing
+loaded_modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-57-1')
 stim = val['stim']
 resp = val['resp']
-stim.epochs = stim.trial_epochs_from_occurrences(occurrences=47)
-resp.epochs = resp.trial_epochs_from_occurrences(occurrences=47)
+# add some fake epochs for testing since split is messing them up
+#stim.epochs = stim.trial_epochs_from_occurrences(occurrences=377)
+#resp.epochs = resp.trial_epochs_from_occurrences(occurrences=377)
 
+
+# TODO: these need work. hard to interpret with all trials etc present
+#       at once.
 # use defaults for all plot functions using the 'high-level' plotting functions
-# TODO: these definitely still need tweaking.
-plot_fns = [nplt.pred_vs_act_scatter, nplt.pred_vs_act_psth]
-frozen_fns = nplt.freeze_defaults(plot_fns, val, loaded_modelspecs[0],
-                                  ms.evaluate)
-fig = nplt.simple_grid(frozen_fns, nrows=len(plot_fns))
-print("Signals with all epochs included")
-fig.show()
+#plot_fns = [nplt.pred_vs_act_scatter, nplt.pred_vs_act_psth]
+#frozen_fns = nplt.freeze_defaults(plot_fns, val, loaded_modelspecs[0],
+#                                  ms.evaluate)
+#fig = nplt.simple_grid(frozen_fns, nrows=len(plot_fns))
+#print("Signals with all epochs included")
+#fig.show()
 
-# plot a specific epoch and channel using the 'low-level' functions
-# and manual subplotting.
-# TODO: splitting up into epochs is definitely much more readable.
-#       maybe need to just make something like this the default behavior
-#       for a 'quick_plot' type function?
-fig = plt.figure(figsize=(12, 9))
+
+
+# plot prediction versus response for three randomly selected occurrences
+# of 'TRIAL' epoch, using 'low-level' plotting functions.
 evaluated_spec = ms.evaluate(val, loaded_modelspecs[0])
 pred = evaluated_spec['pred']
-for i in range(7):
-    plt.subplot(7, 1, i+1)
-    j = i*6
-    nplt.timeseries_from_epoch([pred, resp], 'trial', occurrence=j)
-plt.ylabel('Firing Rate')
-plt.tight_layout()
+total_o = pred.count_epoch('TRIAL')
+# TODO: trim pre and post stim silence? ~1/3 of spectrogram is empty
+for i in range(3):
+    fig = plt.figure(figsize=(12,6))
+    o = random.randrange(total_o)
+    plt.subplot(211)
+    nplt.spectrogram_from_epoch(stim, 'TRIAL', occurrence=o)
+    plt.title("Trial {}".format(o))
+    plt.subplot(212)
+    nplt.timeseries_from_epoch([pred, resp], 'TRIAL', occurrence=o)
+    plt.ylabel('Firing Rate')
+    plt.tight_layout()
+    fig.show()
+
+fig = plt.figure(figsize=(12, 3))
+plt.subplot(111)
+nplt.weight_channels_heatmap(loaded_modelspecs[0])
 fig.show()

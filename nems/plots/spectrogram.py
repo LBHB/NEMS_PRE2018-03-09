@@ -4,9 +4,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-# Plot functions need a recording (data to work with),
-#              a fitted modelspec (what parameters to use),
-#       and an evaluator function (how to transform the data before plotting).
 
-def plot_spectrogram(recording, modelspec, evaluator, sub_idx=None):
-    raise NotImplementedError
+def plot_spectrogram(array):
+    plt.imshow(array, aspect='auto', origin='lower', interpolation='none')
+    cbar = plt.colorbar()
+    cbar.set_label('Amplitude')
+    plt.xlabel('Time')
+    plt.ylabel('Channel')
+
+def spectrogram_from_signal(signal):
+    array = signal.as_continuous()
+    plot_spectrogram(array)
+
+def spectrogram_from_epoch(signal, epoch, occurrence=0):
+    extracted = signal.extract_epoch(epoch)
+    array = extracted[occurrence]
+    plot_spectrogram(array)
