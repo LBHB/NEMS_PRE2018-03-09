@@ -1,15 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-FIGSIZE = (12, 4)
-
 def plot_stim_occurrence(recording, modelspec, evaluator, transform_idx=-1,
                          occurrence_idx=0, epoch_name='stim',
                          signal_name='stim'):
     """
     TODO: doc
     """
-    # TODO: needs testing
+    raise NotImplementedError
+    # TODO: needs refactoring after redoing other plots.
+    #       Also, does this one even get used? Probably check that before
+    #       bothering with it again.   -jacob 2-19-18
     signal = recording[signal_name]
     data = signal.extract_epoch(epoch_name)
     squeezed = np.squeeze(data[occurrence_idx, :, :])

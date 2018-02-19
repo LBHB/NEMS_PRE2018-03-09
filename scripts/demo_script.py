@@ -34,8 +34,10 @@ rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
 # rec = nems.utils.net.fetch_signals_over_http(URL)
 
 # Method #3: Load the data from S3: (TODO)
-# stimfile="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"+cellid+"_NAT_stim_ozgf_c18_fs100.mat"
-# respfile="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"+cellid+"_NAT_resp_fs100.mat"
+# stimfile=("https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"
+#           +cellid+"_NAT_stim_ozgf_c18_fs100.mat")
+# respfile=("https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"
+#           +cellid+"_NAT_resp_fs100.mat")
 # rec = lbhb.fetch_signals_over_http(stimfile, respfile)
 
 # Method #4: Load the data from a published jerb (TODO)

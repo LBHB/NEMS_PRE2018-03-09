@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # TODO: when plotting multiple heatmaps, sync up the color scales
-def plot_heatmap(array, ax=None, xlabel='Dim One', ylabel='Dim Two'):
+def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two'):
     # Make sure array is converted to ndarray if passed as list
     array = np.array(array)
     # TODO: copied from nems master but not 100% sure what this does.
@@ -22,6 +22,16 @@ def plot_heatmap(array, ax=None, xlabel='Dim One', ylabel='Dim Two'):
 def weight_channels_heatmap(modelspec):
     coefficients = _get_wc_coefficients(modelspec)
     plot_heatmap(coefficients, xlabel='Channel In', ylabel='Channel Out')
+    
+def weight_channels_heatmaps(modelspecs, figsize=(12,9)):
+    # TODO: get modelspec names for titles
+    n = len(modelspecs)
+    fig = plt.figure(figsize=figsize)
+    for i, mspec in enumerate(modelspecs):
+        plt.subplot(n, 1, i+1)
+        weight_channels_heatmap(mspec)
+    plt.tight_layout()
+    fig.show()
 
 def _get_wc_coefficients(modelspec):
     for m in modelspec:

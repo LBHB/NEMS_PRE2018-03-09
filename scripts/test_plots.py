@@ -60,3 +60,20 @@ fig = plt.figure(figsize=(12, 3))
 plt.subplot(111)
 nplt.weight_channels_heatmap(loaded_modelspecs[0])
 fig.show()
+
+# Compare predictions from a few different modelspecs against each other
+# for 3 random occurrences
+fig = plt.figure(figsize=(12, 9))
+for i in range(3):
+    plt.subplot(3, 1, i+1)
+    preds = nplt.get_predictions(val, loaded_modelspecs, ms.evaluate)
+    signals = [resp]
+    signals.extend(preds)
+    o = random.randrange(total_o)
+    nplt.timeseries_from_epoch(signals, 'TRIAL', occurrence=o,
+                               ylabel='Firing Rate')
+plt.tight_layout()
+fig.show()
+
+# Compare weight channels coefficients for a few different modelspecs
+nplt.weight_channels_heatmaps(loaded_modelspecs, figsize=(12,9))

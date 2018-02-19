@@ -4,11 +4,7 @@ from .timeseries import timeseries_from_signals, timeseries_from_epoch
 from .scatter import plot_scatter
 
 def pred_vs_act_scatter(recording, modelspec, evaluator, transform_idx=-1,
-                        pred_name='pred', act_name='resp', ax=None):
-
-    if ax:
-        plt.sca(ax)
-
+                        pred_name='pred', act_name='resp'):
     transformed = evaluator(recording, modelspec, stop=transform_idx)
     # TODO: previous version only looks at first channel
     #       and one stim occurrence at a time?
@@ -18,31 +14,24 @@ def pred_vs_act_scatter(recording, modelspec, evaluator, transform_idx=-1,
     predicted = transformed[pred_name]
     actual = recording[act_name]
 
-    plot_scatter([actual, predicted], ax=ax)
+    plot_scatter([actual, predicted])
     # TODO: Add text box with r_values (see master branch version)
 
 def pred_vs_act_psth(recording, modelspec, evaluator, transform_idx=-1,
                      occurrence=0, channel=0, pred_name='pred',
-                     act_name='resp', ax=None):
-
-    if ax:
-        plt.sca(ax)
-
+                     act_name='resp'):
     transformed = evaluator(recording, modelspec, stop=transform_idx)
     predicted = transformed[pred_name]
     actual = recording[act_name]
 
-    timeseries_from_signals([actual, predicted], ax=ax, channel=channel,
+    timeseries_from_signals([actual, predicted], channel=channel,
                             ylabel='Firing Rate')
-
 
 # TODO: Looks like this is the one used m ost often by current NEMS.
 #       Maybe just need a separate plot_timeseries_smoothed to run this through
 def pred_vs_act_psth_smooth(recording, modelspec, evaluator, transform_idx=-1,
-                            pred_name='pred', act_name='resp', ax=None):
+                            pred_name='pred', act_name='resp'):
     raise NotImplementedError
-    if ax:
-        plt.sca(ax)
 
     transformed = evaluator(recording, modelspec, stop=transform_idx)
     predicted = transformed[pred_name]
