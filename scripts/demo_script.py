@@ -4,6 +4,7 @@
 import os
 import logging
 import random
+import numpy as np
 import matplotlib.pyplot as plt
 import nems
 import nems.initializers
@@ -52,18 +53,21 @@ rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
 # GOAL: Split your data into estimation and validation sets so that you can
 #       know when your model exhibits overfitting.
 
-# Method #0: Try to guess which stimuli have the most reps
+# Method #0: Try to guess which stimuli have the most reps, use those for val
 est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 
-
-print(ep.group_epochs_by_occurrence_counts(est['stim'].epochs))
-print(est['stim'].select_epochs())
-
-exit()
+# A little verification that the above works
+# print(ep.group_epochs_by_occurrence_counts(est['stim'].epochs, regex='^STIM_'))
+#val_epochs = ['STIM_00Oxford_male2b.wav', 'STIM_00ferretmixed41.wav', 'STIM_00ferretmixed42.wav']
+#mat = val['stim'].select_epochs(val_epochs).as_continuous()
+#print('Non-NaN elements: {}'.format(np.count_nonzero(mat)))
+#print('Total elements:   {}'.format(mat.size))
+# This should (and does!) throw an exception because they are not in the est set.
+# print(est['stim'].select_epochs(val_epochs))
 
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
-est, val = rec.split_at_time(0.8)
+# est, val = rec.split_at_time(0.8)
 
 # Method #2: Split based on repetition number, rounded to the nearest rep.
 # est, val = rec.split_at_rep(0.8)

@@ -95,15 +95,15 @@ class Recording:
 
     def _split_helper(self, fn):
         '''
-        For internal use only.
+        For internal use only by the split_* functions.
         '''
-        left = {}
-        right = {}
+        est = {}
+        val = {}
         for s in self.signals.values():
-            (l, r) = fn(s)
-            left[l.name] = l
-            right[r.name] = r
-        return (Recording(signals=left), Recording(signals=right))
+            (e, v) = fn(s)
+            est[e.name] = e
+            val[v.name] = v
+        return (Recording(signals=est), Recording(signals=val))
 
     def split_at_time(self, fraction):
         '''
@@ -113,13 +113,7 @@ class Recording:
         the right signal. Useful for making est/val data splits, or
         truncating the beginning or end of a data set.
         '''
-        left = {}
-        right = {}
-        for s in self.signals.values():
-            (l, r) = s.split_at_time(fraction)
-            left[l.name] = l
-            right[r.name] = r
-        return (Recording(signals=left), Recording(signals=right))
+        return self._split_helper(lambda s: s.split_at_time(fraction))
 
     def split_by_epochs(self, epochs_for_est, epochs_for_val):
         '''
@@ -127,22 +121,16 @@ class Recording:
         Arguments should be lists of epochs that define the estimation and
         validation sets. Both est and val will have non-matching data NaN'd out.
         '''
-        pairs = [s.split_by_epochs(epochs_for_est, epochs_for_val) for s in self.signals.values()]
-        e, v = pairs[0]
-        est = Recording({e.name: e})
-        val = Recording({v.name: v})
-        for e, v in pairs[1:]:
-            est.add_signal(e)
-            val.add_signal(v)
-    
-        return (est, val)
+        return self._split_helper(lambda s: s.split_by_epochs(epochs_for_est,
+                                                              epochs_for_val))
 
-    def split_using_epoch_occurrence_counts(rec, epoch_regex):
+    def split_using_epoch_occurrence_counts(self, epoch_regex):
         '''
         Returns (est, val) given a recording rec, a signal name 'stim_name', and an 
         epoch_regex that matches 'various' epochs. This function will throw an exception
         when there are not exactly two values for the number of epoch occurrences; i.e.
         low-rep epochs and high-rep epochs. 
+        
         NOTE: This is a fairly specialized function that we use in the LBHB lab. We have 
         found that, given a limited recording time, it is advantageous to have a variety of sounds
         presented to the neuron (i.e. many low-repetition stimuli) for accurate estimation
@@ -151,8 +139,7 @@ class Recording:
         stimulus time histogram (PSTH). This function tries to split the data into those
         two data sets based on the epoch occurrence counts.
         '''
-        epochs = ep.epoch_occurrences(rec.epochs, epoch_regex)
-        groups = ep.group_epochs_by_occurrence_counts(epochs)
+        groups = ep.group_epochs_by_occurrence_counts(self.epochs, epoch_regex)
         if len(groups) != 2:
             m = "Not exactly two types of occurrences (low and hi rep). Unable to split:"
             m += str(groups)
@@ -160,7 +147,7 @@ class Recording:
         n_occurrences = sorted(groups.keys())
         lo_rep_epochs = groups[n_occurrences[0]]
         hi_rep_epochs = groups[n_occurrences[1]]
-        return rec.split_by_epochs(lo_rep_epochs, hi_rep_epochs)
+        return self.split_by_epochs(lo_rep_epochs, hi_rep_epochs)
 
     def jackknife_by_epoch(self, regex, signal_names=None,
                            invert=False):
