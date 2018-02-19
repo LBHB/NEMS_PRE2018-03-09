@@ -14,7 +14,7 @@ def pred_vs_act_scatter(recording, modelspec, evaluator, transform_idx=-1,
     predicted = transformed[pred_name]
     actual = recording[act_name]
 
-    plot_scatter([actual, predicted])
+    plot_scatter(actual, predicted)
     # TODO: Add text box with r_values (see master branch version)
 
 def pred_vs_act_psth(recording, modelspec, evaluator, transform_idx=-1,

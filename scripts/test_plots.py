@@ -17,10 +17,20 @@ modelspecs_dir = '../modelspecs'
 #       Will this information be in the modelspec metadata?
 #       Sometihng like meta: {'segmentor': ('split_at_time', 0.8)}?
 rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
-est, val = rec.split_at_time(0.8)
+est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
+# est, val = rec.split_at_time(0.8)
 loaded_modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-57-1')
 stim = val['stim']
 resp = val['resp']
+pred = ms.evaluate(val, loaded_modelspecs[0])['pred']
+
+fig = plt.figure(figsize=(12,12))
+plt.subplot(111)
+nplt.plot_scatter(resp, pred, title=rec.name)
+fig.show()
+plt.show()
+exit()
+
 # add some fake epochs for testing since split is messing them up
 #stim.epochs = stim.trial_epochs_from_occurrences(occurrences=377)
 #resp.epochs = resp.trial_epochs_from_occurrences(occurrences=377)
@@ -77,3 +87,5 @@ fig.show()
 
 # Compare weight channels coefficients for a few different modelspecs
 nplt.weight_channels_heatmaps(loaded_modelspecs, figsize=(12,9))
+
+plt.show()

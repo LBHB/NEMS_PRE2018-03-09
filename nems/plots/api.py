@@ -1,5 +1,6 @@
 from .assemble import simple_grid, freeze_defaults, get_predictions
 from .stim import plot_stim_occurrence
+from .scatter import plot_scatter
 from .spectrogram import (plot_spectrogram, spectrogram_from_signal,
                           spectrogram_from_epoch)
 from .timeseries import timeseries_from_signals, timeseries_from_epoch

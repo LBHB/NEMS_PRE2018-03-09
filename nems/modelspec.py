@@ -40,10 +40,24 @@ def set_modelspec_metadata(modelspec, key, value):
     modelspec[0]['meta'][key] = value
     return modelspec
 
-
-def guess_modelspec_name(modelspec):
+def get_modelspec_name(modelspec):
     '''
-    Tries to guess a good file name for this modelspec.
+    Returns a string that names this modelspec. Suitable for plotting. 
+    '''
+    meta = get_modelspec_metadata(modelspec)
+    if 'name' in meta:
+        return meta['name']
+
+    recording_name = meta.get('recording', 'unknown_recording')
+    keyword_string = '_'.join([m['id'] for m in modelspec])
+    fitter_name = meta.get('fitter', 'unknown_fitter')
+    date = nems.utils.iso8601_datestring()
+    guess = '.'.join([recording_name, keyword_string, fitter_name, date])
+    return guess
+
+def get_modelspec_longname(modelspec):
+    '''
+    Returns a LONG name for this modelspec suitable for use in saving to disk.
     '''
     meta = get_modelspec_metadata(modelspec)
     recording_name = meta.get('recording', 'unknown_recording')
@@ -78,7 +92,7 @@ def save_modelspecs(directory, modelspecs, basename=None):
     '''
     for idx, modelspec in enumerate(modelspecs):
         if not basename:
-            bname = guess_modelspec_name(modelspec)
+            bname = get_modelspec_longname(modelspec)
         else:
             bname = basename
         basepath = os.path.join(directory, bname)

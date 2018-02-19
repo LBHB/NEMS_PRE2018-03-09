@@ -26,9 +26,7 @@ def get_predictions(recording, modelspecs, evaluator):
 def get_modelspec_names(modelspecs):
     """Given a list of modelspecs, returns a list of descriptive names
     for identifying them in plots."""
-    raise NotImplementedError
-    metas = [m[0]['meta'] for m in modelspecs]
-    names = [meta['name'] for meta in metas]
+    names = [ms.get_modelspec_name(m) for m in modelspecs]
     return names
 
 def quick_plot():
