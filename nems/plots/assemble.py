@@ -15,12 +15,13 @@ def simple_grid(partial_plots, nrows=1, ncols=1, figsize=(12,9)):
 
     return fig
 
-def get_predictions(recording, modelspecs, evaluator):
-    """TODO. Given a recording, a list of modelspecs, and an evaluator
-    function, returns a list of prediction signals that can be plotted.
-    """
-    processed_recs = [ms.evaluate(recording, mspec) for mspec in modelspecs]
-    predictions = [rec['pred'] for rec in processed_recs]
+def get_predictions(recording, modelspecs, evaluator=ms.evaluate):
+    '''
+    Given a recording, a list of modelspecs, and optionally an evaluator function, 
+    returns a list of prediction signals.
+    '''
+    recs = [evaluator(recording, mspec) for mspec in modelspecs]
+    predictions = [rec['pred'] for rec in recs]
     return predictions
 
 def get_modelspec_names(modelspecs):
