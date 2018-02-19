@@ -1,25 +1,11 @@
 # Quick Start
 
-## What's an example script for analyzing data?
-
-We have a good tutorial/template at: `scripts/demo_script.py`. 
-
-You should be able to launch it with:
-
-```
-# Run this every time you open a terminal, or put in your .bashrc
-export PYTHONPATH="$PYTHONPATH:/path/to/nems"
-
-# Run the demo script
-python3 scripts/demo_script.py
-```
-
 
 ## I just want to analyze data! Where should I put my script?
    
-If you are just hacking around, please put your code in `scripts` -- it's for any one-off analysis or snippet of code that isn't yet ready for reuse by other people.
+If you are just hacking around, please put your code in `scripts` -- it's for any one-off analysis or snippet of code that isn't yet ready for reuse by other people. We recommend using `scripts/demo_script.py` as a guide for the types of operations that you may find useful. 
 
-The `tests/` directory is intended for unit tests that we can run automatically with `pytest`. 
+The `tests/` directory is intended for unit tests that run automatically with `pytest`. 
 
 
 ## Where should I put my data?

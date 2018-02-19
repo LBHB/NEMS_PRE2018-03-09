@@ -2,6 +2,23 @@
 
 NEMS is the Neural Encoding Model System. It is helpful for fitting a mathematical model to time series data, plotting the model predictions, and comparing the predictive accuracy of multiple models. We use it to study [computational models of how auditory stimuli are neurally encoded in mammalian brains](https://hearingbrain.org), but it will probably work with your timeseries data as well.
 
+## Installation
+
+```
+git clone https://github.com/lbhb/nems
+
+# Please make sure that the nems repo is in your path. This works for linux:
+echo "export PYTHONPATH=\"\$PYTHONPATH:`pwd`/nems\"" >> ~/.bashrc
+source ~/.bashrc
+```
+
+We have a good tutorial/template at `scripts/demo_script.py`. We recommend beginners make a copy of it and edit it as needed. You may run it with:
+
+```
+# Run the demo script
+python3 scripts/demo_script.py
+```
+
 ## Table of Contents ## 
 
 1. [Quick Start](docs/quickstart.md)
