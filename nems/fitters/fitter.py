@@ -103,8 +103,11 @@ def scipy_minimize(sigma, cost_fn,
     # TODO: needs more testing. appears to be working but it's taking
     #       a very long time to terminate, maybe due to modules not being
     #       all set up yet?
+    start_time = time.time()
     result = scp.optimize.minimize(cost_fn, sigma)
+    finish_time = time.time()
     sigma = result.x
-    logging.info("scipy_minimize fit complete.\n",
-                 "final error: {0}".format(cost_fn(sigma)))
+    final_err = cost_fn(sigma)
+    logging.info("Final error: {}".format(final_err))
+    logging.info("Run Time: {}".format(finish_time - start_time))
     return sigma

@@ -41,7 +41,7 @@ def plot_scatter(sig1, sig2, ax=None, title=None, xlabel=None, ylabel=None, lege
     ylabel = ylabel if ylabel else sig2.name
     plt.ylabel(ylabel)
 
-    if legend and sig2.nchans > 1
+    if legend and sig2.nchans > 1:
         plt.legend(loc='best')
 
     if title:
