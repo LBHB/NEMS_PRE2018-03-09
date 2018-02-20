@@ -32,17 +32,20 @@ def plot_layout(plot_fn_struct):
     for r, row in enumerate(plot_fn_struct):
         for c, plotfn in enumerate(row):
             colspan = max(1, int(ncols / len(row)))
-            plt.subplot2grid((nrows, ncols), (r, c), colspan=colspan)  
-            plotfn()
+            ax = plt.subplot2grid((nrows, ncols), (r, c), colspan=colspan)  
+            plotfn(ax=ax)
     return fig
 
 # Test the layout
-def my_scatter(): nplt.plot_scatter(resp, pred[0], title=rec.name)
+def my_scatter(ax): nplt.plot_scatter(resp, pred[0], ax=ax, title=rec.name)
 
+
+#
 sigs = [resp]
 sigs.extend(pred)
 fig = plot_layout([[my_scatter, my_scatter],
-                   [lambda : nplt.timeseries_from_epoch(sigs, 'TRIAL', occurrence=2)]])
+                   [lambda ax : nplt.spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=2)],
+                   [lambda ax : nplt.timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrence=2)]])
 
 fig.tight_layout()
 fig.show()
