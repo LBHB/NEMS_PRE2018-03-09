@@ -2,13 +2,14 @@
 # Please see docs/architecture.svg for a visual diagram of this code
 
 import os
-import logging
+import logging as log
 import random
 import numpy as np
 import matplotlib.pyplot as plt
 import nems
 import nems.initializers
 import nems.epoch as ep
+import nems.preprocessing as preproc
 import nems.modelspec as ms
 import nems.plots.api as nplt
 import nems.analysis.api
@@ -18,7 +19,7 @@ from nems.recording import Recording
 # ----------------------------------------------------------------------------
 # CONFIGURATION
 
-logging.basicConfig(level=logging.INFO)
+log.basicConfig(level=log.INFO)
 
 signals_dir = '../signals'
 modelspecs_dir = '../modelspecs'
@@ -27,6 +28,7 @@ modelspecs_dir = '../modelspecs'
 # DATA FETCHING
 
 # GOAL: Get your data loaded into memory as a Recording object
+log.info('Fetching data...')
 
 # Method #1: Load the data from a local directory
 rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
@@ -48,10 +50,21 @@ rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
 
 
 # ----------------------------------------------------------------------------
+# OPTIONAL PREPROCESSING
+log.info('Preprocessing data...')
+
+# Add a respavg signal to the recording
+rec = preproc.add_average_sig(rec, signal_to_average='resp',
+                              new_signalname='respavg',
+                              epoch_regex='^STIM_')
+
+# ----------------------------------------------------------------------------
 # DATA WITHHOLDING
 
 # GOAL: Split your data into estimation and validation sets so that you can
 #       know when your model exhibits overfitting.
+
+log.info('Withholding validation set data...')
 
 # Method #0: Try to guess which stimuli have the most reps, use those for val
 est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
@@ -63,7 +76,7 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 # Method #2: Split based on repetition number, rounded to the nearest rep.
 # est, val = rec.split_at_rep(0.8)
 
-# Method #3: Use the whole data set! (Usually for doing full dataset cross-val)
+# Method #3: Use the whole data set! (Usually for doing n-fold cross-val)
 # est = rec
 # val = rec
 
@@ -73,11 +86,14 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 
 # GOAL: Define the model that you wish to test
 
-# Method #1: create from "shorthand" keyword string
-modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1_dexp1')
+log.info('Loading modelspec(s)...')
 
-# Method #2: load a modelspec from disk
-# modelspec = ms.load_modelspec('../modelspecs/wc1_fir10x1_dexp1.json')
+# Method #1: create from "shorthand" keyword string
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1')
+
+# Method #2: Load modelspec(s) from disk
+# TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
+modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-57-1')
 
 # Method #3: Load it from a published jerb (TODO)
 # modelspec = ...
@@ -103,7 +119,7 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1_dexp1')
 # results = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=10)
 
 # Option 4: Divide estimation data into 10 subsets; fit all sets separately
-results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
+# results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
 # Option 5: Start from random starting points 10 times
 # results = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
@@ -128,16 +144,20 @@ results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
 # GOAL: Save your results to disk. (BEFORE you screw it up trying to plot!)
 
-# If only one result was returned, save it. But if multiple  modelspecs were
-# returned, save all of them.
+# log.info('Saving Results')
 
-ms.save_modelspecs(modelspecs_dir, results)
+# ms.save_modelspecs(modelspecs_dir, results)
 
 # ----------------------------------------------------------------------------
 # GENERATE PLOTS
 
 # GOAL: Plot the predictions made by your results vs the real response.
 #       Compare performance of results with other metrics.
+
+log.info('Generating summary plot...')
+
+# Generate a summary plot
+nplt.plot_summary(val, modelspecs)
 
 # Optional: See how well your best result predicts the validation data set
 # nems.plot.predictions(val, [results[0]])
@@ -154,36 +174,13 @@ ms.save_modelspecs(modelspecs_dir, results)
 # Optional: View the posterior parameter probability distributions
 # nems.plot.posterior(val, results) # TODO
 
-one_modelspec = results[0]
-# TODO: set up epochs for gus
-# nplt.plot_stim_occurrence(rec, modelspec, ms.evaluate)
 
-
-# TODO: package this part into a script
-fig = plt.figure(figsize=(6, 4))
-
-ax1 = plt.subplot(211)
-nplt.pred_vs_act_scatter(val, one_modelspec, ms.evaluate, ax=ax1)
-ax2 = plt.subplot(212)
-nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
-#ax3 = plt.subplot(313)
+#nplt.pred_vs_act_scatter(val, one_modelspec, ms.evaluate, ax=ax1)
+#nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
 #nplt.pred_vs_act_psth_smooth(val, one_modelspec, ms.evaluate, ax=ax3)
 
-plt.tight_layout()
-#plt.show()
-
-# TODO: test plots with several modelspecs.
-#       just need some simple iterative wrappers?
-several_modelspecs = results
-
-
-# TODO: test plots with modelspec loaded from file
-#loaded_modelspecs = ms.load_modelspecs(modelspecs_dir, 'demo_script_model')
-# ...TODO
-
-# plot_all_at_once(modelspec, [pred_vs_act_scatter,
-#                              pred_vs_act_ptsh,
-#                              pred_vs_act_smooth])
+# Pause before quitting
+plt.show()
 
 # ----------------------------------------------------------------------------
 # SHARE YOUR RESULTS

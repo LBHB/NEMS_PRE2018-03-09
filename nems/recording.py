@@ -1,6 +1,7 @@
 import os
 import logging
 import pandas as pd
+import copy
 import nems.epoch as ep
 from .signal import Signal
 
@@ -21,6 +22,12 @@ class Recording:
             raise ValueError('Not all signals are from the same recording.')
 
         self.name = recordings[0]
+
+    def copy(self):
+        '''
+        Returns a copy of this recording.
+        '''
+        return copy.copy(self)
 
     @property
     def epochs(self):

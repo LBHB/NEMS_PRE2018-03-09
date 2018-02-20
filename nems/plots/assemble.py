@@ -33,3 +33,21 @@ def get_modelspec_names(modelspecs):
 def quick_plot():
     raise NotImplementedError
     # TODO
+
+def plot_layout(plot_fn_struct):
+    ''' 
+    Accepts a list of lists of functions of 1 argument (ax). 
+    Basically a fancy subplot that lets you lay out functions without
+    worrying about details. See example below
+    '''
+    # Count how many plot functions we want
+    nrows = len(plot_fn_struct)
+    ncols = max([len(row) for row in plot_fn_struct])
+    # Set up the subplots
+    fig = plt.figure(figsize=(12,12))
+    for r, row in enumerate(plot_fn_struct):
+        for c, plotfn in enumerate(row):
+            colspan = max(1, int(ncols / len(row)))
+            ax = plt.subplot2grid((nrows, ncols), (r, c), colspan=colspan)  
+            plotfn(ax=ax)
+    return fig
