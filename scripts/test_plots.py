@@ -12,8 +12,30 @@ from nems.recording import Recording
 signals_dir = '../signals'
 modelspecs_dir = '../modelspecs'
 
-# load the data, split to est and val, load modelspecs
+# load the data
 rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
+
+# Add a new signal, respavg, to the recording, in 4 steps
+
+# 1. Fold matrix over all stimuli, returning a dictionary where keys are stimuli 
+#    and each value in the dictionary is (reps X cell X bins)
+epochs_to_extract = ep.epoch_names_matching(rec.epochs, '^STIM_') 
+folded_matrix = rec['resp'].extract_epochs(epochs_to_extract)
+
+# 2. Average over all reps of each stim and save into dict called psth.
+per_stim_psth = dict()
+for k in folded_matrix.keys():
+    per_stim_psth[k] = np.nanmean(folded_matrix[k], axis=0)
+
+# 3. Invert the folding to unwrap the psth back out into a predicted spike_dict by 
+# simply replacing all epochs in the signal with their psth
+respavg = rec['resp'].replace_epochs(per_stim_psth)
+respavg.name = 'respavg'
+
+# 4. Now add the signal to the recording
+rec.add_signal(respavg)
+
+# Now split into est and val data sets
 est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 # est, val = rec.split_at_time(0.8)
 
@@ -24,25 +46,15 @@ pred = [ms.evaluate(val, m)['pred'] for m in modelspecs]
 # Shorthands for unchanging signals
 stim = val['stim']
 resp = val['resp']
-
-# Create a respavg signal in 3 steps:
-# 1. Fold matrix over all stimuli, returning a dictionary where keys are stimuli 
-#    and each value in the dictionary is (reps X cell X bins)
-epochs_to_extract = ep.epoch_names_matching(rec.epochs, '^STIM_') 
-
-folded_matrix = resp.extract_epochs(epochs_to_extract)
-
-# 2. Average over all reps of each stim and save into dict called psth.
-per_stim_psth = dict()
-for k in folded_matrix.keys():
-    per_stim_psth[k] = np.nanmean(folded_matrix[k], axis=0)
-
-# 3. Invert the folding to unwrap the psth back out into a predicted spike_dict by 
-# simply replacing all epochs in the signal with their psth
-respavg = resp.replace_epochs(per_stim_psth)
+respavg = val['respavg']
 
 
 def plot_layout(plot_fn_struct):
+    ''' 
+    Accepts a list of lists of functions of 1 argument (ax). 
+    Basically a fancy subplot that lets you lay out functions without
+    worrying about details. See example below
+    '''
     # Count how many plot functions we want
     nrows = len(plot_fn_struct)
     ncols = max([len(row) for row in plot_fn_struct])
@@ -55,7 +67,7 @@ def plot_layout(plot_fn_struct):
             plotfn(ax=ax)
     return fig
 
-# Test the layout
+# Example of how to plot a complicated thing:
 def my_scatter(ax): nplt.plot_scatter(resp, pred[0], ax=ax, title=rec.name)
 def my_spectro(ax): nplt.spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=2)
 sigs = [respavg]
