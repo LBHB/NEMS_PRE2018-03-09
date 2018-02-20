@@ -1,3 +1,4 @@
+import re
 import numpy as np
 
 
@@ -386,6 +387,15 @@ def verify_epoch_integrity(epoch):
     # TODO
     raise NotImplementedError
 
+
+def epoch_names_matching(epochs, regex_str):
+    '''
+    Returns a list of epoch names that match the (uncompiled) regex string regex_str.
+    '''
+    r = re.compile(regex_str)
+    names = epochs['name'].tolist()
+    matches = filter(r.match, names)
+    return matches
 
 def epoch_occurrences(epochs, regex=None):
     '''

@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, ax=None):
-    """Plots a simple timeseries with one line for each pair of
+    '''
+    Plots a simple timeseries with one line for each pair of
     time and value vectors.
     Lines will be auto-colored according to matplotlib defaults.
 
@@ -12,7 +13,7 @@ def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, a
     ylabel : str
     legend : list of strings
     TODO: expand this doc  -jacob 2-17-18
-    """
+    '''
     for t, v in zip(times, values):
         ax.plot(t, v)
 
@@ -21,6 +22,7 @@ def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, a
     ax.set_ylabel(ylabel)
     if legend:
         ax.legend(legend)
+
 
 def timeseries_from_signals(signals, channel=0, xlabel='Time', ylabel='Value', ax=None):
     legend = [s.name for s in signals]
@@ -34,6 +36,7 @@ def timeseries_from_signals(signals, channel=0, xlabel='Time', ylabel='Value', a
         times.append(time_vector)
         values.append(value_vector)
     plot_timeseries(times, values, xlabel, ylabel, legend, ax=ax)
+
 
 def timeseries_from_epoch(signals, epoch, occurrence=0, channel=0,
                           xlabel='Time', ylabel='Value', ax=None):

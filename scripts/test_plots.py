@@ -1,7 +1,9 @@
 import os
 import random
+import numpy as np
 from functools import partial
 import matplotlib.pyplot as plt
+import nems.epoch as ep
 import nems.modelspec as ms
 import nems.plots.api as nplt
 from nems.recording import Recording
@@ -23,6 +25,23 @@ pred = [ms.evaluate(val, m)['pred'] for m in modelspecs]
 stim = val['stim']
 resp = val['resp']
 
+# Create a respavg signal in 3 steps:
+# 1. Fold matrix over all stimuli, returning a dictionary where keys are stimuli 
+#    and each value in the dictionary is (reps X cell X bins)
+epochs_to_extract = ep.epoch_names_matching(rec.epochs, '^STIM_') 
+
+folded_matrix = resp.extract_epochs(epochs_to_extract)
+
+# 2. Average over all reps of each stim and save into dict called psth.
+per_stim_psth = dict()
+for k in folded_matrix.keys():
+    per_stim_psth[k] = np.nanmean(folded_matrix[k], axis=0)
+
+# 3. Invert the folding to unwrap the psth back out into a predicted spike_dict by 
+# simply replacing all epochs in the signal with their psth
+respavg = resp.replace_epochs(per_stim_psth)
+
+
 def plot_layout(plot_fn_struct):
     # Count how many plot functions we want
     nrows = len(plot_fn_struct)
@@ -38,33 +57,21 @@ def plot_layout(plot_fn_struct):
 
 # Test the layout
 def my_scatter(ax): nplt.plot_scatter(resp, pred[0], ax=ax, title=rec.name)
-
-
-#
-sigs = [resp]
+def my_spectro(ax): nplt.spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=2)
+sigs = [respavg]
 sigs.extend(pred)
-fig = plot_layout([[my_scatter, my_scatter],
-                   [lambda ax : nplt.spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=2)],
-                   [lambda ax : nplt.timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrence=2)]])
+def my_timeseries(ax) : nplt.timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrence=2)
+
+fig = plot_layout([[my_scatter, my_scatter, my_scatter],
+                   [my_spectro],
+                   [my_timeseries]])
 
 fig.tight_layout()
 fig.show()
 
-#     nplt.timeseries_from_epoch(signals, 'TRIAL', occurrence=o,
-#                                ylabel='Firing Rate')
-
-# # Plot three predictions against the real response. 
-# # Compare predictions from a few different modelspecs against each other
-# # for 3 random occurrences
-# fig = plt.figure(figsize=(12, 9))
-# for i in range(3):
-#     nplt.timeseries_from_epoch(signals, 'TRIAL', occurrence=o,
-#                                ylabel='Firing Rate')
-
-
-
-
+# Pause here before quitting
 plt.show()
+
 exit()
 
 ################################################################################
@@ -77,8 +84,10 @@ exit()
 #stim.epochs = stim.trial_epochs_from_occurrences(occurrences=377)
 #resp.epochs = resp.trial_epochs_from_occurrences(occurrences=377)
 
-# TODO: these need work. hard to interpret with all trials etc present
+# TODO: How do we view multiple occurrences of trials?
+#       etc present
 #       at once.
+
 # use defaults for all plot functions using the 'high-level' plotting functions
 #plot_fns = [nplt.pred_vs_act_scatter, nplt.pred_vs_act_psth]
 #frozen_fns = nplt.freeze_defaults(plot_fns, val, loaded_modelspecs[0],
@@ -87,31 +96,3 @@ exit()
 #print("Signals with all epochs included")
 #fig.show()
 
-# plot prediction versus response for three randomly selected occurrences
-# of 'TRIAL' epoch, using 'low-level' plotting functions.
-evaluated_spec = ms.evaluate(val, loaded_modelspecs[0])
-pred = evaluated_spec['pred']
-total_o = pred.count_epoch('TRIAL')
-# TODO: trim pre and post stim silence? ~1/3 of spectrogram is empty
-for i in range(3):
-    fig = plt.figure(figsize=(12,6))
-    o = random.randrange(total_o)
-    plt.subplot(211)
-    nplt.spectrogram_from_epoch(stim, 'TRIAL', occurrence=o)
-    plt.title("Trial {}".format(o))
-    plt.subplot(212)
-    nplt.timeseries_from_epoch([pred, resp], 'TRIAL', occurrence=o)
-    plt.ylabel('Firing Rate')
-    plt.tight_layout()
-    fig.show()
-
-fig = plt.figure(figsize=(12, 3))
-plt.subplot(111)
-nplt.weight_channels_heatmap(loaded_modelspecs[0])
-fig.show()
-
- 
-# Compare weight channels coefficients for a few different modelspecs
-nplt.weight_channels_heatmaps(loaded_modelspecs, figsize=(12,9))
-
-plt.show()
