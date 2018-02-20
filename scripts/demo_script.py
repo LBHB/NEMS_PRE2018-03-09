@@ -25,10 +25,10 @@ signals_dir = '../signals'
 modelspecs_dir = '../modelspecs'
 
 # ----------------------------------------------------------------------------
-# DATA FETCHING
+# DATA LOADING
 
 # GOAL: Get your data loaded into memory as a Recording object
-log.info('Fetching data...')
+log.info('Loading data...')
 
 # Method #1: Load the data from a local directory
 rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
@@ -89,17 +89,14 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 log.info('Loading modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
-# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
-modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-57-1')
+# results = ms.load_modelspecs(modelspecs_dir, 'TAR010c-57-1')
 
 # Method #3: Load it from a published jerb (TODO)
-# modelspec = ...
-
-# Method #4: specify it manually (TODO)
-# modelspec = ...
+# results = ...
 
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
@@ -115,8 +112,8 @@ modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-57-1')
 # results = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
 # result = average(results...)
 
-# Option 3: Fit 10 jackknifes of the data, and return all of them.
-# results = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=10)
+# Option 3: Fit 8 jackknifes of the data, and return all of them.
+modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=8)
 
 # Option 4: Divide estimation data into 10 subsets; fit all sets separately
 # results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
@@ -144,9 +141,9 @@ modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-57-1')
 
 # GOAL: Save your results to disk. (BEFORE you screw it up trying to plot!)
 
-# log.info('Saving Results')
+log.info('Saving Results')
 
-# ms.save_modelspecs(modelspecs_dir, results)
+ms.save_modelspecs(modelspecs_dir, modelspecs)
 
 # ----------------------------------------------------------------------------
 # GENERATE PLOTS
@@ -160,10 +157,10 @@ log.info('Generating summary plot...')
 nplt.plot_summary(val, modelspecs)
 
 # Optional: See how well your best result predicts the validation data set
-# nems.plot.predictions(val, [results[0]])
+# nems.plot.predictions(val, [results[0]]) # TODO
 
 # Optional: See how all the results predicted
-# nems.plot.predictions(val, results)
+# nems.plot.predictions(val, results) # TODO
 
 # Optional: Compute the confidence intervals on your results
 # nems.plot.confidence_intervals(val, results) # TODO
@@ -174,9 +171,8 @@ nplt.plot_summary(val, modelspecs)
 # Optional: View the posterior parameter probability distributions
 # nems.plot.posterior(val, results) # TODO
 
-
-#nplt.pred_vs_act_scatter(val, one_modelspec, ms.evaluate, ax=ax1)
-#nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
+# nplt.pred_vs_act_scatter(val, one_modelspec, ms.evaluate, ax=ax1)
+#  nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
 #nplt.pred_vs_act_psth_smooth(val, one_modelspec, ms.evaluate, ax=ax3)
 
 # Pause before quitting
