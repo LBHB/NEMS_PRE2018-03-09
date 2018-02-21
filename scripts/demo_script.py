@@ -95,11 +95,11 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 log.info('Initializing modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
-# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
-modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
+# modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
 
 # Method #3: Load it from a published jerb (TODO)
 # results = ...
@@ -127,7 +127,7 @@ log.info('Fitting Modelspec(s)...')
 # modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=4)
 
 # Option 4: Divide estimation data into 10 subsets; fit all sets separately
-# modelspecs = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
+modelspecs = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
 # Option 5: Start from random starting points 10 times
 # modelspecs = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
@@ -154,7 +154,7 @@ log.info('Fitting Modelspec(s)...')
 
 log.info('Saving Results...')
 
-# ms.save_modelspecs(modelspecs_dir, modelspecs)
+ms.save_modelspecs(modelspecs_dir, modelspecs)
 
 # ----------------------------------------------------------------------------
 # GENERATE SUMMARY STATISTICS

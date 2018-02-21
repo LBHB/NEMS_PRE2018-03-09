@@ -39,6 +39,9 @@ def mse(result, pred_name='pred', resp_name='resp'):
 def nmse(result, pred_name='pred', resp_name='resp'):
     '''
     Same as MSE, but normalized by the std of the resp.
+    Because it is more computationally expensive than MSE but is otherwise
+    equivalent, we suggest using the MSE for fitting and use this as a
+    post-fit performance metric only.
     '''
     pred = result[pred_name]
     resp = result[resp_name]
