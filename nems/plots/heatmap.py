@@ -1,15 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# TODO: when plotting multiple heatmaps, sync up the color scales
 def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two', ax=None, cmap=None):
     # Make sure array is converted to ndarray if passed as list
     array = np.array(array)
     
     mmax = np.max(np.abs(array.reshape(-1)))
     ax.imshow(array, aspect='auto', origin='lower', 
-              #cmap=ax.get_cmap('jet'), # TODO!!! Use a color map
-              #clim=[-mmax,mmax], 
+              cmap=plt.get_cmap('jet'),
+              #clim=[-mmax,mmax],  # TODO: 
               interpolation='none')
     
     # Force integer tick labels

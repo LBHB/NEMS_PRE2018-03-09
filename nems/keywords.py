@@ -58,6 +58,14 @@ defkey('fir10x1',
                   ('Normal', {'mu': [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
                               'sd': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]})}})
 
+defkey('fir15x1',
+       {'fn': 'nems.modules.fir.fir_filter',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred'},
+        'prior': {'coefficients':
+                  ('Normal', {'mu': [[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+                              'sd': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]})}})
+
 defkey('lvl1',
        {'fn': 'nems.modules.levelshift.levelshift',
         'fn_kwargs': {'i': 'pred',

@@ -34,3 +34,15 @@ def mse(result, pred_name='pred', resp_name='resp'):
     resp = result[resp_name]
     squared_errors = (pred-resp)**2
     return np.nanmean(squared_errors)
+
+
+def nmse(result, pred_name='pred', resp_name='resp'):
+    '''
+    Same as MSE, but normalized by the std of the resp.
+    '''
+    pred = result[pred_name]
+    resp = result[resp_name]
+    respstd = np.nanstd(resp)
+    squared_errors = (pred-resp)**2
+    mse = np.nanmean(squared_errors)
+    return mse / respstd

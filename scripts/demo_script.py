@@ -95,7 +95,7 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 log.info('Initializing modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
-modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1_lvl1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
@@ -115,7 +115,13 @@ log.info('Fitting Modelspec(s)...')
 
 # Option 1: Use gradient descent on whole data set(Fast)
 # modelspecs = nems.analysis.api.fit_basic(est, modelspec)
-modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
+
+# Fit on whole recording! Not just est and val.
+modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize,
+                                         metric=lambda data: nems.metrics.api.nmse(
+                                             {'pred': data.get_signal('pred').as_continuous(),
+                                              'resp': data.get_signal('resp').as_continuous()}
+                                         ),)
 
 # Option 2: Split the est data into 10 pieces, fit them, and average
 # modelspecs = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
@@ -153,6 +159,15 @@ modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
 log.info('Saving Results...')
 
 ms.save_modelspecs(modelspecs_dir, modelspecs)
+
+# ----------------------------------------------------------------------------
+# GENERATE SUMMARY STATISTICS
+
+log.info('Generating summary statistics...')
+
+
+
+
 
 # ----------------------------------------------------------------------------
 # GENERATE PLOTS
