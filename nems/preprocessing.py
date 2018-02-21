@@ -57,20 +57,20 @@ def convert_to_average_sig(rec, epoch_regex='^STIM_'):
         
         for k in folded_matrix.keys():
             per_stim_psth = np.nanmean(folded_matrix[k], axis=0)
-            
             data=np.concatenate((data,per_stim_psth),axis=1)
             
             epoch=current_time+np.array([[0,per_stim_psth.shape[1]/fs]])
             
-            df = pd.DataFrame(epoch, columns=['start', 'end'])
+            df = pd.DataFrame(np.tile(epoch,[2,1]), columns=['start', 'end'])
             df['name'] = k
+            df.at[1,'name']='TRIAL'
             if epochs is not None:
                 epochs = epochs.append(df, ignore_index=True)
             else:
                 epochs = df
-    
+                            
             current_time=epoch[0,1]
-        
+            
         avg_signal=signal.Signal(fs=fs, matrix=data, name=signal_to_average.name, 
                                  recording=signal_to_average.recording, 
                                  chans=signal_to_average.chans, epochs=epochs,  
