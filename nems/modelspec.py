@@ -162,7 +162,7 @@ def evaluate(rec, modelspec, stop=-1):
     '''
     # d = copy.deepcopy(rec)  # Paranoid, but 100% safe
     d = copy.copy(rec)  # About 10x faster & fine if Signals are immutable
-    for m in modelspec[:stop]:
+    for m in modelspec:
         fn = _lookup_fn_at(m['fn'])
         kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
         new_signals = fn(rec=d, **kwargs)

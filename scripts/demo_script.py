@@ -15,6 +15,7 @@ import nems.plots.api as nplt
 import nems.analysis.api
 import nems.utils
 from nems.recording import Recording
+from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 
 # ----------------------------------------------------------------------------
 # CONFIGURATION
@@ -31,7 +32,7 @@ modelspecs_dir = '../modelspecs'
 log.info('Loading data...')
 
 # Method #1: Load the data from a local directory
-rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
+rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
@@ -54,9 +55,10 @@ rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
 log.info('Preprocessing data...')
 
 # Add a respavg signal to the recording
-rec = preproc.add_average_sig(rec, signal_to_average='resp',
-                              new_signalname='respavg',
-                              epoch_regex='^STIM_')
+# this is not necessary for the STRF estimation, I don't think (SVD)
+#rec = preproc.add_average_sig(rec, signal_to_average='resp',
+#                              new_signalname='respavg',
+#                              epoch_regex='^STIM_')
 
 # ----------------------------------------------------------------------------
 # DATA WITHHOLDING
@@ -68,6 +70,8 @@ log.info('Withholding validation set data...')
 
 # Method #0: Try to guess which stimuli have the most reps, use those for val
 est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
+est=preproc.convert_to_average_sig(est, epoch_regex='^STIM_')
+val=preproc.convert_to_average_sig(val, epoch_regex='^STIM_')
 
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
@@ -113,7 +117,9 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1')
 # result = average(results...)
 
 # Option 3: Fit 8 jackknifes of the data, and return all of them.
-modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=8)
+#modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=8)
+modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
+
 
 # Option 4: Divide estimation data into 10 subsets; fit all sets separately
 # results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
