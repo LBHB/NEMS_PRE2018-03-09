@@ -54,11 +54,11 @@ rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
 # OPTIONAL PREPROCESSING
 log.info('Preprocessing data...')
 
-# Add a respavg signal to the recording
-# this is not necessary for the STRF estimation, I don't think (SVD)
-#rec = preproc.add_average_sig(rec, signal_to_average='resp',
-#                              new_signalname='respavg',
-#                              epoch_regex='^STIM_')
+# Add a respavg signal to the recording now, so we don't have to do it later
+# on both the est and val sets seperately.
+rec = preproc.add_average_sig(rec, signal_to_average='resp',
+                              new_signalname='resp', # NOTE: ADDING AS RESP NOT RESPAVG FOR TESTING
+                              epoch_regex='^STIM_')
 
 # ----------------------------------------------------------------------------
 # DATA WITHHOLDING
@@ -70,8 +70,10 @@ log.info('Withholding validation set data...')
 
 # Method #0: Try to guess which stimuli have the most reps, use those for val
 est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
-est=preproc.convert_to_average_sig(est, epoch_regex='^STIM_')
-val=preproc.convert_to_average_sig(val, epoch_regex='^STIM_')
+
+# Optional: Take nanmean of ALL occurrences of all signals
+# est = preproc.average_away_epoch_occurrences(est, epoch_regex='^STIM_')
+# val = preproc.average_away_epoch_occurrences(val, epoch_regex='^STIM_')
 
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
@@ -90,10 +92,10 @@ val=preproc.convert_to_average_sig(val, epoch_regex='^STIM_')
 
 # GOAL: Define the model that you wish to test
 
-log.info('Loading modelspec(s)...')
+log.info('Initializing modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
-modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1_lvl1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
@@ -109,37 +111,38 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir10x1')
 #       Note that: nems.analysis.* will return a list of modelspecs, sorted
 #       in descending order of how they performed on the fitter's metric.
 
+log.info('Fitting Modelspec(s)...')
+
 # Option 1: Use gradient descent on whole data set(Fast)
-#results = nems.analysis.api.fit_basic(est, modelspec)
-
-# Option 2: Split the est data into 10 pieces, fit them, and average
-# results = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
-# result = average(results...)
-
-# Option 3: Fit 8 jackknifes of the data, and return all of them.
-#modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=8)
+# modelspecs = nems.analysis.api.fit_basic(est, modelspec)
 modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
 
+# Option 2: Split the est data into 10 pieces, fit them, and average
+# modelspecs = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
+# result = average(modelspecs...)
+
+# Option 3: Fit 4 jackknifes of the data, and return all of them.
+# modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=4)
 
 # Option 4: Divide estimation data into 10 subsets; fit all sets separately
-# results = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
+# modelspecs = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
 # Option 5: Start from random starting points 10 times
-# results = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
+# modelspecs = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
 
 # TODO: Perturb around the modelspec to get confidence intervals
 
 # TODO: Use simulated annealing (Slow, arguably gets stuck less often)
-# results = nems.analysis.fit_basic(est, modelspec,
+# modelspecs = nems.analysis.fit_basic(est, modelspec,
 #                                   fitter=nems.fitter.annealing)
 
 # TODO: Use Metropolis algorithm (Very slow, gives confidence interval)
-# results = nems.analysis.fit_basic(est, modelspec,
+# modelspecs = nems.analysis.fit_basic(est, modelspec,
 #                                   fitter=nems.fitter.metropolis)
 
 # TODO: Use 10-fold cross-validated evaluation
 # fitter = partial(nems.cross_validator.cross_validate_wrapper, gradient_descent, 10)
-# results = nems.analysis.fit_cv(est, modelspec, folds=10)
+# modelspecs = nems.analysis.fit_cv(est, modelspec, folds=10)
 
 
 # ----------------------------------------------------------------------------
@@ -147,7 +150,7 @@ modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
 
 # GOAL: Save your results to disk. (BEFORE you screw it up trying to plot!)
 
-log.info('Saving Results')
+log.info('Saving Results...')
 
 ms.save_modelspecs(modelspecs_dir, modelspecs)
 

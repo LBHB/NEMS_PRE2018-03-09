@@ -35,13 +35,12 @@ def plot_summary(rec, modelspecs):
     if len(modelspecs) <= 10:
         fig = plot_layout([make_partials(my_scatter, modelspecs),
                            make_partials(my_strf, modelspecs),
-                           [my_spectro],                    
+                           [my_spectro],
                            [my_timeseries]])
     else:
         # Don't plot the scatters/strfs when you have more than 10
-        fig = plot_layout([[my_spectro],                    
+        fig = plot_layout([[my_spectro],
                            [my_timeseries]])
 
     fig.tight_layout()
     fig.show()
-    
