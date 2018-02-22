@@ -99,4 +99,35 @@ defkey('lvl1',
 defkey('dexp1',
        {'fn': 'nems.modules.nonlinearity.double_exponential',
         'fn_kwargs': {'i': 'pred',
-                      'o': 'pred'}})
+                      'o': 'pred'},
+        'prior': {'base': ('Normal', {'mu': [0], 'sd': [1]}),
+                  'amplitude': ('Normal', {'mu': [0.2], 'sd': [1]}),
+                  'shift': ('Normal', {'mu': [0], 'sd': [1]}),
+                  'kappa': ('Normal', {'mu': [0], 'sd': [0.1]})}})
+
+defkey('qsig1',
+       {'fn': 'nems.modules.nonlinearity.quick_sigmoid',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred'},
+        'prior': {'base': ('Normal', {'mu': [0.1], 'sd': [0.1]}),
+                  'amplitude': ('Normal', {'mu': [0.7], 'sd': [0.5]}),
+                  'shift': ('Normal', {'mu': [1.5], 'sd': [1.0]}),
+                  'kappa': ('Normal', {'mu': [0.1], 'sd': [0.1]})}})
+
+defkey('logsig1',
+       {'fn': 'nems.modules.nonlinearity.logistic_sigmoid',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred'},
+        'prior': {'base': ('Normal', {'mu': [0], 'sd': [1]}),
+                  'amplitude': ('Normal', {'mu': [0.2], 'sd': [1]}),
+                  'shift': ('Normal', {'mu': [0], 'sd': [1]}),
+                  'kappa': ('Normal', {'mu': [0], 'sd': [0.1]})}})
+
+defkey('tanh1',
+       {'fn': 'nems.modules.nonlinearity.tanh',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred'},
+        'prior': {'base': ('Normal', {'mu': [0], 'sd': [1]}),
+                  'amplitude': ('Normal', {'mu': [0.2], 'sd': [1]}),
+                  'shift': ('Normal', {'mu': [0], 'sd': [1]}),
+                  'kappa': ('Normal', {'mu': [0], 'sd': [0.1]})}})

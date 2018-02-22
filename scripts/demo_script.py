@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import nems
 import nems.initializers
 import nems.epoch as ep
+import nems.priors
 import nems.preprocessing as preproc
 import nems.modelspec as ms
 import nems.plots.api as nplt
@@ -95,7 +96,10 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 log.info('Initializing modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
-modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1')
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_logsig1')
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_qsig1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_tanh1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
@@ -103,6 +107,9 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1')
 
 # Method #3: Load it from a published jerb (TODO)
 # results = ...
+
+# Optional: start from some prior
+modelspec = nems.priors.set_random_phi(modelspec)
 
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
@@ -114,10 +121,7 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1')
 log.info('Fitting Modelspec(s)...')
 
 # Option 1: Use gradient descent on whole data set(Fast)
-# modelspecs = nems.analysis.api.fit_basic(est, modelspec)
-
-# Fit on whole recording! Not just est and val.
-# modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
+modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
 
 # Option 2: Split the est data into 10 pieces, fit them, and average
 # modelspecs = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
@@ -127,10 +131,10 @@ log.info('Fitting Modelspec(s)...')
 # modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=4)
 
 # Option 4: Divide estimation data into 10 subsets; fit all sets separately
-modelspecs = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
+# modelspecs = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
-# Option 5: Start from random starting points 10 times
-# modelspecs = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=10)
+# Option 5: Start from random starting points 4 times
+# modelspecs = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=4)
 
 # TODO: Perturb around the modelspec to get confidence intervals
 

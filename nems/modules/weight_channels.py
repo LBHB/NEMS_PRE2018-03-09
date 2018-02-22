@@ -1,6 +1,7 @@
+import cProfile
 import numpy as np
 
-
+@profile
 def weight_channels(rec, i, o, coefficients):
     '''
     Parameters

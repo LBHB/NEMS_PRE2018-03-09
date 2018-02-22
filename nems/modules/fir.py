@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.signal
-
+import cProfile
 
 def get_zi(b, x):
     # This is the approach NARF uses. If the initial value of x[0] is 1,
@@ -12,7 +12,7 @@ def get_zi(b, x):
     zi = np.ones(n_taps-1)
     return scipy.signal.lfilter(b, [1], null_data, zi=zi)[1]
 
-
+@profile
 def _fir_filter(x, coefficients):
     '''
     Private function used by fir_filter().

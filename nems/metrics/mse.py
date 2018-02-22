@@ -1,6 +1,7 @@
 import numpy as np
+import cProfile
 
-
+@profile
 def mse(result, pred_name='pred', resp_name='resp'):
     '''
     Given the evaluated data, return the mean squared error

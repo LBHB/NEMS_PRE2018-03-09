@@ -29,6 +29,7 @@ default_priors = {'nems.modules.fir.fir_filter':
                    'amplitude': ('Normal', {'mu': [0.2], 'sd': [1]}),
                    'shift': ('Normal', {'mu': [0], 'sd': [1]}),
                    'kappa': ('Normal', {'mu': [0], 'sd': [0.1]})}}
+# TODO: I don't like that this is here. Where to put it? -- Ivar
 
 
 def _get_module_prior(module, default_priors=default_priors):
