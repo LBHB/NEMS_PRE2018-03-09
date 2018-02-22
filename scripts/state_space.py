@@ -9,21 +9,25 @@ Created on Mon Jan 29 18:20:45 2018
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from sklearn.cluster import KMeans
 
-sys.path.append('/auto/users/hellerc/NEMS/')
+sys.path.append('/auto/users/hellerc/code/NEMS/')
 from nems.utilities.baphy import baphy_load_recording, spike_time_to_raster
 from nems.signal import Signal
+sys.path.append('/auto/users/hellerc/code/NEMS/scripts')
 import pupil_processing as pp  
+import dim_reduction_tools as drt
 
 # load data in first (create a spike/response matrix)
 rasterfs=100
 
 # Tartufo NAT
-#parmfilepath = '/auto/data/daq/Tartufo/TAR010/TAR010c16_p_NAT.m'
+#parmfilepath = '/auto/data/daq/Tartufo/TAR017/TAR017b10_p_NAT.m'
 #options = {'rasterfs': rasterfs, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
 
 # Boleto VOC
-parmfilepath = '/auto/data/daq/Boleto/BOL005/BOL005c05_p_PPS_VOC.m'
+parmfilepath = '/auto/data/daq/Boleto/BOL005/BOL005c09_p_PPS_VOC.m'
 options = {'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True, 'runclass': 'VOC'}
 
 # load baphy parmfile
@@ -38,7 +42,8 @@ event_times['end_index']=[int(x) for x in event_times['StopTime']*100]
 out = spike_time_to_raster(spike_dict=spike_dict,
                          fs=100,
                          event_times=event_times)
-r = out[0]
+
+r = out[0][:,:-int(rasterfs*0.75)]  # remove the time points where pupil is nan
 cellids = out[1]
 
 # =========================================================================
@@ -47,17 +52,96 @@ cellids = out[1]
 # =========================================================================
 
 # Create state matrix
-p = state_dict['pupiltrace']
+p = state_dict['pupiltrace'][:-int(rasterfs*0.75)]  # remove time shifted points from pupil
 p_hp, p_lp = pp.filt(p, rasterfs=100)
 dpos, dneg = pp.derivative(p, rasterfs=100)
+der = dpos+dneg
+state_matrix = np.vstack((p[:-1],p_hp[:-1],p_lp[:-1],der))
 
-state_matrix = np.vstack((p[:-1],p_hp[:-1],p_lp[:-1],dpos,dneg))
+# Attempt to find clusters in state space using PCA/Kmeans
+U,S,V = np.linalg.svd(state_matrix.T,full_matrices=False)
 
-# Visualize pupil diamter
+kmeans = KMeans(n_clusters=2, random_state=0).fit(state_matrix.T)
+labels = kmeans.labels_
+
 plt.figure()
-n, bins, patches = plt.hist(p,bins=200)
-l = plt.plot(bins, p, 'r--', linewidth=1)
+plt.title('Kmeans in PCA space')
+plt.plot(S[0]*U[:,0][labels==1], S[1]*U[:,1][labels==1], 'r.')
+plt.plot(S[0]*U[:,0][labels==0], S[1]*U[:,1][labels==0], 'b.')
 
 
+plt.figure()
+plt.title('Kmeans in pupil-time space')
+plt.plot(np.argwhere(labels==1), p[:-1][labels==1], 'r.')
+plt.plot(np.argwhere(labels==0), p[:-1][labels==0], 'b.')
+
+# Visualize pupil diamter as sum of two gaussians
+
+def gauss(x,mu,sigma,A):
+    return A*np.exp(-(x-mu)**2/2/sigma**2)
+
+def bimodal(x,mu1,sigma1,A1,mu2,sigma2,A2):
+    return gauss(x,mu1,sigma1,A1)+gauss(x,mu2,sigma2,A2)
+
+plt.figure()
+n, bins, _ = plt.hist(p,bins=rasterfs, color='g')
+bins=(bins[1:]+bins[:-1])/2
+params,cov=curve_fit(bimodal,bins,n)
+sigma=np.sqrt(np.diag(cov))
+plt.title('Raw pupil diameter')
+plt.plot(bins,bimodal(bins,*params),color='red',lw=3,label='model')
+
+# ===== Look at dimesnionality of subspace under different conditions =======
+
+# First, just look at PCs under different kmeans clusters
+try:
+    out_cluster1 = drt.PCA(r[:,:-1][:,labels==0].T)
+    out_cluster2 = drt.PCA(r[:,:-1][:,labels==1].T)
+except:
+    out_cluster1 = drt.PCA(r[:,:-2][:,labels==0].T)
+    out_cluster2 = drt.PCA(r[:,:-2][:,labels==1].T)
+
+# Variance explained in each condition
+plt.figure()
+plt.plot(out_cluster1['variance'],'b')
+plt.plot(out_cluster2['variance'],'r')
 
 
+# ==== Determine if pupil is best fit with single gaussian or bimodal =====
+
+def mse(r, p):
+    mse = []
+    for i in range(0,len(r)):
+        mse.append((r[i]-p[i])**2)
+    mse = sum(mse)/len(r)
+    return mse
+
+plt.figure(100)
+n, bins, _ = plt.hist(p,bins=rasterfs, color='g')
+plt.close(100)
+bins=(bins[1:]+bins[:-1])/2
+params_bi,cov_bi=curve_fit(bimodal,bins,n)
+sigma_bi=np.sqrt(np.diag(cov_bi))
+params_gauss,cov_gauss=curve_fit(gauss,bins,n)
+sigma_gauss=np.sqrt(np.diag(cov_gauss))
+
+gauss_fit = gauss(bins,*params_gauss)
+bimodal_fit = bimodal(bins,*params_bi)
+
+mse_gauss = mse(gauss_fit, n)
+mse_bi = mse(bimodal_fit, n)\
+
+if mse_gauss < mse_bi:
+    print('WARNING: pupil dynamics come from single distribution')
+
+out_big_p=drt.PCA(np.squeeze(r[:,np.argwhere(p>=int(round(params_bi[0])))]).T)
+out_small_p=drt.PCA(np.squeeze(r[:,np.argwhere(p<=int(round(params_bi[3])))]).T)
+
+# look at variance in two extreme groups
+plt.figure()
+plt.plot(out_big_p['variance'],'b')
+plt.plot(out_small_p['variance'],'r')
+plt.legend(['big pupil', 'small pupil'])
+
+    
+    
