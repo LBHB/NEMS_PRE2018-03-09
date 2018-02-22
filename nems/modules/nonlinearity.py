@@ -1,69 +1,81 @@
+import cProfile
 import numpy as np
-import pylab as pl
+from numpy import exp
 
-from ..distributions.api import Gamma, HalfNormal
-from .module import Module
-
-
-class Nonlinearity(Module):
-    pass
+# Apparently, numpy is VERY slow at taking the exponent of a negative number
+# https://github.com/numpy/numpy/issues/8233
 
 
-def double_exponential(x, base, amplitude, shift, kappa):
+@profile
+def _logistic_sigmoid(x, base, amplitude, shift, kappa):
+    ''' This "logistic" function only has a single negative exponent '''
+    return base + amplitude * 1 / (1 + exp(-kappa * (x - shift)))
+
+def logistic_sigmoid(rec, i, o, base, amplitude, shift, kappa):
+    fn = lambda x : _logistic_sigmoid(x, base, amplitude, shift, kappa)
+    return [rec[i].transform(fn, o)]
+
+
+@profile
+def _tanh(x, base, amplitude, shift, kappa):
+    return base + (0.5 * amplitude) * (1 + np.tanh(kappa * (x - shift)))
+
+def tanh(rec, i, o, base, amplitude, shift, kappa):
+    fn = lambda x : _tanh(x, base, amplitude, shift, kappa)    
+    return [rec[i].transform(fn, o)]
+
+
+@profile
+def _quick_sigmoid(x, base, amplitude, shift, kappa):
+    y = kappa * (x - shift)
+    return base + (0.5 * amplitude) * (1 + y / np.sqrt(1 + np.square(y)))
+
+def quick_sigmoid(rec, i, o, base, amplitude, shift, kappa):
+    fn = lambda x : _quick_sigmoid(x, base, amplitude, shift, kappa)
+    return [rec[i].transform(fn, o)]
+
+
+@profile
+def _double_exponential(x, base, amplitude, shift, kappa):
+    return base + amplitude * np.exp(-np.exp(-np.exp(kappa) * (x - shift)))
+
+def double_exponential(rec, i, o, base, amplitude, shift, kappa):
     '''
-    Double exponential function
+    A double exponential applied to all channels of a single signal.
+       rec        Recording object
+       i          Input signal name
+       o          Output signal name
+       base       Y-axis height of the center of the sigmoid
+       amplitude  Y-axis distance from ymax asymptote to ymin asymptote
+       shift      Centerpoint of the sigmoid along x axis
+       kappa      Sigmoid curvature. Larger numbers mean steeper slopes.
+    We take exp(kappa) to ensure it is always positive.
     '''
-    return base + amplitude * np.exp(-np.exp(-kappa * (x-shift)))
+
+    fn = lambda x : _double_exponential(x, base, amplitude, shift, kappa)
+    # fn = lambda x : _quick_sigmoid(x, base, amplitude, shift, kappa)
+    # fn = lambda x : _tanh(x, base, amplitude, shift, kappa)
+    # fn = lambda x : _logistic_sigmoid(x, base, amplitude, shift, kappa)
+    return [rec[i].transform(fn, o)]
 
 
-class DoubleExponential(Nonlinearity):
+################################################################################
+## Test that shows them all with similar parameters
+# import matplotlib.pyplot as plt
 
-    def __init__(self, input_name='pred', output_name='pred',
-                 response_name='pred'):
-        self.input_name = input_name
-        self.output_name = output_name
-        self.response_name = response_name
+# base = 1
+# amplitude = 2
+# shift = 3
+# kappa = 1
 
-    def get_priors(self, initial_data):
-        resp = initial_data[self.response_name]
-        pred = initial_data[self.input_name]
+# x = np.arange(-5.0, 5.0, 0.1)
+# y1 = _double_exponential(x, base, amplitude, shift, kappa)
+# y2 = _quick_sigmoid(x, base, amplitude, shift, kappa)
+# y3 = _tanh(x, base, amplitude, shift, kappa)
+# y4 = _logistic_sigmoid(x, base, amplitude, shift, kappa)
 
-        base_mu, peak_mu = np.nanpercentile(resp, [2.5, 97.5])
-        base_mu = np.clip(base_mu, 0.01, np.inf)
-
-        shift_mu = np.nanmean(pred)
-        resp_sd = np.nanstd(resp)
-        pred_sd = np.nanstd(pred)
-
-        # In general, kappa needs to be about this value (based on the input) to
-        # get a reasonable initial slope. Eventually we can explore a more
-        # sensible way to initialize this?
-        pred_lb, pred_ub = np.nanpercentile(pred, [2.5, 97.5])
-        kappa_sd = 10/(pred_ub-pred_lb)
-
-
-        return {
-            'base': Gamma.from_moments(base_mu, resp_sd*2),
-            'amplitude': Gamma.from_moments(peak_mu-base_mu, resp_sd*2),
-            'shift': Gamma.from_moments(shift_mu, pred_sd*2),
-            'kappa': HalfNormal(kappa_sd),
-        }
-
-    def evaluate(self, data, phi):
-        x = data[self.input_name]
-        return {
-            self.output_name: double_exponential(x, **phi)
-        }
-
-    def plot_coefficients(self, phi, data=None, axes=None):
-        if data is not None:
-            pred = data[self.input_name]
-            x = np.linspace(pred.min(), pred.max(), 100)
-        else:
-            x = np.linspace(0, 1000, 100)
-
-        if axes is None:
-            ax = pl.gca()
-
-        y = double_exponential(x, **phi)
-        ax.plot(x, y, 'k-')
+# plt.plot(x, y1)
+# plt.plot(x, y2)
+# plt.plot(x, y3)
+# plt.plot(x, y4)
+# plt.show()

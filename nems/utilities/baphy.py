@@ -21,6 +21,8 @@ import io
 import pandas as pd
 import nems.utilities as nu
 import matplotlib.pyplot as plt
+import nems.signal
+import nems.recording
 
 try:
     import nems.db as db
@@ -835,6 +837,7 @@ def baphy_mat2py(s):
     
     s6=re.sub(r'([0-9]+) ', r"\g<0>,", s5)
     s6=re.sub(r'NaN ', r"np.nan,", s6)
+    s6=re.sub(r'Inf ', r"np.inf,", s6)
     
     s7=re.sub(r"XX([a-zA-Z0-9]+)'",r".\g<1>'",s6)
     s7=re.sub(r"XX([a-zA-Z0-9]+) ,",r".\g<1> ,",s7)
@@ -885,9 +888,12 @@ def baphy_parm_read(filepath):
     t=[exptevents[k] for k in exptevents]
     d=pd.DataFrame(t)
     exptevents=d.drop(['Rove'],axis=1)
+    
+    # rename columns to NEMS standard epoch names
+    exptevents.columns=['name','start','end','Trial']
     for i in range(0,len(exptevents)):
-        if exptevents.loc[i,'StopTime'] == []:
-            exptevents.loc[i,'StopTime']=exptevents.loc[i,'StartTime']
+        if exptevents.loc[i,'end'] == []:
+            exptevents.loc[i,'end']=exptevents.loc[i,'start']
     
     return globalparams, exptparams, exptevents
 
@@ -992,7 +998,7 @@ def baphy_load_spike_data_raw(spkfilepath,channel=None,unit=None):
     return sortinfo,spikefs
 
 
-def baphy_align_time(exptevents,sortinfo,spikefs):
+def baphy_align_time(exptevents,sortinfo,spikefs,finalfs=0):
     
     # number of channels in recording (not all necessarily contain spikes)
     chancount=len(sortinfo)
@@ -1002,7 +1008,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
     # trial end time reported by baphy, this method preserves extra spikes
     TrialCount=np.max(exptevents['Trial'])
     
-    TrialLen_sec=np.array(exptevents.loc[exptevents['Note']=="TRIALSTOP"]['StartTime'])
+    TrialLen_sec=np.array(exptevents.loc[exptevents['name']=="TRIALSTOP"]['start'])
     TrialLen_spikefs=np.concatenate((np.zeros([1,1]),TrialLen_sec[:,np.newaxis]*spikefs),axis=0)
         
     for c in range(0,chancount):
@@ -1013,7 +1019,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
             for u in range(0,unitcount):
                 st=s[u,0]
                 
-                print('chan {0} unit {1}: {2} spikes'.format(c,u,st.shape[1]))
+                #print('chan {0} unit {1}: {2} spikes'.format(c,u,st.shape[1]))
                 for trialidx in range(1,TrialCount+1):
                     ff=(st[0,:]==trialidx)
                     if np.sum(ff):
@@ -1021,21 +1027,28 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
                         TrialLen_spikefs[trialidx,0]=np.max([utrial_spikefs,TrialLen_spikefs[trialidx,0]])
     
     # using the trial lengths, figure out adjustments to trial event times. 
+    if finalfs:
+        print('rounding Trial offset spike times to even number of rasterfs bins')
+        #print(TrialLen_spikefs)
+        TrialLen_spikefs=np.ceil(TrialLen_spikefs/spikefs*finalfs)/finalfs*spikefs
+        #print(TrialLen_spikefs)
+        
     Offset_spikefs=np.cumsum(TrialLen_spikefs)
     Offset_sec=Offset_spikefs / spikefs  # how much to offset each trial
     
     # adjust times in exptevents to approximate time since experiment started
     # rather than time since trial started (native format)
     for Trialidx in range(1,TrialCount+1):
-        print("Adjusting trial {0} by {1} sec".format(Trialidx,Offset_sec[Trialidx-1]))
+        #print("Adjusting trial {0} by {1} sec".format(Trialidx,Offset_sec[Trialidx-1]))
         ff= (exptevents['Trial'] == Trialidx)
-        exptevents.loc[ff,['StartTime','StopTime']]=exptevents.loc[ff,['StartTime','StopTime']]+Offset_sec[Trialidx-1]
+        exptevents.loc[ff,['start','end']]=exptevents.loc[ff,['start','end']]+Offset_sec[Trialidx-1]
 
-        #ff= (exptevents['Trial'] == Trialidx) & (exptevents['StopTime'] > Offset_sec[Trialidx])        
+        #ff= (exptevents['Trial'] == Trialidx) & (exptevents['end'] > Offset_sec[Trialidx])        
         #badevents,=np.where(ff)
         #print("{0} events past end of trial?".format(len(badevents)))
         #exptevents.drop(badevents)
     
+    print("{0} trials totaling {1:.2f} sec".format(TrialCount,Offset_sec[-1]))
     
     # convert spike times from samples since trial started to
     # (approximate) seconds since experiment started (matched to exptevents)
@@ -1052,7 +1065,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs):
             for u in range(0,unitcount):
                 st=s[u,0]
                 uniquetrials=np.unique(st[0,:])
-                print('chan {0} unit {1}: {2} spikes {3} trials'.format(c,u,st.shape[1],len(uniquetrials)))
+                #print('chan {0} unit {1}: {2} spikes {3} trials'.format(c,u,st.shape[1],len(uniquetrials)))
                 
                 unit_spike_events=np.array([])
                 for trialidx in uniquetrials:
@@ -1124,15 +1137,23 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
         blink[dp > np.mean(dp) + 6*np.std(dp)]= 1
         box=np.ones([fs_approximate])/(fs_approximate)
         blink=np.convolve(blink[:,0],box,mode='same')
+        blink[blink>0]=1
+        blink[blink<=0]=0
         onidx,=np.where(np.diff(blink) > 0)
         offidx,=np.where(np.diff(blink) < 0)
+        if onidx[0]>offidx[0]:
+            onidx=np.concatenate((np.array([0]),onidx))
         if len(onidx)>len(offidx):
             offidx=np.concatenate((offidx,np.array([len(blink)])))
         deblinked = pupil_diameter.copy()
         for i,x1 in enumerate(onidx):
             x2 = offidx[i]
-            #print([i,x1,x2])
-            deblinked[x1:x2,0] = np.linspace(deblinked[x1], deblinked[x2-1], x2-x1)
+            if x2<x1:
+                print([i,x1,x2])
+                print("WHAT'S UP??")
+            else:
+                #print([i,x1,x2])
+                deblinked[x1:x2,0] = np.linspace(deblinked[x1], deblinked[x2-1], x2-x1)
             
         if verbose:
             plt.figure()
@@ -1148,35 +1169,35 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     # resample and remove dropped frames
     
     #find and parse pupil events
-    pp = ['PUPIL,' in x['Note'] for i,x in exptevents.iterrows()]
+    pp = ['PUPIL,' in x['name'] for i,x in exptevents.iterrows()]
     trials=list(exptevents.loc[pp,'Trial'])
     ntrials=len(trials)
     timestamp=np.zeros([ntrials+1])
     firstframe=np.zeros([ntrials+1])
     for i,x in exptevents.loc[pp].iterrows():
         t=x['Trial']-1
-        s=x['Note'].split(",[")
+        s=x['name'].split(",[")
         p=eval("["+s[1])
         #print("{0} p=[{1}".format(i,s[1]))
         timestamp[t]=p[0]
         firstframe[t]=int(p[1])
-    pp = ['PUPILSTOP' in x['Note'] for i,x in exptevents.iterrows()]
+    pp = ['PUPILSTOP' in x['name'] for i,x in exptevents.iterrows()]
     lastidx=np.argwhere(pp)[-1]
     
-    s=exptevents.iloc[lastidx[0]]['Note'].split(",[")
+    s=exptevents.iloc[lastidx[0]]['name'].split(",[")
     p=eval("["+s[1])
     timestamp[-1]=p[0]
     firstframe[-1]=int(p[1])
    
     
     # align pupil with other events, probably by removing extra bins from between trials
-    ff= (exptevents['Note'] == 'TRIALSTART')
-    start_events=exptevents.loc[ff,['StartTime']].reset_index()
-    start_events['StartBin']=(np.round(start_events['StartTime']*options['rasterfs'])).astype(int)
+    ff= (exptevents['name'] == 'TRIALSTART')
+    start_events=exptevents.loc[ff,['start']].reset_index()
+    start_events['StartBin']=(np.round(start_events['start']*options['rasterfs'])).astype(int)
     start_e=list(start_events['StartBin'])
-    ff= (exptevents['Note'] == 'TRIALSTOP')
-    stop_events=exptevents.loc[ff,['StartTime']].reset_index()
-    stop_events['StopBin']=(np.round(stop_events['StartTime']*options['rasterfs'])).astype(int)
+    ff= (exptevents['name'] == 'TRIALSTOP')
+    stop_events=exptevents.loc[ff,['start']].reset_index()
+    stop_events['StopBin']=(np.round(stop_events['start']*options['rasterfs'])).astype(int)
     stop_e=list(stop_events['StopBin'])
     
     
@@ -1210,6 +1231,9 @@ def baphy_load_pupil_trace(pupilfilepath,exptevents,options={}):
     offset_frames=int(pupil_offset*rasterfs)
     big_rs=np.roll(big_rs,-offset_frames)
     big_rs[-offset_frames:]=np.nan
+    
+    # shape to 1 x T to match NEMS signal specs
+    big_rs = big_rs[np.newaxis,:]
     
     return big_rs,strialidx
     
@@ -1255,28 +1279,40 @@ def baphy_load_data(parmfilepath,options={}):
     #       or make s3 match LBHB?
     
     # figure out stimulus cachefile to load
-    stimfilepath=baphy_stim_cachefile(exptparams,options,parmfilepath)
-    print("Cached stim: {0}".format(stimfilepath))
-    
+    if options['stim']:
+        stimfilepath=baphy_stim_cachefile(exptparams,options,parmfilepath)
+        print("Cached stim: {0}".format(stimfilepath))
+        # load stimulus spectrogram
+        stim,tags,stimparam = baphy_load_specgram(stimfilepath)
+    else:
+        stim=np.array([])
+        if options['runclass'] is None:
+            stim_object='ReferenceHandle'
+        else:
+            runclass=exptparams['runclass'].split("_")
+            if runclass[1]==options["runclass"]:
+                stim_object='TargetHandle'
+            else:
+                stim_object='ReferenceHandle'
+                
+        tags=exptparams['TrialObject'][1][stim_object][1]['Names']
+        stimparam=[]
+        
     # figure out spike file to load
     pp,bb=os.path.split(parmfilepath)
     spkfilepath=pp + '/' + spk_subdir + re.sub(r"\.m$",".spk.mat",bb)
     print("Spike file: {0}".format(spkfilepath))
-    # figure out pupil file to load
-    
-    # load stimulus spectrogram
-    stim,tags,stimparam = baphy_load_specgram(stimfilepath)
-    
+        
     # load spike times
     sortinfo,spikefs=baphy_load_spike_data_raw(spkfilepath)
     
     # adjust spike and event times to be in seconds since experiment started
-    exptevents,spiketimes,unit_names = baphy_align_time(exptevents,sortinfo,spikefs)
+    exptevents,spiketimes,unit_names = baphy_align_time(exptevents,sortinfo,spikefs,options['rasterfs'])
     
     # assign cellids to each unit
     siteid=globalparams['SiteID']
     unit_names=[siteid+"-"+x for x in unit_names]
-    print(unit_names)
+    #print(unit_names)
     # pull out a single cell if 'all' not specified
     spike_dict={}
     for i,x in enumerate(unit_names):
@@ -1285,14 +1321,18 @@ def baphy_load_data(parmfilepath,options={}):
             
     state_dict={}
     if options['pupil']:
-        pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
-        pupiltrace,ptrialidx=baphy_load_pupil_trace(pupilfilepath,exptevents,options)                
-        state_dict['pupiltrace']=pupiltrace
+        try:
+            pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
+            pupiltrace,ptrialidx=baphy_load_pupil_trace(pupilfilepath,exptevents,options)                
+            state_dict['pupiltrace']=pupiltrace
+        except:
+            print("No pupil data")
+                
         
     return exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams
 
 
-def baphy_load_recording(parmfilepath,options={}):
+def baphy_load_dataset(parmfilepath,options={}):
     
     """
     this can be used to generate a recording object
@@ -1306,7 +1346,7 @@ def baphy_load_recording(parmfilepath,options={}):
               since experiment began
         spike_dict: dictionary of lists. spike_dict[cellid] is the set of 
               spike times (secs since expt started) for that unit
-        stim_dict: stim_dict[epoch_name] is [channel X time] stimulus 
+        stim_dict: stim_dict[name] is [channel X time] stimulus 
               (spectrogram) matrix, the times that the stimuli were played
               are rows in the event_times dataframe
     
@@ -1317,8 +1357,9 @@ def baphy_load_recording(parmfilepath,options={}):
         
     """
     # get the relatively un-pre-processed data
-    print(options)
+    #print(options)
     options['pupil'] = options.get('pupil',False)
+    options['stim'] = options.get('stim',True)
     options['runclass'] = options.get('runclass',None)
     
     exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams = baphy_load_data(parmfilepath,options) 
@@ -1329,18 +1370,17 @@ def baphy_load_recording(parmfilepath,options={}):
     print('Creating trial events')
     tag_mask_start="TRIALSTART"
     tag_mask_stop="TRIALSTOP"
-    ffstart=(exptevents['Note'] == tag_mask_start)
-    ffstop=(exptevents['Note'] == tag_mask_stop)
+    ffstart=(exptevents['name'] == tag_mask_start)
+    ffstop=(exptevents['name'] == tag_mask_stop)
     TrialCount=np.max(exptevents.loc[ffstart,'Trial'])
-    event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
-                          exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
-    event_times['epoch_name']="TRIAL"
+    event_times=pd.concat([exptevents.loc[ffstart,['start']].reset_index(), 
+                          exptevents.loc[ffstop,['end']].reset_index()], axis=1)
+    event_times['name']="TRIAL"
     event_times=event_times.drop(columns=['index'])
     
     # figure out length of entire experiment
-    file_start_time=np.min(event_times['StartTime'])
-    file_stop_time=np.max(event_times['StopTime'])
-    te=pd.DataFrame(index=[0],columns=(event_times.columns))
+    file_start_time=np.min(event_times['start'])
+    file_stop_time=np.max(event_times['end'])
     
     # add event characterizing outcome of each behavioral 
     # trial (if behavior)
@@ -1351,19 +1391,20 @@ def baphy_load_recording(parmfilepath,options={}):
     this_event_times=event_times.copy()
     any_behavior=False
     for trialidx in range(1,TrialCount+1):
-        ff=((exptevents['Note']=='OUTCOME,FALSEALARM') | \
-            (exptevents['Note']=='OUTCOME,MISS') | \
-            (exptevents['Note']=='BEHAVIOR,PUMPON,Pump')) & \
+        ff=((exptevents['name']=='OUTCOME,FALSEALARM') | \
+            (exptevents['name']=='OUTCOME,MISS') | \
+            (exptevents['name']=='BEHAVIOR,PUMPON,Pump')) & \
            (exptevents['Trial']==trialidx)
         
         for i,d in exptevents.loc[ff].iterrows():  
             #print("{0}: {1} - {2} - {3}".format(i,
-            #      d['Trial'],d['Note'],d['StopTime']))
+            #      d['Trial'],d['name'],d['end']))
         
-            this_event_times.loc[trialidx-1,'epoch_name']= \
-               note_map[d['Note']]
+            this_event_times.loc[trialidx-1,'name']= \
+               note_map[d['name']]
             any_behavior=True
     
+    te=pd.DataFrame(index=[0],columns=(event_times.columns))
     if any_behavior:
         # only concatenate newly labeled trials if events occured that reflect
         # behavior. There's probably a less kludgy way of checking for this
@@ -1372,21 +1413,21 @@ def baphy_load_recording(parmfilepath,options={}):
         te.loc[0]=[file_start_time,file_stop_time,'ACTIVE_EXPERIMENT']
     else:
         te.loc[0]=[file_start_time,file_stop_time,'PASSIVE_EXPERIMENT']
-    event_times=pd.concat([event_times, te])
+    event_times=event_times.append(te)
                
     # remove events DURING or AFTER LICK
     print('Removing post-response stimuli')
-    ff=(exptevents['Note']=='LICK')
+    ff=(exptevents['name']=='LICK')
     keepevents=np.ones(len(exptevents))==1
     for i,d in exptevents.loc[ff].iterrows():
         trialidx=d['Trial']
-        starttime=d['StartTime']
-        fflate=(exptevents['StopTime'] > starttime) & \
+        start=d['start']
+        fflate=(exptevents['end'] > start) & \
           (exptevents['Trial']==trialidx) & \
-          (exptevents['Note'].str.contains('Stim , '))
+          (exptevents['name'].str.contains('Stim , '))
         for i,d in exptevents.loc[fflate].iterrows():        
             #print("{0}: {1} - {2} - {3}>{4}".format(i,
-            #      d['Trial'],d['Note'],d['StopTime'],starttime))
+            #      d['Trial'],d['name'],d['end'],start))
             # remove Pre- and PostStimSilence as well
             keepevents[(i-1):(i+2)]=False
                  
@@ -1397,54 +1438,62 @@ def baphy_load_recording(parmfilepath,options={}):
     #ff=(exptevents['Trial']==3)
     #exptevents.loc[ff]
     
+    stim_dict={}
+    
     if 'pertrial' in options and options['pertrial']:
         # NOT COMPLETE!
-        stim_dict={}
         
         # make stimulus events unique to each trial
         this_event_times=event_times.copy()
         for eventidx in range(0,TrialCount):
             event_name="TRIAL{0}".format(eventidx)
-            this_event_times.loc[eventidx,'epoch_name']=event_name
-            stim_dict[event_name]=stim[:,:,eventidx]
+            this_event_times.loc[eventidx,'name']=event_name
+            if options['stim']:
+                stim_dict[event_name]=stim[:,:,eventidx]
         event_times=pd.concat([event_times, this_event_times])
         
     else:
-        stim_dict={}
-        
         # generate stimulus events unique to each distinct stimulus
+        ff_tar_events=exptevents['name'].str.contains('Target')
+        ff_pre_all=exptevents['name']==""
+        ff_post_all=ff_pre_all.copy()
+        
         for eventidx in range(0,len(tags)):
             
-            # save stimulus for this event as separate dictionary entry
-            stim_dict[tags[eventidx]]=stim[:,:,eventidx]
-            
+            if options['stim']:
+                # save stimulus for this event as separate dictionary entry
+                stim_dict["STIM_"+tags[eventidx]]=stim[:,:,eventidx]
+            else:
+                stim_dict["STIM_"+tags[eventidx]]=np.array([[]])
             # complicated experiment-specific part
             tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
             tag_mask_stop="PostStimSilence , "+tags[eventidx]+" , Reference"
             
-            ffstart=(exptevents['Note'].str.contains(tag_mask_start))
-            ffstop=(exptevents['Note'].str.contains(tag_mask_stop))
+            ffstart=(exptevents['name'].str.contains(tag_mask_start))
+            ffstop=(exptevents['name'].str.contains(tag_mask_stop))
             
             # create intial list of stimulus events
-            this_event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
-                                  exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
+            this_event_times=pd.concat([exptevents.loc[ffstart,['start']].reset_index(), 
+                                  exptevents.loc[ffstop,['end']].reset_index()], axis=1)
             this_event_times=this_event_times.drop(columns=['index'])
-            this_event_times['epoch_name']=tags[eventidx]
+            this_event_times['name']="STIM_"+tags[eventidx]
 
             # screen for conflicts with target events
             keepevents=np.ones(len(this_event_times))==1
             for i,d in this_event_times.iterrows():
-                f=(exptevents['StartTime']<d['StopTime']-0.001) & \
-                  (exptevents['StopTime']>d['StartTime']+0.001) & \
-                  (exptevents['Note'].str.contains('Target'))
-                ffid,=np.where(f)
-                for j in ffid:
-                    print("Stim (event {0}: {1:.2f}-{2:.2f} {3}".format(eventidx,d['StartTime'],
-                          d['StopTime'],d['epoch_name']))
-                    print("??? But did it happen?  ? Conflicting target: {0}-{1} {2}".format(exptevents['StartTime'][j],
-                          exptevents['StopTime'][j],exptevents['Note'][j]))
+                f=ff_tar_events & (exptevents['start']<d['end']-0.001) & \
+                  (exptevents['end']>d['start']+0.001)
+                  
+                if np.sum(f):
+                    #print("Stim (event {0}: {1:.2f}-{2:.2f} {3}".format(eventidx,d['start'],
+                    #      d['end'],d['name']))
+                    #print("??? But did it happen?  ? Conflicting target: {0}-{1} {2}".format(exptevents['start'][j],
+                    #      exptevents['end'][j],exptevents['name'][j]))
                     keepevents[i]=False
-               
+                    
+            if np.sum(keepevents==False):
+                print("Removed {0}/{1} events that overlap with target".format(
+                        np.sum(keepevents==False),len(keepevents)))
             # create final list of these stimulus events
             this_event_times=this_event_times[keepevents]
             tff,=np.where(ffstart)
@@ -1452,28 +1501,51 @@ def baphy_load_recording(parmfilepath,options={}):
             tff,=np.where(ffstop)
             ffstop[tff[keepevents==False]]=False
 
-            event_times=pd.concat([event_times, this_event_times])
+            event_times=event_times.append(this_event_times, ignore_index=True)
+            this_event_times['name']="REFERENCE"            
+            event_times=event_times.append(this_event_times, ignore_index=True)
+            #event_times=pd.concat([event_times, this_event_times])
             
-            # generate list of corresponding pre/post events
-            this_event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
-                                  exptevents.loc[ffstart,['StopTime']].reset_index()], axis=1)
-            this_event_times=this_event_times.drop(columns=['index'])
-            this_event_times['epoch_name']='PreStimSilence'
+            ff_pre_all=ff_pre_all | ffstart
+            ff_post_all=ff_post_all | ffstop
             
-            event_times=pd.concat([event_times, this_event_times])
-
-            this_event_times=pd.concat([exptevents.loc[ffstop,['StartTime']].reset_index(), 
-                                  exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
-            this_event_times=this_event_times.drop(columns=['index'])
-            this_event_times['epoch_name']='PostStimSilence'
-            
-            event_times=pd.concat([event_times, this_event_times])
+        # generate list of corresponding pre/post events
+        this_event_times2=pd.concat([exptevents.loc[ff_pre_all,['start']], 
+                              exptevents.loc[ff_pre_all,['end']]], axis=1)            
+        this_event_times2['name']='PreStimSilence'
+        
+        this_event_times3=pd.concat([exptevents.loc[ff_post_all,['start']], 
+                              exptevents.loc[ff_post_all,['end']]], axis=1)
+        this_event_times3['name']='PostStimSilence'
+        
+        event_times=event_times.append(this_event_times2, ignore_index=True)
+        event_times=event_times.append(this_event_times3, ignore_index=True)
+        #event_times=pd.concat([event_times, this_event_times2, this_event_times3])
 
     # add behavior events
-    
-
+    if exptparams['runclass']=='PTD' and any_behavior:
+        # special events for tone in noise task
+        tar_idx_freq=exptparams['TrialObject'][1]['TargetIdxFreq']
+        tar_snr=exptparams['TrialObject'][1]['RelativeTarRefdB']
+        common_tar_idx,=np.where(tar_idx_freq==np.max(tar_idx_freq))
+        
+        if isinstance(tar_idx_freq, (int)) or len(tar_idx_freq)==1 or np.isinf(tar_snr[0]):
+            diff_event='PURETONE_BEHAVIOR'
+        elif np.isfinite(tar_snr[0]) & (np.max(common_tar_idx)<2):
+            diff_event='EASY_BEHAVIOR'
+        elif np.isfinite(tar_snr[0]) & (2 in common_tar_idx):
+            diff_event='MEDIUM_BEHAVIOR'
+        elif np.isfinite(tar_snr[0]) & (np.min(common_tar_idx)>2):
+            diff_event='HARD_BEHAVIOR'
+        else:
+            diff_event='PURETONE_BEHAVIOR'
+        te=pd.DataFrame(index=[0],columns=(event_times.columns))
+        te.loc[0]=[file_start_time,file_stop_time,diff_event]
+        event_times=event_times.append(te, ignore_index=True)
+        #event_times=pd.concat([event_times, te])
+        
     # sort by when the event occured in experiment time            
-    event_times=event_times.sort_values(by=['StartTime','StopTime'], ascending=[1, 0]).reset_index()
+    event_times=event_times.sort_values(by=['start','end'], ascending=[1, 0]).reset_index()
     event_times=event_times.drop(columns=['index'])
     
     return event_times, spike_dict, stim_dict, state_dict
@@ -1494,7 +1566,7 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
               since experiment began
         spike_dict: dictionary of lists. spike_dict[cellid] is the set of 
               spike times (secs since expt started) for that unit
-        stim_dict: stim_dict[epoch_name] is [channel X time] stimulus 
+        stim_dict: stim_dict[name] is [channel X time] stimulus 
               (spectrogram) matrix, the times that the stimuli were played
               are rows in the event_times dataframe
         stim1_dict: same thing but for foreground stream only
@@ -1515,12 +1587,12 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
     # extract each trial
     tag_mask_start="TRIALSTART"
     tag_mask_stop="TRIALSTOP"
-    ffstart=(exptevents['Note'] == tag_mask_start)
-    ffstop=(exptevents['Note'] == tag_mask_stop)
+    ffstart=(exptevents['name'] == tag_mask_start)
+    ffstop=(exptevents['name'] == tag_mask_stop)
     TrialCount=np.max(exptevents.loc[ffstart,'Trial'])
-    event_times=pd.concat([exptevents.loc[ffstart,['StartTime']].reset_index(), 
-                          exptevents.loc[ffstop,['StopTime']].reset_index()], axis=1)
-    event_times['epoch_name']="TRIAL"
+    event_times=pd.concat([exptevents.loc[ffstart,['start']].reset_index(), 
+                          exptevents.loc[ffstop,['end']].reset_index()], axis=1)
+    event_times['name']="TRIAL"
     event_times=event_times.drop(columns=['index'])
     
     stim_dict={}
@@ -1531,14 +1603,14 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
     this_event_times=event_times.copy()
     for eventidx in range(0,TrialCount):
         event_name="TRIAL{0}".format(eventidx)
-        this_event_times.loc[eventidx,'epoch_name']=event_name
+        this_event_times.loc[eventidx,'name']=event_name
         stim1_dict[event_name]=stim[:,:,eventidx,0]
         stim2_dict[event_name]=stim[:,:,eventidx,1]
         stim_dict[event_name]=stim[:,:,eventidx,2]
     event_times=pd.concat([event_times, this_event_times])
     
     # sort by when the event occured in experiment time            
-    event_times=event_times.sort_values(by=['StartTime','StopTime'])
+    event_times=event_times.sort_values(by=['start','end'])
     
     rasterfs=options['rasterfs']
     BigStimMatrix=stimparam[-1]
@@ -1561,19 +1633,109 @@ def baphy_load_recording_RDT(parmfilepath,options={}):
     
     return event_times, spike_dict, stim_dict, state_dict, stim1_dict, stim2_dict
 
+
 def spike_time_to_raster(spike_dict,fs=100,event_times=None):
+    """
+    convert list of spike times to a raster of spike rate, with duration 
+    matching max end time in the event_times list
+    """
     
     if event_times is not None:
-        maxtime=np.max(event_times["StopTime"])
+        maxtime=np.max(event_times["end"])
         
-    maxbin=int(fs*maxtime)+1
+    maxbin=int(fs*maxtime)
     unitcount=len(spike_dict.keys())
     raster=np.zeros([unitcount,maxbin])
     
     cellids=sorted(spike_dict)
     for i,key in enumerate(cellids):
         for t in spike_dict[key]:
-            if t<maxtime:
-                raster[i,int(np.floor(t*fs))]+=1
+            b=int(np.floor(t*fs))
+            if b<maxbin:
+                raster[i,b]+=1
     
     return raster,cellids
+
+
+def stim_dict_to_matrix(stim_dict,fs=100,event_times=None):
+    
+    maxtime=np.max(event_times["end"])
+    maxbin=int(fs*maxtime)
+    
+    tags=list(stim_dict.keys())    
+    chancount=stim_dict[tags[0]].shape[0]
+    
+    z=np.zeros([chancount,maxbin])
+    
+    empty_stim=nems.signal.Signal(matrix=z,fs=fs,name='stim',epochs=event_times,recording='rec')
+    stim=empty_stim.replace_epochs(stim_dict)
+    
+    return stim
+
+def baphy_load_recording(cellid,batch,options):
+    
+    d=db.get_batch_cell_data(batch=batch, cellid=cellid, label='parm') 
+    files=list(d['parm'])
+   
+    options['cellid']=cellid
+    options['batch']=batch
+
+    for i,parmfilepath in enumerate(files):
+        
+        event_times, spike_dict, stim_dict, state_dict = baphy_load_dataset(parmfilepath,options)
+        d2=event_times.loc[0].copy()
+        if (i==0) & (d2['name']=='PASSIVE_EXPERIMENT'):
+            d2['name']='PRE_PASSIVE'
+            event_times=event_times.append(d2)
+        elif d2['name']=='PASSIVE_EXPERIMENT':
+            d2['name']='POST_PASSIVE'
+            event_times=event_times.append(d2)
+        
+        # generate spike raster
+        raster_all,cellids=spike_time_to_raster(spike_dict,fs=options['rasterfs'],event_times=event_times)
+        
+        # generate response signal
+        t_resp=nems.signal.Signal(fs=options['rasterfs'],matrix=raster_all,name='resp',recording=cellid,chans=cellids,epochs=event_times)
+        if i==0:
+            resp=t_resp
+        else:
+            resp=resp.concatenate_time([resp,t_resp])
+        
+        try:
+            options['pupil']=True
+            # create pupil signal if it exists
+            rlen=raster_all.shape[1]
+            plen=state_dict['pupiltrace'].shape[1]
+            if plen>rlen:
+                state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(plen-rlen)]
+            elif rlen>plen:
+                state_dict['pupiltrace']=state_dict['pupiltrace'][:,0:-(rlen-plen)]
+                
+            # generate pupil signals
+            t_pupil=nems.signal.Signal(fs=options['rasterfs'],matrix=state_dict['pupiltrace'],name='pupil',recording=cellid,chans=['pupil'],epochs=event_times)
+            
+            if i==0:
+                pupil=t_pupil
+            else:
+                pupil=pupil.concatenate_time([pupil,t_pupil])
+        except:
+            options['pupil']=False
+            
+        if options['stim']:
+            
+            stim=stim_dict_to_matrix(stim_dict,fs=options['rasterfs'],event_times=event_times)
+            stim.recording=cellid
+            
+    resp.meta=options
+    
+    if options['pupil']:
+        signals={'resp': resp, 'pupil': pupil}
+    else:
+        signals={'resp': resp}
+        
+    if options['stim']:
+        signals['stim']=stim
+        
+    rec=nems.recording.Recording(signals=signals)
+   
+    return rec

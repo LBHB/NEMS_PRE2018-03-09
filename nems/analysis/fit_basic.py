@@ -1,118 +1,155 @@
+import copy
+import logging
 from functools import partial
 
-from nems.fitters.api import dummy_fitter, bit_less_dummy_fitter, \
-                             coordinate_descent
+from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
+import nems.priors
 import nems.fitters.mappers
-import nems.modules.evaluators
+import nems.modelspec as ms
 import nems.metrics.api
-"""
-# ----------------------------------------------------------------------------
-# DEFINE THE COST FUNCTION
-#
-# Goal: Define the cost function and metric for use by the fitter.
-# Please see "docs/architecture.svg" for more information.
-
-# Option 1: Use mean squared error when fitting:
-metric = lambda data: nems.metrics.MSE(data['resp'], data['pred'])
-
-# Option 2: Use log-likelihood, if you predicted a gaussian at each point
-# metric = lambda data: nems.metrics.LogLikelihood(data['resp'], data['pred'], data['pred_stddev'])
-
-# Option 3: Use some other metric that you think is better
-# metric = lambda data: nems.metrics.coherence(data['resp'], data['pred'])
-
-# Finally, define the evaluator and cost functions
-# TODO: I think these can be boilerplate elsewhere
-
-# TODO: what's this meant to be? -jacob
-from nems.model import generate_model
-
-# If we're doing incremential fitting (for example)
-
-class Phi:
-
-    def __init__(self, phi):
-        self.phi = phi
-        self.free_parameters = None#
-
-    def select_for_fit(self):
-        fit_phi = []
-        for module_phi, module_free_parameters in zip(self.phi, self.free_parameters):
-            pass
+import nems.segmentors
 
 
-for i, mod in enumerate(modelspec):
-    eval_fn = model.compose_eval(modelspec[:i])
-    phi = model.initialize_phi(modelspec)
-    cost_fn = partial(nems.metrics.mse, eval_fn=eval_fn, pred_name='pred', resp_name='resp')
-
-eval_fn = compose_transform(modelspec)
-
-evaluator = generate_evaluation
-
-evaluator = lambda data, mspec : nems.model.Model(mspec).evaluate(data, mspec)
-cost_fn = lambda mspec: metric(evaluator(est, mspec))
-"""
-
-# Leaving above code for reference, redoing as function below to match
-# signature in demo_script2.py and architecture.svg in planning  -jacob
-def fit_basic(data, modelspec):
-    # Data set (should be a recording object)
-    # Modelspec: dict with the initial module specifications
-    # Per architecture doc, analysis function should only take these two args
-
-    # TODO: should this be exposed as an argument?
-    # Specify how the data will be split up
-    segmentor = lambda data: data.split_at_time(0.8)
-
-    # TODO: should mapping be exposed as an argument?
-    # get funcs for translating modelspec to and from fitter's fitspace
-    # packer should generally take only modelspec as arg,
-    # unpacker should take type returned by packer + modelspec
-    packer, unpacker = nems.fitters.mappers.simple_vector()
-
-    # split up the data using the specified segmentor
-    est_data, val_data = segmentor(data)
-
-    # bit hacky at the moment, but trying not to interfere with or rewrite mse
-    # for now (which expects a dict of arrays) -jacob
-    metric = lambda data: nems.metrics.api.mse(
+def fit_basic(data, modelspec,
+              fitter=coordinate_descent,
+              segmentor=nems.segmentors.use_all_data,
+              mapper=nems.fitters.mappers.simple_vector,
+              metric=lambda data: nems.metrics.api.mse(
                                 {'pred': data.get_signal('pred').as_continuous(),
                                  'resp': data.get_signal('resp').as_continuous()}
-                                )
+                                ),
+              metaname='fit_basic'):
+    '''
+    Required Arguments:
+     data          A recording object
+     modelspec     A modelspec object
 
-    # TODO - evaluates the data using the modelspec, then updates data['pred']
-    evaluator = nems.modules.evaluators.matrix_eval
+    Optional Arguments:
+     fitter        A function of (sigma, costfn) that tests various points,
+                   in fitspace (i.e. sigmas) using the cost function costfn,
+                   and hopefully returns a better sigma after some time.
+     mapper        A class that has two methods, pack and unpack, which define
+                   the mapping between modelspecs and a fitter's fitspace.
+     segmentor     An function that selects a subset of the data during the
+                   fitting process. This is NOT the same as est/val data splits
+     metric        A function of a Recording that returns an error value
+                   that is to be minimized.
+
+    Returns
+     A list containing a single modelspec, wich has the best parameters found
+    by this fitter.
+    '''
+
+    # Ensure that phi exists for all modules; choose prior mean if not found
+    for i, m in enumerate(modelspec):
+        if not m.get('phi'):
+            logging.debug('Phi not found for module, using mean of prior: {}'.format(m))
+            m = nems.priors.set_mean_phi([m])[0]  # Inits phi for 1 module
+            modelspec[i] = m
+
+    # Create the mapper object that translates to and from modelspecs.
+    # It has two methods that, when defined as mathematical functions, are:
+    #    .pack(modelspec) -> fitspace_point
+    #    .unpack(fitspace_point) -> modelspec
+    packer, unpacker = mapper(modelspec)
+
+    # A function to evaluate the modelspec on the data
+    evaluator = nems.modelspec.evaluate
 
     # TODO - unpacks sigma and updates modelspec, then evaluates modelspec
     #        on the estimation/fit data and
     #        uses metric to return some form of error
-    def cost_function(unpacker, modelspec, est_data, evaluator, metric,
-                      sigma=None):
-        updated_spec = unpacker(sigma, modelspec)
-        updated_est_data = evaluator(est_data, updated_spec)
-        error = metric(updated_est_data)
+    def cost_function(sigma, unpacker, modelspec, data,
+                      evaluator, metric):
+        updated_spec = unpacker(sigma)
+        # The segmentor takes a subset of the data for fitting each step
+        # Intended use is for CV or random selection of chunks of the data
+        data_subset = segmentor(data)
+        updated_data_subset = evaluator(data_subset, updated_spec)
+        error = metric(updated_data_subset)
+        logging.debug("inside cost function, current error: {}".format(error))
+        logging.debug("\ncurrent sigma: {}".format(sigma))
         return error
+
     # Freeze everything but sigma, since that's all the fitter should be
     # updating.
-    cost_fn = partial(
-            cost_function, unpacker=unpacker, modelspec=modelspec,
-            est_data=est_data, evaluator=evaluator, metric=metric,
-            )
+    cost_fn = partial(cost_function,
+                      unpacker=unpacker, modelspec=modelspec,
+                      data=data, evaluator=evaluator,
+                      metric=metric)
 
     # get initial sigma value representing some point in the fit space
     sigma = packer(modelspec)
 
-    # TODO: should fitter be exposed as an argument?
-    #       would make sense if exposing space mapper, since fitter and mapper
-    #       type are related.
-    fitter = bit_less_dummy_fitter
-
     # Results should be a list of modelspecs
     # (might only be one in list, but still should be packaged as a list)
     improved_sigma = fitter(sigma, cost_fn)
-
-    improved_modelspec = unpacker(improved_sigma, modelspec)
-    results = [improved_modelspec]
-
+    improved_modelspec = unpacker(improved_sigma)
+    ms.set_modelspec_metadata(improved_modelspec, 'fitter', metaname)
+    ms.set_modelspec_metadata(improved_modelspec, 'recording', data.name)
+    results = [copy.deepcopy(improved_modelspec)]
     return results
+
+
+def fit_random_subsets(data, modelspec, nsplits=1, rebuild_every=10000):
+    '''
+    Randomly picks a small fraction of the data to fit on.
+    Intended to speed up initial converge on fitting large data sets.
+    To improve efficiency, you may generally good to use the same subset
+    for a bunch of cost function evaluations in a row.
+    '''
+    maker = nems.segmentors.random_jackknife_maker
+    segmentor = maker(nsplits=nsplits, rebuild_every=rebuild_every,
+                      invert=True, excise=True)
+    return fit_basic(data, modelspec,
+                     segmentor=segmentor,
+                     metaname='fit_random_subsets')
+
+
+def fit_jackknifes(data, modelspec, njacks=10):
+    '''
+    Takes njacks jackknifes, where each jackknife has some small
+    fraction of data NaN'd out, and fits modelspec to them.
+    '''
+    models = []
+    for i in range(njacks):
+        logging.info("Fitting jackknife {}/{}".format(i+1, njacks))
+        jk = data.jackknife_by_time(njacks, i)
+        models += fit_basic(jk, modelspec, fitter=scipy_minimize,
+                            metaname='fit_jackknifes')
+
+    return models
+
+
+def fit_subsets(data, modelspec, nsplits=10):
+    '''
+    Divides the data evenly into nsplits pieces, and fits a model
+    to each of the pieces.
+    '''
+    models = []
+    for i in range(nsplits):
+        # TODO: Minor glitch: when fitting, print output from fitter
+        #       comes back *after* logging from next iteration
+        #       (i.e. "fitting 1/3"
+        #             "fitting 2/3"
+        #             "final error <for 1/3>: 0.111")
+        logging.info("Fitting subset {}/{}".format(i+1, nsplits))
+        split = data.jackknife_by_time(nsplits, i, invert=True, excise=True)
+        models += fit_basic(split, modelspec, fitter=scipy_minimize,
+                            metaname='fit_subset')
+
+    return models
+
+
+def fit_from_priors(data, modelspec, ntimes=10):
+    '''
+    Fit ntimes times, starting from random points sampled from the prior.
+    '''
+    models = []
+    for i in range(ntimes):
+        logging.info("Fitting from random start: {}/{}".format(i+1, ntimes))
+        ms = nems.priors.set_random_phi(modelspec)
+        models += fit_basic(data, ms, fitter=scipy_minimize,
+                            metaname='fit_from_priors')
+
+    return models

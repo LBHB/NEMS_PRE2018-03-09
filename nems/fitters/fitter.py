@@ -1,55 +1,41 @@
 import time
+import logging
 import numpy as np
+import scipy as scp
 
 import nems.fitters.termination_conditions as tc
 
 
 def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
-    """just for testing that everything is connected, can remove later."""
-    err = cost_fn(sigma=sigma)
-    print("I did a 'fit'! err was: {0}".format(err))
-    return sigma
+    '''
+    This fitter does not actually take meaningful steps; it merely
+    varies the first element of the sigma vector to be equal to the step
+    number. It is intended purely for testing and example purposes so
+    that you can see how to re-use termination conditions to write
+    your own fitter.
+    '''
+    # Define a stepinfo and termination condition function 'stop_fit'
+    stepinfo, update_stepinfo = tc.create_stepinfo()
+    stop_fit = lambda : (tc.error_non_decreasing(stepinfo, 1e-5) or
+                         tc.max_iterations_reached(stepinfo, 1000))
 
-def bit_less_dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
-    # TODO: change stepinfo to class acting as thin wrapper around
-    #       a dict? just to make expected attributes more explicit.
-    #       subscripts in code should be identical, would only change
-    #       from stepinfo = {} to stepinfo = StepInfo()
-    #       (see my comments in .termination_conditions.py) --jacob 1-26-18
-    stepinfo = {
-            'num': 0,
-            'err': cost_fn(sigma=sigma),
-            'err_delta': np.inf,
-            'start_time': time.time()
-            }
-
-    # fit loop
-    stop_fit = lambda stepinfo: (tc.max_iterations_reached(stepinfo, 10)
-                                 or tc.fit_time_exceeded(stepinfo, 30))
-    while not stop_fit(stepinfo):
-        print("sigma is now: {0}".format(sigma))
-        sigma[0] = stepinfo['num']
-        err = cost_fn(sigma=sigma)
-        err_delta = err - stepinfo['err']
-        stepinfo['err'] = err
-        stepinfo['err_delta'] = err_delta
-        stepinfo['num'] += 1
-        print("Stepinfo is now: {}".format(stepinfo))
+    while not stop_fit():
+        sigma[0] = stepinfo['stepnum']  # Take a fake step
+        err = cost_fn(sigma)
+        update_stepinfo(err=err, sigma=sigma)
 
     return sigma
+
 
 def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
-                       tolerance=1e-7):
-    stepinfo = {
-            'num': 0,
-            'err': cost_fn(sigma=sigma),
-            'err_delta': np.inf,
-            'start_time': time.time()
-            }
+                       step_min=1e-5, tolerance=1e-2, max_iter=100):
 
-    stop_fit = lambda stepinfo: (tc.error_non_decreasing(stepinfo, tolerance)
-                                 or tc.max_iterations_reached(stepinfo, 1000))
-    while not stop_fit(stepinfo):
+    stepinfo, update_stepinfo = tc.create_stepinfo()
+    stop_fit = lambda : (tc.error_non_decreasing(stepinfo, tolerance)
+                         or tc.max_iterations_reached(stepinfo, max_iter)
+                         or tc.less_than_equal(step_size, step_min))
+
+    while not stop_fit():
         n_parameters = len(sigma)
         step_errors = np.zeros([n_parameters, 2])
         for i in range(0, n_parameters):
@@ -60,29 +46,68 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
             this_sigma_neg = sigma.copy()
             this_sigma_pos[i] += this_sigma_pos[i]*step_size
             this_sigma_neg[i] -= this_sigma_neg[i]*step_size
-            step_errors[i, 0] = cost_fn(sigma=this_sigma_pos)
-            step_errors[i, 1] = cost_fn(sigma=this_sigma_neg)
+            step_errors[i, 0] = cost_fn(this_sigma_pos)
+            step_errors[i, 1] = cost_fn(this_sigma_neg)
         # Get index tuple for the lowest error that resulted,
         # and keep the corresponding sigma vector for the next iteration
         i_param, j_sign = np.unravel_index(
                                 step_errors.argmin(), step_errors.shape
                                 )
-        # If j is 1, shift was negative
-        if j_sign:
+        # If j is 1, shift was negative,
+        # otherwise it was 0 for positive.
+        if j_sign == 1:
             sigma[i_param] -= sigma[i_param]*step_size
         else:
             sigma[i_param] += sigma[i_param]*step_size
         err = step_errors[i_param, j_sign]
 
-        # update stepinfo
-        err = cost_fn(sigma=sigma)
-        stepinfo['num'] += 1
-        stepinfo['err_delta'] = stepinfo['err'] - err
-        stepinfo['err'] = err
+        err = cost_fn(sigma)
+        update_stepinfo(err=err)
 
-        if stepinfo['err_delta'] < 0:
-            print("Error got worse, reducing step size from: {0} to: {1}"
+        # If change was negative, try reducing step size.
+        if stepinfo['err_delta'] > 0:
+            logging.info("Error got worse, reducing step size from: {0} to: {1}"
                   .format(step_size, step_size*step_change))
             step_size *= step_change
 
+        if stepinfo['stepnum'] % 20 == 0:
+            logging.debug("sigma is now: {}".format(sigma))
+
+    logging.info("Final error: {}".format(stepinfo['err']))
+    now = time.time()
+    logging.info("Run Time: {}".format(now - stepinfo['start_time']))
+    return sigma
+
+
+def scipy_minimize(sigma, cost_fn,
+                   fit_kwargs={'method':'L-BFGS-B',
+                               'options': {'maxiter':1000,
+                                           'ftol': 1e-7}}):
+    """
+    Wrapper for scipy.optimize.minimize to normalize format with
+    NEMS fitters.
+
+    TODO: finish this doc
+    fit_kwargs : dict
+        Contains keyword arguments to be passed to scipy's
+        optimize.minimize function. See docs.scipy.org
+        for documentation of suitable keywords.
+
+    Does not currently use the stepinfo/termination_conditions
+    paradigm.
+
+    TODO: Pull in code from scipy.py in docs/planning to
+          expose more output during iteration.
+    """
+
+    # TODO: needs more testing. appears to be working but it's taking
+    #       a very long time to terminate, maybe due to modules not being
+    #       all set up yet?
+    start_time = time.time()
+    result = scp.optimize.minimize(cost_fn, sigma)
+    finish_time = time.time()
+    sigma = result.x
+    final_err = cost_fn(sigma)
+    logging.info("Final error: {}".format(final_err))
+    logging.info("Run Time: {}".format(finish_time - start_time))
     return sigma

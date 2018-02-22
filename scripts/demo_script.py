@@ -2,44 +2,48 @@
 # Please see docs/architecture.svg for a visual diagram of this code
 
 import os
-import json
+import logging as log
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import nems
+import nems.initializers
+import nems.epoch as ep
+import nems.priors
+import nems.preprocessing as preproc
 import nems.modelspec as ms
-
-from nems import initializers
-from nems.analysis.api import fit_basic
+import nems.plots.api as nplt
+import nems.analysis.api
+import nems.utils
 from nems.recording import Recording
-
+from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 
 # ----------------------------------------------------------------------------
 # CONFIGURATION
+
+log.basicConfig(level=log.INFO)
+
 signals_dir = '../signals'
 modelspecs_dir = '../modelspecs'
 
-
 # ----------------------------------------------------------------------------
-# DATA FETCHING
+# DATA LOADING
 
 # GOAL: Get your data loaded into memory as a Recording object
+log.info('Loading data...')
 
 # Method #1: Load the data from a local directory
-rec = Recording.load(os.path.join(signals_dir, 'gus027b13_p_PPS'))
-
-# TODO: temporary hack to avoid errors resulting from epochs not being defined.
-for signal in rec.signals.values():
-    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
-# If there isn't a 'pred' signal yet, copy over 'stim' as the starting point.
-# TODO: still getting a key error for 'pred' in fit_basic when
-#       calling lambda on metric. Not sure why, since it's explicitly added.
-rec.signals['pred'] = rec.signals['stim'].copy()
-
+rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
 # rec = nems.utils.net.fetch_signals_over_http(URL)
 
 # Method #3: Load the data from S3: (TODO)
-# stimfile="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"+cellid+"_NAT_stim_ozgf_c18_fs100.mat"
-# respfile="https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"+cellid+"_NAT_resp_fs100.mat"
+# stimfile=("https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"
+#           +cellid+"_NAT_stim_ozgf_c18_fs100.mat")
+# respfile=("https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"
+#           +cellid+"_NAT_resp_fs100.mat")
 # rec = lbhb.fetch_signals_over_http(stimfile, respfile)
 
 # Method #4: Load the data from a published jerb (TODO)
@@ -48,24 +52,38 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 
 
 # ----------------------------------------------------------------------------
+# OPTIONAL PREPROCESSING
+log.info('Preprocessing data...')
+
+# Add a respavg signal to the recording now, so we don't have to do it later
+# on both the est and val sets seperately.
+rec = preproc.add_average_sig(rec, signal_to_average='resp',
+                              new_signalname='resp', # NOTE: ADDING AS RESP NOT RESPAVG FOR TESTING
+                              epoch_regex='^STIM_')
+
+# ----------------------------------------------------------------------------
 # DATA WITHHOLDING
 
 # GOAL: Split your data into estimation and validation sets so that you can
 #       know when your model exhibits overfitting.
 
+log.info('Withholding validation set data...')
+
+# Method #0: Try to guess which stimuli have the most reps, use those for val
+est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
+
+# Optional: Take nanmean of ALL occurrences of all signals
+# est = preproc.average_away_epoch_occurrences(est, epoch_regex='^STIM_')
+# val = preproc.average_away_epoch_occurrences(val, epoch_regex='^STIM_')
+
 # Method #1: Split based on time, where the first 80% is estimation data and
 #            the last, last 20% is validation data.
-
-# TODO: @Ivar -- per architecture.svg looked like this was going to be
-#       handled inside an analysis by a segmentor? Designed fit_basic with
-#       that in mind, so maybe this doesn't go here anymore, or I may have
-#       had the wrong interpretation.    --jacob
 # est, val = rec.split_at_time(0.8)
 
 # Method #2: Split based on repetition number, rounded to the nearest rep.
 # est, val = rec.split_at_rep(0.8)
 
-# Method #3: Use the whole data set! (Usually for doing full dataset cross-val)
+# Method #3: Use the whole data set! (Usually for doing n-fold cross-val)
 # est = rec
 # val = rec
 
@@ -75,18 +93,23 @@ rec.signals['pred'] = rec.signals['stim'].copy()
 
 # GOAL: Define the model that you wish to test
 
-# Method #1: create from "shorthand/default" keyword string
-modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1') 
+log.info('Initializing modelspec(s)...')
 
-# Method #2: load a modelspec from disk
-# modelspec = ms.load_modelspec('../modelspecs/wc2_fir10_dexp.json')
+# Method #1: create from "shorthand" keyword string
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_logsig1')
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_qsig1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_tanh1')
+
+# Method #2: Load modelspec(s) from disk
+# TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
+# modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
 
 # Method #3: Load it from a published jerb (TODO)
-# modelspec = ...
+# results = ...
 
-# Method #4: specify it manually (TODO)
-# modelspec = ...
-
+# Optional: start from some prior
+modelspec = nems.priors.set_random_phi(modelspec)
 
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
@@ -95,25 +118,37 @@ modelspec = initializers.from_keywords(rec, 'fir10x1_dexp1')
 #       Note that: nems.analysis.* will return a list of modelspecs, sorted
 #       in descending order of how they performed on the fitter's metric.
 
-# Option 1: Use gradient descent (Fast)
-# TODO: @Ivar -- Raised question in fit_basic of whether fitter should be
-#       exposed as argument to the analysis. Looks like that may have been
-#       your original intention here? But I think if the fitter is exposed,
-#       then the FitSpaceMapper also needs to be exposed since the type of
-#       mapping needed may change depending on which fitter is use.
-results = fit_basic(rec, modelspec)
+log.info('Fitting Modelspec(s)...')
 
-# Option 2: Use simulated annealing (Slow, arguably gets stuck less often)
-# results = nems.analysis.fit_basic(est, modelspec,
+# Option 1: Use gradient descent on whole data set(Fast)
+modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
+
+# Option 2: Split the est data into 10 pieces, fit them, and average
+# modelspecs = nems.analysis.api.fit_random_subsets(est, modelspec, nsplits=10)
+# result = average(modelspecs...)
+
+# Option 3: Fit 4 jackknifes of the data, and return all of them.
+# modelspecs = nems.analysis.api.fit_jackknifes(est, modelspec, njacks=4)
+
+# Option 4: Divide estimation data into 10 subsets; fit all sets separately
+# modelspecs = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
+
+# Option 5: Start from random starting points 4 times
+# modelspecs = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=4)
+
+# TODO: Perturb around the modelspec to get confidence intervals
+
+# TODO: Use simulated annealing (Slow, arguably gets stuck less often)
+# modelspecs = nems.analysis.fit_basic(est, modelspec,
 #                                   fitter=nems.fitter.annealing)
 
-# Option 3: Use Metropolis algorithm (Very slow, gives confidence interval)
-# results = nems.analysis.fit_basic(est, modelspec,
+# TODO: Use Metropolis algorithm (Very slow, gives confidence interval)
+# modelspecs = nems.analysis.fit_basic(est, modelspec,
 #                                   fitter=nems.fitter.metropolis)
 
-# Option 4: Use 10-fold cross-validated evaluation
+# TODO: Use 10-fold cross-validated evaluation
 # fitter = partial(nems.cross_validator.cross_validate_wrapper, gradient_descent, 10)
-# results = nems.analysis.fit_cv(est, modelspec, folds=10)
+# modelspecs = nems.analysis.fit_cv(est, modelspec, folds=10)
 
 
 # ----------------------------------------------------------------------------
@@ -121,10 +156,16 @@ results = fit_basic(rec, modelspec)
 
 # GOAL: Save your results to disk. (BEFORE you screw it up trying to plot!)
 
-# If only one result was returned, save it. But if multiple  modelspecs were
-# returned, save all of them.
+log.info('Saving Results...')
 
-ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
+ms.save_modelspecs(modelspecs_dir, modelspecs)
+
+# ----------------------------------------------------------------------------
+# GENERATE SUMMARY STATISTICS
+
+log.info('Generating summary statistics...')
+
+# TODO
 
 # ----------------------------------------------------------------------------
 # GENERATE PLOTS
@@ -132,26 +173,37 @@ ms.save_modelspecs(modelspecs_dir, 'demo_script_model', results)
 # GOAL: Plot the predictions made by your results vs the real response.
 #       Compare performance of results with other metrics.
 
+log.info('Generating summary plot...')
+
+# Generate a summary plot
+nplt.plot_summary(val, modelspecs)
+
 # Optional: See how well your best result predicts the validation data set
-# nems.plot.predictions(val, [results[0]])
+# nems.plot.predictions(val, [results[0]]) # TODO
 
 # Optional: See how all the results predicted
-# nems.plot.predictions(val, results)
+# nems.plot.predictions(val, results) # TODO
 
 # Optional: Compute the confidence intervals on your results
-# nems.plot.confidence_intervals(val, results)
+# nems.plot.confidence_intervals(val, results) # TODO
 
 # Optional: View the prediction of the best result according to MSE
-# nems.plot.best_estimator(val, results, metric=nems.metrics.mse)
+# nems.plot.best_estimator(val, results, metric=nems.metrics.mse) # TODO
 
 # Optional: View the posterior parameter probability distributions
-# nems.plot.posterior(val, results)
+# nems.plot.posterior(val, results) # TODO
 
+# nplt.pred_vs_act_scatter(val, one_modelspec, ms.evaluate, ax=ax1)
+#  nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
+#nplt.pred_vs_act_psth_smooth(val, one_modelspec, ms.evaluate, ax=ax3)
+
+# Pause before quitting
+plt.show()
 
 # ----------------------------------------------------------------------------
 # SHARE YOUR RESULTS
 
 # GOAL: Upload your resulting models so that you can see how well your model
-#       did relative to other peoples' models. Save your results to a DB.
+#       did relative to other peoples' models. Save your results to a DB.b
 
 # TODO

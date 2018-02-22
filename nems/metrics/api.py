@@ -1,1 +1,1 @@
-from .mse import mse
+from .mse import mse, nmse

@@ -199,3 +199,54 @@ We focused on Charlie's analysis, which largely rests on analyzing the data and 
 *PREPROCESSING*. We have also had discussions about "preprocessing" vs models. One crazy idea is to use a model with zero fittable parameters to do preprocessing, so that you can preprocess signals in an unambigious way. Then you feed those preprocessed signals into another model and do your fitting on that second model like normal.
 
 IMMUTABILITY OF EPOCHS. Right now, epochs are mutable because they are panda dataframes, but the rest of the Signal is immutable. In the future, if we want to test the equality of two signals, this is easiest if they are completely immutable because we can just test the references instead of testing every substructure of the data.
+
+OCCURRENCES vs REPETITIONS. A thought as we standardize our terminology and home in on best practice for signals and epochs. I suggest we use the word "occurrences" rather than "repetitions" when the number of times an epoch appears in a signal. To me, "repetitions" implies that each one is repeated/identical. This is fine for stimuli, but not true for responses. On the other hand, "occurrences" is not specific as to whether the occurrences are identical or not. Does that sound good?
+
+
+Re: a comment in demo_script.py
+```# TODO: temporary hack to avoid errors resulting from epochs not being defined.
+#for signal in rec.signals.values():
+#    signal.epochs = signal.trial_epochs_from_reps(nreps=10)
+# If there isn't a 'pred' signal yet, copy over 'stim' as the starting point.
+# TODO: still getting a key error for 'pred' in fit_basic when
+#       calling lambda on metric. Not sure why, since it's explicitly added.```
+I'm going to remove these; the former doesn't appear to be causing errors anymore, and the latter I think should be handled with explicit keywords. (see modelspecs.md, I just wrote it today) (edited)
+
+---
+
+
+# TODO: @Ivar -- per architecture.svg looked like this was going to be
+#       handled inside an analysis by a segmentor? Designed fit_basic with
+#       that in mind, so maybe this doesn't go here anymore, or I may have
+#       had the wrong interpretation.    --jacob
+#
+# TODO: @Ivar -- Raised question in fit_basic of whether fitter should be
+#       exposed as argument to the analysis. Looks like that may have been
+#       your original intention here? But I think if the fitter is exposed,
+#       then the FitSpaceMapper also needs to be exposed since the type of
+#       mapping needed may change depending on which fitter is use.
+
+These are both great questions that I am only just now getting to. I think yes, we handle the segmentation inside the analysis, and that as drawn in architecture.svg, we just have "data" and "modelspec" as the only two /required/ arguments to an analysis. However, it also totally makes sense to have /optional/ arguments for the segmentor, mapper, cost function, and anything else we come up with. 
+
+---
+
+# TODO: @Ivar -- per architecture.svg looked like this was going to be
+#       handled inside an analysis by a segmentor? Designed fit_basic with
+#       that in mind, so maybe this doesn't go here anymore, or I may have
+#       had the wrong interpretation.    --jacob
+
+Yes, we will probably make two analyses at some point:
+
+1. The outer analysis, which segments the data into a est and val dataset
+2. The inner analysis, which may or may not not segment the est dataset during the fitting process.
+
+But for the moment, we'll leave the outer loop in demo_script.py.
+---
+
+Ideas on initializers:
+
+Initializers are like:  f(data, incomplete_modelspec) -> modelspec_with_priors. Or maybe f(data, parameters) -> modelspec_with_priors, where the parameters could be either 'vague' keywords or whatever needed? 
+
+The goal is that after initialization, when fitting is ready to start, we have a modelspec containing priors and keywords that help us find this model later.
+
+There will be many kinds of initializers: if you have a particularly weird model, you may want to prefit it in some weird way. If you want to start from another model, you might use the "start near this existing fit model" initializer. I leave it up to everybody to make their own initializers for specifically hard problems. Otherwise keywords may "just work" for simpler things.
