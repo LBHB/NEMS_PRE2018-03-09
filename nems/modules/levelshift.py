@@ -1,7 +1,5 @@
 import numpy as np
-import cProfile
 
-@profile
 def levelshift(rec, i, o, level):
     '''
     Parameters

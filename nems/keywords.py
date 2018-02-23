@@ -101,7 +101,7 @@ defkey('dexp1',
         'fn_kwargs': {'i': 'pred',
                       'o': 'pred'},
         'prior': {'base': ('Normal', {'mu': [0], 'sd': [1]}),
-                  'amplitude': ('Normal', {'mu': [0.2], 'sd': [1]}),
+                  'amplitude': ('Normal', {'mu': [0.2], 'sd': [0.1]}),
                   'shift': ('Normal', {'mu': [0], 'sd': [1]}),
                   'kappa': ('Normal', {'mu': [0], 'sd': [0.1]})}})
 
