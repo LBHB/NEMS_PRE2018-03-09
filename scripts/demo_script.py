@@ -96,10 +96,10 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 log.info('Initializing modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
-# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
 # modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_logsig1')
 # modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_qsig1')
-modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_tanh1')
+# modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_tanh1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
@@ -109,7 +109,7 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_tanh1')
 # results = ...
 
 # Optional: start from some prior
-modelspec = nems.priors.set_random_phi(modelspec)
+# modelspec = nems.priors.set_random_phi(modelspec)
 
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
@@ -118,7 +118,7 @@ modelspec = nems.priors.set_random_phi(modelspec)
 #       Note that: nems.analysis.* will return a list of modelspecs, sorted
 #       in descending order of how they performed on the fitter's metric.
 
-log.info('Fitting Modelspec(s)...')
+log.info('Fitting modelspec(s)...')
 
 # Option 1: Use gradient descent on whole data set(Fast)
 modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)

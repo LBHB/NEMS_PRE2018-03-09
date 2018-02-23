@@ -19,11 +19,12 @@ def _fir_filter(x, coefficients):
     '''
     result = []
     for x, c in zip(x, coefficients):
-        # Perhaps slightly more correct to use lfilter than convolve at edges, but
+        # It is slightly more "correct" to use lfilter than convolve at edges, but
         # but also about 25% slower (Measured on Intel Python Dist, using i5-4300M)
-        #zi = get_zi(c, x)
-        #r, zf = scipy.signal.lfilter(c, [1], x, zi=zi)
-        r = np.convolve(x, c, mode='same')
+        zi = get_zi(c, x)
+        r, zf = scipy.signal.lfilter(c, [1], x, zi=zi)
+        # TODO: Use convolve. Why is this giving the wrong answer?
+        # r = np.convolve(c, x, mode='same')
         result.append(r[np.newaxis])
     result = np.concatenate(result)
     return np.sum(result, axis=-2, keepdims=True)

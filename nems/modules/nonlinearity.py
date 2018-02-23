@@ -1,8 +1,6 @@
 import cProfile
 import numpy as np
-import numexpr
 from numpy import exp
-
 
 
 def _logistic_sigmoid(x, base, amplitude, shift, kappa):
@@ -35,15 +33,9 @@ def quick_sigmoid(rec, i, o, base, amplitude, shift, kappa):
 def _double_exponential(x, base, amplitude, shift, kappa):
     # Apparently, numpy is VERY slow at taking the exponent of a negative number
     # https://github.com/numpy/numpy/issues/8233
-    # This is solved by using the MKL array. Uncomment this if trying to benchmark.
-    # shifted_and_scaled = np.array(-1.0 * np.exp(kappa)) * (x - shift)
-    # exp_of_shifted = np.exp(shifted_and_scaled)
-    # neg_exp_of_shifted = -1.0 * exp_of_shifted
-    # exponents = np.exp(neg_exp_of_shifted)
-    # result = base + amplitude * exponents
-    # return result
-    #return numexpr.evaluate("base + amplitude * exp(-exp(-exp(kappa) * (x - shift)))")
-    return base + amplitude * np.exp(-np.exp(-np.exp(kappa) * (x - shift)))
+    # The correct way to avoid this problem is to install the Intel Python Packages:
+    # https://software.intel.com/en-us/distribution-for-python
+    return base + amplitude * exp(-exp(np.array(-exp(kappa)) * (x - shift)))
 
 def double_exponential(rec, i, o, base, amplitude, shift, kappa):
     '''
