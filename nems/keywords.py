@@ -1,4 +1,5 @@
 # This dict maps keywords to fragments of a modelspec
+import numpy as np
 
 defaults = {}
 
@@ -14,56 +15,26 @@ def defkey(keyword, modulespec):
     defaults[keyword] = modulespec
 
 
-# Define keywords like this:
-defkey('wc40x1',
-       {'fn': 'nems.modules.weight_channels.weight_channels',
-        'fn_kwargs': {'i': 'stim',
-                      'o': 'pred'},
-        'prior': {'coefficients':
-                  ('Normal', {'mu': [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0]],
-                              'sd': [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0]]})}})
+def defkey_wc(n_inputs, n_outputs):
+    name = 'wc{}x{}'.format(n_inputs, n_outputs)
+    p_coefficients = {
+        'mu': np.zeros((n_outputs, n_inputs)),
+        'sd': np.ones((n_outputs, n_inputs)),
+    }
+    template = {
+        'fn': 'nems.modules.weight_channels.weight_channels',
+        'fn_kwargs': {'i': 'stim', 'o': 'pred'},
+        'prior': {
+            'coefficients': ('Normal', p_coefficients),
+        }
+    }
+    return defkey(name, template)
 
-defkey('wc18x1',
-       {'fn': 'nems.modules.weight_channels.weight_channels',
-        'fn_kwargs': {'i': 'stim',
-                      'o': 'pred'},
-        'prior': {'coefficients':
-                  ('Normal', {'mu': [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
-                              'sd': [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0]]})}})
 
-defkey('wc18x2',
-       {'fn': 'nems.modules.weight_channels.weight_channels',
-        'fn_kwargs': {'i': 'stim',
-                      'o': 'pred'},
-        'prior': {'coefficients':
-                  ('Normal', {'mu': [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                                     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
-                              'sd': [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                                     [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                      1.0, 1.0, 1.0, 1.0, 1.0, 1.0]]})}})
+defkey_wc(40, 1)
+defkey_wc(18, 1)
+defkey_wc(18, 2)
+
 
 defkey('fir10x1',
        {'fn': 'nems.modules.fir.fir_filter',
