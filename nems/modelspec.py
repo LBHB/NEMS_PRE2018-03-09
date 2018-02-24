@@ -155,14 +155,16 @@ def _lookup_fn_at(fn_path):
     return fn
 
 
-def evaluate(rec, modelspec, stop=-1):
+def evaluate(rec, modelspec, stop=None):
     '''
     Given a recording object and a modelspec, return a prediction.
     Does not alter its arguments in any way.
+    If stop is none, will use entire list. Otherwise, will only evaluate
+    modules 0 through stop-1.
     '''
     # d = copy.deepcopy(rec)  # Paranoid, but 100% safe
     d = copy.copy(rec)  # About 10x faster & fine if Signals are immutable
-    for m in modelspec:
+    for m in modelspec[:stop]:
         fn = _lookup_fn_at(m['fn'])
         kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
         new_signals = fn(rec=d, **kwargs)
