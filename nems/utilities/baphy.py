@@ -1676,10 +1676,10 @@ def baphy_load_recording(cellid,batch,options):
     
     d=db.get_batch_cell_data(batch=batch, cellid=cellid, label='parm') 
     files=list(d['parm'])
-   
+    
     options['cellid']=cellid
     options['batch']=batch
-
+    
     for i,parmfilepath in enumerate(files):
         
         event_times, spike_dict, stim_dict, state_dict = baphy_load_dataset(parmfilepath,options)
