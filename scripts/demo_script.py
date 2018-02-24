@@ -2,7 +2,7 @@
 # Please see docs/architecture.svg for a visual diagram of this code
 
 import os
-import logging as log
+import logging
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,7 +21,7 @@ from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 # ----------------------------------------------------------------------------
 # CONFIGURATION
 
-log.basicConfig(level=log.INFO)
+logging.basicConfig(level=logging.INFO)
 
 signals_dir = '../signals'
 modelspecs_dir = '../modelspecs'
@@ -30,7 +30,7 @@ modelspecs_dir = '../modelspecs'
 # DATA LOADING
 
 # GOAL: Get your data loaded into memory as a Recording object
-log.info('Loading data...')
+logging.info('Loading data...')
 
 # Method #1: Load the data from a local directory
 rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
@@ -53,7 +53,7 @@ rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
 
 # ----------------------------------------------------------------------------
 # OPTIONAL PREPROCESSING
-log.info('Preprocessing data...')
+logging.info('Preprocessing data...')
 
 # Add a respavg signal to the recording now, so we don't have to do it later
 # on both the est and val sets seperately.
@@ -67,7 +67,7 @@ rec = preproc.add_average_sig(rec, signal_to_average='resp',
 # GOAL: Split your data into estimation and validation sets so that you can
 #       know when your model exhibits overfitting.
 
-log.info('Withholding validation set data...')
+logging.info('Withholding validation set data...')
 
 # Method #0: Try to guess which stimuli have the most reps, use those for val
 est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
@@ -93,7 +93,7 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 
 # GOAL: Define the model that you wish to test
 
-log.info('Initializing modelspec(s)...')
+logging.info('Initializing modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
 modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
@@ -118,7 +118,7 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
 #       Note that: nems.analysis.* will return a list of modelspecs, sorted
 #       in descending order of how they performed on the fitter's metric.
 
-log.info('Fitting modelspec(s)...')
+logging.info('Fitting modelspec(s)...')
 
 # Option 1: Use gradient descent on whole data set(Fast)
 modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
@@ -156,14 +156,14 @@ modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
 
 # GOAL: Save your results to disk. (BEFORE you screw it up trying to plot!)
 
-log.info('Saving Results...')
+logging.info('Saving Results...')
 
 ms.save_modelspecs(modelspecs_dir, modelspecs)
 
 # ----------------------------------------------------------------------------
 # GENERATE SUMMARY STATISTICS
 
-log.info('Generating summary statistics...')
+logging.info('Generating summary statistics...')
 
 # TODO
 
@@ -173,7 +173,7 @@ log.info('Generating summary statistics...')
 # GOAL: Plot the predictions made by your results vs the real response.
 #       Compare performance of results with other metrics.
 
-log.info('Generating summary plot...')
+logging.info('Generating summary plot...')
 
 # Generate a summary plot
 nplt.plot_summary(val, modelspecs)
