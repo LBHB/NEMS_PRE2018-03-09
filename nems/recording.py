@@ -71,7 +71,7 @@ class Recording:
             directory = os.path.join(directory, self.name)
         print(directory)
         try:
-            os.mkdir(directory)
+            os.makedirs(directory)
         except:
             pass
         for s in self.signals.values():
