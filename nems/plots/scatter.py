@@ -15,7 +15,7 @@ def plot_scatter(sig1, sig2, ax=None, title=None, xlabel=None, ylabel=None, lege
         ax
         xlabel
         ylabel
-        legend   
+        legend
     '''
     if sig1.nchans > 1 and sig1.nchans != sig2.nchans:
         m = 'sig1 and sig2 must have same number of chans if sig1 is multichannel'
@@ -46,3 +46,38 @@ def plot_scatter(sig1, sig2, ax=None, title=None, xlabel=None, ylabel=None, lege
 
     if title:
         plt.title(title)
+
+def plot_scatter_smoothed(sig1, sig2, ax=None, title=None, xlabel=None,
+                          ylabel=None, legend=True):
+
+    if sig1.nchans > 1 and sig1.nchans != sig2.nchans:
+        m = 'sig1 and sig2 must have same number of chans if sig1 is multichannel'
+        raise ValueError(m)
+
+    if ax:
+        plt.sca(ax)
+
+    # Mostly a direct port from nems master branch so far,
+    # see nems.utilities.plots.scatter_smooth for reference
+    x1 = sig1.as_continuous()
+    x2 = sig2.as_continuous()
+
+    # remove NaNs
+    keepidx = np.isfinite(x1[0,:]) * np.isfinite(x2[0,:])
+    x1 = x1[0:1, keepidx]
+    x2 = x2[0:1, keepidx]
+
+    # ??? Not sure what this part is doing
+    # TODO: split up these lines and clarify
+    s2 = np.append(x1, x2, 0)
+    s2 = s2[:, s2[0, :].argsort()]
+    bincount = np.min([100, s2.shape[1]])
+    T = np.int(np.floor(s2.shape[1] / bincount))
+    s2 = s2[:, 0:(T * bincount)]
+    s2 = np.reshape(s2, [2, bincount, T])
+    s2 = np.mean(s2, 2)
+    s2 = np.squeeze(s2)
+
+    plt.plot(s2[0, :], s2[1, :], 'k.')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)

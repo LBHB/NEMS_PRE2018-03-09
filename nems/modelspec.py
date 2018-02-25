@@ -42,7 +42,7 @@ def set_modelspec_metadata(modelspec, key, value):
 
 def get_modelspec_name(modelspec):
     '''
-    Returns a string that names this modelspec. Suitable for plotting. 
+    Returns a string that names this modelspec. Suitable for plotting.
     '''
     meta = get_modelspec_metadata(modelspec)
     if 'name' in meta:
@@ -120,7 +120,8 @@ def load_modelspecs(directory, basename):
     #       json.load expecting file object
     #modelspecs = [json.load(f) for f in files]
     dir_list = os.listdir(directory)
-    files = [os.path.join(directory, s) for s in dir_list if basename in s]
+    files = [os.path.join(directory, s) for s in dir_list
+             if (basename in s and '.json' in s)]
     modelspecs = []
     for file in files:
         with open(file, 'r') as f:

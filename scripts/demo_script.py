@@ -4,8 +4,10 @@
 import os
 import logging
 import random
+
 import numpy as np
 import matplotlib.pyplot as plt
+
 import nems
 import nems.initializers
 import nems.epoch as ep
@@ -23,8 +25,13 @@ from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 
 logging.basicConfig(level=logging.INFO)
 
-signals_dir = '../signals'
-modelspecs_dir = '../modelspecs'
+relative_signals_dir = '../signals'
+#relative_signals_dir = '/home/jacob/auto/data/batch271_fs100_ozgf18/'
+relative_modelspecs_dir = '../modelspecs'
+# Convert to absolute paths so they can be passed to functions in
+# other directories
+signals_dir = os.path.abspath(relative_signals_dir)
+modelspecs_dir = os.path.abspath(relative_modelspecs_dir)
 
 # ----------------------------------------------------------------------------
 # DATA LOADING
@@ -134,7 +141,7 @@ modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
 # modelspecs = nems.analysis.api.fit_subsets(est, modelspec, nsplits=3)
 
 # Option 5: Start from random starting points 4 times
-# modelspecs = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=4)
+#modelspecs = nems.analysis.api.fit_from_priors(est, modelspec, ntimes=4)
 
 # TODO: Perturb around the modelspec to get confidence intervals
 
@@ -176,7 +183,8 @@ logging.info('Generating summary statistics...')
 logging.info('Generating summary plot...')
 
 # Generate a summary plot
-nplt.plot_summary(val, modelspecs)
+fig = nplt.plot_summary(val, modelspecs)
+fig.show()
 
 # Optional: See how well your best result predicts the validation data set
 # nems.plot.predictions(val, [results[0]]) # TODO
@@ -198,7 +206,14 @@ nplt.plot_summary(val, modelspecs)
 #nplt.pred_vs_act_psth_smooth(val, one_modelspec, ms.evaluate, ax=ax3)
 
 # Pause before quitting
-plt.show()
+
+# Optional: Save your figure
+fname = nplt.save_figure(fig, modelspecs=modelspecs, save_dir=modelspecs_dir)
+
+# Optional: Load a saved figure programatically as a bytes object
+#           that can be used by other python functions
+#           (for example, it can be b64 encoded and embedded in a webpage)
+imgbytes = nplt.load_figure_bytes(filepath=fname)
 
 # ----------------------------------------------------------------------------
 # SHARE YOUR RESULTS
