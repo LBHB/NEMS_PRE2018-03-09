@@ -21,7 +21,6 @@ import nems.utilities.baphy as nb
 from nems.recording import Recording
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 
-
 def fit_model_baphy(cellid,batch,modelname,
                     autoPlot=True, saveInDB=False):
     
@@ -106,6 +105,26 @@ def fit_model_baphy(cellid,batch,modelname,
         pass
 
     return(modelspecs)
+
+
+def examine_recording(rec, epoch_regex='TRIAL', occurrence=0):
+    # plot example spectrogram and psth from one trial
+    # todo: regex matching (currently just does exatract string matching)
+    # interactive?
+    # 
+    stim=rec['stim']
+    resp=rec['resp']
+    
+    plt.figure()
+    ax=plt.subplot(2,1,1)
+    nplt.spectrogram_from_epoch(stim, epoch_regex, ax=ax, occurrence=occurrence)
+    plt.title("{0} # {1}".format(epoch_regex,occurrence))
+    ax=plt.subplot(2,1,2)
+    nplt.timeseries_from_epoch([resp], epoch_regex, ax=ax, occurrence=occurrence)
+    
+    plt.tight_layout()
+    
+    
 
 cellid='chn020f-b1'
 batch=271

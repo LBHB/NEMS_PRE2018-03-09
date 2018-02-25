@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 import nems.utilities as nu
 import nems.db as nd
-import nems.utilities.baphy
+#import nems.utilities.baphy
 
 # find all cells in A1 / natural sound dataset
 batch=271
