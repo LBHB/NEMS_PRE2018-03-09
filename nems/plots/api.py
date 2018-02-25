@@ -10,3 +10,4 @@ from .heatmap import weight_channels_heatmap, fir_heatmap, strf_heatmap
 from .pred_vs_actual import (pred_vs_act_scatter, pred_vs_act_psth,
                              pred_vs_act_psth_smooth)
 from .file import save_figure, load_figure_img, load_figure_bytes
+from .histogram import pred_error_hist

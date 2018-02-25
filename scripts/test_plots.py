@@ -81,10 +81,11 @@ channels = nplt.pad_to_signals(sigs, [0, 1])
 def my_timeseries(ax) : nplt.timeseries_from_epoch(sigs, 'TRIAL', ax=ax,
                                                    occurrences=occurrences,
                                                    channels=channels)
-
+def my_histogram(ax) : nplt.pred_error_hist(resp, pred[0], ax=ax)
 fig = plot_layout([[my_scatter, my_scatter, my_scatter],
                    [my_spectro],
-                   [my_timeseries]])
+                   [my_timeseries],
+                   [my_histogram]])
 
 fig.tight_layout()
 fig.show()
