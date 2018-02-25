@@ -1,4 +1,8 @@
 from functools import partial
+import os
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from nems.plots.assemble import plot_layout
 from nems.plots.heatmap import weight_channels_heatmap, fir_heatmap, strf_heatmap
 from nems.plots.scatter import plot_scatter
@@ -19,13 +23,13 @@ def plot_summary(rec, modelspecs):
 
     # Make predictions on the data set using the modelspecs
     pred = [ms.evaluate(rec, m)['pred'] for m in modelspecs]
-    
+
     sigs = [resp]
     sigs.extend(pred)
-    
+
     # Example of how to plot a complicated thing:
     occurrence = 0
-    
+
     def my_scatter(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name)
     def my_spectro(ax): spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=occurrence)
     def my_timeseries(ax) : timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrence=occurrence)
@@ -50,4 +54,9 @@ def plot_summary(rec, modelspecs):
                            [my_timeseries]])
 
     fig.tight_layout()
-    fig.show()
+    # fig.show() should be called in the outer script instead, using
+    # the returned fig object. Easier to make display optional that way,
+    # if only trying to save figures or use through web UI.  -jacob-2-24-18
+    #fig.show()
+
+    return fig

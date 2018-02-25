@@ -466,7 +466,8 @@ class Signal:
 
         chans = []
         for signal in signals:
-            chans.extend(signal.chans)
+            if signal.chans:
+                chans.extend(signal.chans)
 
         #epochs = []
         #for signal in signals:

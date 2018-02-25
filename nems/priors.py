@@ -56,7 +56,7 @@ def _get_module_prior(module, default_priors=default_priors):
             # Skip this; it is already instantiated
             continue
         # TODO: this is resulting in error some times, due to
-        #       with the following code being called on a Normal distribution
+        #       the following code being called on a Normal distribution
         #       object. So the if(issubclass...) condition isn't catching
         #       some or all of the distribution objects.
         dist_type, dist_params = prior[arg_name]

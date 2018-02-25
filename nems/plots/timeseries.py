@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from nems.signal import Signal
+from nems.plots.assemble import pad_to_signals
 
 def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, ax=None):
     '''
@@ -26,46 +27,38 @@ def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, a
         ax.legend(legend)
 
 
-def timeseries_from_signals(signals, channel=0, xlabel='Time', ylabel='Value',
-                            ax=None, concat=False, i=None, j=None):
-    
-    # TODO: extract this to separate utility function and rename channels
-    #       accordingly.
-    # NOTE: should channel renaming be done in the signals method anyway?
-    
-    # Starting with index i, signals through (but not including) j will
-    # be concatenated channel-wise to signals[i].
-    if concat:
-        signals[i:j] = Signal.concatenate_channels(signals[i:j])
-    
+def timeseries_from_signals(signals, channels=None, xlabel='Time', ylabel='Value',
+                            ax=None):
+    """TODO: doc"""
+    if not channels:
+        channels = pad_to_signals(signals, 0)
     legend = [s.name for s in signals]
     times = []
     values = []
-    for s in signals:
+    for s, c in zip(signals, channels):
         # Get values from specified channel
-        value_vector = s.as_continuous()[channel]
+        value_vector = s.as_continuous()[c]
         # Convert indices to absolute time based on sampling frequency
         time_vector = np.arange(0, len(value_vector)) / s.fs
         times.append(time_vector)
         values.append(value_vector)
     plot_timeseries(times, values, xlabel, ylabel, legend, ax=ax)
 
-def timeseries_from_epoch(signals, epoch, occurrence=0, channel=0,
-                          xlabel='Time', ylabel='Value', ax=None,
-                          concat=False, i=None, j=None):
-    # Starting with index i, signals through (but not including) j will
-    # be concatenated channel-wise to signals[i].
-    if concat:
-        signals[i:j] = Signal.concatenate_channels(signals[i:j])
-        
+def timeseries_from_epoch(signals, epoch, occurrences=None, channels=None,
+                          xlabel='Time', ylabel='Value', ax=None):
+    """TODO: doc"""
+    if not occurrences:
+        occurrences = pad_to_signals(signals, 0)
+    if not channels:
+        channels = pad_to_signals(channels, 0)
     legend = [s.name for s in signals]
     times = []
     values = []
-    for s in signals:
+    for s, o, c in zip(signals, occurrences, channels):
         # Get occurrences x chans x time
         extracted = s.extract_epoch(epoch)
         # Get values from specified occurrence and channel
-        value_vector = extracted[occurrence][channel]
+        value_vector = extracted[o][c]
         # Convert bins to time (relative to start of epoch)
         # TODO: want this to be absolute time relative to start of data?
         time_vector = np.arange(0, len(value_vector)) / s.fs
