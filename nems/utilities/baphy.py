@@ -1477,9 +1477,13 @@ def baphy_load_dataset(parmfilepath,options={}):
             tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
             tag_mask_stop="PostStimSilence , "+tags[eventidx]+" , Reference"
             
-            ffstart=(exptevents['name'].str.contains(tag_mask_start))
-            ffstop=(exptevents['name'].str.contains(tag_mask_stop))
-            
+            ffstart=(exptevents['name']==tag_mask_start)
+            if np.sum(ffstart)>0:
+                ffstop=(exptevents['name']==tag_mask_stop)
+            else:
+                ffstart=(exptevents['name'].str.contains(tag_mask_start))
+                ffstop=(exptevents['name'].str.contains(tag_mask_stop))
+                
             # create intial list of stimulus events
             this_event_times=pd.concat([exptevents.loc[ffstart,['start']].reset_index(), 
                                   exptevents.loc[ffstop,['end']].reset_index()], axis=1)

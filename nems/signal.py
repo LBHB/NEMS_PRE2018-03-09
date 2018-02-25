@@ -4,6 +4,7 @@ import re
 import math
 import pandas as pd
 import numpy as np
+import copy
 from nems.epoch import remove_overlap, merge_epoch, verify_epoch_integrity
 
 class Signal:
@@ -179,6 +180,12 @@ class Signal:
         md_attributes = ['name', 'chans', 'fs', 'meta', 'recording', 'epochs']
         return {name: getattr(self, name) for name in md_attributes}
 
+    def copy(self):
+        '''
+        Returns a copy of this signal.
+        '''
+        return copy.copy(self)
+    
     def _modified_copy(self, data, **kwargs):
         '''
         For internal use when making various immutable copies of this signal.

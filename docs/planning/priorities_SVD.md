@@ -57,12 +57,29 @@ each module. Also include prediciton correlation results.
 
 ## 5. Use case: Fit LN STRF to NAT data ##
 
+batches 271,272,291
+
 Preprocess by averaging across all reps of each stimulus, separate out
 high-repeat stimuli for validation
 
 Generate model spec with wcgNN + firNN + dexp1
 
-Pre-fit linear filter without dexpt1
+Pre-fit linear filter without dexp1
+
+Fit
+
+Plot results, save to db
+
+## 5a. Use case: Fit LN STRF to SPN data ##
+
+batch 259. Stimulus is already 2-channel envelope. No need for wcNN
+
+Preprocess by averaging across all reps of each stimulus, separate out
+high-repeat stimuli for validation
+
+Generate model spec with firNN + dexp1
+
+Pre-fit linear filter without dexp1
 
 Fit
 

@@ -42,6 +42,10 @@ def fit_model_baphy(cellid,batch,modelname,
         options["stimfmt"]="ozgf"
         options["chancount"]=18
         options["rasterfs"]=100
+    elif loader=="env100":
+        options["stimfmt"]="envelope"
+        options["chancount"]=0
+        options["rasterfs"]=100
     else:
         raise ValueError('unknown loader string')
         
@@ -51,6 +55,11 @@ def fit_model_baphy(cellid,batch,modelname,
     
     log.info('Loading data...')
     rec = Recording.load(signals_dir)
+    
+    # clone stim signal to create a placeholder for pred
+    pred = rec['stim'].copy()
+    pred.name='pred'
+    rec.add_signal(pred)
     
     log.info('Withholding validation set data...')
 
@@ -117,7 +126,10 @@ def examine_recording(rec, epoch_regex='TRIAL', occurrence=0):
     
     plt.figure()
     ax=plt.subplot(2,1,1)
-    nplt.spectrogram_from_epoch(stim, epoch_regex, ax=ax, occurrence=occurrence)
+    if stim.nchans>2:
+        nplt.spectrogram_from_epoch(stim, epoch_regex, ax=ax, occurrence=occurrence)
+    else:
+        nplt.timeseries_from_epoch([stim], epoch_regex, ax=ax, occurrence=occurrence)
     plt.title("{0} # {1}".format(epoch_regex,occurrence))
     ax=plt.subplot(2,1,2)
     nplt.timeseries_from_epoch([resp], epoch_regex, ax=ax, occurrence=occurrence)
@@ -129,5 +141,11 @@ def examine_recording(rec, epoch_regex='TRIAL', occurrence=0):
 cellid='chn020f-b1'
 batch=271
 modelname="ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"
-fit_model_baphy(cellid,batch,modelname)
+
+#cellid='btn144a-c1'
+#batch=259
+#modelname="env100_fir15x2_dexp1_fit01"
+
+
+modelspecs=fit_model_baphy(cellid,batch,modelname)
 

@@ -50,7 +50,7 @@ def timeseries_from_signals(signals, channel=0, xlabel='Time', ylabel='Value',
         values.append(value_vector)
     plot_timeseries(times, values, xlabel, ylabel, legend, ax=ax)
 
-def timeseries_from_epoch(signals, epoch, occurrence=0, channel=0,
+def timeseries_from_epoch(signals, epoch, occurrence=0, channel=None,
                           xlabel='Time', ylabel='Value', ax=None,
                           concat=False, i=None, j=None):
     # Starting with index i, signals through (but not including) j will
@@ -65,7 +65,11 @@ def timeseries_from_epoch(signals, epoch, occurrence=0, channel=0,
         # Get occurrences x chans x time
         extracted = s.extract_epoch(epoch)
         # Get values from specified occurrence and channel
-        value_vector = extracted[occurrence][channel]
+        if channel is None:
+            # all channels
+            value_vector = extracted[occurrence].T
+        else:
+            value_vector = extracted[occurrence][channel]
         # Convert bins to time (relative to start of epoch)
         # TODO: want this to be absolute time relative to start of data?
         time_vector = np.arange(0, len(value_vector)) / s.fs
