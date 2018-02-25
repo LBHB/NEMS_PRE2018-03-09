@@ -11,9 +11,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sklearn.cluster import KMeans
+import scipy.signal as ss
+
 
 sys.path.append('/auto/users/hellerc/code/NEMS/')
-from nems.utilities.baphy import baphy_load_recording, spike_time_to_raster
+from nems.utilities.baphy import baphy_load_dataset, spike_time_to_raster
 from nems.signal import Signal
 sys.path.append('/auto/users/hellerc/code/NEMS/scripts')
 import pupil_processing as pp  
@@ -27,23 +29,25 @@ rasterfs=100
 #options = {'rasterfs': rasterfs, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True}
 
 # Boleto VOC
-parmfilepath = '/auto/data/daq/Boleto/BOL005/BOL005c09_p_PPS_VOC.m'
-options = {'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True, 'runclass': 'VOC'}
+parmfilepath = '/auto/data/daq/Boleto/BOL006/BOL006b09_p_PPS_VOC.m'
+options = {'rasterfs': rasterfs, 'includeprestim': True, 'stimfmt': 'ozgf', 'chancount': 18, 'cellid': 'all', 'pupil': True, 'runclass': 'VOC'}
 
 # load baphy parmfile
-out = baphy_load_recording(parmfilepath,
-                           options)
+out = baphy_load_dataset(parmfilepath,
+                           options=options)
 # unpack output
 event_times, spike_dict, stim_dict, state_dict = out
-event_times['start_index']=[int(x) for x in event_times['StartTime']*100]
-event_times['end_index']=[int(x) for x in event_times['StopTime']*100]
+event_times['start_index']=[int(x) for x in event_times['start']*rasterfs]
+event_times['end_index']=[int(x) for x in event_times['end']*rasterfs]
 
 # r is response matrix, created from dictionary of spike times
+binfs = 10
+
 out = spike_time_to_raster(spike_dict=spike_dict,
-                         fs=100,
+                         fs=binfs,
                          event_times=event_times)
 
-r = out[0][:,:-int(rasterfs*0.75)]  # remove the time points where pupil is nan
+r = out[0][:,:-int(binfs*0.75)]  # remove the time points where pupil is nan
 cellids = out[1]
 
 # =========================================================================
@@ -52,11 +56,19 @@ cellids = out[1]
 # =========================================================================
 
 # Create state matrix
-p = state_dict['pupiltrace'][:-int(rasterfs*0.75)]  # remove time shifted points from pupil
-p_hp, p_lp = pp.filt(p, rasterfs=100)
-dpos, dneg = pp.derivative(p, rasterfs=100)
+p = state_dict['pupiltrace'][0][:-int(rasterfs*0.75)]  # remove time shifted points from pupil
+p_hp, p_lp = pp.filt(p, rasterfs=rasterfs)
+dpos, dneg = pp.derivative(p, rasterfs=rasterfs)
 der = dpos+dneg
 state_matrix = np.vstack((p[:-1],p_hp[:-1],p_lp[:-1],der))
+
+# downsample state_matrix
+nbins = int(round(state_matrix.shape[-1]/(rasterfs/binfs)))
+state_matrix=ss.resample(state_matrix.T, nbins)
+p = state_matrix[:,0]
+p_hp = state_matrix[:,1]
+p_lp = state_matrix[:,2]
+der = state_matrix[:,3]
 
 # Attempt to find clusters in state space using PCA/Kmeans
 U,S,V = np.linalg.svd(state_matrix.T,full_matrices=False)
@@ -84,7 +96,7 @@ def bimodal(x,mu1,sigma1,A1,mu2,sigma2,A2):
     return gauss(x,mu1,sigma1,A1)+gauss(x,mu2,sigma2,A2)
 
 plt.figure()
-n, bins, _ = plt.hist(p,bins=rasterfs, color='g')
+n, bins, _ = plt.hist(p,bins=binfs, color='g')
 bins=(bins[1:]+bins[:-1])/2
 params,cov=curve_fit(bimodal,bins,n)
 sigma=np.sqrt(np.diag(cov))
@@ -117,7 +129,7 @@ def mse(r, p):
     return mse
 
 plt.figure(100)
-n, bins, _ = plt.hist(p,bins=rasterfs, color='g')
+n, bins, _ = plt.hist(p,bins=binfs, color='g')
 plt.close(100)
 bins=(bins[1:]+bins[:-1])/2
 params_bi,cov_bi=curve_fit(bimodal,bins,n)
@@ -134,8 +146,8 @@ mse_bi = mse(bimodal_fit, n)\
 if mse_gauss < mse_bi:
     print('WARNING: pupil dynamics come from single distribution')
 
-out_big_p=drt.PCA(np.squeeze(r[:,np.argwhere(p>=int(round(params_bi[0])))]).T)
-out_small_p=drt.PCA(np.squeeze(r[:,np.argwhere(p<=int(round(params_bi[3])))]).T)
+out_small_p=drt.PCA(np.squeeze(r[:,np.argwhere(p<=int(round(params_bi[0])/binfs))]).T)
+out_big_p=drt.PCA(np.squeeze(r[:,np.argwhere(p>=int(round(params_bi[-1])/binfs))]).T)
 
 # look at variance in two extreme groups
 plt.figure()

@@ -63,7 +63,7 @@ def PCA(r, center=True):
     for i in range(0, r_pca.shape[1]):
         var_explained.append(100*(sum(v[0:(i+1)])/sum(v)));
     loading = V;
-    pcs = U*S;
+    pcs = U #*S;
     
     out = {'pcs': pcs,
             'variance': var_explained,

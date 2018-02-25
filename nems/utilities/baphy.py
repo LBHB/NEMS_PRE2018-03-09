@@ -1325,10 +1325,10 @@ def baphy_load_data(parmfilepath,options={}):
             pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
             pupiltrace,ptrialidx=baphy_load_pupil_trace(pupilfilepath,exptevents,options)                
             state_dict['pupiltrace']=pupiltrace
+
         except:
             print("No pupil data")
-                
-        
+
     return exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams
 
 
