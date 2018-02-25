@@ -850,6 +850,7 @@ def baphy_mat2py(s):
     return s7
 
 def baphy_parm_read(filepath):
+    print("Loading {0}".format(filepath))
     
     f = io.open(filepath, "r")
     s=f.readlines(-1)
@@ -874,7 +875,14 @@ def baphy_parm_read(filepath):
             except :
                 s2=sout1.split('[')
                 sout2="[".join(s2[:-1]) + ' = {}'
-                exec(sout2)
+                try:
+                    exec(sout2)
+                except:
+                    s3=sout2.split('[')
+                    sout3="[".join(s3[:-1]) + ' = {}'
+                    exec(sout3)
+                    exec(sout2)
+                    
                 exec(sout1)
             exec(sout)
         except NameError:
@@ -1677,7 +1685,8 @@ def baphy_load_recording(cellid,batch,options):
     d=db.get_batch_cell_data(batch=batch, cellid=cellid, label='parm') 
     files=list(d['parm'])
     
-    options['cellid']=cellid
+    if not options.get('cellid'):
+        options['cellid']=cellid
     options['batch']=batch
     
     for i,parmfilepath in enumerate(files):

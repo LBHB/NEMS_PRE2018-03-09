@@ -288,12 +288,19 @@ if batch==289 or batch==294:
              'pupil_deblink': True, 'pupil_median': 1,
              'plot_results': True, 'plot_ax': None}
     
-elif batch==271:
-    # A1 NAT+pupil
+elif batch in [271,272,291]:
+    # NAT
     state_lists=[]
     state_shuffles=[[]]
     options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 
              'chancount': 18, 'pupil': False, 'stim': True,
+             'plot_results': True, 'plot_ax': None}
+elif batch in [259]:
+    #  SPN
+    state_lists=[]
+    state_shuffles=[[]]
+    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'envelope', 
+             'chancount': 0, 'pupil': False, 'stim': True,
              'plot_results': True, 'plot_ax': None}
     
 elif batch==301:
