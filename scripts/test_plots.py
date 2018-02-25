@@ -41,7 +41,12 @@ est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
 # est, val = rec.split_at_time(0.8)
 
 # Load some modelspecs and create their predictions
-modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
+modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')#, regex=('^TAR010c-18-1\.{\d+}\.json'))
+# Testing summary statistics:
+means, stds = ms.summary_stats(modelspecs)
+print("means: {}".format(means))
+print("stds: {}".format(stds))
+
 pred = [ms.evaluate(val, m)['pred'] for m in modelspecs]
 
 # Shorthands for unchanging signals

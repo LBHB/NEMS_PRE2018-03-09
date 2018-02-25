@@ -26,7 +26,6 @@ def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
     ax.set_xticklabels(np.arange(0, x-skip))
     ax.set_yticks(np.arange(skip, y))
     ax.set_yticklabels(np.arange(0, y-skip))
-
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
@@ -57,7 +56,8 @@ def _get_strf_coefficients(modelspec):
 
 def weight_channels_heatmap(modelspec, ax=None, clim=None):
     coefficients = _get_wc_coefficients(modelspec)
-    plot_heatmap(coefficients, xlabel='Channel In', ylabel='Channel Out', ax=ax, clim=clim)
+    plot_heatmap(coefficients, xlabel='Channel In', ylabel='Channel Out',
+                 ax=ax, clim=clim, ytick_labels=ytick_labels)
 
 
 def fir_heatmap(modelspec, ax=None, clim=None):

@@ -2,8 +2,11 @@ import os
 import copy
 import json
 import fnmatch
-import numpy as np
 import importlib
+import re
+
+import numpy as np
+import pandas as pd
 
 import nems.utils
 from nems.distributions.distribution import Distribution
@@ -108,7 +111,7 @@ def load_modelspec(filepath):
     return ms
 
 
-def load_modelspecs(directory, basename):
+def load_modelspecs(directory, basename, regex=None):
     '''
     Returns a list of modelspecs loaded from directory/basename.*.json
     '''
@@ -120,8 +123,18 @@ def load_modelspecs(directory, basename):
     #       json.load expecting file object
     #modelspecs = [json.load(f) for f in files]
     dir_list = os.listdir(directory)
-    files = [os.path.join(directory, s) for s in dir_list
-             if (basename in s and '.json' in s)]
+    if regex:
+        # TODO: Not sure why this isn't working? No errors but
+        #       still isn't matching the things it should be matching.
+        #       ( tested w/ regex='^TAR010c-18-1\.{\d+}\.json')
+        #       -jacob 2/25/18
+        if isinstance(regex, str):
+            regex = re.compile(regex)
+        files = [os.path.join(directory, s) for s in dir_list
+                 if re.search(regex, s)]
+    else:
+        files = [os.path.join(directory, s) for s in dir_list
+                 if (basename in s and '.json' in s)]
     modelspecs = []
     for file in files:
         with open(file, 'r') as f:
@@ -174,6 +187,59 @@ def evaluate(rec, modelspec, stop=None):
         for s in new_signals:
             d.add_signal(s)
     return d
+
+def summary_stats(modelspecs):
+    # Don't modify the modelspecs themselves
+    modelspecs = [m.copy() for m in modelspecs]
+
+    # Modelspecs must have the same length to compare
+    length = None
+    for m in modelspecs:
+        if length:
+            if len(m) != length:
+                raise ValueError("All modelspecs must have the same length")
+        length = len(m)
+
+    # Modelspecs must have the same modules to compare
+    fns = [m['fn'] for m in modelspecs[0]]
+    for mspec in modelspecs[1:]:
+        m_fns = [m['fn'] for m in mspec]
+        if not sorted(fns) == sorted(m_fns):
+            raise ValueError("All modelspecs must have the same modules")
+
+    # Assumble a dict of columns for creating a Dataframe, with
+    # the column name format: <modelspec_index>_<parameter>
+    columns = {}
+    for i, m in enumerate(modelspecs[0]):
+        params = m['phi'].keys()
+        for p in params:
+            columns.update({'{0}_{1}'.format(i, p): []})
+
+    for col in columns.keys():
+        # First chunk, before _, is the 'module' index within modelspec
+        split = col.split('_')
+        m = int(split[0])
+        # Second chunk, after _, is the parameter
+        p = '_'.join(split[1:])
+        for mspec in modelspecs:
+            this_p = mspec[m]['phi'][p]
+            columns[col].append(this_p)
+
+    # Now columns should look something like:
+    # {'0_mu': [1, 1, 3, 4],
+    #  '0_sd': [0.5, 1, 0.5, 1],
+    #  '1_kappa': [1.0, 3.0, 2.0, 4.0]}
+
+    # TODO: Currently gets a single scalar mean/std for parameters like
+    #       weight_channels' coefficients. Might want to end up with
+    #       an array of mean/stds for those instead?
+    means = columns.copy()
+    stds = columns.copy()
+    for col, values in columns.items():
+        means[col] = np.mean(values)
+        stds[col] = np.std(values)
+
+    return means, stds
 
 # TODO:
 # 1. What about collisions between phi and fn_kwargs?
