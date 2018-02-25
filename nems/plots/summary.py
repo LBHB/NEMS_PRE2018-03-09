@@ -19,14 +19,14 @@ def plot_summary(rec, modelspecs):
 
     # Make predictions on the data set using the modelspecs
     pred = [ms.evaluate(rec, m)['pred'] for m in modelspecs]
-
+    
     sigs = [resp]
     sigs.extend(pred)
-
+    
     # Example of how to plot a complicated thing:
-    occurrence = 0    
-
-    def my_scatter(idx, ax): plot_scatter(resp, pred[idx], ax=ax, title=rec.name)
+    occurrence = 0
+    
+    def my_scatter(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name)
     def my_spectro(ax): spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=occurrence)
     def my_timeseries(ax) : timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrence=occurrence)
     def my_strf(idx, ax) : strf_heatmap(modelspecs[idx], ax=ax)
@@ -38,12 +38,12 @@ def plot_summary(rec, modelspecs):
         return partials
 
     if len(modelspecs) <= 10:
-        fig = plot_layout([make_partials(my_scatter, modelspecs),
+        fig = plot_layout([[my_spectro],
                            #make_partials(my_wc, modelspecs),
                            #make_partials(my_fir, modelspecs),
                            make_partials(my_strf, modelspecs),
-                           [my_spectro],
-                           [my_timeseries]])
+                           [my_timeseries],
+                           make_partials(my_scatter, modelspecs)])
     else:
         # Don't plot the scatters/strfs when you have more than 10
         fig = plot_layout([[my_spectro],

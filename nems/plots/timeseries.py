@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from nems.signal import Signal
+
 def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, ax=None):
     '''
     Plots a simple timeseries with one line for each pair of
@@ -24,7 +26,18 @@ def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, a
         ax.legend(legend)
 
 
-def timeseries_from_signals(signals, channel=0, xlabel='Time', ylabel='Value', ax=None):
+def timeseries_from_signals(signals, channel=0, xlabel='Time', ylabel='Value',
+                            ax=None, concat=False, i=None, j=None):
+    
+    # TODO: extract this to separate utility function and rename channels
+    #       accordingly.
+    # NOTE: should channel renaming be done in the signals method anyway?
+    
+    # Starting with index i, signals through (but not including) j will
+    # be concatenated channel-wise to signals[i].
+    if concat:
+        signals[i:j] = Signal.concatenate_channels(signals[i:j])
+    
     legend = [s.name for s in signals]
     times = []
     values = []
@@ -37,9 +50,14 @@ def timeseries_from_signals(signals, channel=0, xlabel='Time', ylabel='Value', a
         values.append(value_vector)
     plot_timeseries(times, values, xlabel, ylabel, legend, ax=ax)
 
-
 def timeseries_from_epoch(signals, epoch, occurrence=0, channel=0,
-                          xlabel='Time', ylabel='Value', ax=None):
+                          xlabel='Time', ylabel='Value', ax=None,
+                          concat=False, i=None, j=None):
+    # Starting with index i, signals through (but not including) j will
+    # be concatenated channel-wise to signals[i].
+    if concat:
+        signals[i:j] = Signal.concatenate_channels(signals[i:j])
+        
     legend = [s.name for s in signals]
     times = []
     values = []
