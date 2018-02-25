@@ -19,8 +19,9 @@ def plot_histogram(x, bins=None):
     plt.hist(x, bins=bins)
 
 def pred_error_hist(resp, pred, ax=None, channel=0, bins=None, calc_bins=True,
-                    trim_outliers=True, trim_within=3.0, xlabel='|Resp - Pred|',
-                    ylabel='Count', title='Prediction Error'):
+                    bin_mult=5.0, trim_outliers=True, trim_within=0.35,
+                    xlabel='|Resp - Pred|', ylabel='Count',
+                    title='Prediction Error'):
     """Plots a histogram of the error between response and prediction.
 
     Arguments:
@@ -41,6 +42,9 @@ def pred_error_hist(resp, pred, ax=None, channel=0, bins=None, calc_bins=True,
     calc_bins : boolean
         If true, bins will overwritten by a calculation based on
         the length of resp and pred.
+    bin_mult : float
+        The value returned by calc_bins is multipled by this factor,
+        to allow finer adjustment of bin count.
     trim_outliers : boolean
         If true, err values that exceed mean err + some multiple
         (trim_within) of the standard deviation of the error
@@ -79,7 +83,7 @@ def pred_error_hist(resp, pred, ax=None, channel=0, bins=None, calc_bins=True,
         # TODO: Might need to adjust this calculation to find
         #       the optimum.
         length = err_data.shape[0]
-        bins = int(np.ceil(np.sqrt(length)))
+        bins = int(bin_mult*(np.ceil(np.sqrt(length))))
 
     plot_histogram(err_data, bins=bins)
     plt.xlabel(xlabel)
