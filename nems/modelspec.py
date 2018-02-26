@@ -2,8 +2,11 @@ import os
 import copy
 import json
 import fnmatch
-import numpy as np
 import importlib
+import re
+
+import numpy as np
+import pandas as pd
 
 import nems.utils
 from nems.distributions.distribution import Distribution
@@ -42,7 +45,7 @@ def set_modelspec_metadata(modelspec, key, value):
 
 def get_modelspec_name(modelspec):
     '''
-    Returns a string that names this modelspec. Suitable for plotting. 
+    Returns a string that names this modelspec. Suitable for plotting.
     '''
     meta = get_modelspec_metadata(modelspec)
     if 'name' in meta:
@@ -108,7 +111,7 @@ def load_modelspec(filepath):
     return ms
 
 
-def load_modelspecs(directory, basename):
+def load_modelspecs(directory, basename, regex=None):
     '''
     Returns a list of modelspecs loaded from directory/basename.*.json
     '''
@@ -120,7 +123,18 @@ def load_modelspecs(directory, basename):
     #       json.load expecting file object
     #modelspecs = [json.load(f) for f in files]
     dir_list = os.listdir(directory)
-    files = [os.path.join(directory, s) for s in dir_list if basename in s]
+    if regex:
+        # TODO: Not sure why this isn't working? No errors but
+        #       still isn't matching the things it should be matching.
+        #       ( tested w/ regex='^TAR010c-18-1\.{\d+}\.json')
+        #       -jacob 2/25/18
+        if isinstance(regex, str):
+            regex = re.compile(regex)
+        files = [os.path.join(directory, s) for s in dir_list
+                 if re.search(regex, s)]
+    else:
+        files = [os.path.join(directory, s) for s in dir_list
+                 if (basename in s and '.json' in s)]
     modelspecs = []
     for file in files:
         with open(file, 'r') as f:
@@ -155,14 +169,16 @@ def _lookup_fn_at(fn_path):
     return fn
 
 
-def evaluate(rec, modelspec, stop=-1):
+def evaluate(rec, modelspec, stop=None):
     '''
     Given a recording object and a modelspec, return a prediction.
     Does not alter its arguments in any way.
+    If stop is none, will use entire list. Otherwise, will only evaluate
+    modules 0 through stop-1.
     '''
     # d = copy.deepcopy(rec)  # Paranoid, but 100% safe
     d = copy.copy(rec)  # About 10x faster & fine if Signals are immutable
-    for m in modelspec:
+    for m in modelspec[:stop]:
         fn = _lookup_fn_at(m['fn'])
         kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
         new_signals = fn(rec=d, **kwargs)
@@ -171,6 +187,92 @@ def evaluate(rec, modelspec, stop=-1):
         for s in new_signals:
             d.add_signal(s)
     return d
+
+def summary_stats(modelspecs):
+    """Generates summary statistics for a list of modelspecs.
+    Each modelspec must be of the same length and contain the same
+    modules (though they need not be in the same order).
+
+    For example, ten modelspecs composed of the same modules that
+    were fit to ten different datasets can be compared. However, ten
+    modelspecs all with different modules fit to the same data cannot
+    be compared because there is no guarantee that they contain
+    comparable parameter values.
+
+    Arguments:
+    ----------
+    modelspecs : list of modelspecs
+        See docs/modelspecs.md
+
+    Returns:
+    --------
+    means, stds : dicts
+        Each contains one key for each parameter, of the form:
+            {'<modelspec_index>_<parameter_name>': <mean value>}
+            or {'<modelspec_index>_<parameter_name>': <standard deviation>}
+    """
+    # Don't modify the modelspecs themselves
+    modelspecs = [m.copy() for m in modelspecs]
+
+    # Modelspecs must have the same length to compare
+    # TODO: Remove this requirement? Would just need some handling of
+    #       missing indices in the rest of the function's logic.
+    #       Keeping the requirement lets us make some simplifying assumptions.
+    length = None
+    for m in modelspecs:
+        if length:
+            if len(m) != length:
+                raise ValueError("All modelspecs must have the same length")
+        length = len(m)
+
+    # Modelspecs must have the same modules to compare
+    # TODO: Remove this requirement? Same issue as with length matching.
+    fns = [m['fn'] for m in modelspecs[0]]
+    for mspec in modelspecs[1:]:
+        m_fns = [m['fn'] for m in mspec]
+        if not sorted(fns) == sorted(m_fns):
+            raise ValueError("All modelspecs must have the same modules")
+
+    # Assumble a dict of columns for creating a Dataframe, with
+    # the column name format: <modelspec_index>_<parameter>
+    columns = {}
+    for i, m in enumerate(modelspecs[0]):
+        params = m['phi'].keys()
+        for p in params:
+            columns.update({'{0}_{1}'.format(i, p): []})
+
+    for col in columns.keys():
+        # First chunk, before _, is the 'module' index within modelspec
+        split = col.split('_')
+        m = int(split[0])
+        # Second chunk, after _, is the parameter
+        p = '_'.join(split[1:])
+        for mspec in modelspecs:
+            this_p = mspec[m]['phi'][p]
+            columns[col].append(this_p)
+
+    # Now columns should look something like:
+    # {'0_mu': [1, 1, 3, 4],
+    #  '0_sd': [0.5, 1, 0.5, 1],
+    #  '1_kappa': [1.0, 3.0, 2.0, 4.0]}
+
+    # TODO: Currently gets a single scalar mean/std for parameters like
+    #       weight_channels' coefficients. Might want to end up with
+    #       an array of mean/stds for those instead?
+    means = columns.copy()
+    stds = columns.copy()
+    for col, values in columns.items():
+        means[col] = np.mean(values)
+        stds[col] = np.std(values)
+
+    # TODO: Might be better to have this end up as a single dictionary
+    #       of the form:
+    #       {'<fn entry>_<param name>': {'mean': x, 'std': y}}
+    #       ex:
+    #       {'nems.modules.nonlinearity.dexp_kappa': {'mean': 1.0,
+    #                                                 'std': 0.37}}
+
+    return means, stds
 
 # TODO:
 # 1. What about collisions between phi and fn_kwargs?

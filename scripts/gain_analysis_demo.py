@@ -278,14 +278,29 @@ options={'rasterfs': 10, 'includeprestim': True, 'stimfmt': 'parm',
 # it's only coded to test for active vs. passive effects. ie, 
 # state_lists[0] is active / passive shuffled
 # state_lists[1] is active / passive actual
-if batch==289:
-    # A1 NAT+pupil
+if batch==289 or batch==294:
+    # A1 NAT+pupil, VOC+pupil
     state_lists=[['pupil'],
                  ['pupil']]
     state_shuffles=[[0],[]]
     options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 
              'chancount': 18, 'pupil': True, 'stim': True,
              'pupil_deblink': True, 'pupil_median': 1,
+             'plot_results': True, 'plot_ax': None}
+    
+elif batch in [271,272,291]:
+    # NAT
+    state_lists=[]
+    state_shuffles=[[]]
+    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'ozgf', 
+             'chancount': 18, 'pupil': False, 'stim': True,
+             'plot_results': True, 'plot_ax': None}
+elif batch in [259]:
+    #  SPN
+    state_lists=[]
+    state_shuffles=[[]]
+    options={'rasterfs': 100, 'includeprestim': True, 'stimfmt': 'envelope', 
+             'chancount': 0, 'pupil': False, 'stim': True,
              'plot_results': True, 'plot_ax': None}
     
 elif batch==301:
@@ -332,10 +347,9 @@ if REGEN:
     cellids=list(cell_data['cellid'].unique())
     
     recordings=[]
-    save_path="/auto/data/tmp/batch{0}_fs{1}_stim_{2}/".format(batch,options["rasterfs"],stimfmt)
-    for cellid in cellids[40:]:
+    save_path="/auto/data/tmp/batch{0}_fs{1}_{2}{3}/".format(batch,options["rasterfs"],stimfmt,options["chancount"])
+    for cellid in cellids:
         try:
-            
             recordings=recordings+[nems.utilities.baphy.baphy_load_recording(cellid,batch,options.copy())]
             recordings[-1].save(save_path)
         except:
@@ -346,7 +360,7 @@ elif RELOAD:
     cellids=list(cell_data['cellid'].unique())
     recordings=[]
     for cellid in cellids:
-        save_path="/auto/data/tmp/batch{0}_fs{1}_stim_{2}/{3}".format(batch,options["rasterfs"],stimfmt,cellid)
+        save_path="/auto/data/tmp/batch{0}_fs{1}_{2}{3}/{4}".format(batch,options["rasterfs"],stimfmt,options["chancount"],cellid)
         print("Loading from {0}".format(save_path))
         recordings=recordings+[nems.recording.Recording.load(save_path)]
 else:

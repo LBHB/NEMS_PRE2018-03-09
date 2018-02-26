@@ -1,6 +1,6 @@
 from nems.utils import split_keywords
 from nems import keywords
-
+from nems.fitters.api import scipy_minimize
 
 def from_keywords(keyword_string, registry=keywords.defaults):
     '''
@@ -20,6 +20,35 @@ def from_keywords(keyword_string, registry=keywords.defaults):
         d['id'] = kw
         modelspec.append(d)
 
+    return modelspec
+
+def prefit_to_target(rec, modelspec, analysis_function, target_module,
+                     fitter=scipy_minimize, fit_kwargs={}):
+    """Removes all modules from the modelspec that come after the
+    first occurrence of the target module, then performs a
+    rough fit on the shortened modelspec, then adds the latter
+    modules back on and returns the full modelspec.
+    """
+    target_i = None
+    for i, m in enumerate(modelspec):
+        if target_module in m['fn']:
+            target_i = i+1
+            break
+
+    if not target_i:
+        raise RuntimeWarning("target_module: {} not found in modelspec."
+                             .format(target_module))
+
+    if target_i == len(modelspec):
+        fit_portion = modelspec
+        nonfit_portion = []
+    else:
+        fit_portion = modelspec[:target_i]
+        nonfit_portion = modelspec[target_i:]
+
+    modelspec = analysis_function(rec, fit_portion, fitter=fitter,
+                                  fit_kwargs=fit_kwargs)[0]
+    modelspec.extend(nonfit_portion)
     return modelspec
 
 
@@ -65,7 +94,7 @@ def from_keywords(keyword_string, registry=keywords.defaults):
 
 
 ################################################################################
-### DEXP 
+### DEXP
 # from ..distributions.api import Gamma, HalfNormal
 # def initialize_dexp(initial_data, i=None, o=None, **kwargs):
 #         resp = initial_data[i]

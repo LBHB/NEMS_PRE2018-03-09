@@ -5,6 +5,8 @@ import numpy as np
 
 def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
                  ax=None, cmap=None, clim=None, skip=0):
+    """Wrapper for matplotlib's plt.imshow() to ensure consistent
+    formatting."""
     # Make sure array is converted to ndarray if passed as list
     array = np.array(array)
 
@@ -24,7 +26,6 @@ def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
     ax.set_xticklabels(np.arange(0, x-skip))
     ax.set_yticks(np.arange(skip, y))
     ax.set_yticklabels(np.arange(0, y-skip))
-
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
@@ -47,15 +48,16 @@ def _get_fir_coefficients(modelspec):
 
 def _get_strf_coefficients(modelspec):
     '''
-    Optional parameter show_factorized displays the 
+    Optional parameter show_factorized displays the
     '''
 
-    return everything, skip, 
+    return everything, skip,
 
 
 def weight_channels_heatmap(modelspec, ax=None, clim=None):
     coefficients = _get_wc_coefficients(modelspec)
-    plot_heatmap(coefficients, xlabel='Channel In', ylabel='Channel Out', ax=ax, clim=clim)
+    plot_heatmap(coefficients, xlabel='Channel In', ylabel='Channel Out',
+                 ax=ax, clim=clim, ytick_labels=ytick_labels)
 
 
 def fir_heatmap(modelspec, ax=None, clim=None):
@@ -82,7 +84,7 @@ def strf_heatmap(modelspec, ax=None, clim=None, show_factorized=True):
         fir_max = np.nanmax(np.abs(fir_coefs[:]))
         wc_coefs = wc_coefs * (cscale / wc_max)
         fir_coefs = fir_coefs * (cscale / fir_max)
-        
+
         n_inputs, _ = wc_coefs.shape
         nchans, ntimes = fir_coefs.shape
         gap = np.full([nchans + 1, nchans + 1], np.nan)

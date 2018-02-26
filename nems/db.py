@@ -631,6 +631,7 @@ def get_batch_cell_data(batch=None, cellid=None, rawid=None, label=None
     if not label is None:
        sql += " AND label like %s"
        params = params+(label,)
+
        
     #print(sql)
     #print(params)
@@ -691,9 +692,9 @@ def get_cell_files2(cellid=None, runclass=None, rawid=None):
     return d
 
 
-def get_isolation(cellid=None, rawid=None):
+def get_isolation(cellid=None, batch=None):
 
-    sql = ("SELECT isolation FROM gSingleRaw WHERE cellid = {0}{1}{2} and rawid = {3}".format("'",cellid,"'",rawid))
+    sql = ("SELECT min_isolation FROM NarfBatches WHERE cellid = {0}{1}{2} and batch = {3}".format("'",cellid,"'",batch))
         
     d = pd.read_sql(sql=sql, con=cluster_engine)
     return d

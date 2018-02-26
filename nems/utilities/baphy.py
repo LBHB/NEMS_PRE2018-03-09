@@ -850,6 +850,7 @@ def baphy_mat2py(s):
     return s7
 
 def baphy_parm_read(filepath):
+    print("Loading {0}".format(filepath))
     
     f = io.open(filepath, "r")
     s=f.readlines(-1)
@@ -874,7 +875,14 @@ def baphy_parm_read(filepath):
             except :
                 s2=sout1.split('[')
                 sout2="[".join(s2[:-1]) + ' = {}'
-                exec(sout2)
+                try:
+                    exec(sout2)
+                except:
+                    s3=sout2.split('[')
+                    sout3="[".join(s3[:-1]) + ' = {}'
+                    exec(sout3)
+                    exec(sout2)
+                    
                 exec(sout1)
             exec(sout)
         except NameError:
@@ -1325,10 +1333,10 @@ def baphy_load_data(parmfilepath,options={}):
             pupilfilepath=re.sub(r"\.m$",".pup.mat",parmfilepath)
             pupiltrace,ptrialidx=baphy_load_pupil_trace(pupilfilepath,exptevents,options)                
             state_dict['pupiltrace']=pupiltrace
+
         except:
             print("No pupil data")
-                
-        
+
     return exptevents, stim, spike_dict, state_dict, tags, stimparam, exptparams
 
 
@@ -1469,9 +1477,13 @@ def baphy_load_dataset(parmfilepath,options={}):
             tag_mask_start="PreStimSilence , "+tags[eventidx]+" , Reference"
             tag_mask_stop="PostStimSilence , "+tags[eventidx]+" , Reference"
             
-            ffstart=(exptevents['name'].str.contains(tag_mask_start))
-            ffstop=(exptevents['name'].str.contains(tag_mask_stop))
-            
+            ffstart=(exptevents['name']==tag_mask_start)
+            if np.sum(ffstart)>0:
+                ffstop=(exptevents['name']==tag_mask_stop)
+            else:
+                ffstart=(exptevents['name'].str.contains(tag_mask_start))
+                ffstop=(exptevents['name'].str.contains(tag_mask_stop))
+                
             # create intial list of stimulus events
             this_event_times=pd.concat([exptevents.loc[ffstart,['start']].reset_index(), 
                                   exptevents.loc[ffstop,['end']].reset_index()], axis=1)
@@ -1676,10 +1688,11 @@ def baphy_load_recording(cellid,batch,options):
     
     d=db.get_batch_cell_data(batch=batch, cellid=cellid, label='parm') 
     files=list(d['parm'])
-   
-    options['cellid']=cellid
+    
+    if not options.get('cellid'):
+        options['cellid']=cellid
     options['batch']=batch
-
+    
     for i,parmfilepath in enumerate(files):
         
         event_times, spike_dict, stim_dict, state_dict = baphy_load_dataset(parmfilepath,options)

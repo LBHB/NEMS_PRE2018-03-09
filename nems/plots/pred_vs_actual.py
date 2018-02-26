@@ -18,13 +18,13 @@ def pred_vs_act_scatter(recording, modelspec, evaluator, transform_idx=-1,
     # TODO: Add text box with r_values (see master branch version)
 
 def pred_vs_act_psth(recording, modelspec, evaluator, transform_idx=-1,
-                     occurrence=0, channel=0, pred_name='pred',
+                     occurrences=None, channels=None, pred_name='pred',
                      act_name='resp'):
     transformed = evaluator(recording, modelspec, stop=transform_idx)
     predicted = transformed[pred_name]
     actual = recording[act_name]
 
-    timeseries_from_signals([actual, predicted], channel=channel,
+    timeseries_from_signals([actual, predicted], channels=channels,
                             ylabel='Firing Rate')
 
 # TODO: Looks like this is the one used m ost often by current NEMS.
