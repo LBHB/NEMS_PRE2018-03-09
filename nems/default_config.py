@@ -41,6 +41,10 @@ NEMS_LOG_FILE_LEVEL = 'DEBUG'
 # Logging level for console
 NEMS_LOG_CONSOLE_LEVEL = 'DEBUG'
 
+
+################################################################################
+# Post config
+################################################################################
 def configure_logging(filename=None):
     # Actual configuration needs to be done inside this function (called by
     # init_settings) so that values in the NEMS_CONFIG file can override these.
@@ -91,12 +95,13 @@ def init_settings():
         log_filename = os.path.join(NEMS_LOG_ROOT, NEMS_LOG_FILENAME)
         os.makedirs(NEMS_LOG_ROOT, exist_ok=True)
         configure_logging(log_filename)
+        log.info("Saving log messages to %s", log_filename)
     else:
         configure_logging()
 
     # Log the settings to facilitate debugging. By convention, settings are in
     # all caps, so only log those variables.
-    log = logging.getLogger()
+    log = logging.getLogger(__name__)
     for k, v in sorted(globals().items()):
         if k == k.upper():
             log.debug("CONFIG %s : %r", k, v)
