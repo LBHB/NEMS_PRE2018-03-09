@@ -35,13 +35,6 @@ def load_config():
 _config = load_config()
 
 
-def set_config(setting, value):
-    '''
-    Set value of setting
-    '''
-    setattr(_config, setting, value)
-
-
 def get_config(setting):
     '''
     Get value of setting.

@@ -33,7 +33,7 @@ NEMS_LOG_FILENAME = datetime.datetime.now().strftime('NEMS %Y-%m-%d %H%M%S.log')
 NEMS_LOG_FILE_FORMAT = '[%(relativeCreated)d %(thread)d %(name)s - %(levelname)s] %(message)s'
 
 # Format for messages printed to console
-NEMS_LOG_CONSOLE_FORMAT = '[%(thread)d %(levelname)s] %(message)s'
+NEMS_LOG_CONSOLE_FORMAT = '[%(name)s %(levelname)s] %(message)s'
 
 # Logging level for file
 NEMS_LOG_FILE_LEVEL = 'DEBUG'
@@ -41,6 +41,10 @@ NEMS_LOG_FILE_LEVEL = 'DEBUG'
 # Logging level for console
 NEMS_LOG_CONSOLE_LEVEL = 'DEBUG'
 
+
+################################################################################
+# Post config
+################################################################################
 def configure_logging(filename=None):
     # Actual configuration needs to be done inside this function (called by
     # init_settings) so that values in the NEMS_CONFIG file can override these.
@@ -58,8 +62,9 @@ def configure_logging(filename=None):
             },
         },
         'loggers': {
+            '': {'level': 'DEBUG'},
             'nems': {'level': 'DEBUG'},
-            '__main__': {'level': 'DEBUG'},
+            'nems.analysis.fit_basic': {'level': 'INFO'},
         },
         'root': {
             'handlers': ['console'],
@@ -91,12 +96,13 @@ def init_settings():
         log_filename = os.path.join(NEMS_LOG_ROOT, NEMS_LOG_FILENAME)
         os.makedirs(NEMS_LOG_ROOT, exist_ok=True)
         configure_logging(log_filename)
+        log.info("Saving log messages to %s", log_filename)
     else:
         configure_logging()
 
     # Log the settings to facilitate debugging. By convention, settings are in
     # all caps, so only log those variables.
-    log = logging.getLogger()
+    log = logging.getLogger(__name__)
     for k, v in sorted(globals().items()):
         if k == k.upper():
             log.debug("CONFIG %s : %r", k, v)
