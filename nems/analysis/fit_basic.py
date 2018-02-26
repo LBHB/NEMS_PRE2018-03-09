@@ -2,6 +2,9 @@ import copy
 import logging
 from functools import partial
 
+log = logging.getLogger(__name__)
+
+
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 import nems.priors
 import nems.fitters.mappers
@@ -43,7 +46,7 @@ def fit_basic(data, modelspec,
     # Ensure that phi exists for all modules; choose prior mean if not found
     for i, m in enumerate(modelspec):
         if not m.get('phi'):
-            logging.debug('Phi not found for module, using mean of prior: {}'.format(m))
+            log.debug('Phi not found for module, using mean of prior: {}'.format(m))
             m = nems.priors.set_mean_phi([m])[0]  # Inits phi for 1 module
             modelspec[i] = m
 
@@ -67,8 +70,8 @@ def fit_basic(data, modelspec,
         data_subset = segmentor(data)
         updated_data_subset = evaluator(data_subset, updated_spec)
         error = metric(updated_data_subset)
-        logging.debug("inside cost function, current error: {}".format(error))
-        logging.debug("\ncurrent sigma: {}".format(sigma))
+        log.debug("inside cost function, current error: {}".format(error))
+        log.debug("\ncurrent sigma: {}".format(sigma))
         return error
 
     # Freeze everything but sigma, since that's all the fitter should be
@@ -113,7 +116,7 @@ def fit_jackknifes(data, modelspec, njacks=10):
     '''
     models = []
     for i in range(njacks):
-        logging.info("Fitting jackknife {}/{}".format(i+1, njacks))
+        log.info("Fitting jackknife {}/{}".format(i+1, njacks))
         jk = data.jackknife_by_time(njacks, i)
         models += fit_basic(jk, modelspec, fitter=scipy_minimize,
                             metaname='fit_jackknifes')
@@ -129,11 +132,11 @@ def fit_subsets(data, modelspec, nsplits=10):
     models = []
     for i in range(nsplits):
         # TODO: Minor glitch: when fitting, print output from fitter
-        #       comes back *after* logging from next iteration
+        #       comes back *after* log from next iteration
         #       (i.e. "fitting 1/3"
         #             "fitting 2/3"
         #             "final error <for 1/3>: 0.111")
-        logging.info("Fitting subset {}/{}".format(i+1, nsplits))
+        log.info("Fitting subset {}/{}".format(i+1, nsplits))
         split = data.jackknife_by_time(nsplits, i, invert=True, excise=True)
         models += fit_basic(split, modelspec, fitter=scipy_minimize,
                             metaname='fit_subset')
@@ -147,7 +150,7 @@ def fit_from_priors(data, modelspec, ntimes=10):
     '''
     models = []
     for i in range(ntimes):
-        logging.info("Fitting from random start: {}/{}".format(i+1, ntimes))
+        log.info("Fitting from random start: {}/{}".format(i+1, ntimes))
         ms = nems.priors.set_random_phi(modelspec)
         models += fit_basic(data, ms, fitter=scipy_minimize,
                             metaname='fit_from_priors')

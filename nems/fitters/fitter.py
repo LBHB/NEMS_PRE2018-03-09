@@ -5,6 +5,8 @@ import scipy as scp
 
 import nems.fitters.termination_conditions as tc
 
+log = logging.getLogger(__name__)
+
 
 def dummy_fitter(sigma, cost_fn, bounds=None, fixed=None):
     '''
@@ -66,16 +68,16 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
 
         # If change was negative, try reducing step size.
         if stepinfo['err_delta'] > 0:
-            logging.info("Error got worse, reducing step size from: {0} to: {1}"
-                  .format(step_size, step_size*step_change))
+            log.info("Error got worse, reducing step size from: {0} to: {1}"
+                     .format(step_size, step_size*step_change))
             step_size *= step_change
 
         if stepinfo['stepnum'] % 20 == 0:
-            logging.debug("sigma is now: {}".format(sigma))
+            log.debug("sigma is now: {}".format(sigma))
 
-    logging.info("Final error: {}".format(stepinfo['err']))
+    log.info("Final error: {}".format(stepinfo['err']))
     now = time.time()
-    logging.info("Run Time: {}".format(now - stepinfo['start_time']))
+    log.info("Run Time: {}".format(now - stepinfo['start_time']))
     return sigma
 
 
@@ -99,6 +101,6 @@ def scipy_minimize(sigma, cost_fn, method='L-BFGS-B',
     finish_time = time.time()
     sigma = result.x
     final_err = cost_fn(sigma)
-    logging.info("Final error: {}".format(final_err))
-    logging.info("Run Time: {}".format(finish_time - start_time))
+    log.info("Final error: {}".format(final_err))
+    log.info("Run Time: {}".format(finish_time - start_time))
     return sigma

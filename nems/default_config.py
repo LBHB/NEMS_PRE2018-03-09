@@ -33,7 +33,7 @@ NEMS_LOG_FILENAME = datetime.datetime.now().strftime('NEMS %Y-%m-%d %H%M%S.log')
 NEMS_LOG_FILE_FORMAT = '[%(relativeCreated)d %(thread)d %(name)s - %(levelname)s] %(message)s'
 
 # Format for messages printed to console
-NEMS_LOG_CONSOLE_FORMAT = '[%(thread)d %(levelname)s] %(message)s'
+NEMS_LOG_CONSOLE_FORMAT = '[%(name)s %(levelname)s] %(message)s'
 
 # Logging level for file
 NEMS_LOG_FILE_LEVEL = 'DEBUG'
@@ -62,8 +62,9 @@ def configure_logging(filename=None):
             },
         },
         'loggers': {
+            '': {'level': 'DEBUG'},
             'nems': {'level': 'DEBUG'},
-            '__main__': {'level': 'DEBUG'},
+            'nems.analysis.fit_basic': {'level': 'INFO'},
         },
         'root': {
             'handlers': ['console'],

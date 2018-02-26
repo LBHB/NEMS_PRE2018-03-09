@@ -23,8 +23,6 @@ from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 # ----------------------------------------------------------------------------
 # CONFIGURATION
 
-logging.basicConfig(level=logging.INFO)
-
 relative_signals_dir = '../signals'
 #relative_signals_dir = '/home/jacob/auto/data/batch271_fs100_ozgf18/'
 relative_modelspecs_dir = '../modelspecs'
