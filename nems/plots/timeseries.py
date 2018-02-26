@@ -27,11 +27,11 @@ def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, a
         ax.legend(legend)
 
 
-def timeseries_from_signals(signals, channels=None, xlabel='Time', ylabel='Value',
+def timeseries_from_signals(signals, channels=0, xlabel='Time', ylabel='Value',
                             ax=None):
     """TODO: doc"""
-    if not channels:
-        channels = pad_to_signals(signals, 0)
+    channels = pad_to_signals(signals, channels)
+
     legend = [s.name for s in signals]
     times = []
     values = []
@@ -44,13 +44,12 @@ def timeseries_from_signals(signals, channels=None, xlabel='Time', ylabel='Value
         values.append(value_vector)
     plot_timeseries(times, values, xlabel, ylabel, legend, ax=ax)
 
-def timeseries_from_epoch(signals, epoch, occurrences=None, channels=None,
+def timeseries_from_epoch(signals, epoch, occurrences=0, channels=0,
                           xlabel='Time', ylabel='Value', ax=None):
     """TODO: doc"""
-    if not occurrences:
-        occurrences = pad_to_signals(signals, 0)
-    if not channels:
-        channels = pad_to_signals(channels, 0)
+    occurrences = pad_to_signals(signals, occurrences)
+    channels = pad_to_signals(signals, channels)
+
     legend = [s.name for s in signals]
     times = []
     values = []

@@ -32,6 +32,6 @@ def corrcoef(result, pred_name='pred', resp_name='resp'):
     '''
     pred = result[pred_name]._matrix
     resp = result[resp_name]._matrix
-    ff=np.isfinite(pred) & np.isfinite(resp)
+    ff = np.isfinite(pred) & np.isfinite(resp)
     cc = np.corrcoef(pred[ff],resp[ff])
     return cc[0,1]

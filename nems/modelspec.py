@@ -189,10 +189,35 @@ def evaluate(rec, modelspec, stop=None):
     return d
 
 def summary_stats(modelspecs):
+    """Generates summary statistics for a list of modelspecs.
+    Each modelspec must be of the same length and contain the same
+    modules (though they need not be in the same order).
+
+    For example, ten modelspecs composed of the same modules that
+    were fit to ten different datasets can be compared. However, ten
+    modelspecs all with different modules fit to the same data cannot
+    be compared because there is no guarantee that they contain
+    comparable parameter values.
+
+    Arguments:
+    ----------
+    modelspecs : list of modelspecs
+        See docs/modelspecs.md
+
+    Returns:
+    --------
+    means, stds : dicts
+        Each contains one key for each parameter, of the form:
+            {'<modelspec_index>_<parameter_name>': <mean value>}
+            or {'<modelspec_index>_<parameter_name>': <standard deviation>}
+    """
     # Don't modify the modelspecs themselves
     modelspecs = [m.copy() for m in modelspecs]
 
     # Modelspecs must have the same length to compare
+    # TODO: Remove this requirement? Would just need some handling of
+    #       missing indices in the rest of the function's logic.
+    #       Keeping the requirement lets us make some simplifying assumptions.
     length = None
     for m in modelspecs:
         if length:
@@ -201,6 +226,7 @@ def summary_stats(modelspecs):
         length = len(m)
 
     # Modelspecs must have the same modules to compare
+    # TODO: Remove this requirement? Same issue as with length matching.
     fns = [m['fn'] for m in modelspecs[0]]
     for mspec in modelspecs[1:]:
         m_fns = [m['fn'] for m in mspec]
@@ -238,6 +264,13 @@ def summary_stats(modelspecs):
     for col, values in columns.items():
         means[col] = np.mean(values)
         stds[col] = np.std(values)
+
+    # TODO: Might be better to have this end up as a single dictionary
+    #       of the form:
+    #       {'<fn entry>_<param name>': {'mean': x, 'std': y}}
+    #       ex:
+    #       {'nems.modules.nonlinearity.dexp_kappa': {'mean': 1.0,
+    #                                                 'std': 0.37}}
 
     return means, stds
 

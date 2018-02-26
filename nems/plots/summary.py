@@ -8,6 +8,7 @@ from nems.plots.heatmap import weight_channels_heatmap, fir_heatmap, strf_heatma
 from nems.plots.scatter import plot_scatter
 from nems.plots.spectrogram import spectrogram_from_epoch
 from nems.plots.timeseries import timeseries_from_epoch
+from nems.plots.histogram import pred_error_hist
 import nems.modelspec as ms
 
 
@@ -32,10 +33,11 @@ def plot_summary(rec, modelspecs):
 
     def my_scatter(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name)
     def my_spectro(ax): spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=occurrence)
-    def my_timeseries(ax) : timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrence=occurrence)
+    def my_timeseries(ax) : timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrences=occurrence)
     def my_strf(idx, ax) : strf_heatmap(modelspecs[idx], ax=ax)
     def my_wc(idx, ax) : weight_channels_heatmap(modelspecs[idx], ax=ax)
     def my_fir(idx, ax) : fir_heatmap(modelspecs[idx], ax=ax)
+    def my_hist(idx, ax) : pred_error_hist(resp, pred[idx])
 
     def make_partials(fn, items):
         partials = [partial(fn, i) for i in range(len(items))]
@@ -47,7 +49,8 @@ def plot_summary(rec, modelspecs):
                            #make_partials(my_fir, modelspecs),
                            make_partials(my_strf, modelspecs),
                            [my_timeseries],
-                           make_partials(my_scatter, modelspecs)])
+                           make_partials(my_scatter, modelspecs),
+                           make_partials(my_hist, modelspecs)])
     else:
         # Don't plot the scatters/strfs when you have more than 10
         fig = plot_layout([[my_spectro],

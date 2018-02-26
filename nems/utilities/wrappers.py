@@ -32,35 +32,40 @@ def fit_model_baphy(cellid,batch,modelname,
     """
 
     # parse modelname
-    kws=modelname.split("_")
-    loader=kws[0]
-    modelspecname="_".join(kws[1:-1])
-    fitter=kws[-1]
+    kws = modelname.split("_")
+    loader = kws[0]
+    modelspecname = "_".join(kws[1:-1])
+    fitter = kws[-1]
 
-    options={}
-    if loader=="ozgf100ch18":
-        options["stimfmt"]="ozgf"
-        options["chancount"]=18
-        options["rasterfs"]=100
-    elif loader=="env100":
-        options["stimfmt"]="envelope"
-        options["chancount"]=0
-        options["rasterfs"]=100
+    options = {}
+    if loader == "ozgf100ch18":
+        options["stimfmt"] = "ozgf"
+        options["chancount"] = 18
+        options["rasterfs"] = 100
+    elif loader == "env100":
+        options["stimfmt"] = "envelope"
+        options["chancount"] = 0
+        options["rasterfs"] = 100
     else:
         raise ValueError('unknown loader string')
 
     # set up data/output paths
-    signals_dir="/auto/data/tmp/batch{0}_fs{1}_{2}{3}/{4}".format(batch,options["rasterfs"],options["stimfmt"],options["chancount"],cellid)
+    signals_dir = (
+            "/auto/data/tmp/batch{0}_fs{1}_{2}{3}/{4}"
+            .format(batch, options["rasterfs"], options["stimfmt"],
+                    options["chancount"], cellid)
+            )
     modelspecs_dir = '/auto/data/tmp/modelspecs'
+    figures_dir = '/auto/data/tmp/figures'
 
     log.info('Loading data...')
     rec = Recording.load(signals_dir)
-    
+
     # clone stim signal to create a placeholder for pred
     pred = rec['stim'].copy()
-    pred.name='pred'
+    pred.name = 'pred'
     rec.add_signal(pred)
-    
+
     log.info('Withholding validation set data...')
 
     # Method #0: Try to guess which stimuli have the most reps, use those for val
@@ -73,16 +78,25 @@ def fit_model_baphy(cellid,batch,modelname,
 
     # Method #1: create from "shorthand" keyword string
     modelspec = nems.initializers.from_keywords(modelspecname)
-    modelspec[0]['meta']={}
-    modelspec[0]['meta']['batch'] = batch
-    modelspec[0]['meta']['cellid'] = cellid
-    modelspec[0]['meta']['modelname'] = modelname
+    meta = {'batch': batch, 'cellid': cellid, 'modelname': modelname}
+    if not 'meta' in modelspec[0].keys():
+        modelspec[0]['meta'] = meta
+    else:
+        modelspec[0]['meta'].update(meta)
+    # changed to above so that meta doesn't get removed if it already exists
+    # Can remove the 4 lines below if this doesn't cause any issues
+    #     -jacob 2-25-18
+    #modelspec[0]['meta'] = {}
+    #modelspec[0]['meta']['batch'] = batch
+    #modelspec[0]['meta']['cellid'] = cellid
+    #modelspec[0]['meta']['modelname'] = modelname
 
     log.info('Fitting modelspec(s)...')
 
     # Option 1: Use gradient descent on whole data set(Fast)
-    if fitter=="fit01":
-        modelspecs = nems.analysis.api.fit_basic(est, modelspec, fitter=scipy_minimize)
+    if fitter == "fit01":
+        modelspecs = nems.analysis.api.fit_basic(est, modelspec,
+                                                 fitter=scipy_minimize)
     else:
         raise ValueError('unknown fitter string')
 
@@ -103,8 +117,9 @@ def fit_model_baphy(cellid,batch,modelname,
         log.info('Generating summary plot...')
 
         # Generate a summary plot
-        nplt.plot_summary(val, modelspecs)
-
+        fig = nplt.plot_summary(val, modelspecs)
+        figpath = nplt.save_figure(fig, modelspecs=modelspecs,
+                                   save_dir=figures_dir)
         # Pause before quitting
         plt.show()
 
@@ -121,31 +136,31 @@ def examine_recording(rec, epoch_regex='TRIAL', occurrence=0):
     # todo: regex matching (currently just does exatract string matching)
     # interactive?
     #
-    stim=rec['stim']
-    resp=rec['resp']
+    stim = rec['stim']
+    resp = rec['resp']
 
     plt.figure()
-    ax=plt.subplot(2,1,1)
+    ax = plt.subplot(2,1,1)
     if stim.nchans>2:
         nplt.spectrogram_from_epoch(stim, epoch_regex, ax=ax, occurrence=occurrence)
     else:
         nplt.timeseries_from_epoch([stim], epoch_regex, ax=ax, occurrence=occurrence)
     plt.title("{0} # {1}".format(epoch_regex,occurrence))
-    ax=plt.subplot(2,1,2)
+    ax = plt.subplot(2,1,2)
     nplt.timeseries_from_epoch([resp], epoch_regex, ax=ax, occurrence=occurrence)
 
     plt.tight_layout()
 
 
 
-cellid='chn020f-b1'
-batch=271
-modelname="ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"
+cellid = 'chn020f-b1'
+batch = 271
+modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"
 
 #cellid='btn144a-c1'
 #batch=259
 #modelname="env100_fir15x2_dexp1_fit01"
 
 
-modelspecs=fit_model_baphy(cellid,batch,modelname)
+modelspecs = fit_model_baphy(cellid,batch,modelname)
 
