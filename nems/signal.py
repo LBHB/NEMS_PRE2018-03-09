@@ -847,6 +847,30 @@ class Signal:
             newsig.name = newname
         return newsig
 
+    def nan_outliers(self, trim_outside_zscore=2.0):
+        '''
+        Tries to NaN out outliers from the signal. Outliers are defined
+        as being values further than trim_outside_zscore stddevs from the mean.
+
+        Arguments:
+        ----------
+        trim_outside_zscore: float
+        Multiple of standard deviation that determines the range of
+        'normal' versus 'outlier' values.
+
+        Returns:
+        --------
+        A new copy of the signal with outliers NaN'd out.
+        '''
+        m = self.as_continuous()
+        std = np.std(m)
+        mean = np.mean(m)
+        max_val = mean + std * trim_outside_zscore
+        min_val = mean - std * trim_outside_zscore
+        m[m < max_val] = np.nan
+        m[m > min_val] = np.nan
+        return self._modified_copy(m)
+
     @property
     def shape(self):
         return self._matrix.shape
