@@ -18,7 +18,7 @@ def fit_basic(data, modelspec,
                                 {'pred': data.get_signal('pred').as_continuous(),
                                  'resp': data.get_signal('resp').as_continuous()}
                                 ),
-              metaname='fit_basic'):
+              metaname='fit_basic', fit_kwargs={}):
     '''
     Required Arguments:
      data          A recording object
@@ -83,7 +83,7 @@ def fit_basic(data, modelspec,
 
     # Results should be a list of modelspecs
     # (might only be one in list, but still should be packaged as a list)
-    improved_sigma = fitter(sigma, cost_fn)
+    improved_sigma = fitter(sigma, cost_fn, **fit_kwargs)
     improved_modelspec = unpacker(improved_sigma)
     ms.set_modelspec_metadata(improved_modelspec, 'fitter', metaname)
     ms.set_modelspec_metadata(improved_modelspec, 'recording', data.name)

@@ -19,7 +19,7 @@ def plot_histogram(x, bins=None):
     plt.hist(x, bins=bins)
 
 def pred_error_hist(resp, pred, ax=None, channel=0, bins=None, calc_bins=True,
-                    bin_mult=5.0, trim_outliers=True, trim_within=0.35,
+                    bin_mult=5.0, trim_outliers=True, trim_within=2.0,
                     xlabel='|Resp - Pred|', ylabel='Count',
                     title='Prediction Error'):
     """Plots a histogram of the error between response and prediction.

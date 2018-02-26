@@ -3,6 +3,7 @@
 
 import os
 import logging as log
+log.basicConfig(level=logging.INFO)
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -95,6 +96,14 @@ def fit_model_baphy(cellid,batch,modelname,
 
     # Option 1: Use gradient descent on whole data set(Fast)
     if fitter == "fit01":
+        # prefit strf
+        log.info("Prefitting STRF without other modules...")
+        modelspec = nems.initializers.prefit_to_target(
+                est, modelspec, nems.analysis.api.fit_basic, 'fir_filter',
+                fitter=scipy_minimize,
+                fit_kwargs={'options': {'ftol': 1e-4, 'maxiter': 500}}
+                )
+        log.info("Performing full fit...")
         modelspecs = nems.analysis.api.fit_basic(est, modelspec,
                                                  fitter=scipy_minimize)
     else:

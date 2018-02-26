@@ -79,19 +79,13 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
     return sigma
 
 
-def scipy_minimize(sigma, cost_fn,
-                   fit_kwargs={'method':'L-BFGS-B',
-                               'options': {'maxiter':1000,
-                                           'ftol': 1e-7}}):
+def scipy_minimize(sigma, cost_fn, method='L-BFGS-B',
+                   options={'maxiter': 1000, 'ftol': 1e-7}):
     """
     Wrapper for scipy.optimize.minimize to normalize format with
     NEMS fitters.
 
     TODO: finish this doc
-    fit_kwargs : dict
-        Contains keyword arguments to be passed to scipy's
-        optimize.minimize function. See docs.scipy.org
-        for documentation of suitable keywords.
 
     Does not currently use the stepinfo/termination_conditions
     paradigm.
@@ -99,12 +93,9 @@ def scipy_minimize(sigma, cost_fn,
     TODO: Pull in code from scipy.py in docs/planning to
           expose more output during iteration.
     """
-
-    # TODO: needs more testing. appears to be working but it's taking
-    #       a very long time to terminate, maybe due to modules not being
-    #       all set up yet?
     start_time = time.time()
-    result = scp.optimize.minimize(cost_fn, sigma)
+    result = scp.optimize.minimize(cost_fn, sigma, method=method,
+                                   options=options)
     finish_time = time.time()
     sigma = result.x
     final_err = cost_fn(sigma)
