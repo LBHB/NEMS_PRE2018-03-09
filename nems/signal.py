@@ -148,7 +148,7 @@ class Signal:
     @staticmethod
     def load(basepath):
         '''
-        Loads the CSV & JSON files at absepath returns a Signal() object.
+        Loads the CSV & JSON files at basepath; returns a Signal() object.
         Example: If you want to load
            /tmp/sigs/gus027b13_p_PPS_resp-a1.csv
            /tmp/sigs/gus027b13_p_PPS_resp-a1.json
@@ -158,6 +158,7 @@ class Signal:
         csvfilepath = basepath + '.csv'
         epochfilepath = basepath + '.epoch.csv'
         jsonfilepath = basepath + '.json'
+        # TODO: reduce code duplication and call load_from_streams
         mat = pd.read_csv(csvfilepath, header=None).values
         if os.path.isfile(epochfilepath):
             epochs = pd.read_csv(epochfilepath)
@@ -177,12 +178,42 @@ class Signal:
             return s
 
     @staticmethod
+    def load_from_streams(csv_stream, json_stream, epoch_stream=None):
+        ''' Loads from BytesIO objects rather than files. '''
+        # Read the epochs stream if it exists
+        epochs = pd.read_csv(epoch_stream) if epoch_stream else None
+        # Read the json metadata
+        js = json.load(json_stream)
+        # Read the CSV
+        mat = pd.read_csv(csv_stream, header=None).values
+        mat = mat.astype('float')
+        mat = np.swapaxes(mat, 0, 1)
+        # mat = np.genfromtxt(csv_stream, delimiter=',')
+        # Now build the signal
+        s = Signal(name=js['name'],
+                   chans=js.get('chans', None),
+                   epochs=epochs,
+                   recording=js['recording'],
+                   fs=js['fs'],
+                   meta=js['meta'],
+                   matrix=mat)
+        return s
+
+    @staticmethod
     def list_signals(directory):
         '''
-        Returns a list of all CSV/JSON signal files found in DIRECTORY,
+        Returns a list of all CSV/JSON pairs files found in DIRECTORY,
         Paths are relative, not absolute.
         '''
         files = os.listdir(directory)
+        return Signal._csv_and_json_pairs(files)
+
+    @staticmethod
+    def _csv_and_json_pairs(files):
+        '''
+        Given a list of files, return the file basenames (i.e. no extensions)
+        that for which a .CSV and a .JSON file exists.
+        '''
         just_fileroot = lambda f: os.path.splitext(os.path.basename(f))[0]
         csvs = [just_fileroot(f) for f in files if f.endswith('.csv')]
         jsons = [just_fileroot(f) for f in files if f.endswith('.json')]

@@ -9,6 +9,8 @@ import copy
 import nems.epoch as ep
 from .signal import Signal
 
+log = logging.getLogger(__name__)
+
 
 class Recording:
 
@@ -53,50 +55,77 @@ class Recording:
         self.add_signal(val)
 
     @staticmethod
-    def load(directory):
+    def load(directory_or_targz):
         '''
-        Loads all the signals (CSV/JSON pairs) found in DIRECTORY and
-        returns a Recording object containing all of them.
+        Loads all the signals (CSV/JSON pairs) found in DIRECTORY or
+        .tar.gz file, and returns a Recording object containing all of them.
         '''
-        files = Signal.list_signals(directory)
-        basepaths = [os.path.join(directory, f) for f in files]
-        signals = [Signal.load(f) for f in basepaths]
-        signals_dict = {s.name: s for s in signals}
-        return Recording(signals=signals_dict)
+        if os.path.isdir(directory_or_targz):
+            files = Signal.list_signals(directory_or_targz)
+            basepaths = [os.path.join(directory_or_targz, f) for f in files]
+            signals = [Signal.load(f) for f in basepaths]
+            signals_dict = {s.name: s for s in signals}
+            return Recording(signals=signals_dict)
+        elif os.path.exists(directory_or_targz):
+            with open(directory_or_targz, 'rb') as stream:
+                return Recording.load_from_targz_stream(stream)
+        else:
+            m = 'Not a dir or .tar.gz file: {}'.format(directory_or_targz)
+            raise ValueError(m)
 
     @staticmethod
-    def load_from_targz(url):
+    def load_from_targz_stream(tgz_stream):
         '''
-        Loads the recording object from the given .tar.gz stream.
+        Loads the recording object from the given .tar.gz stream, which
+        is expected to be a io.BytesIO object.
         '''
-        raise NotImplementedError
-        with tarfile.open('addfile_string.tar', mode='r') as t:
-            for member_info in t.getmembers():
-                print(member_info.name)
-                f = t.extractfile(member_info)
-                print(f.read().decode('utf-8'))
-        #files = Signal.list_signals(directory)
-        #basepaths = [os.path.join(directory, f) for f in files]
-        #signals = [Signal.load(f) for f in basepaths]
-        #signals_dict = {s.name: s for s in signals}
+        streams = {}  # For holding file streams as we unpack
+        with tarfile.open(fileobj=tgz_stream, mode='r:gz') as t:
+            for member in t.getmembers():
+                basename = os.path.basename(member.name)
+                # Now put it in a subdict so we can find it again
+                signame = str(basename.split('.')[0:2])
+                if basename.endswith('epoch.csv'):
+                    keyname = 'epoch_stream'
+                elif basename.endswith('.csv'):
+                    keyname = 'csv_stream'
+                elif basename.endswith('.json'):
+                    keyname = 'json_stream'
+                else:
+                    m = 'Unknown file situation: {}'.format(member.name)
+                    raise ValueError(m)
+                # Ensure that we can doubly nest the streams dict
+                if signame not in streams:
+                    streams[signame] = {}
+                # Read out a stringIO object for each file now while it's open
+                f = io.StringIO(t.extractfile(member).read().decode('utf-8'))
+                streams[signame][keyname] = f
+        # Now that the streams are organized, convert them into signals
+        log.debug({k: streams[k].keys() for k in streams})
+        signals = [Signal.load_from_streams(**sg) for sg in streams.values()]
+        signals_dict = {s.name: s for s in signals}
         return Recording(signals=signals_dict)
 
     def save(self, directory, no_subdir=False, compressed=False):
         '''
         Saves all the signals (CSV/JSON pairs) in this recording into
         DIRECTORY in a new directory named the same as this recording.
-        If optional argument no_subdir=True is provided, it
-        will not create the subdir.
+        If optional argument "compressed" is True, it will save the
+        recording as a .tar.gz file instead of as files in a directory.
         '''
-        if not no_subdir:
+        if compressed:
+            filename = self.name + '.tar.gz'
+            filepath = os.path.join(directory, filename)
+            with open(filepath, 'wb') as archive:
+                tgz = self.as_targz()
+                archive.write(tgz.read())
+                tgz.close()
+        else:
             directory = os.path.join(directory, self.name)
-        # TODO: Remove this try/except by checking if dir exists
-        try:
-            os.makedirs(directory)
-        except:
-            pass
-        for s in self.signals.values():
-            s.save(directory)
+            if not os.path.isdir(directory):
+                os.makedirs(directory)
+            for s in self.signals.values():
+                s.save(directory)
 
     def as_targz(self):
         '''
@@ -127,8 +156,7 @@ class Recording:
                 info.gname = 'users'  # Group name
                 info.mtime = time.time()
                 info.size = stream.getbuffer().nbytes
-                result = tar.addfile(info, stream)
-                print(filename, info.size, result)
+                tar.addfile(info, stream)
         tar.close()
         f.seek(0)
         return f

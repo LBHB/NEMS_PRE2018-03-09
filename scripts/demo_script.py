@@ -40,16 +40,17 @@ modelspecs_dir = os.path.abspath(relative_modelspecs_dir)
 logging.info('Loading data...')
 
 # Method #1: Load the data from a local directory
-rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
+# rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
 
-# JUST A TEMPORARY TEST
-filename = '/home/ivar/' + rec.name + '.tar.gz'
-with open(filename, 'wb') as archive:
-    tgz = rec.as_targz()
-    archive.write(tgz.read())
-    tgz.close()
-    print('DONE!')
-    exit()
+# TODO: REMOVE THIS TEMPORARY TEST OF TAR GZ SAVE/LOAD LATER
+# filename = '/home/ivar/' + rec.name + '.tar.gz'
+# with open(filename, 'wb') as archive:
+#     tgz = rec.as_targz()
+#     archive.write(tgz.read())
+#     tgz.close()
+#     exit()
+# Load the compressed version
+rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1.tar.gz'))
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
