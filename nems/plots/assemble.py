@@ -39,7 +39,7 @@ def plot_layout(plot_fn_struct):
     '''
     Accepts a list of lists of functions of 1 argument (ax).
     Basically a fancy subplot that lets you lay out functions without
-    worrying about details. See example below
+    worrying about details. See example below: TODO
     '''
     # Count how many plot functions we want
     nrows = len(plot_fn_struct)

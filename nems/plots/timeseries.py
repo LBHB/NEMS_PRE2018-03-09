@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 from nems.signal import Signal
 from nems.plots.assemble import pad_to_signals
 
-def plot_timeseries(times, values, xlabel='Time', ylabel='Value', legend=None, ax=None):
+
+def plot_timeseries(times, values, xlabel='Time', ylabel='Value',
+                    legend=None, ax=None):
     '''
     Plots a simple timeseries with one line for each pair of
     time and value vectors.
@@ -43,6 +44,7 @@ def timeseries_from_signals(signals, channels=0, xlabel='Time', ylabel='Value',
         times.append(time_vector)
         values.append(value_vector)
     plot_timeseries(times, values, xlabel, ylabel, legend, ax=ax)
+
 
 def timeseries_from_epoch(signals, epoch, occurrences=0, channels=0,
                           xlabel='Time', ylabel='Value', ax=None):

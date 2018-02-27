@@ -23,6 +23,8 @@ from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 # ----------------------------------------------------------------------------
 # CONFIGURATION
 
+logging.basicConfig(level=logging.INFO)
+
 relative_signals_dir = '../signals'
 #relative_signals_dir = '/home/jacob/auto/data/batch271_fs100_ozgf18/'
 relative_modelspecs_dir = '../modelspecs'
@@ -39,6 +41,15 @@ logging.info('Loading data...')
 
 # Method #1: Load the data from a local directory
 rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
+
+# JUST A TEMPORARY TEST
+filename = '/home/ivar/' + rec.name + '.tar.gz'
+with open(filename, 'wb') as archive:
+    tgz = rec.as_targz()
+    archive.write(tgz.read())
+    tgz.close()
+    print('DONE!')
+    exit()
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
 # URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
@@ -108,7 +119,7 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
-# modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
+#modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
 
 # Method #3: Load it from a published jerb (TODO)
 # results = ...
@@ -199,10 +210,6 @@ fig.show()
 # Optional: View the posterior parameter probability distributions
 # nems.plot.posterior(val, results) # TODO
 
-# nplt.pred_vs_act_scatter(val, one_modelspec, ms.evaluate, ax=ax1)
-#  nplt.pred_vs_act_psth(val, one_modelspec, ms.evaluate, ax=ax2)
-#nplt.pred_vs_act_psth_smooth(val, one_modelspec, ms.evaluate, ax=ax3)
-
 # Pause before quitting
 
 # Optional: Save your figure
@@ -217,6 +224,6 @@ imgbytes = nplt.load_figure_bytes(filepath=fname)
 # SHARE YOUR RESULTS
 
 # GOAL: Upload your resulting models so that you can see how well your model
-#       did relative to other peoples' models. Save your results to a DB.b
+#       did relative to other peoples' models. Save your results to a DB.
 
 # TODO

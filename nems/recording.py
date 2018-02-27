@@ -1,4 +1,8 @@
+import io
 import os
+import gzip
+import time
+import tarfile
 import logging
 import pandas as pd
 import copy
@@ -31,7 +35,7 @@ class Recording:
 
     @property
     def epochs(self):
-        ''' 
+        '''
         The epochs of a recording is the superset of all signal epochs.
         '''
         return pd.concat([s.epochs for s in self.signals.values()])
@@ -60,7 +64,24 @@ class Recording:
         signals_dict = {s.name: s for s in signals}
         return Recording(signals=signals_dict)
 
-    def save(self, directory, no_subdir=False):
+    @staticmethod
+    def load_from_targz(url):
+        '''
+        Loads the recording object from the given .tar.gz stream.
+        '''
+        raise NotImplementedError
+        with tarfile.open('addfile_string.tar', mode='r') as t:
+            for member_info in t.getmembers():
+                print(member_info.name)
+                f = t.extractfile(member_info)
+                print(f.read().decode('utf-8'))
+        #files = Signal.list_signals(directory)
+        #basepaths = [os.path.join(directory, f) for f in files]
+        #signals = [Signal.load(f) for f in basepaths]
+        #signals_dict = {s.name: s for s in signals}
+        return Recording(signals=signals_dict)
+
+    def save(self, directory, no_subdir=False, compressed=False):
         '''
         Saves all the signals (CSV/JSON pairs) in this recording into
         DIRECTORY in a new directory named the same as this recording.
@@ -69,14 +90,48 @@ class Recording:
         '''
         if not no_subdir:
             directory = os.path.join(directory, self.name)
-        print(directory)
+        # TODO: Remove this try/except by checking if dir exists
         try:
             os.makedirs(directory)
         except:
             pass
         for s in self.signals.values():
             s.save(directory)
-        pass
+
+    def as_targz(self):
+        '''
+        Returns a BytesIO containing all the rec's signals as a .tar.gz stream.
+        You may either send this over HTTP or save it to a file. No temporary
+        files are created in the creation of this .tar.gz stream.
+
+        Example of saving an in-memory recording to disk:
+            rec = Recording(...)
+            with open('/some/path/test.tar.gz', 'wb') as fh:
+                tgz = rec.as_targz()
+                fh.write(tgz.read())
+                tgz.close()  # Don't forget to close it!
+        '''
+        f = io.BytesIO()  # Create a buffer
+        tar = tarfile.open(fileobj=f, mode='w:gz')
+        # tar = tarfile.open('/home/ivar/poopy.tar.gz', mode='w:gz')
+        # With the tar buffer open, write all signal files
+        for s in self.signals.values():
+            d = s.as_file_streams()  # Dict mapping filenames to streams
+            for filename, stringstream in d.items():
+                if type(stringstream) is io.BytesIO:
+                    stream = stringstream
+                else:
+                    stream = io.BytesIO(stringstream.getvalue().encode())
+                info = tarfile.TarInfo(os.path.join(self.name, filename))
+                info.uname = 'nems'  # User name
+                info.gname = 'users'  # Group name
+                info.mtime = time.time()
+                info.size = stream.getbuffer().nbytes
+                result = tar.addfile(info, stream)
+                print(filename, info.size, result)
+        tar.close()
+        f.seek(0)
+        return f
 
     def get_signal(self, signal_name):
         '''

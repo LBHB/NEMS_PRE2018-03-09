@@ -2,8 +2,9 @@
 # wrapper code for fitting models
 
 import os
-import logging as log
-log.basicConfig(level=logging.INFO)
+import logging
+log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -60,6 +61,7 @@ def fit_model_baphy(cellid,batch,modelname,
     figures_dir = '/auto/data/tmp/figures'
 
     log.info('Loading data...')
+    print(signals_dir)
     rec = Recording.load(signals_dir)
 
     # clone stim signal to create a placeholder for pred

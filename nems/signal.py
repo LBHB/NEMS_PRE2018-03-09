@@ -1,9 +1,11 @@
+import io
 import os
 import json
 import re
 import math
 import pandas as pd
 import numpy as np
+import tempfile
 import copy
 from nems.epoch import remove_overlap, merge_epoch, verify_epoch_integrity
 
@@ -88,7 +90,36 @@ class Signal:
                              type(self._matrix))
 
         # not implemented yet in epoch.py -- 2/4/2018f
-        #verify_epoch_integrity(self.epochs)
+        # verify_epoch_integrity(self.epochs)
+
+    def as_file_streams(self, fmt='%.18e'):
+        '''
+        Returns 3 filestreams for this signal: the csv, json, and epoch.
+        TODO: Better docs and a refactoring of this and save()
+        '''
+        # TODO: actually compute these instead of cheating with a tempfile
+        files = {}
+        filebase = self.recording + '.' + self.name
+        csvfile = filebase + '.csv'
+        jsonfile = filebase + '.json'
+        epochfile = filebase + '.epoch.csv'
+        # Create three streams
+        files[csvfile] = io.BytesIO()
+        files[jsonfile] = io.StringIO()
+        files[epochfile] = io.StringIO()
+        # Write to those streams
+        # Write the CSV file to a bytesIO buffer
+        mat = self.as_continuous()
+        mat = np.swapaxes(mat, 0, 1)
+        np.savetxt(files[csvfile], mat, delimiter=",", fmt=fmt)
+        files[csvfile].seek(0)  # Seek back to start of file
+        # TODO: make epochs optional?
+        self.epochs.to_csv(files[epochfile], sep=',', index=False)
+        # Write the JSON stream
+        attributes = self._get_attributes()
+        del attributes['epochs']
+        json.dump(attributes, files[jsonfile])
+        return files
 
     def save(self, dirpath, fmt='%.18e'):
         '''
@@ -99,11 +130,12 @@ class Signal:
         filebase = self.recording + '.' + self.name
         basepath = os.path.join(dirpath, filebase)
         csvfilepath = basepath + '.csv'
-        epochfilepath = basepath + '.epoch.csv'
         jsonfilepath = basepath + '.json'
+        epochfilepath = basepath + '.epoch.csv'
 
         mat = self.as_continuous()
         mat = np.swapaxes(mat, 0, 1)
+        # TODO: Why does numpy not support fileobjs like streams?
         np.savetxt(csvfilepath, mat, delimiter=",", fmt=fmt)
         self.epochs.to_csv(epochfilepath, sep=',', index=False)
         with open(jsonfilepath, 'w') as fh:
@@ -111,7 +143,7 @@ class Signal:
             del attributes['epochs']
             json.dump(attributes, fh)
 
-        return (csvfilepath, jsonfilepath)
+        return (csvfilepath, jsonfilepath, epochfilepath)
 
     @staticmethod
     def load(basepath):
