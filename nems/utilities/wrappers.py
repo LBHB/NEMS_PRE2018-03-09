@@ -222,16 +222,26 @@ def quick_load(cellid = 'chn020f-b1', batch=271, modelname = "ozgf100ch18_wc18x1
     modelspec,est,val=load_model_baphy(savepath)
     fig = nplt.plot_summary(val, [modelspec])
     
+"""
+# SPN example
+cellid='btn144a-c1'
+batch=259
+modelname="env100_fir15x2_dexp1_fit01"
 
-#cellid='btn144a-c1'
-#batch=259
-#modelname="env100_fir15x2_dexp1_fit01"
+# NAT example
+cellid = 'TAR010c-18-1'
+batch=271
+modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"
+"""
+
+batch=271
+modelname="ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"
 
 # this does now work:
-savepath = fit_model_baphy(cellid = 'TAR010c-18-1', batch=271, modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01", autoPlot=True, saveInDB=True)
+savepath = fit_model_baphy(cellid = 'TAR010c-18-1', batch=batch, modelname = modelname, autoPlot=True, saveInDB=True)
 
 # this works the first time you run
-savepath = fit_model_baphy(cellid= 'chn020f-b1',batch=271,modelname= "ozgf100ch18_wc18x1_fir15x1_dexp1_fit01", autoPlot=True, saveInDB=True)
+savepath = fit_model_baphy(cellid= 'chn020f-b1',batch=batch,modelname=modelname, autoPlot=True, saveInDB=True)
 
 # what I'd like to be able to run:
-#fit_batch(271)
+#fit_batch(batch)

@@ -228,3 +228,11 @@ imgbytes = nplt.load_figure_bytes(filepath=fname)
 #       did relative to other peoples' models. Save your results to a DB.
 
 # TODO
+
+modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
+
+for i, m in enumerate(modelspec):
+        if not m.get('phi'):
+            print('Phi not found for module, using mean of prior: {}'.format(m))
+            m = nems.priors.set_mean_phi([m])[0]  # Inits phi for 1 module
+            modelspec[i] = m
