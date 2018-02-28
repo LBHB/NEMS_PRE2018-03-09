@@ -83,6 +83,8 @@ class Recording:
         streams = {}  # For holding file streams as we unpack
         with tarfile.open(fileobj=tgz_stream, mode='r:gz') as t:
             for member in t.getmembers():
+                if member.size == 0:  # Skip empty files
+                    continue
                 basename = os.path.basename(member.name)
                 # Now put it in a subdict so we can find it again
                 signame = str(basename.split('.')[0:2])
@@ -93,7 +95,7 @@ class Recording:
                 elif basename.endswith('.json'):
                     keyname = 'json_stream'
                 else:
-                    m = 'Unknown file situation: {}'.format(member.name)
+                    m = 'Unexpected file found in tar.gz: {} (size={})'.format(member.name, member.size)
                     raise ValueError(m)
                 # Ensure that we can doubly nest the streams dict
                 if signame not in streams:
