@@ -448,13 +448,17 @@ def save_results(stack, preview_file, queueid=None):
 
     return results_id
 
+"""
+Start new nems functions here
+"""
 
-def update_results_table(stack, preview, username, labgroup):
+
+def update_results_table(modelspec, preview=None, username="svd", labgroup="lbhb"):
     session = Session()
 
-    cellid = stack.meta['cellid']
-    batch = stack.meta['batch']
-    modelname = stack.meta['modelname']
+    cellid = modelspec[0]['meta']['cellid']
+    batch = modelspec[0]['meta']['batch']
+    modelname = modelspec[0]['meta']['modelname']
 
     r = (
         session.query(NarfResults)
@@ -466,15 +470,17 @@ def update_results_table(stack, preview, username, labgroup):
     collist = ['%s' % (s) for s in NarfResults.__table__.columns]
     attrs = [s.replace('NarfResults.', '') for s in collist]
     removals = [
-        'id', 'figurefile', 'lastmod', 'public', 'labgroup', 'username'
+        'id', 'lastmod'
     ]
     for col in removals:
         attrs.remove(col)
 
     if not r:
         r = NarfResults()
-        r.figurefile = preview
+        if preview:
+            r.figurefile = preview
         r.username = username
+        r.public=1
         if not labgroup == 'SPECIAL_NONE_FLAG':
             try:
                 if not labgroup in r.labgroup:
@@ -482,13 +488,15 @@ def update_results_table(stack, preview, username, labgroup):
             except TypeError:
                 # if r.labgroup is none, ca'nt check if user.labgroup is in it
                 r.labgroup = labgroup
-        fetch_meta_data(stack, r, attrs)
+        fetch_meta_data(modelspec, r, attrs)
         session.add(r)
     else:
-        r.figurefile = preview
+        if preview:
+            r.figurefile = preview
         # TODO: This overrides any existing username or labgroup assignment.
         #       Is this the desired behavior?
         r.username = username
+        r.public=1
         if not labgroup == 'SPECIAL_NONE_FLAG':
             try:
                 if not labgroup in r.labgroup:
@@ -496,7 +504,7 @@ def update_results_table(stack, preview, username, labgroup):
             except TypeError:
                 # if r.labgroup is none, can't check if labgroup is in it
                 r.labgroup = labgroup
-        fetch_meta_data(stack, r, attrs)
+        fetch_meta_data(modelspec, r, attrs)
 
     session.commit()
     results_id = r.id
@@ -505,12 +513,12 @@ def update_results_table(stack, preview, username, labgroup):
     return results_id
 
 
-def fetch_meta_data(stack, r, attrs):
+def fetch_meta_data(modelspec, r, attrs):
     """Assign attributes from model fitter object to NarfResults object.
 
     Arguments:
     ----------
-    stack : nems_modules.stack
+    modelspec : nems modelspec with populated metadata dictionary
         Stack containing meta data, modules, module names et cetera
         (see nems_modules).
     r : sqlalchemy ORM object instance
@@ -542,30 +550,30 @@ def fetch_meta_data(stack, r, attrs):
             k = a.replace('test', 'val')
         else:
             k = a
-        setattr(r, a, _fetch_attr_value(stack, k, default))
+        setattr(r, a, _fetch_attr_value(modelspec, k, default))
 
 
-def _fetch_attr_value(stack, k, default=0.0):
-    """Return the value of key 'k' of stack.meta, or default."""
+def _fetch_attr_value(modelspec, k, default=0.0):
+    """Return the value of key 'k' of modelspec[0]['meta'], or default."""
 
-    # if stack.meta[k] is a string, return it.
+    # if modelspec[0]['meta'][k] is a string, return it.
     # if it's an ndarray or anything else with indices, get the first index;
     # otherwise, just get the value. Then convert to scalar if np data type.
     # or if key doesn't exist at all, return the default value.
-    if k in stack.meta:
-        if stack.meta[k]:
-            if not isinstance(stack.meta[k], str):
+    if k in modelspec[0]['meta']:
+        if modelspec[0]['meta'][k]:
+            if not isinstance(modelspec[0]['meta'][k], str):
                 try:
-                    v = stack.meta[k][0]
+                    v = modelspec[0]['meta'][k][0]
                 except BaseException:
-                    v = stack.meta[k]
+                    v = modelspec[0]['meta'][k]
                 finally:
                     try:
                         v = np.asscalar(v)
                     except BaseException:
                         pass
             else:
-                v = stack.meta[k]
+                v = modelspec[0]['meta'][k]
         else:
             v = default
     else:
@@ -762,6 +770,24 @@ def batch_comp(batch, modelnames=[], cellids=['%']):
         session.bind
     )
 
+    session.close()
+
+    return results
+
+def get_results_file(batch, modelnames=[], cellids=['%']):
+
+    session = Session()
+
+    #     .filter(NarfResults.cellid.in_(cellids))
+    results = psql.read_sql_query(
+        session.query(NarfResults)
+        .filter(NarfResults.batch == batch)
+        .filter(NarfResults.modelname.in_(modelnames))
+        .filter(NarfResults.cellid.in_(cellids))
+        .statement,
+        session.bind
+    )
+    
     session.close()
 
     return results

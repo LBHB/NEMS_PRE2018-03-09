@@ -93,6 +93,8 @@ def save_modelspecs(directory, modelspecs, basename=None):
         ...etc...
     Basename will be automatically generated if not provided.
     '''
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
     for idx, modelspec in enumerate(modelspecs):
         if not basename:
             bname = get_modelspec_longname(modelspec)
@@ -101,13 +103,15 @@ def save_modelspecs(directory, modelspecs, basename=None):
         basepath = os.path.join(directory, bname)
         filepath = _modelspec_filename(basepath, idx)
         save_modelspec(modelspec, filepath)
-
+    return filepath
 
 def load_modelspec(filepath):
     '''
     Returns a single modelspecs loaded from filepath.
     '''
-    ms = json.load(filepath)
+    json_data=open(filepath).read()
+    
+    ms = json.loads(json_data)
     return ms
 
 

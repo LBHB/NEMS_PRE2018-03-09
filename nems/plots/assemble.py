@@ -2,6 +2,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import nems.modelspec as ms
 from nems.signal import Signal
+import numpy as np
 
 def freeze_defaults(plot_fns, recording, modelspec, evaluator):
     return [partial(pf, recording, modelspec, evaluator) for pf in plot_fns]
@@ -62,7 +63,7 @@ def combine_signal_channels(signals, i, j):
     return signals
 
 def pad_to_signals(signals, indices):
-    if isinstance(indices, int):
+    if isinstance(indices, int) or isinstance(indices, np.int64):
         indices = [indices]*len(signals)
     elif len(indices) < len(signals):
         diff = len(signals) - len(indices)

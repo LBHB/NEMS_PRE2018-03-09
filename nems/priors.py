@@ -76,6 +76,7 @@ def _to_phi(prior, method='mean', percentile=50):
     '''
     phi = {}
     for param_name in prior:
+        print(param_name)
         dist = prior[param_name]
         if method is 'mean':
             ary = dist.mean()

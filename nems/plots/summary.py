@@ -2,6 +2,7 @@ from functools import partial
 import os
 import logging
 logging.basicConfig(level=logging.INFO)
+import numpy as np
 
 from nems.plots.assemble import plot_layout
 from nems.plots.heatmap import weight_channels_heatmap, fir_heatmap, strf_heatmap
@@ -24,12 +25,15 @@ def plot_summary(rec, modelspecs):
 
     # Make predictions on the data set using the modelspecs
     pred = [ms.evaluate(rec, m)['pred'] for m in modelspecs]
-
+    
     sigs = [resp]
     sigs.extend(pred)
 
     # Example of how to plot a complicated thing:
-    occurrence = 0
+    extracted = resp.extract_epoch('TRIAL')
+    finite_trial=[np.sum(np.isfinite(x))>0 for x in extracted]
+    occurrences,=np.where(finite_trial)
+    occurrence=occurrences[0]
 
     def my_scatter(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name)
     def my_scatter(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name, smoothing_bins=100)
