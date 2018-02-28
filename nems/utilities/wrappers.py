@@ -19,7 +19,7 @@ import nems.metrics.api
 import nems.analysis.api
 import nems.utils
 import nems.utilities.baphy as nb
-#import nems.db as nd
+import nems.db as nd
 
 from nems.recording import Recording
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
@@ -216,22 +216,22 @@ def fit_batch(batch, modelname="ozgf100ch18_wc18x1_fir15x1_dexp1_fit01"):
         savepath = fit_model_baphy(cellid,batch,modelname, autoPlot=True, saveInDB=True)
    
     
-def fit_single_cell(cellid = 'chn020f-b1', batch=271, modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"):
-    
-    #cellid='btn144a-c1'
-    #batch=259
-    #modelname="env100_fir15x2_dexp1_fit01"
-    
-    savepath = fit_model_baphy(cellid,batch,modelname, autoPlot=True, saveInDB=True)
-    return save_path
-
-
 def quick_load(cellid = 'chn020f-b1', batch=271, modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"):
     d=nd.get_results_file(batch,[modelname],[cellid])
     savepath=d['modelpath'][0]
     modelspec,est,val=load_model_baphy(savepath)
     fig = nplt.plot_summary(val, [modelspec])
     
-    
-fit_single_cell(cellid = 'chn020f-b1', batch=271, modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01")
 
+#cellid='btn144a-c1'
+#batch=259
+#modelname="env100_fir15x2_dexp1_fit01"
+
+# this works the first time you run
+savepath = fit_model_baphy(cellid= 'chn020f-b1',batch=271,modelname= "ozgf100ch18_wc18x1_fir15x1_dexp1_fit01", autoPlot=True, saveInDB=True)
+
+# this does now work:
+savepath = fit_model_baphy(cellid = 'TAR010c-18-1', batch=271, modelname = "ozgf100ch18_wc18x1_fir15x1_dexp1_fit01", autoPlot=True, saveInDB=True)
+
+# what I'd like to be able to run:
+#fit_batch(271)
