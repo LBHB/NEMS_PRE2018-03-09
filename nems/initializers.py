@@ -1,3 +1,4 @@
+import copy
 from nems.utils import split_keywords
 from nems import keywords
 from nems.fitters.api import scipy_minimize
@@ -16,7 +17,7 @@ def from_keywords(keyword_string, registry=keywords.defaults):
     for kw in keywords:
         if kw not in registry:
             raise ValueError("unknown keyword: {}".format(kw))
-        d = registry[kw]
+        d = copy.deepcopy(registry[kw])
         d['id'] = kw
         modelspec.append(d)
 
