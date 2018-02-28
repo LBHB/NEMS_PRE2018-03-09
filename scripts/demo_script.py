@@ -50,11 +50,11 @@ logging.info('Loading data...')
 #     tgz.close()
 #     exit()
 # Load the compressed version
-rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1.tar.gz'))
+#lec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1.tar.gz'))
 
 # Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
-# URL = "http://neuralprediction.org:3003/by-batch/273/gus018c-a3"
-# rec = nems.utils.net.fetch_signals_over_http(URL)
+URL = "http://potoroo:3003/recording/TAR010c-18-1.tar.gz"
+rec = Recording.load_url(URL)
 
 # Method #3: Load the data from S3: (TODO)
 # stimfile=("https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"

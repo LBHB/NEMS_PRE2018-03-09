@@ -4,6 +4,7 @@ import gzip
 import time
 import tarfile
 import logging
+import requests
 import pandas as pd
 import copy
 import nems.epoch as ep
@@ -105,6 +106,21 @@ class Recording:
         signals = [Signal.load_from_streams(**sg) for sg in streams.values()]
         signals_dict = {s.name: s for s in signals}
         return Recording(signals=signals_dict)
+
+    @staticmethod
+    def load_url(url):
+        '''
+        Loads the recording object from a URL. File must be tar.gz format.
+        '''
+        r = requests.get(url, stream=True)
+        if not (r.status_code == 200 and
+                r.headers['content-type'] == 'application/gzip'):
+            log.info('got response: {}, {}'.format(r.encoding, r.status_code))
+            m = 'Error loading URL: {}'.format(url)
+            log.error(m)
+            raise Exception(m)
+        obj = io.BytesIO(r.raw.read()) # Not sure why I need this!
+        return Recording.load_from_targz_stream(obj)
 
     def save(self, directory, no_subdir=False, compressed=False):
         '''
