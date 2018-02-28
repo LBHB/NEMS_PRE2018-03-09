@@ -56,7 +56,7 @@ def run_loader_baphy(cellid,batch,loader):
     log.info('Withholding validation set data...')
 
     est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
-
+    
     est = preproc.average_away_epoch_occurrences(est, epoch_regex='^STIM_')
     val = preproc.average_away_epoch_occurrences(val, epoch_regex='^STIM_')
 
@@ -110,12 +110,12 @@ def fit_model_baphy(cellid,batch,modelname,
     # Option 1: Use gradient descent on whole data set(Fast)
     if fitter == "fit01":
         # prefit strf
-        log.info("Prefitting STRF without other modules...")
-        modelspec = nems.initializers.prefit_to_target(
-                est, modelspec, nems.analysis.api.fit_basic, 'fir_filter',
-                fitter=scipy_minimize,
-                fit_kwargs={'options': {'ftol': 1e-4, 'maxiter': 500}}
-                )
+        #log.info("Prefitting STRF without other modules...")
+        #modelspec = nems.initializers.prefit_to_target(
+        #        est, modelspec, nems.analysis.api.fit_basic, 'fir_filter',
+        #        fitter=scipy_minimize,
+        #        fit_kwargs={'options': {'ftol': 1e-4, 'maxiter': 500}}
+        #        )
         log.info("Performing full fit...")
         modelspecs = nems.analysis.api.fit_basic(est, modelspec,
                                                  fitter=scipy_minimize)
@@ -207,7 +207,7 @@ def examine_recording(rec, epoch_regex='TRIAL', occurrence=0):
     plt.tight_layout()
 
 
-def fit_batch(batch, modelname="ozgf100ch18_wc18x1_fir15x1_dexp1_fit01"):
+def fit_batch(batch, modelname="ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"):
     plt.close('all')
     cell_data=nd.get_batch_cells(batch=batch)
     cellids=list(cell_data['cellid'].unique())
@@ -227,11 +227,11 @@ def quick_load(cellid = 'chn020f-b1', batch=271, modelname = "ozgf100ch18_wc18x1
 #batch=259
 #modelname="env100_fir15x2_dexp1_fit01"
 
+# this does now work:
+savepath = fit_model_baphy(cellid = 'TAR010c-18-1', batch=271, modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01", autoPlot=True, saveInDB=True)
+
 # this works the first time you run
 savepath = fit_model_baphy(cellid= 'chn020f-b1',batch=271,modelname= "ozgf100ch18_wc18x1_fir15x1_dexp1_fit01", autoPlot=True, saveInDB=True)
-
-# this does now work:
-savepath = fit_model_baphy(cellid = 'TAR010c-18-1', batch=271, modelname = "ozgf100ch18_wc18x1_fir15x1_dexp1_fit01", autoPlot=True, saveInDB=True)
 
 # what I'd like to be able to run:
 #fit_batch(271)

@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger(__name__)
+
 from nems.utils import split_keywords
 from nems import keywords
 from nems.fitters.api import scipy_minimize
@@ -38,7 +41,10 @@ def prefit_to_target(rec, modelspec, analysis_function, target_module,
     if not target_i:
         raise RuntimeWarning("target_module: {} not found in modelspec."
                              .format(target_module))
-
+    else:
+        log.info("target_module: {0} found at modelspec[{1}]."
+                             .format(target_module,target_i-1))
+        
     if target_i == len(modelspec):
         fit_portion = modelspec
         nonfit_portion = []

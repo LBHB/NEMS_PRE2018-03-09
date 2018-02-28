@@ -41,7 +41,7 @@ defkey('fir10x1',
         'fn_kwargs': {'i': 'pred',
                       'o': 'pred'},
         'prior': {'coefficients':
-                  ('Normal', {'mu': [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+                  ('Normal', {'mu': [[0, 0.1, 0, 0, 0, 0, 0, 0, 0, 0]],
                               'sd': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]})}})
 
 defkey('fir15x1',

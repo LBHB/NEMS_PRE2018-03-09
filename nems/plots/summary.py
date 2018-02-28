@@ -35,7 +35,7 @@ def plot_summary(rec, modelspecs):
     occurrences,=np.where(finite_trial)
     occurrence=occurrences[0]
 
-    def my_scatter(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name)
+    def my_scatter_raw(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name)
     def my_scatter(idx, ax): plot_scatter(pred[idx], resp, ax=ax, title=rec.name, smoothing_bins=100)
     def my_spectro(ax): spectrogram_from_epoch(stim, 'TRIAL', ax=ax, occurrence=occurrence)
     def my_timeseries(ax) : timeseries_from_epoch(sigs, 'TRIAL', ax=ax, occurrences=occurrence)
