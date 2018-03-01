@@ -46,7 +46,7 @@ def run_loader_baphy(cellid,batch,loader):
                     options["chancount"], cellid)
             )
 
-    log.info('Loading data...')
+    log.info('Loading {0} format for {1}/{2}...'.format(loader,cellid,batch))
     rec = Recording.load(signals_dir)
 
     # clone stim signal to create a placeholder for pred

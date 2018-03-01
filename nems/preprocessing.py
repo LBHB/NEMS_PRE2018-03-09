@@ -67,11 +67,11 @@ def average_away_epoch_occurrences(rec, epoch_regex='^STIM_'):
     the epoch_regex to those.
     '''
 
-    # FIXME: This function breaks signal plots. Find out why.
-
     # Create new recording
     newrec = rec.copy()
 
+    counter=0
+    
     # iterate through each signal
     for signal_name, signal_to_average in rec.signals.items():
         # 1. Find matching epochs
@@ -81,13 +81,18 @@ def average_away_epoch_occurrences(rec, epoch_regex='^STIM_'):
         #    and each value in the dictionary is (reps X cell X bins)
         folded_matrices = signal_to_average.extract_epochs(epochs_to_extract)
 
+        # force a standard list of sorted keys for all signals
+        if counter==0:
+            sorted_keys=list(folded_matrices.keys())
+            sorted_keys.sort()
+        counter+=1
+        
         # 3. Average over all occurrences of each epoch, and append to data
         fs = signal_to_average.fs
         data = np.zeros([signal_to_average.nchans, 0])
         current_time = 0
-
         epochs = None
-        for k in folded_matrices.keys():
+        for k in sorted_keys:
             # Supress warnings about all-nan matrices
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -102,7 +107,8 @@ def average_away_epoch_occurrences(rec, epoch_regex='^STIM_'):
             else:
                 epochs = df
             current_time = epoch[0, 1]
-
+            #print("{0} epoch: {1}-{2}".format(k,epoch[0,0],epoch[0,1]))
+            
         avg_signal = signal.Signal(fs=fs, matrix=data,
                                    name=signal_to_average.name,
                                    recording=signal_to_average.recording,
