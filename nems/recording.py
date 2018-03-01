@@ -5,6 +5,7 @@ import time
 import tarfile
 import logging
 import pandas as pd
+import numpy as np
 import copy
 import nems.epoch as ep
 from .signal import Signal
@@ -230,10 +231,22 @@ class Recording:
         two data sets based on the epoch occurrence counts.
         '''
         groups = ep.group_epochs_by_occurrence_counts(self.epochs, epoch_regex)
-        if len(groups) != 2:
-            m = "Not exactly two types of occurrences (low and hi rep). Unable to split:"
+        if len(groups) > 2:
+            l=np.array(list(groups.keys()))
+            k=l>np.mean(l)
+            hi=np.max(l[k])
+            lo=np.min(l[k==False])
+            
+            g={hi: [], lo: []}
+            for i in list(np.where(k)[0]):
+                g[hi]=g[hi]+groups[l[i]]
+            for i in list(np.where(k==False)[0]):
+                g[lo]=g[lo]+groups[l[i]]
+        elif len(groups)<2:
+            m = "Fewer than two types of occurrences (low and hi rep). Unable to split:"
             m += str(groups)
             raise ValueError(m)
+                
         n_occurrences = sorted(groups.keys())
         lo_rep_epochs = groups[n_occurrences[0]]
         hi_rep_epochs = groups[n_occurrences[1]]

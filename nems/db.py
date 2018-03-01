@@ -486,7 +486,7 @@ def update_results_table(modelspec, preview=None, username="svd", labgroup="lbhb
                 if not labgroup in r.labgroup:
                     r.labgroup += ', %s' % labgroup
             except TypeError:
-                # if r.labgroup is none, ca'nt check if user.labgroup is in it
+                # if r.labgroup is none, can't check if user.labgroup is in it
                 r.labgroup = labgroup
         fetch_meta_data(modelspec, r, attrs)
         session.add(r)
@@ -544,13 +544,15 @@ def fetch_meta_data(modelspec, r, attrs):
         # Either need to maintain hardcoded list of fields instead of pulling
         # from NarfResults, or keep meta names in fitter matched to columns
         # some other way if naming rules change.
-        if 'fit' in a:
-            k = a.replace('fit', 'est')
-        elif 'test' in a:
-            k = a.replace('test', 'val')
-        else:
-            k = a
-        setattr(r, a, _fetch_attr_value(modelspec, k, default))
+        #if 'fit' in a:
+        #    k = a.replace('fit', 'est')
+        #elif 'test' in a:
+        #    k = a.replace('test', 'val')
+        #else:
+        #    k = a
+        v=_fetch_attr_value(modelspec, a, default)
+        setattr(r, a, v)
+        log.debug("modelspec: meta {0}={1}".format(a,v))
 
 
 def _fetch_attr_value(modelspec, k, default=0.0):

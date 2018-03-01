@@ -56,3 +56,29 @@ def double_exponential(rec, i, o, base, amplitude, shift, kappa):
     return [rec[i].transform(fn, o)]
 
 
+def _dlog(x, offset):
+    
+    # soften effects of more extreme offsets
+    if offset>4:
+        adjoffset=4+(offset-4)/50
+    elif offset<-4:
+        adjoffset=-4+(offset+4)/50
+    else:
+        adjoffset=offset
+    
+    d = 10.0**adjoffset
+    zeroer = 0
+    zbt = 0
+    y=x.copy()
+    y[y<zbt] = zbt
+    y = y-zbt
+    
+    return np.log((y + d)/d) + zeroer
+
+
+def dlog(rec, i, o, offset):
+    
+    fn = lambda x : _dlog(x, offset)
+    
+    return [rec[i].transform(fn, o)]
+

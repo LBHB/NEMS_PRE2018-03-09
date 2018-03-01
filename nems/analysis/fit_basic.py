@@ -17,7 +17,7 @@ def fit_basic(data, modelspec,
               fitter=coordinate_descent,
               segmentor=nems.segmentors.use_all_data,
               mapper=nems.fitters.mappers.simple_vector,
-              metric=lambda data: nems.metrics.api.mse(
+              metric=lambda data: nems.metrics.api.nmse(
                                 {'pred': data.get_signal('pred').as_continuous(),
                                  'resp': data.get_signal('resp').as_continuous()}
                                 ),
@@ -72,8 +72,15 @@ def fit_basic(data, modelspec,
         error = metric(updated_data_subset)
         log.debug("inside cost function, current error: {}".format(error))
         log.debug("\ncurrent sigma: {}".format(sigma))
+        
+        cost_function.counter += 1
+        if cost_function.counter % 1000 == 0:
+            log.info('Eval #{0}. E={1}'.format(cost_function.counter, error))
+        
         return error
-
+    
+    cost_function.counter = 0
+    
     # Freeze everything but sigma, since that's all the fitter should be
     # updating.
     cost_fn = partial(cost_function,

@@ -2,9 +2,7 @@
 # wrapper code for fitting models
 
 import os
-import logging
-log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,6 +21,10 @@ import nems.db as nd
 
 from nems.recording import Recording
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
+
+import logging
+log = logging.getLogger(__name__)
+#logging.basicConfig(level=logging.INFO)
 
 def run_loader_baphy(cellid,batch,loader):
     options = {}
@@ -48,9 +50,9 @@ def run_loader_baphy(cellid,batch,loader):
     rec = Recording.load(signals_dir)
 
     # clone stim signal to create a placeholder for pred
-    pred = rec['stim'].copy()
-    pred.name = 'pred'
-    rec.add_signal(pred)
+#    pred = rec['stim'].copy()
+#    pred.name = 'pred'
+#    rec.add_signal(pred)
 
     # Method #0: Try to guess which stimuli have the most reps, use those for val
     log.info('Withholding validation set data...')
@@ -86,10 +88,12 @@ def fit_model_baphy(cellid,batch,modelname,
     modelspecs_dir = '/auto/data/tmp/modelspecs/{0}/{1}'.format(batch,cellid)
     figures_dir = modelspecs_dir
     
-    log.info('Initializing modelspec(s)...')
+    log.info('Initializing modelspec(s) for cell/batch {0}/{1}...'.format(cellid,batch))
 
     # Method #1: create from "shorthand" keyword string
     modelspec = nems.initializers.from_keywords(modelspecname)
+    modelspec[0]['fn_kwargs']['i']='stim'
+    
     meta = {'batch': batch, 'cellid': cellid, 'modelname': modelname,
             'loader': loader, 'fitter': fitter, 'modelspecname': modelspecname,
             'username': 'svd', 'labgroup': 'lbhb', 'public': 1}
@@ -110,12 +114,12 @@ def fit_model_baphy(cellid,batch,modelname,
     # Option 1: Use gradient descent on whole data set(Fast)
     if fitter == "fit01":
         # prefit strf
-        #log.info("Prefitting STRF without other modules...")
-        #modelspec = nems.initializers.prefit_to_target(
-        #        est, modelspec, nems.analysis.api.fit_basic, 'fir_filter',
-        #        fitter=scipy_minimize,
-        #        fit_kwargs={'options': {'ftol': 1e-4, 'maxiter': 500}}
-        #        )
+        log.info("Prefitting STRF without other modules...")
+        modelspec = nems.initializers.prefit_to_target(
+                est, modelspec, nems.analysis.api.fit_basic, 'levelshift',
+                fitter=scipy_minimize,
+                fit_kwargs={'options': {'ftol': 1e-4, 'maxiter': 500}}
+                )
         log.info("Performing full fit...")
         modelspecs = nems.analysis.api.fit_basic(est, modelspec,
                                                  fitter=scipy_minimize)
@@ -213,35 +217,52 @@ def fit_batch(batch, modelname="ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"):
     cellids=list(cell_data['cellid'].unique())
     
     for cellid in cellids:
-        savepath = fit_model_baphy(cellid,batch,modelname, autoPlot=True, saveInDB=True)
-   
+        fit_model_baphy(cellid,batch,modelname, autoPlot=True, saveInDB=True)
+        
     
-def quick_load(cellid = 'chn020f-b1', batch=271, modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"):
+def quick_inspect(cellid="chn020f-b1", batch=271, 
+               modelname="ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"):
     d=nd.get_results_file(batch,[modelname],[cellid])
     savepath=d['modelpath'][0]
     modelspec,est,val=load_model_baphy(savepath)
     fig = nplt.plot_summary(val, [modelspec])
     
+    return modelspec,est,val
+
 """
 # SPN example
 cellid='btn144a-c1'
 batch=259
 modelname="env100_fir15x2_dexp1_fit01"
 
-# NAT example
+# A1 NAT example
 cellid = 'TAR010c-18-1'
 batch=271
-modelname = "ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"
+modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
+
+# IC NAT example
+cellid = "bbl031f-a1"
+batch=291
+modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
+savepath = fit_model_baphy(cellid = cellid, batch=batch, modelname = modelname, autoPlot=True, saveInDB=True)
+modelspec,est,val=load_model_baphy(savepath)
+
 """
 
-batch=271
-modelname="ozgf100ch18_wc18x1_lvl1_fir15x1_dexp1_fit01"
+#plt.close('all')
+
+#cellid = "bbl034e-a1"
+#batch=291
+#modelname = "ozgf100ch18_dlog_wc18x1_fir15x1_lvl1_dexp1_fit01"
 
 # this does now work:
-savepath = fit_model_baphy(cellid = 'TAR010c-18-1', batch=batch, modelname = modelname, autoPlot=True, saveInDB=True)
+#savepath = fit_model_baphy(cellid = cellid, batch=batch, modelname = modelname, autoPlot=True, saveInDB=True)
+#modelspec,est,val=load_model_baphy(savepath)
+
+#modelspec,est,val=quick_inspect("bbl036e-a2",291,"ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01")
 
 # this works the first time you run
-savepath = fit_model_baphy(cellid= 'chn020f-b1',batch=batch,modelname=modelname, autoPlot=True, saveInDB=True)
+#savepath = fit_model_baphy(cellid= 'chn020f-b1',batch=batch,modelname=modelname, autoPlot=True, saveInDB=True)
 
 # what I'd like to be able to run:
-#fit_batch(batch)
+#fit_batch(batch,modelname)

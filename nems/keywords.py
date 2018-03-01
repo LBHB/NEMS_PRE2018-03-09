@@ -46,6 +46,7 @@ defkey('fir10x1',
 
 defkey('fir15x1',
        {'fn': 'nems.modules.fir.fir_filter',
+        
         'fn_kwargs': {'i': 'pred',
                       'o': 'pred'},
         'prior': {'coefficients':
@@ -65,7 +66,8 @@ defkey('fir15x2',
 defkey('lvl1',
        {'fn': 'nems.modules.levelshift.levelshift',
         'fn_kwargs': {'i': 'pred',
-                      'o': 'pred'}})
+                      'o': 'pred'},
+        'prior': {'level': ('Normal', {'mu': [0], 'sd': [1]})}})
 
 defkey('dexp1',
        {'fn': 'nems.modules.nonlinearity.double_exponential',
@@ -102,3 +104,10 @@ defkey('tanh1',
                   'amplitude': ('Normal', {'mu': [0.2], 'sd': [1]}),
                   'shift': ('Normal', {'mu': [0], 'sd': [1]}),
                   'kappa': ('Normal', {'mu': [0], 'sd': [0.1]})}})
+
+defkey('dlog',
+       {'fn': 'nems.modules.nonlinearity.dlog',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred'},
+        'prior': {'offset': ('Normal', {'mu': [-2], 'sd': [2]})}})
+
