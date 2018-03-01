@@ -82,7 +82,8 @@ def save_modelspec(modelspec, filepath):
     '''
     with open(filepath, mode='w+') as f:
         json.dump(modelspec, f, cls=NumpyAwareJSONEncoder)
-
+    f.close()
+    os.chmod(filepath, 0o666)
 
 def save_modelspecs(directory, modelspecs, basename=None):
     '''
@@ -95,6 +96,8 @@ def save_modelspecs(directory, modelspecs, basename=None):
     '''
     if not os.path.isdir(directory):
         os.makedirs(directory)
+        os.chmod(directory, 0o777)
+        
     for idx, modelspec in enumerate(modelspecs):
         if not basename:
             bname = get_modelspec_longname(modelspec)

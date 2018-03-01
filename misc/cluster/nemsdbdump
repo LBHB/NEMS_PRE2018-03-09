@@ -1,0 +1,11 @@
+#!/bin/bash
+
+locdump='mysqldump --host=mysql.neuralprediction.org -udavid -pnine1997'
+
+#$locdump cell NarfBatches NarfResults NarfAnalysis NarfData NarfUsers >/tmp/NarfTables.sql
+
+locdump='mysqldump --host=hyrax.ohsu.edu -udavid -pnine1997'
+#$locdump cell tQueue tComputer tEvent tGlobalData >/tmp/QueueTables.sql
+#$locdump cell gCellMaster sCellFile sBatch >/tmp/celldbTables.sql
+$locdump cell tGlobalData >/tmp/tTables.sql
+
