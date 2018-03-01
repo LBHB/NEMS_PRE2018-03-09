@@ -337,7 +337,7 @@ else:
     
 
 # regenerate or reload recordings as needed
-REGEN=True
+REGEN=False
 RELOAD=True
 REFIT=False
 if REGEN:

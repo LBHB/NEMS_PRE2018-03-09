@@ -97,7 +97,11 @@ def init_settings():
     if NEMS_LOG_FILENAME is not None:
         log_filename = os.path.join(NEMS_LOG_ROOT, NEMS_LOG_FILENAME)
         os.makedirs(NEMS_LOG_ROOT, exist_ok=True)
-        os.chmod(NEMS_LOG_ROOT, 0o777)
+        # make LOG directory world-writeable
+        try:
+            os.chmod(NEMS_LOG_ROOT, 0o777)
+        except:
+            pass
         configure_logging(log_filename)
         log.info("Saving log messages to %s", log_filename)
     else:
