@@ -21,8 +21,7 @@ def from_keywords(keyword_string, registry=keywords.defaults):
     for kw in keywords:
         if kw not in registry:
             raise ValueError("unknown keyword: {}".format(kw))
-        d = registry[kw]
-        d=copy.deepcopy(d)
+        d = copy.deepcopy(registry[kw])
         d['id'] = kw
         modelspec.append(d)
 
