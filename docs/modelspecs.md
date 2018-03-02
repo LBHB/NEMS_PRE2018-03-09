@@ -84,7 +84,7 @@ The `from_keywords` initializer accepts an underscore separated string to make a
 
 This is a very simple initializer to be sure, but it has several advantages:
 
-1) Every time we see `fir10x1`, we know that it maps to a modelspec with a known number and shape of parameters -- in this case, 10 time bins by 1 channel. This makes studying parameters simpler than if we used `fir10` and did not have a way of distinguishing the number of input channels, which would force us to look at all of the `fir10` objects, determine the shape of the coefficients matrix, and then discard those that don't match what we wanted. Conversely, we immediately know that `fir10x1` is not the same as `fir10x2` because they have different numbers of channels and the keywords are not identical.
+1) Every time we see `fir10x1`, we know that it maps to a modelspec with a FIR filter that has a known shape -- in this case, 10 time bins by 1 channel. This makes studying parameters simpler than if we used `fir10` and did not know the number of input channels. In such a case, to find the matrices that we want, we would need to look at all of the `fir10` objects, determine the shape of the coefficients matrix, and then discard those that don't match what we wanted. Conversely, we immediately know that `fir10x1` is not the same as `fir10x2` because they have different numbers of channels and the keywords are not identical.
 
 2) If `fir10x1` is [saved in the modelspec filename](#how-do-you-save-or-load-a-modelspec), you can easily find all filenames containing this keyword, and easily extract/merge their contents to determine the distribution of post-fit parameter values.
 
