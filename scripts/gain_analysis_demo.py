@@ -337,7 +337,7 @@ else:
     
 
 # regenerate or reload recordings as needed
-REGEN=True
+REGEN=False
 RELOAD=True
 REFIT=False
 if REGEN:
@@ -362,7 +362,12 @@ elif RELOAD:
     for cellid in cellids:
         save_path="/auto/data/tmp/batch{0}_fs{1}_{2}{3}/{4}".format(batch,options["rasterfs"],stimfmt,options["chancount"],cellid)
         print("Loading from {0}".format(save_path))
-        recordings=recordings+[nems.recording.Recording.load(save_path)]
+        try:
+            trec=nems.recording.Recording.load(save_path)
+        except:
+            trec=nems.utilities.baphy.baphy_load_recording(cellid,batch,options.copy())
+            
+        recordings.append(trec)
 else:
     # don't load or regen, recordings are already in memory
     print("Assuming data are loaded")

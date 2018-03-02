@@ -47,8 +47,13 @@ import pandas.io.sql as psql
 # Order doesn't matter.
 try:
     import nems_config.Database_Info as db
-    db_uri = 'mysql+pymysql://{0}:{1}@{2}/{3}'.format(
-        db.user, db.passwd, db.host, db.database
+    if not hasattr(db, 'port'):
+        log.info("No port specified for db info, using default port")
+        port = 3306
+    else:
+        port = db.port
+    db_uri = 'mysql+pymysql://{0}:{1}@{2}:{3}/{4}'.format(
+        db.user, db.passwd, db.host, port, db.database
     )
 except Exception as e:
     log.info('No database info detected. Must have nems_config/Database_Info.py set up')

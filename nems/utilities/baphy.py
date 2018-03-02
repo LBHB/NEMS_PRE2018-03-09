@@ -1020,7 +1020,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs,finalfs=0):
     TrialLen_spikefs=np.concatenate((np.zeros([1,1]),TrialLen_sec[:,np.newaxis]*spikefs),axis=0)
         
     for c in range(0,chancount):
-        if sortinfo[c][0].size:
+        if len(sortinfo[c]) and sortinfo[c][0].size:
             s=sortinfo[c][0][0]['unitSpikes']
             s=np.reshape(s,(-1,1))
             unitcount=s.shape[0]
@@ -1065,7 +1065,7 @@ def baphy_align_time(exptevents,sortinfo,spikefs,finalfs=0):
     unit_names=[]  # string suffix for each unit (CC-U)
     chan_names=['a','b','c','d','e','f','g','h']
     for c in range(0,chancount):
-        if sortinfo[c][0].size:
+        if len(sortinfo[c]) and sortinfo[c][0].size:
             s=sortinfo[c][0][0]['unitSpikes']
             comment=sortinfo[c][0][0][0][0][2][0]
             s=np.reshape(s,(-1,1))
