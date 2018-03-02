@@ -1735,9 +1735,15 @@ def baphy_load_recording(cellid,batch,options):
             options['pupil']=False
             
         if options['stim']:
+            t_stim=stim_dict_to_matrix(stim_dict,fs=options['rasterfs'],event_times=event_times)
+            t_stim.recording=cellid
             
-            stim=stim_dict_to_matrix(stim_dict,fs=options['rasterfs'],event_times=event_times)
-            stim.recording=cellid
+            if i==0:
+                print("i={0} starting".format(i))
+                stim=t_stim
+            else:
+                print("i={0} concatenating".format(i))
+                stim=stim.concatenate_time([stim,t_stim])
             
     resp.meta=options
     

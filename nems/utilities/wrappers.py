@@ -32,10 +32,20 @@ def run_loader_baphy(cellid,batch,loader):
         options["stimfmt"] = "ozgf"
         options["chancount"] = 18
         options["rasterfs"] = 100
+        options["average_stim"]=True
+        options["state_vars"]=False
+    elif loader == "ozgf100ch18pup":
+        options["stimfmt"] = "ozgf"
+        options["chancount"] = 18
+        options["rasterfs"] = 100
+        options["average_stim"]=False
+        options["state_vars"]=['pupil']
     elif loader == "env100":
         options["stimfmt"] = "envelope"
         options["chancount"] = 0
         options["rasterfs"] = 100
+        options["average_stim"]=True
+        options["state_vars"]=False
     else:
         raise ValueError('unknown loader string')
 
@@ -49,19 +59,21 @@ def run_loader_baphy(cellid,batch,loader):
     log.info('Loading {0} format for {1}/{2}...'.format(loader,cellid,batch))
     rec = Recording.load(signals_dir)
 
-    # clone stim signal to create a placeholder for pred
-#    pred = rec['stim'].copy()
-#    pred.name = 'pred'
-#    rec.add_signal(pred)
+    if options["state_vars"]:
+        rec=preproc.make_state_signal(rec, state_signals=options["state_vars"])
 
     # Method #0: Try to guess which stimuli have the most reps, use those for val
-    log.info('Withholding validation set data...')
-
-    est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
-    
-    est = preproc.average_away_epoch_occurrences(est, epoch_regex='^STIM_')
-    val = preproc.average_away_epoch_occurrences(val, epoch_regex='^STIM_')
-
+    if options["average_stim"]:
+        log.info('Withholding validation set data...')
+        est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
+        
+        est = preproc.average_away_epoch_occurrences(est, epoch_regex='^STIM_')
+        val = preproc.average_away_epoch_occurrences(val, epoch_regex='^STIM_')
+    else:
+        #preserve single trial data, no val set... for nested CV
+        est=rec
+        val=rec.copy()
+        
     # TO DO : Leave open option to have different est val splits (or none)
 
     return est,val
@@ -93,10 +105,14 @@ def fit_model_baphy(cellid,batch,modelname,
     # Method #1: create from "shorthand" keyword string
     modelspec = nems.initializers.from_keywords(modelspecname)
     modelspec[0]['fn_kwargs']['i']='stim'
-    
+    if 'CODEHASH' in os.environ.keys():
+        codehash=os.environ['CODEHASH']
+    else:
+        codehash=""
     meta = {'batch': batch, 'cellid': cellid, 'modelname': modelname,
             'loader': loader, 'fitter': fitter, 'modelspecname': modelspecname,
-            'username': 'svd', 'labgroup': 'lbhb', 'public': 1}
+            'username': 'svd', 'labgroup': 'lbhb', 'public': 1, 
+            'codehash': codehash}
     if not 'meta' in modelspec[0].keys():
         modelspec[0]['meta'] = meta
     else:
@@ -239,6 +255,12 @@ modelname="env100_fir15x2_dexp1_fit01"
 cellid = 'TAR010c-18-1'
 batch=271
 modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
+
+# A1 NAT + pupil example
+cellid = 'TAR010c-18-1'
+batch=289
+modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
+
 
 # IC NAT example
 cellid = "bbl031f-a1"

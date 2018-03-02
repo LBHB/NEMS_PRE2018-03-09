@@ -13,3 +13,4 @@ def weight_channels(rec, i, o, coefficients):
     '''
     fn = lambda x: coefficients @ x
     return [rec[i].transform(fn, o)]
+
