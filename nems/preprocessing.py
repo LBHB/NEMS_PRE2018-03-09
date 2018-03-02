@@ -118,3 +118,13 @@ def average_away_epoch_occurrences(rec, epoch_regex='^STIM_'):
         newrec.add_signal(avg_signal)
 
     return newrec
+
+def make_state_signal(rec, state_signals=['pupil'], new_signalname='state'):
+    
+    state=signal.Signal.concatenate_channels([rec[x] for x in state_signals])
+    state.name=new_signalname
+    newrec = rec.copy()
+    
+    newrec.add_signal(state)
+
+    return newrec

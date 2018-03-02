@@ -362,10 +362,12 @@ elif RELOAD:
     for cellid in cellids:
         save_path="/auto/data/tmp/batch{0}_fs{1}_{2}{3}/{4}".format(batch,options["rasterfs"],stimfmt,options["chancount"],cellid)
         print("Loading from {0}".format(save_path))
-        try:
+        if os.path.exists(save_path):
             trec=nems.recording.Recording.load(save_path)
-        except:
+        else:
             trec=nems.utilities.baphy.baphy_load_recording(cellid,batch,options.copy())
+            t_save_path="/auto/data/tmp/batch{0}_fs{1}_{2}{3}/".format(batch,options["rasterfs"],stimfmt,options["chancount"])
+            trec.save(t_save_path)
             
         recordings.append(trec)
 else:
