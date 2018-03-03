@@ -114,13 +114,13 @@ def fit_model_baphy(cellid,batch,modelname,
     # Method #1: create from "shorthand" keyword string
     modelspec = nems.initializers.from_keywords(modelspecname)
     if 'CODEHASH' in os.environ.keys():
-        codehash=os.environ['CODEHASH']
+        githash=os.environ['CODEHASH']
     else:
-        codehash=""
+        githash=""
     meta = {'batch': batch, 'cellid': cellid, 'modelname': modelname,
             'loader': loader, 'fitter': fitter, 'modelspecname': modelspecname,
             'username': 'svd', 'labgroup': 'lbhb', 'public': 1, 
-            'codehash': codehash}
+            'githash': githash}
     if not 'meta' in modelspec[0].keys():
         modelspec[0]['meta'] = meta
     else:
