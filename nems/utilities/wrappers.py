@@ -267,7 +267,7 @@ modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
 # A1 NAT + pupil example
 cellid = 'TAR010c-18-1'
 batch=289
-modelname = "ozgf100ch18_wcg18x1_fir15x1_lvl1_dexp1_fit01"
+modelname = "ozgf100ch18_wcg18x2_fir15x2_lvl1_dexp1_fit01"
 
 savepath = fit_model_baphy(cellid = cellid, batch=batch, modelname = modelname, autoPlot=True, saveInDB=True)
 modelspec,est,val=load_model_baphy(savepath)

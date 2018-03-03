@@ -69,7 +69,7 @@ def fir_heatmap(modelspec, ax=None, clim=None):
 def strf_heatmap(modelspec, ax=None, clim=None, show_factorized=True):
     wc_coefs = np.array(_get_wc_coefficients(modelspec)).T
     fir_coefs = np.array(_get_fir_coefficients(modelspec))
-    strf = np.outer(wc_coefs, fir_coefs)
+    strf=wc_coefs @ fir_coefs
 
     if not clim:
         cscale = np.nanmax(np.abs(strf.reshape(-1)))
