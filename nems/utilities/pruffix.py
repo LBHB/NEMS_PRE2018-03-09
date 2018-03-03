@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 def find_prefix(s_list):
     """Given a list of strings, returns the common prefix to nearest _."""
     prefix = ''
-    if len(s_list) == 1:
+    if (not s_list) or (len(s_list) == 1):
         return prefix
     i = 0
     test = True
@@ -38,7 +38,7 @@ def find_prefix(s_list):
 def find_suffix(s_list):
     """Given a list of strings, returns the common suffix to nearest _."""
     suffix = ''
-    if len(s_list) == 1:
+    if (not s_list) or (len(s_list) == 1):
         return suffix
     i = 1
     test = True
