@@ -174,10 +174,15 @@ def stretch_trials(data):
 
     # find non-nan response trials
     keepidx = np.isfinite(resp[:, 0])
+    if keepidx.shape[0]>pupil.shape[0]:
+        print("HACK: Truncating keepidx to {0} to accomodate missing pupil trials".format(pupil.shape[0]))
+        keepidx[pupil.shape[0]:]=False
     resp = resp[keepidx, :]
     stim = stim[:, keepidx, :]
     replist = replist[keepidx]
     if not pupil is None:
+        if keepidx.shape[0]>pupil.shape[0]:
+            keepidx=keepidx[:pupil.shape[0]]
         pupil = pupil[keepidx, :, :]
 
     #    Y=data['stim'][:,0,:]

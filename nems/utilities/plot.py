@@ -181,6 +181,36 @@ def state_act_scatter_smooth(m, idx=None, size=FIGSIZE):
     plt.text(xmin + (xmax - xmin) / 50, ymax - (ymax - ymin) / 20, t,
              verticalalignment='top')
 
+def state_act_slow(m, idx=None, size=FIGSIZE):
+    if idx:
+        plt.figure(num=idx, figsize=size)
+
+    s = m.unpack_data(m.state_var, use_dout=True)
+    r = m.unpack_data("resp", use_dout=True)
+    smwin=20
+    box=np.ones([1,smwin])/(smwin)
+    r=scipy.signal.convolve2d(r,box,mode='same')
+    #s=scipy.signal.convolve2d(s,box,mode='same')
+
+    fs = m.d_out[0]['respFs']
+    tt = np.arange(0, r.shape[1]) / fs
+    st, = plt.plot(tt, s[0,:], label='State')
+    re, = plt.plot(tt, r[0,:], 'r', label='Resp')
+    plt.legend(handles=[st, re])
+    
+    if 'theta' in dir(m):
+        t = "theta (b,g): " + " ".join("{0:.3f}".format(x) for x in m.theta[0,:])
+    axes = plt.gca()
+    ymin, ymax = axes.get_ylim()
+    xmin, xmax = axes.get_xlim()
+    if ymin == ymax:
+        ymax = ymin + 1
+    if xmin == xmax:
+        xmax = xmin + 1
+    # log.info("{0},{1} {2},{3}".format(xmin,xmax,ymin,ymax))
+    plt.text(xmin + (xmax - xmin) / 50, ymax - (ymax - ymin) / 20, t,
+             verticalalignment='top')
+
 
 def pred_act_psth(m, size=FIGSIZE, idx=None):
     if idx:
