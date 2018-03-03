@@ -23,7 +23,7 @@ def defkey_wc(n_inputs, n_outputs):
     }
     template = {
         'fn': 'nems.modules.weight_channels.weight_channels',
-        'fn_kwargs': {'i': 'stim', 'o': 'pred'},
+        'fn_kwargs': {'i': 'pred', 'o': 'pred'},
         'prior': {
             'coefficients': ('Normal', p_coefficients),
         }
@@ -35,7 +35,28 @@ defkey_wc(40, 1)
 defkey_wc(18, 1)
 defkey_wc(18, 2)
 
-
+# gaussian weight channels
+defkey('wcg18x1',
+       {'fn': 'nems.modules.weight_channels.gaussian',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred',
+                      'num_chan_in': 18},
+        'fn_coefficients': 'nems.modules.weight_channels._gaussian_coefs',
+        'prior': {'mn': ('Normal', {'mu': [0.5],'sd': [1]}),
+                  'sig': ('Normal', {'mu': [0.5],'sd': [1]})
+            }
+        })
+defkey('wcg18x2',
+       {'fn': 'nems.modules.weight_channels.gaussian',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred',
+                      'num_chan_in': 18},
+        'fn_coefficients': 'nems.modules.weight_channels._gaussian_coefs',
+        'prior': {'mn': ('Normal', {'mu': [0.4,0.6],'sd': [1,1]}),
+                  'sig': ('Normal', {'mu': [0.5,0.5],'sd': [1,1]})
+            }
+        })
+        
 defkey('fir10x1',
        {'fn': 'nems.modules.fir.fir_filter',
         'fn_kwargs': {'i': 'pred',

@@ -48,7 +48,10 @@ def run_loader_baphy(cellid,batch,loader):
         options["state_vars"]=False
     else:
         raise ValueError('unknown loader string')
-
+        
+    url="http://potoroo:3003/baphy/{0}/{1}?fs={2}&stimfmt={3}&chancount={4}".format(
+            batch, cellid, options["rasterfs"], options["stimfmt"],
+            options["chancount"])
     # set up data/output paths
     signals_dir = (
             "/auto/data/tmp/batch{0}_fs{1}_{2}{3}/{4}"
@@ -59,6 +62,12 @@ def run_loader_baphy(cellid,batch,loader):
     log.info('Loading {0} format for {1}/{2}...'.format(loader,cellid,batch))
     rec = Recording.load(signals_dir)
 
+    # before this can be replaced with 
+    """
+    URL = "http://potoroo:3004/baphy/271/bbl086b-11-1?rasterfs=200"
+    rec = Recording.load_url(URL)
+    """
+    
     if options["state_vars"]:
         rec=preproc.make_state_signal(rec, state_signals=options["state_vars"])
 
@@ -94,7 +103,7 @@ def fit_model_baphy(cellid,batch,modelname,
     loader = kws[0]
     modelspecname = "_".join(kws[1:-1])
     fitter = kws[-1]
-
+    
     est,val = run_loader_baphy(cellid,batch,loader)
     
     modelspecs_dir = '/auto/data/tmp/modelspecs/{0}/{1}'.format(batch,cellid)
@@ -104,7 +113,6 @@ def fit_model_baphy(cellid,batch,modelname,
 
     # Method #1: create from "shorthand" keyword string
     modelspec = nems.initializers.from_keywords(modelspecname)
-    modelspec[0]['fn_kwargs']['i']='stim'
     if 'CODEHASH' in os.environ.keys():
         codehash=os.environ['CODEHASH']
     else:
@@ -259,13 +267,16 @@ modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
 # A1 NAT + pupil example
 cellid = 'TAR010c-18-1'
 batch=289
-modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
+modelname = "ozgf100ch18_wcg18x1_fir15x1_lvl1_dexp1_fit01"
 
+savepath = fit_model_baphy(cellid = cellid, batch=batch, modelname = modelname, autoPlot=True, saveInDB=True)
+modelspec,est,val=load_model_baphy(savepath)
 
 # IC NAT example
 cellid = "bbl031f-a1"
 batch=291
 modelname = "ozgf100ch18_wc18x1_fir15x1_lvl1_dexp1_fit01"
+
 savepath = fit_model_baphy(cellid = cellid, batch=batch, modelname = modelname, autoPlot=True, saveInDB=True)
 modelspec,est,val=load_model_baphy(savepath)
 

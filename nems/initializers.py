@@ -24,6 +24,10 @@ def from_keywords(keyword_string, registry=keywords.defaults):
         d = copy.deepcopy(registry[kw])
         d['id'] = kw
         modelspec.append(d)
+        
+    # first module should take stim as its input. can't hard code in
+    # keywords, since we don't know which keyword will be first.
+    modelspec[0]['fn_kwargs']['i']='stim'
 
     return modelspec
 
