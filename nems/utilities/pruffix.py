@@ -4,20 +4,24 @@ abbreviated strings with a common prefix and/or suffix.
 @author jacob
 
 """
+import logging
+log = logging.getLogger(__name__)
 
 def find_prefix(s_list):
     """Given a list of strings, returns the common prefix to nearest _."""
     prefix = ''
+    if len(s_list) == 1:
+        return prefix
     i = 0
     test = True
     while test:
-        #print('while loop, i=%s'%i)
-        #print('before for loop, prefix = %s'%prefix)
+        #log.debug('while loop, i=%s'%i)
+        #log.debug('before for loop, prefix = %s'%prefix)
         for j in range(len(s_list) - 1):
             # look at ith item of each string in list, in order
             a = s_list[j][i]
             b = s_list[j + 1][i]
-            #print('for loop, a = %s and b = %s'%(a, b))
+            #log.debug('for loop, a = %s and b = %s'%(a, b))
             if a != b:
                 test = False
                 break
@@ -34,11 +38,13 @@ def find_prefix(s_list):
 def find_suffix(s_list):
     """Given a list of strings, returns the common suffix to nearest _."""
     suffix = ''
+    if len(s_list) == 1:
+        return suffix
     i = 1
     test = True
     while test:
-        #print('while loop, i=%s'%i)
-        #print('before for loop, suffix = %s'%suffix)
+        #log.debug('while loop, i=%s'%i)
+        #log.debug('before for loop, suffix = %s'%suffix)
         for j in range(len(s_list) - 1):
             # look at ith item of each string in reverse order
             a = s_list[j][-1 * i]
@@ -70,18 +76,24 @@ def find_common(s_list, pre=True, suf=True):
 
     """
 
-    prefix = ''
+    prefix = '' 
     if pre:
+        log.debug("Finding prefixes...")
         prefix = find_prefix(s_list)
     suffix = ''
     if suf:
+        log.debug("Finding suffixes...")
         suffix = find_suffix(s_list)
     #shortened = [s[len(prefix):-1*(len(suffix))] for s in s_list]
     shortened = []
     for s in s_list:
+        #log.debug("s=%s"%s)
         if prefix:
             s = s[len(prefix):]
+            #log.debug("s changed to: %s"%s)
         if suffix:
             s = s[:-1 * len(suffix)]
+            #log.debug("s changed to: %s"%s)
         shortened.append(s)
+        log.debug("final s: %s"%s)
     return (shortened, prefix, suffix)
