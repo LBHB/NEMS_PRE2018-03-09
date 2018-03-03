@@ -2,6 +2,7 @@ import logging as log
 import matplotlib.pyplot as plt
 import numpy as np
 
+import nems.modelspec as ms
 
 def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
                  ax=None, cmap=None, clim=None, skip=0):
@@ -38,7 +39,13 @@ def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
 def _get_wc_coefficients(modelspec):
     for m in modelspec:
         if 'weight_channels' in m['fn']:
-            return m['phi']['coefficients']
+            if 'fn_coefficients' in modelspec[0].keys():
+                fn = ms._lookup_fn_at(m['fn_coefficients'])
+                kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
+                return fn(**kwargs)
+                
+            else:
+                return m['phi']['coefficients']
 
 
 def _get_fir_coefficients(modelspec):

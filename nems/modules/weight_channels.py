@@ -14,7 +14,7 @@ def weight_channels(rec, i, o, coefficients):
     fn = lambda x: coefficients @ x
     return [rec[i].transform(fn, o)]
 
-def _gaussian_coefs(mn, sig, num_chan_in):
+def _gaussian_coefs(i, o, mn, sig, num_chan_in):
     '''
     helper function for gaussian
     '''
@@ -40,7 +40,7 @@ def gaussian(rec, i, o, mn, sig, num_chan_in):
     generates num_chan_out X num_chan_in coefficients matrix that's fed into
     standard weight_channels
     '''
-    coefficients = _gaussian_coefs(mn, sig, num_chan_in)
+    coefficients = _gaussian_coefs(i, o, mn, sig, num_chan_in)
     
     fn = lambda x: coefficients @ x
 
