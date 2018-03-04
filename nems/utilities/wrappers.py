@@ -68,9 +68,6 @@ def run_loader_baphy(cellid,batch,loader):
     rec = Recording.load_url(URL)
     """
     
-    if options["state_vars"]:
-        rec=preproc.make_state_signal(rec, state_signals=options["state_vars"])
-
     # Method #0: Try to guess which stimuli have the most reps, use those for val
     if options["average_stim"]:
         log.info('Withholding validation set data...')

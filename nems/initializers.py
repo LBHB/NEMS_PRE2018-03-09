@@ -25,10 +25,21 @@ def from_keywords(keyword_string, registry=keywords.defaults):
         d['id'] = kw
         modelspec.append(d)
         
-    # first module should take stim as its input. can't hard code in
-    # keywords, since we don't know which keyword will be first.
-    modelspec[0]['fn_kwargs']['i']='stim'
-
+    # first module that takes input='pred' should take 'stim' instead. 
+    # can't hard code in keywords, since we don't know which keyword will be first.
+    # and can't assume that it will be module[0] because those might be 
+    # state manipulations
+    first_input_to_stim=False
+    i=0
+    while not first_input_to_stim and i<len(modelspec):
+        if 'i' in modelspec[i]['fn_kwargs'].keys() and modelspec[i]['fn_kwargs']['i']=='resp':
+            # psth-based prediction, never use stim, just feed resp to pred
+            first_input_to_stim=True
+        elif 'i' in modelspec[i]['fn_kwargs'].keys() and modelspec[i]['fn_kwargs']['i']=='pred':
+            modelspec[i]['fn_kwargs']['i']='stim'
+            first_input_to_stim=True
+        i+=1
+        
     return modelspec
 
 def prefit_to_target(rec, modelspec, analysis_function, target_module,

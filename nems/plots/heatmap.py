@@ -39,7 +39,7 @@ def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
 def _get_wc_coefficients(modelspec):
     for m in modelspec:
         if 'weight_channels' in m['fn']:
-            if 'fn_coefficients' in modelspec[0].keys():
+            if 'fn_coefficients' in m.keys():
                 fn = ms._lookup_fn_at(m['fn_coefficients'])
                 kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
                 return fn(**kwargs)
