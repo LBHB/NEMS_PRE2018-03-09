@@ -287,6 +287,7 @@ if batch==289 or batch==294:
              'chancount': 18, 'pupil': True, 'stim': True,
              'pupil_deblink': True, 'pupil_median': 1,
              'plot_results': True, 'plot_ax': None}
+#             'runclass': 'VOC',
     
 elif batch in [271,272,291]:
     # NAT
