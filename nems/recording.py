@@ -125,6 +125,112 @@ class Recording:
         obj = io.BytesIO(r.raw.read()) # Not sure why I need this!
         return Recording.load_from_targz_stream(obj)
 
+    # TODO: This needs tests!
+    @staticmethod
+    def load_from_arrays(arrays, rec_name, fs, sig_names=None,
+                         signal_kwargs={}):
+        '''
+        Generates a recording object, and the signal objects it contains,
+        from a list of array-like structures of the form channels x time
+        (see signal.py for more details about how arrays are represented
+         by signals).
+
+        If any of the arrays are more than 2-dimensional,
+        an error will be thrown. Also pay close attention to any
+        RuntimeWarnings from the signal class regarding improperly-shaped
+        arrays, which may indicate that an array was passed as
+        time x channels instead of the reverse.
+
+        Arguments:
+        ----------
+        arrays : list of array-like
+            The data to be converted to a recording of signal objects.
+            Each item should be 2-dimensional and convertible to a
+            numpy ndarray via np.array(x). No constraints are enforced
+            on the dtype of the arrays, but in general float values
+            are expected by most native NEMS functions.
+
+        rec_name : str
+            The name to be given to the new recording object. This will
+            also be assigned as the recording attribute of each new signal.
+
+        fs : int or list of ints
+            The frequency of sampling of the data arrays - used to
+            interconvert between real time and time bins (see signal.py).
+            If int, the same fs will be assigned to each signal.
+            If list, the length must match the length of arrays.
+
+        sig_names : list of strings (optional)
+            Name to attach to the signal created from
+            each array. The length of this list should match that of
+            arrays.
+            If not specified, the signals will be given the generic
+            names: ['signal1', 'signal2', ...].
+
+        signal_kwargs : list of dicts
+            Keyword arguments to be passed through to
+            each signal object. The length of this list should
+            match the length of arrays, and may be padded with empty
+            dictionaries to ensure this constraint.
+            For example:
+                [{'chans': ['1 kHz', '3 kHz']}, {'chans': ['one', 'two']}, {}]
+            Would assign channel names '1 kHz' and '3 kHz' to the signal
+            for the first array, 'one' and 'two' for the second array,
+            and no channel names (or any other arguments) for the third array.
+
+            Valid keyword arguments are: chans, epochs, meta,
+                                         and safety_checks
+
+        Returns:
+        --------
+        rec : recording object
+            New recording containing a signal for each array.
+        '''
+        # Assemble and validate lists for signal construction
+        arrays = [np.array(a) for a in arrays]
+        for i, a in enumerate(arrays):
+            if len(a.shape) != 2:
+                raise ValueError("Arrays should have shape chans x time."
+                                 "Array {} had shape: {}"
+                                 .format(i, a.shape))
+        n = len(arrays)
+        recs = [rec_name]*len(arrays)
+        if sig_names:
+            if not len(sig_names) == n:
+                raise ValueError("Length of sig_names must match"
+                                 "the length of arrays.\n"
+                                 "Got sig_names: {} and arrays: {}"
+                                 .format(len(sig_names), n))
+        else:
+            sig_names = ['sig%s'%i for i in range(n)]
+        if isinstance(fs, int):
+            fs = [fs]*n
+        else:
+            if not len(fs) == n:
+                raise ValueError("Length of fs must match"
+                                 "the length of arrays.\n"
+                                 "Got fs: {} and arrays: {}"
+                                 .format(len(fs), n))
+        if not signal_kwargs:
+            signal_kwargs = [{}]*n
+        else:
+            if not len(signal_kwargs) == n:
+                raise ValueError("Length of signal_kwargs must match"
+                                 "the length of arrays.\n"
+                                 "Got signal_kwargs: {} and arrays: {}"
+                                 .format(len(signal_kwargs), n))
+
+        # Construct the signals
+        to_sigs = zip(fs, arrays, sig_names, recs, signal_kwargs)
+        signals = [
+                Signal(fs, a, name, rec, **kw)
+                for fs, a, name, rec, kw in to_sigs
+                ]
+        signals = {s.name:s for s in signals}
+        # Combine into recording and return
+        return Recording(signals)
+
+
     def save(self, directory, no_subdir=False, compressed=False):
         '''
         Saves all the signals (CSV/JSON pairs) in this recording into
@@ -235,12 +341,12 @@ class Recording:
 
     def split_using_epoch_occurrence_counts(self, epoch_regex):
         '''
-        Returns (est, val) given a recording rec, a signal name 'stim_name', and an 
+        Returns (est, val) given a recording rec, a signal name 'stim_name', and an
         epoch_regex that matches 'various' epochs. This function will throw an exception
         when there are not exactly two values for the number of epoch occurrences; i.e.
-        low-rep epochs and high-rep epochs. 
-        
-        NOTE: This is a fairly specialized function that we use in the LBHB lab. We have 
+        low-rep epochs and high-rep epochs.
+
+        NOTE: This is a fairly specialized function that we use in the LBHB lab. We have
         found that, given a limited recording time, it is advantageous to have a variety of sounds
         presented to the neuron (i.e. many low-repetition stimuli) for accurate estimation
         of its parameters. However, during the validation process, it helps to have many
@@ -254,7 +360,7 @@ class Recording:
             k=l>np.mean(l)
             hi=np.max(l[k])
             lo=np.min(l[k==False])
-            
+
             g={hi: [], lo: []}
             for i in list(np.where(k)[0]):
                 g[hi]=g[hi]+groups[l[i]]
@@ -264,7 +370,7 @@ class Recording:
             m = "Fewer than two types of occurrences (low and hi rep). Unable to split:"
             m += str(groups)
             raise ValueError(m)
-                
+
         n_occurrences = sorted(groups.keys())
         lo_rep_epochs = groups[n_occurrences[0]]
         hi_rep_epochs = groups[n_occurrences[1]]

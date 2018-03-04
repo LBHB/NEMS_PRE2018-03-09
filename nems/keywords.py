@@ -132,3 +132,29 @@ defkey('dlog',
                       'o': 'pred'},
         'prior': {'offset': ('Normal', {'mu': [-2], 'sd': [2]})}})
 
+
+""" state-related and signal manipulation/generation """
+
+defkey('pup',
+       {'fn': 'nems.modules.signal_mod.make_state_signal',
+        'fn_kwargs': {'signals_in': ['pupil'],
+                      'signals_permute': [],
+                      'o': 'state'}
+        })
+
+defkey('stategain2',
+       {'fn': 'nems.modules.state.state_dc_gain',
+        'fn_kwargs': {'i': 'pred',
+                      'o': 'pred',
+                      's': 'state'},
+        'prior': {'g': ('Normal', {'mu': [1,0], 'sd': [1,1]}),
+                  'd': ('Normal', {'mu': [1,0], 'sd': [1,1]})}
+        })
+
+
+defkey('psth',
+       {'fn': 'nems.modules.signal_mod.average_sig',
+        'fn_kwargs': {'i': 'resp',
+                      'o': 'pred'}
+        })
+

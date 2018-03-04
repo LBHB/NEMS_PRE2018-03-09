@@ -66,7 +66,25 @@ rec = Recording.load_url(URL)
 
 # Method #4: Load the data from a published jerb (TODO)
 
-# Method #5: Create a Recording object from an array, manually (TODO)
+
+# Method #5: Create a Recording object from an array, manually
+
+# need a list of array-like data structures
+#arrays = [x, y, z]
+# a name for the recording that will hold the signals
+#rec_name = 'my_recording'
+# the sampling rate for the signals, or a list of
+# individual sampling rates (if different)
+#fs = [100, 100, 200]
+# a list of signal names (optional, but preferred)
+#names = ['stim', 'resp', 'reference']
+# a list of keyword arguments for each signal,
+# such as channel names or epochs (also optional)
+#kwargs = [{'chans': ['2 kHz', '4 kHz', '8 kHz']},
+#          {'chans': ['Spike Rate']},
+#          {'meta': {'experiment': 'oddball_2'}}]
+#rec = Recording.load_from_arrays(arrays, rec_name, fs, sig_names=names,
+#                                 signal_kwargs = kwargs)
 
 
 # ----------------------------------------------------------------------------

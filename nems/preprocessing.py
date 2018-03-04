@@ -4,6 +4,38 @@ import nems.epoch as ep
 import pandas as pd
 import nems.signal as signal
 
+def generate_average_sig(signal_to_average,
+                         new_signalname='respavg', epoch_regex='^STIM_'):
+    '''
+    Returns a signal with a new signal created by replacing every epoch
+    matched in "epoch_regex" with the average of every occurrence in that
+    epoch. This is often used to make a response average signal that
+    is the same length as the original signal_to_average, usually for plotting.
+
+    Optional arguments:
+       signal_to_average   The signal from which you want to create an
+                           average signal. It will not be modified.
+       new_signalname      The name of the new, average signal.
+       epoch_regex         A regex to match which epochs to average across.
+    '''
+
+    # 1. Fold matrix over all stimuli, returning a dict where keys are stimuli
+    #    and each value in the dictionary is (reps X cell X bins)
+    epochs_to_extract = ep.epoch_names_matching(signal_to_average.epochs, epoch_regex)
+    folded_matrices = signal_to_average.extract_epochs(epochs_to_extract)
+
+    # 2. Average over all reps of each stim and save into dict called psth.
+    per_stim_psth = dict()
+    for k in folded_matrices.keys():
+        per_stim_psth[k] = np.nanmean(folded_matrices[k], axis=0)
+
+    # 3. Invert the folding to unwrap the psth into a predicted spike_dict by
+    #   replacing all epochs in the signal with their average (psth)
+    respavg = signal_to_average.replace_epochs(per_stim_psth)
+    respavg.name = new_signalname
+
+    return respavg
+
 
 def add_average_sig(rec, signal_to_average='resp',
                     new_signalname='respavg', epoch_regex='^STIM_'):
@@ -20,22 +52,11 @@ def add_average_sig(rec, signal_to_average='resp',
        epoch_regex         A regex to match which epochs to average across.
     '''
 
-    # 1. Fold matrix over all stimuli, returning a dict where keys are stimuli
-    #    and each value in the dictionary is (reps X cell X bins)
-    epochs_to_extract = ep.epoch_names_matching(rec.epochs, epoch_regex)
-    folded_matrices = rec[signal_to_average].extract_epochs(epochs_to_extract)
+    # generate the new signal by averaging epochs of the input singals
+    respavg = generate_average_sig(rec[signal_to_average],
+                                   new_signalname, epoch_regex)
 
-    # 2. Average over all reps of each stim and save into dict called psth.
-    per_stim_psth = dict()
-    for k in folded_matrices.keys():
-        per_stim_psth[k] = np.nanmean(folded_matrices[k], axis=0)
-
-    # 3. Invert the folding to unwrap the psth into a predicted spike_dict by
-    #   replacing all epochs in the signal with their average (psth)
-    respavg = rec[signal_to_average].replace_epochs(per_stim_psth)
-    respavg.name = new_signalname
-
-    # 4. Now add the signal to the recording
+    # Add the signal to the recording
     newrec = rec.copy()
     newrec.add_signal(respavg)
 

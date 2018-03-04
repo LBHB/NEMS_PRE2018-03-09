@@ -1,15 +1,23 @@
-import numpy as np
+"""
+modules/state.py
 
-def state_dc_gain(rec, i, g, d, o):
+functions for applying state-related transformations
+"""
+
+#import numpy as np
+
+def state_dc_gain(rec, i, o, s, g, d):
     '''
     Parameters
     ----------
     i name of input
-    g - gain to scale by
-    d - dc to offset by
     o name of output signal
+    s name of state signal
+    g - gain to scale s by
+    d - dc to offset by
     '''
     
-    fn = lambda x: rec[g]._matrix * x + rec[d]._matrix
+    fn = lambda x: g @ rec[s]._matrix * x + d @ rec[s]._matrix
+    
     return [rec[i].transform(fn, o)]
 
