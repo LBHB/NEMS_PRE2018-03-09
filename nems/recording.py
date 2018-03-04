@@ -188,6 +188,11 @@ class Recording:
         '''
         # Assemble and validate lists for signal construction
         arrays = [np.array(a) for a in arrays]
+        for i, a in enumerate(arrays):
+            if len(a.shape) != 2:
+                raise ValueError("Arrays should have shape chans x time."
+                                 "Array {} had shape: {}"
+                                 .format(i, a.shape))
         n = len(arrays)
         recs = [rec_name]*len(arrays)
         if sig_names:
@@ -221,6 +226,7 @@ class Recording:
                 Signal(fs, a, name, rec, **kw)
                 for fs, a, name, rec, kw in to_sigs
                 ]
+        signals = {s.name:s for s in signals}
         # Combine into recording and return
         return Recording(signals)
 
