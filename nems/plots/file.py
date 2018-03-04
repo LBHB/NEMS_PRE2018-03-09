@@ -132,7 +132,7 @@ def load_figure_bytes(filepath=None, modelspecs=None, load_dir=None,
         raise ValueError("load_figure_img() must be provided either"
                          "a filepath or a list of modelspecs.")
     logging.info("Loading figure image from: {}".format(fname))
-    with open(fname, 'rb') as f:
+    with open(fname, 'r+b') as f:
         img = f.read()
     return img
 
