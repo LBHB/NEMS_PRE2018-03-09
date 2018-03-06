@@ -23,7 +23,6 @@ import pandas as pd
 import pandas.io.sql as psql
 
 import nems_config.defaults
-from nems.utilities.print import web_print
 
 try:
     import nems_config.Storage_Config as sc
@@ -231,7 +230,7 @@ def _enqueue_single_model(
         .first()
     )
     if result and not force_rerun:
-        web_print(
+        log.info(
             "Entry in NarfResults already exists for: %s, skipping.\n" %
             note)
         session.close()
