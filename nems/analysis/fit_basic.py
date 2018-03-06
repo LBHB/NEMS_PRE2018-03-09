@@ -1,17 +1,14 @@
 import copy
 import logging
-from functools import partial
-
 log = logging.getLogger(__name__)
-
-
+from functools import partial
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 import nems.priors
 import nems.fitters.mappers
 import nems.modelspec as ms
 import nems.metrics.api
 import nems.segmentors
-
+import nems.utils
 
 def fit_basic(data, modelspec,
               fitter=coordinate_descent,
@@ -97,6 +94,8 @@ def fit_basic(data, modelspec,
     improved_modelspec = unpacker(improved_sigma)
     ms.set_modelspec_metadata(improved_modelspec, 'fitter', metaname)
     ms.set_modelspec_metadata(improved_modelspec, 'recording', data.name)
+    ms.set_modelspec_metadata(improved_modelspec, 'date',
+                              nems.utils.iso8601_datestring())
     results = [copy.deepcopy(improved_modelspec)]
     return results
 

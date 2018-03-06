@@ -3,22 +3,17 @@
 
 import os
 import logging
-import random
-
-import numpy as np
-import matplotlib.pyplot as plt
-
 import nems
 import nems.initializers
-import nems.epoch as ep
 import nems.priors
 import nems.preprocessing as preproc
 import nems.modelspec as ms
 import nems.plots.api as nplt
 import nems.analysis.api
 import nems.utils
+import nems.urls
 from nems.recording import Recording
-from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
+from nems.fitters.api import scipy_minimize
 
 # ----------------------------------------------------------------------------
 # CONFIGURATION
@@ -40,22 +35,12 @@ modelspecs_dir = os.path.abspath(relative_modelspecs_dir)
 logging.info('Loading data...')
 
 # Method #1: Load the data from a local directory
-# rec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1'))
+# rec = Recording.load("/auto/data/recordings/TAR010c-18-1")
+# rec = Recording.load("file:///auto/data/recordings/TAR010c-18-1")
 
-# TODO: REMOVE THIS TEMPORARY TEST OF TAR GZ SAVE/LOAD LATER
-# filename = '/home/ivar/' + rec.name + '.tar.gz'
-# with open(filename, 'wb') as archive:
-#     tgz = rec.as_targz()
-#     archive.write(tgz.read())
-#     tgz.close()
-#     exit()
-# Load the compressed version
-#lec = Recording.load(os.path.join(signals_dir, 'TAR010c-18-1.tar.gz'))
-
-# Method #2: Load the data from baphy using the (incomplete, TODO) HTTP API:
-#URL = "http://potoroo:3003/recording/TAR010c-18-1.tar.gz"
-URL = "http://potoroo:3004/baphy/271/bbl086b-11-1?rasterfs=200"
-rec = Recording.load_url(URL)
+# Method #2: Load the data from baphy using the nems_baphy HTTP API:
+# rec = Recording.load("http://potoroo/recording/TAR010c-18-1.tar.gz")
+# rec = Recording.load("http://potoroo/baphy/271/bbl086b-11-1")
 
 # Method #3: Load the data from S3: (TODO)
 # stimfile=("https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"
@@ -64,10 +49,7 @@ rec = Recording.load_url(URL)
 #           +cellid+"_NAT_resp_fs100.mat")
 # rec = lbhb.fetch_signals_over_http(stimfile, respfile)
 
-# Method #4: Load the data from a published jerb (TODO)
-
-
-# Method #5: Create a Recording object from an array, manually
+# Method #4: Create a Recording object from an array, manually
 
 # need a list of array-like data structures
 #arrays = [x, y, z]
@@ -139,14 +121,14 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
 
 # Method #2: Load modelspec(s) from disk
 # TODO: allow selection of a specific modelspec instead of ALL models for this data!!!!
-#modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
-
-# Method #3: Load it from a published jerb (TODO)
-# results = ...
+# modelspecs = ms.load_modelspecs(modelspecs_dir, 'TAR010c-18-1')
 
 # Optional: start from some prior
 # modelspec = nems.priors.set_random_phi(modelspec)
 
+print(nems.urls.modelspec_basepath(modelspec))
+
+exit()
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
 
@@ -247,4 +229,3 @@ imgbytes = nplt.load_figure_bytes(filepath=fname)
 #       did relative to other peoples' models. Save your results to a DB.
 
 # TODO
-

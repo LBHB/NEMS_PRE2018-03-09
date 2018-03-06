@@ -43,20 +43,14 @@ def set_modelspec_metadata(modelspec, key, value):
     modelspec[0]['meta'][key] = value
     return modelspec
 
-def get_modelspec_name(modelspec):
-    '''
-    Returns a string that names this modelspec. Suitable for plotting.
-    '''
-    meta = get_modelspec_metadata(modelspec)
-    if 'name' in meta:
-        return meta['name']
 
-    recording_name = meta.get('recording', 'unknown_recording')
+def get_modelspec_shortname(modelspec):
+    '''
+    Returns a string that is just the module ids in this modelspec.
+    '''
     keyword_string = '_'.join([m['id'] for m in modelspec])
-    fitter_name = meta.get('fitter', 'unknown_fitter')
-    date = nems.utils.iso8601_datestring()
-    guess = '.'.join([recording_name, keyword_string, fitter_name, date])
-    return guess
+    return keyword_string
+
 
 def get_modelspec_longname(modelspec):
     '''
@@ -64,7 +58,7 @@ def get_modelspec_longname(modelspec):
     '''
     meta = get_modelspec_metadata(modelspec)
     recording_name = meta.get('recording', 'unknown_recording')
-    keyword_string = '_'.join([m['id'] for m in modelspec])
+    keyword_string = get_modelspec_shortname(modelspec)
     fitter_name = meta.get('fitter', 'unknown_fitter')
     date = nems.utils.iso8601_datestring()
     guess = '.'.join([recording_name, keyword_string, fitter_name, date])
@@ -85,6 +79,7 @@ def save_modelspec(modelspec, filepath):
     f.close()
     os.chmod(filepath, 0o666)
 
+
 def save_modelspecs(directory, modelspecs, basename=None):
     '''
     Saves one or more modelspecs to disk with stereotyped filenames:
@@ -97,7 +92,7 @@ def save_modelspecs(directory, modelspecs, basename=None):
     if not os.path.isdir(directory):
         os.makedirs(directory)
         os.chmod(directory, 0o777)
-        
+
     for idx, modelspec in enumerate(modelspecs):
         if not basename:
             bname = get_modelspec_longname(modelspec)
@@ -107,6 +102,28 @@ def save_modelspecs(directory, modelspecs, basename=None):
         filepath = _modelspec_filename(basepath, idx)
         save_modelspec(modelspec, filepath)
     return filepath
+
+
+def save_modelspec_to_nems_db(modelspecs, number=0):
+    '''
+    Saves a modelspec to the central DB.
+    '''
+    meta = get_modelspec_metadata(modelspec)
+    for f in ['fitter', 'recording', 'date']:
+        if not f in meta:
+            log.warn('{} not found in metadata.'.format(f))
+    url = as_url(modelname=get_modelspec_shortname(modelspec),
+                 recording=meta.get('recording', 'unknown'),
+                 fitter=meta.get('fitter', 'unknown'),
+                 date=meta.get('date', 'unknown'),
+                 filename='modelspec.{:04d}.json'.format(number))
+    r = requests.put(url, json=modelspec)
+    if r.status_code == 200:
+        return None
+    else:
+        error_message = '{}: {}'.format(r.status_code, r.text)
+        return error_message
+
 
 def load_modelspec(filepath):
     '''
