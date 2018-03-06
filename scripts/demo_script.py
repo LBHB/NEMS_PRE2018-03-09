@@ -39,8 +39,8 @@ logging.info('Loading data...')
 # rec = Recording.load("file:///auto/data/recordings/TAR010c-18-1")
 
 # Method #2: Load the data from baphy using the nems_baphy HTTP API:
-# rec = Recording.load("http://potoroo/recording/TAR010c-18-1.tar.gz")
-# rec = Recording.load("http://potoroo/baphy/271/bbl086b-11-1")
+# rec = Recording.load("http://potoroo/recordings/TAR010c-18-1.tar.gz")
+rec = Recording.load("http://potoroo/baphy/271/bbl086b-11-1")
 
 # Method #3: Load the data from S3: (TODO)
 # stimfile=("https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/"
@@ -126,7 +126,7 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
 # Optional: start from some prior
 # modelspec = nems.priors.set_random_phi(modelspec)
 
-print(nems.urls.modelspec_basepath(modelspec))
+# print(nems.urls.modelspec_basepath(modelspec))
 
 exit()
 # ----------------------------------------------------------------------------

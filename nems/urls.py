@@ -65,6 +65,7 @@ def save_to_url(url):
     URL may be a local file, an S3 file, or whatever.
     '''
 
+
 def save_modelspec_in_nemsdb(modelspec):
     baseurl = nemsdb_modelspec_basepath(modelspec)
     filename = 'modelspec.{:04d}.json'.format(number)

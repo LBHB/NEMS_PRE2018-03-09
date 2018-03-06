@@ -148,7 +148,7 @@ class Recording:
                 f = io.StringIO(t.extractfile(member).read().decode('utf-8'))
                 streams[signame][keyname] = f
         # Now that the streams are organized, convert them into signals
-        log.debug({k: streams[k].keys() for k in streams})
+        # log.debug({k: streams[k].keys() for k in streams})
         signals = [Signal.load_from_streams(**sg) for sg in streams.values()]
         signals_dict = {s.name: s for s in signals}
         return Recording(signals=signals_dict)
@@ -278,13 +278,15 @@ class Recording:
     def save(self, uri, uncompressed=False):
         '''
         Saves this recording to a URI as a compressed .tar.gz file.
+        Returns the URI of what was saved, or None if there was a problem.
+
         Optional argument 'uncompressed' may be used to force the save
         to occur as a directory full of uncompressed files, but this only
         works for URIs that point to the local filesystem.
 
         For example:
 
-        # Save to a local directory, naming it automatically
+        # Save to a local directory, use automatic filename
         rec.save('/home/username/recordings/')
 
         # Save it to a local file, with a specific name
@@ -293,23 +295,35 @@ class Recording:
         # Same, but with an explicit file:// prefix
         rec.save('file:///home/username/recordings/my_recording.tar.gz')
 
-        # Save it to the nems_db running on potoroo
+        # Save it to the nems_db running on potoroo, use automatic filename
+        rec.save('http://potoroo/recordings/')
+
+        # Save it to the nems_db running on potoroo, specific filename
         rec.save('http://potoroo/recordings/my_recording.tar.gz')
 
-        # Save it to AWS
+        # Save it to AWS (TODO, Not Implemented, Needs credentials)
         rec.save('s3://nems.amazonaws.com/somebucket/')
         '''
+        guessed_filename = self.name + '.tar.gz'
         if uri[0:7] == 'file://' and uri[-7:] == '.tar.gz':
-            return Recording.save_targz(uri[7:])
-        elif uri[0:7] == '/' and uri[-7:] == '.tar.gz':
-            return Recording.save_targz(uri)
+            return self.save_targz(uri[7:])
+        elif uri[0] == '/' and uri[-7:] == '.tar.gz':
+            return self.save_targz(uri)
         elif uri[0:7] == 'file://':
-            if os.path.isdir(uri[7:]):
-                return Recording.save_dir(uri[7:])
+            if uncompressed:
+                return self.save_dir(uri[7:])
             else:
-                return Recording.save_dir(uri)
+                return self.save_targz(uri[7:] + '/' + guessed_filename)
+        elif uri[0] == '/':
+            if uncompressed:
+                return self.save_dir(uri)
+            else:
+                return self.save_targz(uri + '/' + guessed_filename)
         elif uri[0:7] == 'http://' or uri[0:8] == 'https://':
-            return Recording.save_url(uri)
+            if uri[-7:] == '.tar.gz':
+                return self.save_url(uri)
+            elif uri[-1] == '/':
+                return self.save_url(uri + guessed_filename)
         elif uri[0:6] == 's3://':
             raise NotImplementedError
         else:
@@ -320,23 +334,29 @@ class Recording:
         Saves all the signals (CSV/JSON pairs) in this recording into
         DIRECTORY in a new directory named the same as this recording.
         '''
-        directory = os.path.join(directory, self.name)
+        if os.path.isdir(directory):
+            directory = os.path.join(directory, self.name)
+        elif os.path.exits(directory):
+            m = 'File named {} exists; unable to create dir'.format(directory)
+            raise ValueError(m)
+        else:
+            os.mkdir(directory)
         if not os.path.isdir(directory):
             os.makedirs(directory)
         for s in self.signals.values():
             s.save(directory)
+        return directory
 
     def save_targz(self, uri):
         '''
         Saves all the signals (CSV/JSON pairs) in this recording
         as a .tar.gz file at a local URI.
         '''
-        filename = self.name + '.tar.gz'
-        filepath = os.path.join(directory, filename)
-        with open(filepath, 'wb') as archive:
+        with open(uri, 'wb') as archive:
             tgz = self.as_targz()
             archive.write(tgz.read())
             tgz.close()
+        return uri
 
     def as_targz(self):
         '''
@@ -374,10 +394,22 @@ class Recording:
 
     def save_url(self, uri, compressed=False):
         '''
-        Saves this recording to a URL.
+        Saves this recording to a URL. Returns the URI if it succeeded,
+        else None. Check the return code to see if the URL save failed
+        and you need to save locally instead. e.g.
+
+        # Example: Try to save remotely, or save locally if it fails
+        if not rec.save_url(url):
+             rec.save('/tmp/')   # Save to /tmp as a fallback
         '''
-        # TODO
-        raise NotImplementedError
+        r = requests.put(uri, data=self.as_targz())
+        if r.status_code == 200:
+            return uri
+        else:
+            m = 'HTTP PUT failed (Code: {}) for {}.'.format(r.status_code,
+                                                            uri)
+            log.warn(m)
+            return None
 
     def get_signal(self, signal_name):
         '''
