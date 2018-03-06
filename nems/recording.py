@@ -57,7 +57,42 @@ class Recording:
         self.add_signal(val)
 
     @staticmethod
-    def load(directory_or_targz):
+    def load(uri):
+        '''
+        Loads from a local .tar.gz file, a local directory, from s3,
+        or from an HTTP URL containing a .tar.gz file. Examples:
+
+        # Load all signals in the gus016c-a2 directory
+        rec = Recording.load('/home/myuser/gus016c-a2')
+        rec = Recording.load('file:///home/myuser/gus016c-a2')
+
+        # Load the local tar gz directory.
+        rec = Recording.load('file:///home/myuser/gus016c-a2.tar.gz')
+
+        # Load a tar.gz file served from a flat filesystem
+        rec = Recording.load('http://potoroo/recordings/gus016c-a2.tar.gz')
+
+        # Load a tar.gz file created by the nems-baphy interafce
+        rec = Recording.load('http://potoroo/baphy/271/gus016c-a2')
+
+        # Load from S3:
+        rec = Recording.load('s3://nems.lbhb... TODO')
+        '''
+        if uri[0:7] == 'file://' and uri[-7:] == '.tar.gz':
+            return Recording.load_targz(uri[7:])
+        elif uri[0:7] == 'file://':
+            return Recording.load_dir(uri[7:])
+        elif uri[0] == '/':
+            return Recording.load_dir(uri)
+        elif uri[0:7] == 'http://' or uri[0:8] == 'https://':
+            return Recording.load_url(uri)
+        elif uri[0:6] == 's3://':
+            raise NotImplementedError
+        else:
+            raise ValueError('Invalid URI: {}'.format(uri))
+
+    @staticmethod
+    def load_dir(directory_or_targz):
         '''
         Loads all the signals (CSV/JSON pairs) found in DIRECTORY or
         .tar.gz file, and returns a Recording object containing all of them.
@@ -68,11 +103,17 @@ class Recording:
             signals = [Signal.load(f) for f in basepaths]
             signals_dict = {s.name: s for s in signals}
             return Recording(signals=signals_dict)
-        elif os.path.exists(directory_or_targz):
-            with open(directory_or_targz, 'rb') as stream:
+        else:
+            m = 'Not a directory: {}'.format(directory_or_targz)
+            raise ValueError(m)
+
+    @staticmethod
+    def load_targz(targz):
+        if os.path.exists(targz):
+            with open(targz, 'rb') as stream:
                 return Recording.load_from_targz_stream(stream)
         else:
-            m = 'Not a dir or .tar.gz file: {}'.format(directory_or_targz)
+            m = 'Not a .tar.gz file: {}'.format(targz)
             raise ValueError(m)
 
     @staticmethod
@@ -230,27 +271,68 @@ class Recording:
         # Combine into recording and return
         return Recording(signals)
 
+    def save(self, uri, uncompressed=False):
+        '''
+        Saves this recording to a URI as a compressed .tar.gz file.
+        Optional argument 'uncompressed' may be used to force the save
+        to occur as a directory full of uncompressed files, but this only
+        works for URIs that point to the local filesystem.
 
-    def save(self, directory, no_subdir=False, compressed=False):
+        For example:
+
+        # Save to a local directory, naming it automatically
+        rec.save('/home/username/recordings/')
+
+        # Save it to a local file, with a specific name
+        rec.save('/home/username/recordings/my_recording.tar.gz')
+
+        # Same, but with an explicit file:// prefix
+        rec.save('file:///home/username/recordings/my_recording.tar.gz')
+
+        # Save it to the nems_db running on potoroo
+        rec.save('http://potoroo/recordings/my_recording.tar.gz')
+
+        # Save it to AWS
+        rec.save('s3://nems.amazonaws.com/somebucket/')
+        '''
+        if uri[0:7] == 'file://' and uri[-7:] == '.tar.gz':
+            return Recording.save_targz(uri[7:])
+        elif uri[0:7] == '/' and uri[-7:] == '.tar.gz':
+            return Recording.save_targz(uri)
+        elif uri[0:7] == 'file://':
+            if os.path.isdir(uri[7:]):
+                return Recording.save_dir(uri[7:])
+            else:
+                return Recording.save_dir(uri)
+        elif uri[0:7] == 'http://' or uri[0:8] == 'https://':
+            return Recording.save_url(uri)
+        elif uri[0:6] == 's3://':
+            raise NotImplementedError
+        else:
+            raise ValueError('Invalid URI: {}'.format(uri))
+
+    def save_dir(self, directory):
         '''
         Saves all the signals (CSV/JSON pairs) in this recording into
         DIRECTORY in a new directory named the same as this recording.
-        If optional argument "compressed" is True, it will save the
-        recording as a .tar.gz file instead of as files in a directory.
         '''
-        if compressed:
-            filename = self.name + '.tar.gz'
-            filepath = os.path.join(directory, filename)
-            with open(filepath, 'wb') as archive:
-                tgz = self.as_targz()
-                archive.write(tgz.read())
-                tgz.close()
-        else:
-            directory = os.path.join(directory, self.name)
-            if not os.path.isdir(directory):
-                os.makedirs(directory)
-            for s in self.signals.values():
-                s.save(directory)
+        directory = os.path.join(directory, self.name)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        for s in self.signals.values():
+            s.save(directory)
+
+    def save_targz(self, uri):
+        '''
+        Saves all the signals (CSV/JSON pairs) in this recording
+        as a .tar.gz file at a local URI.
+        '''
+        filename = self.name + '.tar.gz'
+        filepath = os.path.join(directory, filename)
+        with open(filepath, 'wb') as archive:
+            tgz = self.as_targz()
+            archive.write(tgz.read())
+            tgz.close()
 
     def as_targz(self):
         '''
@@ -285,6 +367,13 @@ class Recording:
         tar.close()
         f.seek(0)
         return f
+
+    def save_url(self, uri, compressed=False):
+        '''
+        Saves this recording to a URL.
+        '''
+        # TODO
+        raise NotImplementedError
 
     def get_signal(self, signal_name):
         '''
