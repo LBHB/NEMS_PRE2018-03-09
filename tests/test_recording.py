@@ -1,18 +1,22 @@
 import nems.epoch as ep
 from nems.recording import Recording
 
-# TODO: Make this into a unit test:
 
-# rec = Recording.load(os.path.join(signals_dir, 'TAR010c-57-1'))
-# est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
+def test_recording_loading():
+    '''
+    Test the loading and saving of files to various HTTP/S3/File routes.
+    '''
+    # Local filesystem
+    #rec0 = Recording.load("/home/ivar/git/nems/signals/TAR010c-18-1.tar.gz")
+    #rec1 = Recording.load("/auto/data/tmp/recordings/TAR010c-18-1.tar.gz")
+    #rec2 = Recording.load("file:///auto/data/tmp/recordings/TAR010c-18-1.tar.gz")
 
-# print(ep.group_epochs_by_occurrence_counts(est['stim'].epochs, regex='^STIM_'))
-#val_epochs = ['STIM_00Oxford_male2b.wav', 'STIM_00ferretmixed41.wav', 'STIM_00ferretmixed42.wav']
-#mat = val['stim'].select_epochs(val_epochs).as_continuous()
-#print('Non-NaN elements: {}'.format(np.count_nonzero(mat)))
-#print('Total elements:   {}'.format(mat.size))
+    # HTTP
+    #rec3 = Recording.load("http://potoroo:3001/recordings/TAR010c-18-1.tar.gz")
+    #rec4 = Recording.load("http://potoroo/baphy/271/TAR010c-18-1")
 
-# assert(np.count_nonzero(mat) == mat.size)
-
-# This should (and does!) throw an exception because they are not in the est set.
-# print(est['stim'].select_epochs(val_epochs))
+    # S3
+    # Direct access (would need AWS CLI lib? Maybe not best idea!)
+    # rec5 = Recording.load('s3://mybucket/myfile.tar.gz')
+    # Indirect access via http:
+    rec6 = Recording.load('https://s3-us-west-2.amazonaws.com/nemspublic/sample_data/TAR010c-18-1.tar.gz')

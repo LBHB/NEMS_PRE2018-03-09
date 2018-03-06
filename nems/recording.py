@@ -82,6 +82,8 @@ class Recording:
             return Recording.load_targz(uri[7:])
         elif uri[0:7] == 'file://':
             return Recording.load_dir(uri[7:])
+        elif uri[0] == '/' and uri[-7:] == '.tar.gz':
+            return Recording.load_targz(uri)
         elif uri[0] == '/':
             return Recording.load_dir(uri)
         elif uri[0:7] == 'http://' or uri[0:8] == 'https://':
@@ -158,8 +160,9 @@ class Recording:
         '''
         r = requests.get(url, stream=True)
         if not (r.status_code == 200 and
-                r.headers['content-type'] == 'application/gzip'):
-            log.info('got response: {}, {}'.format(r.encoding, r.status_code))
+                (r.headers['content-type'] == 'application/gzip' or
+                 r.headers['content-type'] == 'application/x-tar')):
+            log.info('got response: {}, {}'.format(r.headers, r.status_code))
             m = 'Error loading URL: {}'.format(url)
             log.error(m)
             raise Exception(m)
