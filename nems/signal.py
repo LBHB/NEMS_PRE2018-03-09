@@ -784,6 +784,13 @@ class Signal:
                     ub += epoch_data.shape[1]-(ub-lb)
                 elif ub-lb > epoch_data.shape[1]:
                     ub -= (ub-lb)-epoch_data.shape[1]
+                if ub>data.shape[1]:
+                    ub -= ub-data.shape[1]
+                    epoch_data=epoch_data[:,0:(ub-lb)]
+                #print("Data len {0} {1}-{2} {3}".format(
+                #        data.shape[1],lb,ub,ub-lb))
+                #print(data[:, lb:ub].shape)
+                #print(epoch_data.shape)
                 data[:, lb:ub] = epoch_data
 
         return self._modified_copy(data)
