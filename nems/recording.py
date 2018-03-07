@@ -30,7 +30,7 @@ class Recording:
             raise ValueError('Not all signals are from the same recording.')
 
         self.name = recordings[0]
-        self.uri = None
+        self.uri = None  # This will be lost on copying
 
     def copy(self):
         '''

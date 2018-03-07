@@ -231,7 +231,7 @@ def fill_in_default_metadata(rec, modelspecs, **context):
             set_modelspec_metadata(modelspec, 'recording', recname)
         if 'recording_uri' not in meta:
             uri = rec.uri if rec and rec.uri else 'None'
-            set_modelspec_metadata(modelspec, 'recording_url', uri)
+            set_modelspec_metadata(modelspec, 'recording_uri', uri)
         if 'date' not in meta:
             set_modelspec_metadata(modelspec, 'date', iso8601_datestring())
         if 'hostname' not in meta:

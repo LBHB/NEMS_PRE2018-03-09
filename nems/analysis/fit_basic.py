@@ -42,6 +42,7 @@ def fit_basic(data, modelspec,
     A list containing a single modelspec, which has the best parameters found
     by this fitter.
     '''
+
     start_time = time.time()
 
     # Ensure that phi exists for all modules; choose prior mean if not found
@@ -99,12 +100,10 @@ def fit_basic(data, modelspec,
 
     elapsed_time = (time.time() - start_time)
 
+    # TODO: Should this maybe be moved to a higher level
+    # so it applies to ALL the fittters?
     ms.set_modelspec_metadata(improved_modelspec, 'fitter', metaname)
     ms.set_modelspec_metadata(improved_modelspec, 'fit_time', elapsed_time)
-    ms.set_modelspec_metadata(improved_modelspec, 'recording', data.name)
-    ms.set_modelspec_metadata(improved_modelspec, 'recording_uri', data.uri)
-    ms.set_modelspec_metadata(improved_modelspec, 'date',
-                              nems.utils.iso8601_datestring())
     results = [copy.deepcopy(improved_modelspec)]
     return results
 

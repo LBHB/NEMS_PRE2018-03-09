@@ -4,6 +4,7 @@ import numpy as np
 
 import nems.modelspec as ms
 
+
 def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
                  ax=None, cmap=None, clim=None, skip=0):
     '''
@@ -43,15 +44,16 @@ def _get_wc_coefficients(modelspec):
                 fn = ms._lookup_fn_at(m['fn_coefficients'])
                 kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
                 return fn(**kwargs)
-                
             else:
                 return m['phi']['coefficients']
+    return None
 
 
 def _get_fir_coefficients(modelspec):
     for m in modelspec:
         if 'fir_filter' in m['fn']:
             return m['phi']['coefficients']
+    return None
 
 
 def weight_channels_heatmap(modelspec, ax=None, clim=None):
@@ -67,9 +69,13 @@ def fir_heatmap(modelspec, ax=None, clim=None):
 
 
 def strf_heatmap(modelspec, ax=None, clim=None, show_factorized=True):
-    wc_coefs = np.array(_get_wc_coefficients(modelspec)).T
-    fir_coefs = np.array(_get_fir_coefficients(modelspec))
-    strf=wc_coefs @ fir_coefs
+    wcc = _get_wc_coefficients(modelspec)
+    wc_coefs = np.array(wcc).T if wcc else np.ones([1, 1])
+
+    firc = _get_fir_coefficients(modelspec)
+    fir_coefs = np.array(firc) if firc else np.ones([1, 1])
+
+    strf = wc_coefs @ fir_coefs
 
     if not clim:
         cscale = np.nanmax(np.abs(strf.reshape(-1)))
