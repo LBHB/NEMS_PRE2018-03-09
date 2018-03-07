@@ -27,11 +27,11 @@ def tree_path(modelspec):
     # Warn if not all metadata fields were found
     for f in ['fitter', 'recording', 'date']:
         if f not in meta:
-            log.warn('{} not found in metadata; using "unknown"'.format(f))
+            log.warn('{} not found in metadata; using "undefined"'.format(f))
     path = _tree_path(modelname=get_modelspec_shortname(modelspec),
-                      recording=meta.get('recording', 'unknown'),
-                      fitter=meta.get('fitter', 'unknown'),
-                      date=meta.get('date', nems.utils.iso8601_datestring()))
+                      recording=meta.get('recording', 'undefined'),
+                      fitter=meta.get('fitter', 'undefined'),
+                      date=meta.get('date', 'undefined'))
     return path
 
 

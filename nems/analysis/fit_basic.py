@@ -1,5 +1,6 @@
 import copy
 import logging
+import time
 from functools import partial
 from nems.fitters.api import dummy_fitter, coordinate_descent, scipy_minimize
 import nems.priors
@@ -41,6 +42,7 @@ def fit_basic(data, modelspec,
     A list containing a single modelspec, which has the best parameters found
     by this fitter.
     '''
+    start_time = time.time()
 
     # Ensure that phi exists for all modules; choose prior mean if not found
     for i, m in enumerate(modelspec):
@@ -94,8 +96,13 @@ def fit_basic(data, modelspec,
     # (might only be one in list, but still should be packaged as a list)
     improved_sigma = fitter(sigma, cost_fn, **fit_kwargs)
     improved_modelspec = unpacker(improved_sigma)
+
+    elapsed_time = (time.time() - start_time)
+
     ms.set_modelspec_metadata(improved_modelspec, 'fitter', metaname)
+    ms.set_modelspec_metadata(improved_modelspec, 'fit_time', elapsed_time)
     ms.set_modelspec_metadata(improved_modelspec, 'recording', data.name)
+    ms.set_modelspec_metadata(improved_modelspec, 'recording_uri', data.uri)
     ms.set_modelspec_metadata(improved_modelspec, 'date',
                               nems.utils.iso8601_datestring())
     results = [copy.deepcopy(improved_modelspec)]

@@ -1,21 +1,24 @@
+import re
 import os
 import copy
 import json
-import fnmatch
 import importlib
-import re
-
 import numpy as np
-import pandas as pd
-
 import nems.utils
 from nems.distributions.distribution import Distribution
 
 # Functions for saving, loading, and evaluating modelspecs
 
-# This next class from:
-# https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array
+# TODO: In retrospect, this should have been a class, just like Recording.
+#       Refactoring would not be too hard and would shorten many of these
+#       function names.
+
+
 class NumpyAwareJSONEncoder(json.JSONEncoder):
+    '''
+    For serializing Numpy arrays safely as JSONs. From:
+    https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array
+    '''
     def default(self, obj):
         if issubclass(type(obj), Distribution):
             return obj.tolist()

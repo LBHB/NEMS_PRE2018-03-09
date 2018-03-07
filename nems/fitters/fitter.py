@@ -1,4 +1,3 @@
-import time
 import logging
 import numpy as np
 import scipy as scp
@@ -76,8 +75,6 @@ def coordinate_descent(sigma, cost_fn, step_size=0.1, step_change=0.5,
             log.debug("sigma is now: {}".format(sigma))
 
     log.info("Final error: {}".format(stepinfo['err']))
-    now = time.time()
-    log.info("Run Time: {}".format(now - stepinfo['start_time']))
     return sigma
 
 
@@ -95,12 +92,9 @@ def scipy_minimize(sigma, cost_fn, method='L-BFGS-B',
     TODO: Pull in code from scipy.py in docs/planning to
           expose more output during iteration.
     """
-    start_time = time.time()
     result = scp.optimize.minimize(cost_fn, sigma, method=method,
                                    options=options)
-    finish_time = time.time()
     sigma = result.x
     final_err = cost_fn(sigma)
     log.info("Final error: {}".format(final_err))
-    log.info("Run Time: {}".format(finish_time - start_time))
     return sigma

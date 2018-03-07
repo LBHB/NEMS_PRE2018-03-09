@@ -1,6 +1,7 @@
 import io
 import copy
 import logging
+import socket
 import nems.analysis.api
 import nems.initializers as init
 import nems.metrics as metrics
@@ -9,13 +10,14 @@ import nems.modelspec as ms
 import nems.preprocessing as preproc
 import nems.urls as urls
 import nems.plots as nplt
-
+from nems.modelspec import set_modelspec_metadata, get_modelspec_metadata
+from nems.utils import iso8601_datestring
 from nems.fitters.api import scipy_minimize
 from nems.recording import Recording
 
 log = logging.getLogger(__name__)
 
-xforms = {}  # A mapping of kform keywords to xform 2-tuplets
+xforms = {}  # A mapping of kform keywords to xform 2-tuplets (2 element lists)
 
 
 def defxf(keyword, xformspec):
@@ -29,10 +31,23 @@ def defxf(keyword, xformspec):
     xforms[keyword] = xformspec
 
 
-def evaluate(xformspec, context={},stop=None):
+def load_xform(uri):
     '''
-    Just like modelspec.evaluate, but for xformspecs.
-    Wraps everything with a log file context, as well.
+    Loads and returns xform saved as a JSON.
+    '''
+    # xform = urls.load_json_at_uri(uri) # TODO
+    return xform
+
+
+def evaluate(xformspec, context={}, stop=None):
+    '''
+    Similar to modelspec.evaluate, but for xformspecs, which is a list of
+    2-element lists of function and keyword arguments dict. Each XFORM must
+    return a dictionary of the explicit changes made to the context, which
+    is the dict that is passed from xform to xform.
+
+    Also, this function wraps every logging call and saves it in 'log' at
+    the end of the evaluation.
     '''
     context = copy.deepcopy(context)  # Create a new starting context
 
@@ -40,7 +55,8 @@ def evaluate(xformspec, context={},stop=None):
     log_stream = io.StringIO()
     ch = logging.StreamHandler(log_stream)
     ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(fmt)
     ch.setFormatter(formatter)
     rootlogger = logging.getLogger()
     rootlogger.addHandler(ch)
@@ -53,8 +69,10 @@ def evaluate(xformspec, context={},stop=None):
             if k in context:
                 m = 'xf arg {} overlaps with context: {}'.format(k, xf)
                 raise ValueError(m)
-        # Merge args into context
-        args = {**xfargs, **context}
+        # Merge args into context, and make a deepcopy so that mutation
+        # inside xforms will not be propogated unless the arg is returned.
+        merged_args = {**xfargs, **context}
+        args = copy.deepcopy(merged_args)
         # Run the xf
         log.info('Evaluating: {}({})'.format(xf, args))
         new_context = fn(**args)
@@ -194,6 +212,31 @@ def add_summary_statistics(modelspecs, est, val, **context):
 def plot_summary(modelspecs, val, figures=[], **context):
     figures.append(nplt.plot_summary(val, modelspecs))
     return {'figures': figures}
+
+
+def fill_in_default_metadata(rec, modelspecs, **context):
+    '''
+    Sets any uninitialized metadata to defaults that should help us
+    find it in nems_db again. (fitter, recording, date, etc)
+    '''
+    # Add metadata to help you reload this state later
+    for modelspec in modelspecs:
+        meta = get_modelspec_metadata(modelspec)
+        if 'fitter' not in meta:
+            set_modelspec_metadata(modelspec, 'fitter', 'None')
+        if 'fit_time' not in meta:
+            set_modelspec_metadata(modelspec, 'fitter', 'None')
+        if 'recording' not in meta:
+            recname = rec.name if rec else 'None'
+            set_modelspec_metadata(modelspec, 'recording', recname)
+        if 'recording_uri' not in meta:
+            uri = rec.uri if rec and rec.uri else 'None'
+            set_modelspec_metadata(modelspec, 'recording_url', uri)
+        if 'date' not in meta:
+            set_modelspec_metadata(modelspec, 'date', iso8601_datestring())
+        if 'hostname' not in meta:
+            set_modelspec_metadata(modelspec, 'hostname', socket.gethostname())
+    return {'modelspecs': modelspecs}
 
 
 # TODO: Perturb around the modelspec to get confidence intervals

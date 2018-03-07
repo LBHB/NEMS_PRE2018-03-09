@@ -30,6 +30,7 @@ class Recording:
             raise ValueError('Not all signals are from the same recording.')
 
         self.name = recordings[0]
+        self.uri = None
 
     def copy(self):
         '''
@@ -79,19 +80,21 @@ class Recording:
         rec = Recording.load('s3://nems.lbhb... TODO')
         '''
         if uri[0:7] == 'file://' and uri[-7:] == '.tar.gz':
-            return Recording.load_targz(uri[7:])
+            rec = Recording.load_targz(uri[7:])
         elif uri[0:7] == 'file://':
-            return Recording.load_dir(uri[7:])
+            rec = Recording.load_dir(uri[7:])
         elif uri[0] == '/' and uri[-7:] == '.tar.gz':
-            return Recording.load_targz(uri)
+            rec = Recording.load_targz(uri)
         elif uri[0] == '/':
-            return Recording.load_dir(uri)
+            rec = Recording.load_dir(uri)
         elif uri[0:7] == 'http://' or uri[0:8] == 'https://':
-            return Recording.load_url(uri)
+            rec = Recording.load_url(uri)
         elif uri[0:6] == 's3://':
             raise NotImplementedError
         else:
             raise ValueError('Invalid URI: {}'.format(uri))
+        rec.uri = uri
+        return rec
 
     @staticmethod
     def load_dir(directory_or_targz):
@@ -305,6 +308,8 @@ class Recording:
         rec.save('s3://nems.amazonaws.com/somebucket/')
         '''
         guessed_filename = self.name + '.tar.gz'
+        if not self.uri:
+            self.uri = uri  # Set the URI metadata
         if uri[0:7] == 'file://' and uri[-7:] == '.tar.gz':
             return self.save_targz(uri[7:])
         elif uri[0] == '/' and uri[-7:] == '.tar.gz':

@@ -21,17 +21,18 @@ destination = 'http://potoroo/results'
 # Also, we can save it as a JSON to where the modelspec is also saved.
 
 xfspec = [
-    ('nems.xforms.load_recordings', {'recording_uri_list': recordings}),
-    ('nems.xforms.add_average_sig', {'signal_to_average': 'resp',
+    ['nems.xforms.load_recordings', {'recording_uri_list': recordings}],
+    ['nems.xforms.add_average_sig', {'signal_to_average': 'resp',
                                      'new_signalname': 'resp',
-                                     'epoch_regex': '^STIM_'}),
-    ('nems.xforms.split_by_occurrence_counts', {'epoch_regex': '^STIM_'}),
-    ('nems.xforms.init_from_keywords', {'keywordstring': modelstring}),
-    ('nems.xforms.set_random_phi',  {}),
-    ('nems.xforms.fit_basic',       {}),
-    # ('nems.xforms.add_summary_statistics',    {}),
-    # ('nems.xforms.plot_summary',    {}),
-    # ('nems.xforms.add_organizing_paths',    {}), # WIP
+                                     'epoch_regex': '^STIM_'}],
+    ['nems.xforms.split_by_occurrence_counts', {'epoch_regex': '^STIM_'}],
+    ['nems.xforms.init_from_keywords', {'keywordstring': modelstring}],
+    ['nems.xforms.set_random_phi',  {}],
+    ['nems.xforms.fit_basic',       {}],
+    # ['nems.xforms.add_summary_statistics',    {}],
+    # ['nems.xforms.plot_summary',    {}],
+    # ['nems.xforms.save_recordings', {'recordings': ['est', 'val']}],
+    ['nems.xforms.fill_in_default_metadata',    {}],
 ]
 
 ctx = xforms.evaluate(xfspec)
