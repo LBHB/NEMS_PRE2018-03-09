@@ -5,26 +5,13 @@ import json
 import importlib
 import numpy as np
 import nems.utils
-from nems.distributions.distribution import Distribution
+import nems.urls as urls
 
 # Functions for saving, loading, and evaluating modelspecs
 
 # TODO: In retrospect, this should have been a class, just like Recording.
 #       Refactoring would not be too hard and would shorten many of these
 #       function names.
-
-
-class NumpyAwareJSONEncoder(json.JSONEncoder):
-    '''
-    For serializing Numpy arrays safely as JSONs. From:
-    https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array
-    '''
-    def default(self, obj):
-        if issubclass(type(obj), Distribution):
-            return obj.tolist()
-        if isinstance(obj, np.ndarray):  # and obj.ndim == 1:
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
 
 
 def get_modelspec_metadata(modelspec):
@@ -77,10 +64,7 @@ def save_modelspec(modelspec, filepath):
     '''
     Saves a modelspec to filepath. Overwrites any existing file.
     '''
-    with open(filepath, mode='w+') as f:
-        json.dump(modelspec, f, cls=NumpyAwareJSONEncoder)
-    f.close()
-    os.chmod(filepath, 0o666)
+    urls.save_resource(filepath, json=modelspec)
 
 
 def save_modelspecs(directory, modelspecs, basename=None):
@@ -105,27 +89,6 @@ def save_modelspecs(directory, modelspecs, basename=None):
         filepath = _modelspec_filename(basepath, idx)
         save_modelspec(modelspec, filepath)
     return filepath
-
-
-def save_modelspec_to_nems_db(modelspecs, number=0):
-    '''
-    Saves a modelspec to the central DB.
-    '''
-    meta = get_modelspec_metadata(modelspec)
-    for f in ['fitter', 'recording', 'date']:
-        if not f in meta:
-            log.warn('{} not found in metadata.'.format(f))
-    url = as_url(modelname=get_modelspec_shortname(modelspec),
-                 recording=meta.get('recording', 'unknown'),
-                 fitter=meta.get('fitter', 'unknown'),
-                 date=meta.get('date', 'unknown'),
-                 filename='modelspec.{:04d}.json'.format(number))
-    r = requests.put(url, json=modelspec)
-    if r.status_code == 200:
-        return None
-    else:
-        error_message = '{}: {}'.format(r.status_code, r.text)
-        return error_message
 
 
 def load_modelspec(filepath):

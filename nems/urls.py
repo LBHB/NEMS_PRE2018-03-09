@@ -1,98 +1,160 @@
+import io
+import os
 import json as jsonlib
 import logging
 import requests
-import nems.utils
-from nems.modelspec import get_modelspec_shortname, get_modelspec_metadata, NumpyAwareJSONEncoder
+import numpy as np
+from requests.exceptions import ConnectionError
+from nems.distributions.distribution import Distribution
 
 log = logging.getLogger(__name__)
 
-# Where the filesystem organization of nems directories are decided
-
-def _tree_path(recording, modelname, fitter, date):
-    '''
-    Returns a relative path (excluding filename, host, port) for URLs.
-    Editing this function edits the relative path of every file saved!
-    '''
-    if not recording and modelname and fitter and date:
-        raise ValueError('Not all necessary fields defined!')
-    path = '/' + recording + '/' + modelname + '/' + fitter + '/' + date + '/'
-    return path
+# Where the filesystem organization of nems directories are decided,
+# and generic methods for saving and loading resources over HTTP or
+# to local files.
 
 
-def tree_path(modelspec):
+class NumpyAwareJSONEncoder(jsonlib.JSONEncoder):
     '''
-    Returns the relative path of a modelspec.
+    For serializing Numpy arrays safely as JSONs. From:
+    https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array
     '''
-    meta = get_modelspec_metadata(modelspec)
-    # Warn if not all metadata fields were found
-    for f in ['fitter', 'recording', 'date']:
-        if f not in meta:
-            log.warn('{} not found in metadata; using "undefined"'.format(f))
-    path = _tree_path(modelname=get_modelspec_shortname(modelspec),
-                      recording=meta.get('recording', 'undefined'),
-                      fitter=meta.get('fitter', 'undefined'),
-                      date=meta.get('date', 'undefined'))
-    return path
+    def default(self, obj):
+        if issubclass(type(obj), Distribution):
+            return obj.tolist()
+        if isinstance(obj, np.ndarray):  # and obj.ndim == 1:
+            return obj.tolist()
+        return jsonlib.JSONEncoder.default(self, obj)
 
 
-def http_put(url, data=None, json=None):
-    '''
-    A wrapper for an HTTP put request. Returns an error string if there
-    was a problem, or None if there were no errors. Please check the returned
-    value.
-    '''
-    if json:
-        # Serialize and unserialize to force numpy arrays to good json here
-        s = jsonlib.dumps(json, cls=NumpyAwareJSONEncoder)
-        js = jsonlib.loads(s)
-        r = requests.put(url, json=js)
-    elif data:
-        r = requests.put(url, data=data)
+def local_uri(uri):
+    '''Returns the local filepath if it is a local URI, else None.'''
+    if uri[0:7] == 'file://':
+        return uri[7:]
+    elif uri[0] == '/':
+        return uri
     else:
-        raise ValueError('data or json must be defined!')
-
-    if r.status_code == 200:
         return None
+
+
+def http_uri(uri):
+    '''Returns the URL if it is a HTTP/HTTPS URI, else None.'''
+    if uri[0:7] == 'http://' or uri[0:8] == 'https://':
+        return uri
     else:
-        message = 'HTTP PUT failed. Got {}: {}'.format(r.status_code, r.text)
-        log.warn(message)
-        return message
+        return None
 
 
-def save_to_nems_db(destination,
-                    modelspecs,
-                    xfspec,
-                    images,
-                    log):
-    # TODO: Ensure all modelspecs have the same organizing path
-    # or this next line may save things to the wrong place
-    treepath = tree_path(modelspecs[0])
-    base_uri = destination + treepath
-    for number, modelspec in enumerate(modelspecs):
-        http_put(base_uri + 'modelspec.{:04d}.json'.format(number),
-                 json=modelspec)
-    for number, image in enumerate(images):
-        http_put(base_uri + 'figure.{:04d}.png'.format(number),
-                 data=image)
-    http_put(base_uri + 'log.txt',
-             data=log)
-    http_put(base_uri + 'xfspec.json',
-             json=xfspec)
-    # TODO: check the return codes, and if there was a problem,
-    # have a fallback to a local file
-    return None
+def targz_uri(uri):
+    '''Returns the URI if it is a .tar.gz URI, else None.'''
+    if uri[-7:] == '.tar.gz' or uri[-4:] == '.tgz':
+        return uri
+    else:
+        return None
 
 
-# def load_modelspec(recording, modelname, fitter, date):
-#     url = as_url(modelname=modelname, recording=recording,
-#                  fitter=fitter, date=date)
-#     print("Sending get request with url: {}".format(url))
-#     r = requests.get(url)
-#     print("Got back json: {}".format(r))
+def tree_path(modelname='undefined',
+              recording='undefined',
+              fitter='undefined',
+              date='undefined',
+              **unused_kwargs):
+    '''
+    Returns a relative path (excluding filename, host, port) for URIs.
+    Editing this function edits the path in the file tree of every
+    file saved!
+    '''
+    # Warn if not all metadata fields were found
+    for f in [modelname, fitter, recording, date]:
+        if f == 'undefined':
+            log.warn('{} is "undefined" when making treepath'.format(f))
 
-# load_modelspec(
-#         recording='TAR010c-18-1',
-#         modelname='TAR010c-18-1.wc18x1_lvl1_fir15x1_dexp1.fit_basic.2018-03-04T03:32:25',
-#         fitter='fit_basic',
-#         date='2018-02-26T19:28:57'
-#         )
+    path = '/' + recording + '/' + modelname + '/' + fitter + '/' + date + '/'
+
+    return path
+
+
+def save_resource(uri, data=None, json=None):
+    '''
+    For saving a resource to a URI. Throws an exception if there was a
+    problem saving.
+    '''
+    err = None
+    if json:
+        if http_uri(uri):
+            # Serialize and unserialize to make numpy arrays safe
+            s = jsonlib.dumps(json, cls=NumpyAwareJSONEncoder)
+            js = jsonlib.loads(s)
+            try:
+                r = requests.put(uri, json=js)
+                if r.status_code != 200:
+                    err = 'HTTP PUT failed. Got {}: {}'.format(r.status_code,
+                                                               r.text)
+            except:
+                err = 'Unable to connect; is the host ok and URI correct?'
+            if err:
+                log.warn(err)
+                raise ConnectionError(err)
+        elif local_uri(uri):
+            filepath = local_uri(uri)
+            # Create any necessary directories
+            dirpath = os.path.dirname(filepath)
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+            with open(filepath, mode='w+') as f:
+                jsonlib.dump(json, f, cls=NumpyAwareJSONEncoder)
+                f.close()
+                os.chmod(filepath, 0o666)
+        else:
+            raise ValueError('URI type unknown')
+    elif data:
+        if http_uri(uri):
+            try:
+                r = requests.put(uri, data=data)
+                if r.status_code != 200:
+                    err = 'HTTP PUT failed. Got {}: {}'.format(r.status_code,
+                                                               r.text)
+            except:
+                err = 'Unable to connect; is the host ok and URI correct?'
+            if err:
+                log.warn(err)
+                raise ConnectionError(err)
+        elif local_uri(uri):
+            filepath = local_uri(uri)
+            dirpath = os.path.dirname(filepath)
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+            if type(data) is str:
+                d = io.BytesIO(data.encode())
+            else:
+                d = io.BytesIO(data)
+            with open(filepath, mode='wb') as f:
+                f.write(d.read())
+            os.chmod(filepath, 0o666)
+        else:
+            raise ValueError('URI type unknown')
+    else:
+        raise ValueError('optional args data or json must be defined!')
+    return err
+
+
+def load_resource(uri):
+    '''
+    Loads and returns the resource (probably a JSON) found at URI.
+    '''
+    if http_uri(uri):
+        r = requests.get(uri)
+        if r.status_code != 200:
+            err = 'HTTP GET failed. Got {}: {}'.format(r.status_code,
+                                                       r.text)
+            raise ConnectionError(err)
+        if r.json:
+            return r.json
+        else:
+            return r.data
+    elif local_uri(uri):
+        filepath = local_uri(uri)
+        with open(filepath, mode='r') as f:
+            resource = f.read()
+        return resource
+    else:
+        raise ValueError('URI resource type unknown')

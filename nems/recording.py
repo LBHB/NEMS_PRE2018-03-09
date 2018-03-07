@@ -8,6 +8,7 @@ import requests
 import pandas as pd
 import numpy as np
 import copy
+from nems.urls import local_uri, http_uri, targz_uri
 import nems.epoch as ep
 from .signal import Signal
 
@@ -79,16 +80,13 @@ class Recording:
         # Load from S3:
         rec = Recording.load('s3://nems.lbhb... TODO')
         '''
-        if uri[0:7] == 'file://' and uri[-7:] == '.tar.gz':
-            rec = Recording.load_targz(uri[7:])
-        elif uri[0:7] == 'file://':
-            rec = Recording.load_dir(uri[7:])
-        elif uri[0] == '/' and uri[-7:] == '.tar.gz':
-            rec = Recording.load_targz(uri)
-        elif uri[0] == '/':
-            rec = Recording.load_dir(uri)
-        elif uri[0:7] == 'http://' or uri[0:8] == 'https://':
-            rec = Recording.load_url(uri)
+        if local_uri(uri):
+            if targz_uri(uri):
+                rec = Recording.load_targz(local_uri(uri))
+            else:
+                rec = Recording.load_dir(local_uri(uri))
+        elif http_uri(uri):
+            rec = Recording.load_url(http_uri(uri))
         elif uri[0:6] == 's3://':
             raise NotImplementedError
         else:
@@ -308,27 +306,25 @@ class Recording:
         rec.save('s3://nems.amazonaws.com/somebucket/')
         '''
         guessed_filename = self.name + '.tar.gz'
+        # Set the URI metadata since we are writing to a URI now
         if not self.uri:
-            self.uri = uri  # Set the URI metadata
-        if uri[0:7] == 'file://' and uri[-7:] == '.tar.gz':
-            return self.save_targz(uri[7:])
-        elif uri[0] == '/' and uri[-7:] == '.tar.gz':
-            return self.save_targz(uri)
-        elif uri[0:7] == 'file://':
-            if uncompressed:
-                return self.save_dir(uri[7:])
-            else:
-                return self.save_targz(uri[7:] + '/' + guessed_filename)
-        elif uri[0] == '/':
-            if uncompressed:
+            self.uri = uri
+        if local_uri(uri):
+            uri = local_uri(uri)
+            if targz_uri(uri):
+                return self.save_targz(uri)
+            elif uncompressed:
                 return self.save_dir(uri)
             else:
-                return self.save_targz(uri + '/' + guessed_filename)
-        elif uri[0:7] == 'http://' or uri[0:8] == 'https://':
-            if uri[-7:] == '.tar.gz':
+                return self.save_targz(uri[7:] + '/' + guessed_filename)
+        elif http_uri(uri):
+            uri = http_uri(uri)
+            if targz_uri(uri):
                 return self.save_url(uri)
             elif uri[-1] == '/':
                 return self.save_url(uri + guessed_filename)
+            else:
+                return self.save_url(uri + '/' + guessed_filename)
         elif uri[0:6] == 's3://':
             raise NotImplementedError
         else:

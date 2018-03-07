@@ -19,20 +19,20 @@ def fit_model(recording_uri, modelstring, destination):
         ['nems.xforms.split_by_occurrence_counts', {'epoch_regex': '^STIM_'}],
         ['nems.xforms.init_from_keywords', {'keywordstring': modelstring}],
         ['nems.xforms.set_random_phi',  {}],
-        ['nems.xforms.fit_basic',       {}],
+        # ['nems.xforms.fit_basic',       {}],
         # ['nems.xforms.add_summary_statistics',    {}],
         # ['nems.xforms.plot_summary',    {}],
         # ['nems.xforms.save_recordings', {'recordings': ['est', 'val']}],
         ['nems.xforms.fill_in_default_metadata',    {}],
     ]
 
-    ctx = xforms.evaluate(xfspec)
+    ctx, log = xforms.evaluate(xfspec)
 
-    urls.save_to_nems_db(destination,
+    xforms.save_analysis(destination,
                          modelspecs=ctx['modelspecs'],
                          xfspec=xfspec,
                          images=[],  # No images yet; put in ctx['images'] later
-                         log=ctx['log'])
+                         log=log)
 
 
 def print_usage():

@@ -5,12 +5,12 @@ import socket
 import nems.analysis.api
 import nems.initializers as init
 import nems.metrics as metrics
-import nems.priors as priors
 import nems.modelspec as ms
-import nems.preprocessing as preproc
-import nems.urls as urls
+from nems.modelspec import set_modelspec_metadata, get_modelspec_metadata, get_modelspec_shortname
 import nems.plots as nplt
-from nems.modelspec import set_modelspec_metadata, get_modelspec_metadata
+import nems.preprocessing as preproc
+import nems.priors as priors
+from nems.urls import tree_path, save_resource, load_resource
 from nems.utils import iso8601_datestring
 from nems.fitters.api import scipy_minimize
 from nems.recording import Recording
@@ -35,7 +35,7 @@ def load_xform(uri):
     '''
     Loads and returns xform saved as a JSON.
     '''
-    # xform = urls.load_json_at_uri(uri) # TODO
+    xform = load_resource(uri) # TODO
     return xform
 
 
@@ -46,8 +46,8 @@ def evaluate(xformspec, context={}, stop=None):
     return a dictionary of the explicit changes made to the context, which
     is the dict that is passed from xform to xform.
 
-    Also, this function wraps every logging call and saves it in 'log' at
-    the end of the evaluation.
+    Also, this function wraps every logging call and saves it in a log
+    that is the second value returned by this function.
     '''
     context = copy.deepcopy(context)  # Create a new starting context
 
@@ -85,9 +85,8 @@ def evaluate(xformspec, context={}, stop=None):
     log.info('Done evaluating xforms.')
     ch.close()
     rootlogger.removeFilter(ch)
-    context['log'] = log_stream.getvalue()
 
-    return context
+    return context, log_stream.getvalue()
 
 
 ###############################################################################
@@ -252,3 +251,29 @@ def fill_in_default_metadata(rec, modelspecs, **context):
 # TODO: Use 10-fold cross-validated evaluation
 # fitter = partial(nems.cross_validator.cross_validate_wrapper, gradient_descent, 10)
 # modelspecs = nems.analysis.fit_cv(est, modelspec, folds=10)
+
+
+def save_analysis(destination,
+                  modelspecs,
+                  xfspec,
+                  images,
+                  log):
+    '''Save an analysis file collection to a particular destination.'''
+
+    # TODO: Ensure all modelspecs have the same organizing treepath
+    # or these next lines may save things to the wrong place
+    meta = copy.deepcopy(get_modelspec_metadata(modelspecs[0]))
+    meta['modelname'] = get_modelspec_shortname(modelspecs[0])
+
+    treepath = tree_path(**meta)
+    base_uri = destination + treepath
+
+    for number, modelspec in enumerate(modelspecs):
+        save_resource(base_uri + 'modelspec.{:04d}.json'.format(number),
+                      json=modelspec)
+    for number, image in enumerate(images):
+        save_resource(base_uri + 'figure.{:04d}.png'.format(number),
+                      data=image)
+    save_resource(base_uri + 'log.txt', data=log)
+    save_resource(base_uri + 'xfspec.json', json=xfspec)
+    return {}
