@@ -7,7 +7,7 @@ import nems.initializers as init
 import nems.metrics as metrics
 import nems.modelspec as ms
 from nems.modelspec import set_modelspec_metadata, get_modelspec_metadata, get_modelspec_shortname
-import nems.plots as nplt
+import nems.plots.api as nplt
 import nems.preprocessing as preproc
 import nems.priors as priors
 from nems.urls import tree_path, save_resource, load_resource
@@ -202,6 +202,11 @@ def fit_jackknifes(modelspecs, est, njacks, **context):
     return {'modelspecs': modelspecs}
 
 
+def save_recordings(modelspecs, est, val, **context):
+    # TODO: Save the recordings somehow?
+    return {'modelspecs': modelspecs}
+
+
 def add_summary_statistics(modelspecs, est, val, **context):
     # modelspecs = metrics.add_summary_statistics(est, val, modelspecs)
     # TODO: Add statistics to metadata of every modelspec
@@ -209,7 +214,11 @@ def add_summary_statistics(modelspecs, est, val, **context):
 
 
 def plot_summary(modelspecs, val, figures=[], **context):
-    figures.append(nplt.plot_summary(val, modelspecs))
+    fig = nplt.plot_summary(val, modelspecs)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    buf.seek(0)
+    figures.append(buf)
     return {'figures': figures}
 
 

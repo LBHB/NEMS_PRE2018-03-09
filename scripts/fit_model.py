@@ -2,7 +2,6 @@
 
 import sys
 import nems.xforms as xforms
-import nems.urls as urls
 
 
 def fit_model(recording_uri, modelstring, destination):
@@ -19,9 +18,9 @@ def fit_model(recording_uri, modelstring, destination):
         ['nems.xforms.split_by_occurrence_counts', {'epoch_regex': '^STIM_'}],
         ['nems.xforms.init_from_keywords', {'keywordstring': modelstring}],
         ['nems.xforms.set_random_phi',  {}],
-        # ['nems.xforms.fit_basic',       {}],
+        ['nems.xforms.fit_basic',       {}],
         # ['nems.xforms.add_summary_statistics',    {}],
-        # ['nems.xforms.plot_summary',    {}],
+        ['nems.xforms.plot_summary',    {}],
         # ['nems.xforms.save_recordings', {'recordings': ['est', 'val']}],
         ['nems.xforms.fill_in_default_metadata',    {}],
     ]
@@ -31,7 +30,7 @@ def fit_model(recording_uri, modelstring, destination):
     xforms.save_analysis(destination,
                          modelspecs=ctx['modelspecs'],
                          xfspec=xfspec,
-                         images=[],  # No images yet; put in ctx['images'] later
+                         images=ctx['figures'],
                          log=log)
 
 

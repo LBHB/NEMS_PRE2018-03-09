@@ -125,6 +125,8 @@ def save_resource(uri, data=None, json=None):
                 os.makedirs(dirpath)
             if type(data) is str:
                 d = io.BytesIO(data.encode())
+            elif type(data) is io.BytesIO:
+                d = data
             else:
                 d = io.BytesIO(data)
             with open(filepath, mode='wb') as f:
