@@ -12,11 +12,10 @@ import nems.plots as nplt
 
 from nems.fitters.api import scipy_minimize
 from nems.recording import Recording
-from nems.keywords import _lookup_fn_at
 
 log = logging.getLogger(__name__)
 
-xforms = {}  # A mapping of kform keywords to xform functions
+xforms = {}  # A mapping of kform keywords to xform 2-tuplets
 
 
 def defxf(keyword, xformspec):
@@ -30,42 +29,52 @@ def defxf(keyword, xformspec):
     xforms[keyword] = xformspec
 
 
-def evaluate(context, xformspec, stop=None):
+def evaluate(xformspec, context={},stop=None):
     '''
     Just like modelspec.evaluate, but for xformspecs.
     Wraps everything with a log file context, as well.
     '''
     context = copy.deepcopy(context)  # Create a new starting context
 
-    # Create a logging stream at the debug level, and add it as a handler
+    # Create a log stream set to the debug level; add it as a root log handler
     log_stream = io.StringIO()
     ch = logging.StreamHandler(log_stream)
     ch.setLevel(logging.DEBUG)
-    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    # ch.setFormatter(formatter)
-    log.addHandler(ch)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    rootlogger = logging.getLogger()
+    rootlogger.addHandler(ch)
 
     # Evaluate the xforms
-    for xf in xformspec[:stop]:
-        fn = _lookup_fn_at(xf['xf'])
+    for xf, xfargs in xformspec[:stop]:
+        fn = ms._lookup_fn_at(xf)
         # Check for collisions; more to avoid confusion than for correctness:
-        for k in xf['xf_kwargs']:
-            m = 'xf kwarg {} overlaps with context: {}'.format(k, xf)
-            raise ValueError(m)
+        for k in xfargs:
+            if k in context:
+                m = 'xf arg {} overlaps with context: {}'.format(k, xf)
+                raise ValueError(m)
         # Merge args into context
-        args = {**xf['xf_kwargs'], **xf['context']}
+        args = {**xfargs, **context}
         # Run the xf
-        log.info('Evaluating: {}'.xf['xf'])
+        log.info('Evaluating: {}({})'.format(xf, args))
         new_context = fn(**args)
         # Use the new context for the next step
         if type(new_context) is not dict:
             raise ValueError('xf did not return a context dict: {}'.format(xf))
-        context = new_context
+        context = {**context, **new_context}
+
     # Close the log, remove the handler, and add the 'log' string to context
+    log.info('Done evaluating xforms.')
     ch.close()
-    log.removeFilter(ch)
-    context['log'] = log_stream.get_value()
+    rootlogger.removeFilter(ch)
+    context['log'] = log_stream.getvalue()
+
     return context
+
+
+###############################################################################
+# Stuff below this line are useful resuable components.
+# See xforms_test.py for how to use it.
 
 
 def load_recordings(recording_uri_list, **context):
@@ -74,19 +83,21 @@ def load_recordings(recording_uri_list, **context):
     '''
     rec = Recording.load(recording_uri_list[0])
     other_recordings = [Recording.load(uri) for uri in recording_uri_list[1:]]
-    rec.concatenate_recordings(other_recordings)
+    if other_recordings:
+        rec.concatenate_recordings(other_recordings)
     return {'rec': rec}
 
 
-def add_respavg(rec, **context):
+def add_average_sig(rec, signal_to_average, new_signalname, epoch_regex,
+                    **context):
     rec = preproc.add_average_sig(rec,
-                                  signal_to_average='resp',
-                                  new_signalname='resp',
-                                  epoch_regex='^STIM_')
+                                  signal_to_average=signal_to_average,
+                                  new_signalname=new_signalname,
+                                  epoch_regex=epoch_regex)
     return {'rec': rec}
 
 
-def split_est_val_by_stim_repetition_count(rec, **context):
+def split_by_occurrence_counts(rec, **context):
     est, val = rec.split_using_epoch_occurrence_counts(epoch_regex='^STIM_')
     return {'est': est, 'val': val}
 
@@ -108,8 +119,7 @@ def use_all_data_for_est_and_val(rec, **context):
     return {'est': est, 'val': val}
 
 
-# 'wc18x1_lvl1_fir15x1_dexp1'
-def initialize_modelspec(keywordstring, **context):
+def init_from_keywords(keywordstring, **context):
     modelspec = init.from_keywords(keywordstring)
     return {'modelspecs': [modelspec]}
 
@@ -119,17 +129,17 @@ def load_modelspecs(uris, **context):
     return {'modelspecs': modelspecs}
 
 
-def start_random_phi(modelspecs, **context):
+def set_random_phi(modelspecs, **context):
     ''' Starts all modelspecs at random phi sampled from the priors. '''
     modelspecs = [priors.set_random_phi(m) for m in modelspecs]
     return {'modelspecs': modelspecs}
 
 
 def fit_basic(modelspecs, est, **context):
-    ''' A basic fit that returns a single modelspec. '''
+    ''' A basic fit that optimizes every input modelspec. '''
     modelspecs = [nems.analysis.api.fit_basic(est,
                                               modelspec,
-                                              fitter=scipy_minimize)
+                                              fitter=scipy_minimize)[0]
                   for modelspec in modelspecs]
     return {'modelspecs': modelspecs}
 
@@ -175,24 +185,15 @@ def fit_jackknifes(modelspecs, est, njacks, **context):
     return {'modelspecs': modelspecs}
 
 
-def save_it_all(modelspecs, est, val, log, results, base_destination,
-                **context):
-    ''' Default save routine. '''
-    relative_path = urls.relative_path(modelspecs[0])
-    destination = base_destination + relative_path
-    # log.info('Computing performance...')
-    modelspecs = metrics.add_summary_statistics(est, val, modelspecs)
-    # log.info('Saving Modelspecs...')
-    ms.save_modelspecs(destination, modelspecs)
-    # log.info('Plotting...')
-    figures = []
-    figures[0] = nplt.plot_summary(val, modelspecs)
-    figures[1] = nplt.plot_models(val, modelspecs)
-    # log.info('Saving plots...')
-    # save_plots(base_destination, figures)
-    # log.info('Saving logfile...')
-    # save_logfile(destination, log)
+def add_summary_statistics(modelspecs, est, val, **context):
+    # modelspecs = metrics.add_summary_statistics(est, val, modelspecs)
+    # TODO: Add statistics to metadata of every modelspec
+    return {'modelspecs': modelspecs}
 
+
+def plot_summary(modelspecs, val, figures=[], **context):
+    figures.append(nplt.plot_summary(val, modelspecs))
+    return {'figures': figures}
 
 
 # TODO: Perturb around the modelspec to get confidence intervals

@@ -1,6 +1,8 @@
+import json as jsonlib
 import logging
 import requests
-from nems.modelspec import get_modelspec_shortname, get_modelspec_metadata
+import nems.utils
+from nems.modelspec import get_modelspec_shortname, get_modelspec_metadata, NumpyAwareJSONEncoder
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ def tree_path(modelspec):
     path = _tree_path(modelname=get_modelspec_shortname(modelspec),
                       recording=meta.get('recording', 'unknown'),
                       fitter=meta.get('fitter', 'unknown'),
-                      date=meta.get('date', 'unknown'))
+                      date=meta.get('date', nems.utils.iso8601_datestring()))
     return path
 
 
@@ -40,7 +42,10 @@ def http_put(url, data=None, json=None):
     value.
     '''
     if json:
-        r = requests.put(url, json=json)
+        # Serialize and unserialize to force numpy arrays to good json here
+        s = jsonlib.dumps(json, cls=NumpyAwareJSONEncoder)
+        js = jsonlib.loads(s)
+        r = requests.put(url, json=js)
     elif data:
         r = requests.put(url, data=data)
     else:
@@ -56,21 +61,25 @@ def http_put(url, data=None, json=None):
 
 def save_to_nems_db(destination,
                     modelspecs,
+                    xfspec,
                     images,
                     log):
-    # TODO: Ensure all modelspecs basically the same or this next line may save things to the wrong place
+    # TODO: Ensure all modelspecs have the same organizing path
+    # or this next line may save things to the wrong place
     treepath = tree_path(modelspecs[0])
+    base_uri = destination + treepath
     for number, modelspec in enumerate(modelspecs):
-        filename = 'modelspec.{:04d}.json'.format(number)
-        uri = destination + treepath + filename
-        http_put(uri, json=modelspec)
+        http_put(base_uri + 'modelspec.{:04d}.json'.format(number),
+                 json=modelspec)
     for number, image in enumerate(images):
-        filename = 'figure.{:04d}.png'.format(number)
-        uri = destination + treepath + filename
-        http_put(uri, data=image)
-    filename = 'log.txt'
-    uri = destination + treepath + filename
-    http_put(uri, data=log)
+        http_put(base_uri + 'figure.{:04d}.png'.format(number),
+                 data=image)
+    http_put(base_uri + 'log.txt',
+             data=log)
+    http_put(base_uri + 'xfspec.json',
+             json=xfspec)
+    # TODO: check the return codes, and if there was a problem,
+    # have a fallback to a local file
     return None
 
 
