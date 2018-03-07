@@ -31,8 +31,8 @@ def defkey_wc(n_inputs, n_outputs):
     return defkey(name, template)
 
 
-defkey_wc(40, 1)
-defkey_wc(18, 1)
+defkey_wc(40, 1)  # wc40x1
+defkey_wc(18, 1)  # wc18x1
 defkey_wc(18, 2)
 
 # gaussian weight channels
@@ -42,8 +42,8 @@ defkey('wcg18x1',
                       'o': 'pred',
                       'num_chan_in': 18},
         'fn_coefficients': 'nems.modules.weight_channels._gaussian_coefs',
-        'prior': {'mn': ('Normal', {'mu': [0.5],'sd': [1]}),
-                  'sig': ('Normal', {'mu': [0.5],'sd': [1]})
+        'prior': {'mn': ('Normal', {'mu': [0.5], 'sd': [1]}),
+                  'sig': ('Normal', {'mu': [0.5], 'sd': [1]})
             }
         })
 defkey('wcg18x2',
@@ -52,8 +52,8 @@ defkey('wcg18x2',
                       'o': 'pred',
                       'num_chan_in': 18},
         'fn_coefficients': 'nems.modules.weight_channels._gaussian_coefs',
-        'prior': {'mn': ('Normal', {'mu': [0.4,0.6],'sd': [1,1]}),
-                  'sig': ('Normal', {'mu': [0.5,0.5],'sd': [1,1]})
+        'prior': {'mn': ('Normal', {'mu': [0.4, 0.6], 'sd': [1, 1]}),
+                  'sig': ('Normal', {'mu': [0.5, 0.5], 'sd': [1, 1]})
             }
         })
         

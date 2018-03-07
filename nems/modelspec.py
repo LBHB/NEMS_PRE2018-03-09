@@ -13,7 +13,6 @@ from nems.distributions.distribution import Distribution
 
 # Functions for saving, loading, and evaluating modelspecs
 
-
 # This next class from:
 # https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array
 class NumpyAwareJSONEncoder(json.JSONEncoder):
@@ -27,9 +26,9 @@ class NumpyAwareJSONEncoder(json.JSONEncoder):
 
 def get_modelspec_metadata(modelspec):
     '''
-    Returns a dict of the metadata for this modelspec.
+    Returns a dict of the metadata for this modelspec. Purely by convention,
+    metadata info for the entire modelspec is stored in the first module.
     '''
-    # TODO: Consider putting this elsewhere?
     return modelspec[0].get('meta', {})
 
 
@@ -54,7 +53,8 @@ def get_modelspec_shortname(modelspec):
 
 def get_modelspec_longname(modelspec):
     '''
-    Returns a LONG name for this modelspec suitable for use in saving to disk.
+    Returns a LONG name for this modelspec suitable for use in saving to disk
+    without a path.
     '''
     meta = get_modelspec_metadata(modelspec)
     recording_name = meta.get('recording', 'unknown_recording')
@@ -129,8 +129,7 @@ def load_modelspec(filepath):
     '''
     Returns a single modelspecs loaded from filepath.
     '''
-    json_data=open(filepath).read()
-    
+    json_data = open(filepath).read()
     ms = json.loads(json_data)
     return ms
 
@@ -212,8 +211,10 @@ def evaluate(rec, modelspec, stop=None):
             d.add_signal(s)
     return d
 
+
 def summary_stats(modelspecs):
-    """Generates summary statistics for a list of modelspecs.
+    '''
+    Generates summary statistics for a list of modelspecs.
     Each modelspec must be of the same length and contain the same
     modules (though they need not be in the same order).
 
@@ -234,7 +235,7 @@ def summary_stats(modelspecs):
         Each contains one key for each parameter, of the form:
             {'<modelspec_index>_<parameter_name>': <mean value>}
             or {'<modelspec_index>_<parameter_name>': <standard deviation>}
-    """
+    '''
     # Don't modify the modelspecs themselves
     modelspecs = [m.copy() for m in modelspecs]
 
@@ -298,8 +299,6 @@ def summary_stats(modelspecs):
 
     return means, stds
 
-# TODO:
-# 1. What about collisions between phi and fn_kwargs?
-# 2. Error checking. Is anything like this needed?
-#    if not (rec and i and o and base and amplitude and shift and kappa):
-#        raise ValueError('Not all arguments given to double_exponential')
+# TODO: Check that the word 'phi' is not used in fn_kwargs
+# TODO: Error checking the modelspec before execution;
+# TODO: Validation of modules json schema; all require args should be present
