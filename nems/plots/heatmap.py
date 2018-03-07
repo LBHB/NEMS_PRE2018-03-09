@@ -1,8 +1,9 @@
-import logging as log
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
-
 import nems.modelspec as ms
+
+log = logging.getLogger(__name__)
 
 
 def plot_heatmap(array, xlabel='Dim One', ylabel='Dim Two',
@@ -42,7 +43,7 @@ def _get_wc_coefficients(modelspec):
         if 'weight_channels' in m['fn']:
             if 'fn_coefficients' in m.keys():
                 fn = ms._lookup_fn_at(m['fn_coefficients'])
-                kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges both dicts
+                kwargs = {**m['fn_kwargs'], **m['phi']}  # Merges dicts
                 return fn(**kwargs)
             else:
                 return m['phi']['coefficients']
@@ -70,12 +71,19 @@ def fir_heatmap(modelspec, ax=None, clim=None):
 
 def strf_heatmap(modelspec, ax=None, clim=None, show_factorized=True):
     wcc = _get_wc_coefficients(modelspec)
-    wc_coefs = np.array(wcc).T if wcc else np.ones([1, 1])
-
     firc = _get_fir_coefficients(modelspec)
-    fir_coefs = np.array(firc) if firc else np.ones([1, 1])
-
-    strf = wc_coefs @ fir_coefs
+    if wcc is None and firc is None:
+        log.warn('Unable to generate STRF.')
+    elif wcc is None and firc is not None:
+        strf = np.array(firc)
+        show_factorized = False
+    elif wcc is not None and firc is None:
+        strf = np.array(wcc).T
+        show_factorized = False
+    else:
+        wc_coefs = np.array(wcc).T
+        fir_coefs = np.array(firc)
+        strf = wc_coefs @ fir_coefs
 
     if not clim:
         cscale = np.nanmax(np.abs(strf.reshape(-1)))
