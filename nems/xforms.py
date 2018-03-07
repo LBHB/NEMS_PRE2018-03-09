@@ -215,10 +215,8 @@ def add_summary_statistics(modelspecs, est, val, **context):
 
 def plot_summary(modelspecs, val, figures=[], **context):
     fig = nplt.plot_summary(val, modelspecs)
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png')
-    buf.seek(0)
-    figures.append(buf)
+    # Needed to make into a Bytes because you can't deepcopy figures!
+    figures.append(nplt.fig2BytesIO(fig))
     return {'figures': figures}
 
 
@@ -265,7 +263,7 @@ def fill_in_default_metadata(rec, modelspecs, **context):
 def save_analysis(destination,
                   modelspecs,
                   xfspec,
-                  images,
+                  figures,
                   log):
     '''Save an analysis file collection to a particular destination.'''
 
@@ -280,9 +278,9 @@ def save_analysis(destination,
     for number, modelspec in enumerate(modelspecs):
         save_resource(base_uri + 'modelspec.{:04d}.json'.format(number),
                       json=modelspec)
-    for number, image in enumerate(images):
+    for number, figure in enumerate(figures):
         save_resource(base_uri + 'figure.{:04d}.png'.format(number),
-                      data=image)
+                      data=figure)
     save_resource(base_uri + 'log.txt', data=log)
     save_resource(base_uri + 'xfspec.json', json=xfspec)
     return {}

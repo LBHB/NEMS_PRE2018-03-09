@@ -1,3 +1,4 @@
+import io
 import os
 import logging
 import matplotlib.image as mpimg
@@ -152,3 +153,13 @@ def _get_figure_filepath(directory, modelspecs, format):
     mname = ms.get_modelspec_name(mspec)
     fname = os.path.join(directory, mname) + "." + format
     return fname
+
+
+def fig2BytesIO(figure):
+    '''
+    Returns a figure as PNG stored in a BytesIO object.
+    '''
+    buf = io.BytesIO()
+    figure.savefig(buf, format='png')
+    buf.seek(0)
+    return buf

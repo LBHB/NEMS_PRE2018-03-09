@@ -30,7 +30,7 @@ def fit_model(recording_uri, modelstring, destination):
     xforms.save_analysis(destination,
                          modelspecs=ctx['modelspecs'],
                          xfspec=xfspec,
-                         images=ctx['figures'],
+                         figures=ctx['figures'],
                          log=log)
 
 

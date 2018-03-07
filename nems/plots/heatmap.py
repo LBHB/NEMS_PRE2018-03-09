@@ -112,7 +112,7 @@ def strf_heatmap(modelspec, ax=None, clim=None, show_factorized=True):
         everything = np.concatenate([top, bot], axis=0)
         skip = nchans + 1
     else:
-        everything = np.strf
+        everything = strf
         skip = 0
 
     plot_heatmap(everything, xlabel='Time Bin',
