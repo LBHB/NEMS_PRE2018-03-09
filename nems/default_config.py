@@ -64,8 +64,8 @@ def configure_logging(filename=None):
             },
         },
         'loggers': {
-            '': {'level': 'DEBUG'},
-            'nems': {'level': 'DEBUG'},
+            '': {'level': 'INFO'},
+            'nems': {'level': 'INFO'},
             'nems.analysis.fit_basic': {'level': 'INFO'},
         },
         'root': {
