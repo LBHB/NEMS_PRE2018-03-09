@@ -6,15 +6,10 @@ log = logging.getLogger(__name__)
 
 # Where the filesystem organization of nems directories are decided
 
-# TODO: MAKE ENV VARIABLES
-HOST = 'potoroo'  # Add port if needed
-ROUTE = 'http://' + HOST + '/results'
-
-
-def relative_path(recording, modelname, fitter, date):
+def _tree_path(recording, modelname, fitter, date):
     '''
     Returns a relative path (excluding filename, host, port) for URLs.
-    Editing this function edits the relative path of every file saved.
+    Editing this function edits the relative path of every file saved!
     '''
     if not recording and modelname and fitter and date:
         raise ValueError('Not all necessary fields defined!')
@@ -22,7 +17,7 @@ def relative_path(recording, modelname, fitter, date):
     return path
 
 
-def modelspec_basepath(modelspec):
+def tree_path(modelspec):
     '''
     Returns the relative path of a modelspec.
     '''
@@ -31,10 +26,10 @@ def modelspec_basepath(modelspec):
     for f in ['fitter', 'recording', 'date']:
         if f not in meta:
             log.warn('{} not found in metadata; using "unknown"'.format(f))
-    path = relative_path(modelname=get_modelspec_shortname(modelspec),
-                         recording=meta.get('recording', 'unknown'),
-                         fitter=meta.get('fitter', 'unknown'),
-                         date=meta.get('date', 'unknown'))
+    path = _tree_path(modelname=get_modelspec_shortname(modelspec),
+                      recording=meta.get('recording', 'unknown'),
+                      fitter=meta.get('fitter', 'unknown'),
+                      date=meta.get('date', 'unknown'))
     return path
 
 
@@ -59,40 +54,24 @@ def http_put(url, data=None, json=None):
         return message
 
 
-def save_to_url(url):
-    '''
-    Loads whatever is at the URL.
-    URL may be a local file, an S3 file, or whatever.
-    '''
-
-
-def save_modelspec_in_nemsdb(modelspec):
-    baseurl = nemsdb_modelspec_basepath(modelspec)
-    filename = 'modelspec.{:04d}.json'.format(number)
-
-
-def save_modelspec_to_nems_db(modelspec, number):
-    url = nemsdb_modelspec_url(modelspec, number=number)
-    return http_put(url, json=modelspec)
-
-
-def save_performance_to_nems_db(modelspec):
-    url = nemsdb_modelspec_url(modelspec)
-    return http_put(url, json=modelspec)
-
-
-def save_log_to_nems_db(modelspec):
-    url = nemsdb_modelspec_url(modelspec)
-    return http_put(url, data=modelspec)
-
-
-def save_to_nems_db(modelspecs, performance, log, images):
-    for i, m in enumerate(modelspecs):
-        save_modelspec_to_nems_db(m, number=i)
-    save_performance_to_nems_db(performance)
-    save_log_to_nems_db(log)
-    for i in images:
-        save_log_to_nems_db(log)
+def save_to_nems_db(destination,
+                    modelspecs,
+                    images,
+                    log):
+    # TODO: Ensure all modelspecs basically the same or this next line may save things to the wrong place
+    treepath = tree_path(modelspecs[0])
+    for number, modelspec in enumerate(modelspecs):
+        filename = 'modelspec.{:04d}.json'.format(number)
+        uri = destination + treepath + filename
+        http_put(uri, json=modelspec)
+    for number, image in enumerate(images):
+        filename = 'figure.{:04d}.png'.format(number)
+        uri = destination + treepath + filename
+        http_put(uri, data=image)
+    filename = 'log.txt'
+    uri = destination + treepath + filename
+    http_put(uri, data=log)
+    return None
 
 
 # def load_modelspec(recording, modelname, fitter, date):
