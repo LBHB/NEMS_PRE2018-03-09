@@ -2,7 +2,8 @@
 
 import sys
 import nems.xforms as xforms
-from  nems.urls import load_resource
+from nems.urls import load_resource
+
 
 def reload_model(model_uri):
     '''
@@ -11,15 +12,14 @@ def reload_model(model_uri):
     Passes additional context {'IsReload': True}, which xforms should react to
     if they are not intended to be run on a reload.
     '''
-    # uris = list_directory(model_uri)
-    xfspec_uri = '/home/ivar/results/TAR010c-18-1/wc18x1_lvl1_fir15x1/fit_basic/2018-03-07T23:40:48/xfspec.json'
-    modelspec_uri = '/home/ivar/results/TAR010c-18-1/wc18x1_lvl1_fir15x1/fit_basic/2018-03-07T23:40:48/modelspec.0000.json'
+    xfspec_uri = model_uri + 'xfspec.json'
+
+    # TODO: instead of just reading the first modelspec, read ALL of the modelspecs
+    # I'm not sure how to know how many there are without a directory listing!
+    modelspec_uri = model_uri + 'modelspec.0000.json'
 
     xfspec = load_resource(xfspec_uri)
     modelspec = load_resource(modelspec_uri)
-
-    print(xfspec)
-    print(modelspec)
 
     ctx, reloadlog = xforms.evaluate(xfspec, {'IsReload': True,
                                               'modelspecs': [modelspec]})
@@ -42,5 +42,6 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         print_usage()
     else:
-        reload_model(sys.argv[1])
-        print('Successfully reloaded')
+        ctx = reload_model(sys.argv[1])
+        print('Successfully reloaded context: {}'.format(ctx))
+        # If you need to do something else with that context, you could do it here.
