@@ -62,7 +62,11 @@ def evaluate(xformspec, context={}, stop=None):
     rootlogger.addHandler(ch)
 
     # Evaluate the xforms
-    for xf, xfargs in xformspec[:stop]:
+    for xfa in xformspec[:stop]:
+        if len(xfa) != 2:
+            raise ValueError('got non 2-tuple for xform: {}'.format(xfa))
+        xf = xfa[0]
+        xfargs = xfa[1]
         fn = ms._lookup_fn_at(xf)
         # Check for collisions; more to avoid confusion than for correctness:
         for k in xfargs:
@@ -82,7 +86,7 @@ def evaluate(xformspec, context={}, stop=None):
         context = {**context, **new_context}
 
     # Close the log, remove the handler, and add the 'log' string to context
-    log.info('Done evaluating xforms.')
+    log.info('Done (re-)evaluating xforms.')
     ch.close()
     rootlogger.removeFilter(ch)
 
@@ -136,69 +140,91 @@ def use_all_data_for_est_and_val(rec, **context):
     return {'est': est, 'val': val}
 
 
-def init_from_keywords(keywordstring, **context):
-    modelspec = init.from_keywords(keywordstring)
-    return {'modelspecs': [modelspec]}
+def init_from_keywords(modelspecs, keywordstring,
+                       IsReload=False, **context):
+    if not IsReload:
+        modelspec = init.from_keywords(keywordstring)
+        return {'modelspecs': [modelspec]}
+    else:
+        return {}
 
 
-def load_modelspecs(uris, **context):
-    modelspecs = [ms.load_modelspecs(uri) for uri in uris]
+def load_modelspecs(modelspecs, uris,
+                    IsReload=False, **context):
+    '''
+    i.e. Load a modelspec from a specific place. This is not
+    the same as reloading a model for later inspection; it would be more
+    appropriate when doing something complicated with several different
+    models.
+    '''
+    if not IsReload:
+        modelspecs = [load_resource(uri) for uri in uris]
     return {'modelspecs': modelspecs}
 
 
-def set_random_phi(modelspecs, **context):
+def set_random_phi(modelspecs, IsReload=False, **context):
     ''' Starts all modelspecs at random phi sampled from the priors. '''
-    modelspecs = [priors.set_random_phi(m) for m in modelspecs]
+    if not IsReload:
+        modelspecs = [priors.set_random_phi(m) for m in modelspecs]
     return {'modelspecs': modelspecs}
 
 
-def fit_basic(modelspecs, est, **context):
+def fit_basic(modelspecs, est, IsReload=False, **context):
     ''' A basic fit that optimizes every input modelspec. '''
-    modelspecs = [nems.analysis.api.fit_basic(est,
-                                              modelspec,
-                                              fitter=scipy_minimize)[0]
-                  for modelspec in modelspecs]
-    return {'modelspecs': modelspecs}
-
-
-def fit_n_times_from_random_starts(modelspecs, est, ntimes, **context):
-    ''' Self explanatory. '''
-    if len(modelspecs) > 1:
-        raise ValueError('I only work on 1 modelspec')
-    modelspecs = [nems.analysis.api.fit_from_priors(est,
-                                                    modelspec[0],
-                                                    ntimes=ntimes)
-                  for modelspec in modelspecs]
-    return {'modelspecs': modelspecs}
-
-
-def fit_random_subsets(modelspecs, est, nsplits, **context):
-    ''' Randomly sample parts of the data? Wait, HOW DOES THIS WORK? TODO?'''
-    if len(modelspecs) > 1:
-        raise ValueError('I only work on 1 modelspec')
-    modelspecs = nems.analysis.api.fit_random_subsets(est,
-                                                      modelspecs[0],
-                                                      nsplits=nsplits)
-    return {'modelspecs': modelspecs}
-
-
-def fit_equal_subsets(modelspecs, est, nsplits, **context):
-    ''' Divide the data into nsplits equal pieces and fit each one.'''
-    if len(modelspecs) > 1:
-        raise ValueError('I only work on 1 modelspec')
-    modelspecs = nems.analysis.api.fit_subsets(est,
-                                               modelspec,
-                                               nsplits=nsplits)
-    return {'modelspecs': modelspecs}
-
-
-def fit_jackknifes(modelspecs, est, njacks, **context):
-    ''' Jackknife the data, fit on those, and make predictions from those.'''
-    if len(modelspecs) > 1:
-        raise ValueError('I only work on 1 modelspec')
-    modelspecs = nems.analysis.api.fit_jackknifes(est,
+    if not IsReload:
+        modelspecs = [nems.analysis.api.fit_basic(est,
                                                   modelspec,
-                                                  njacks=njacks)
+                                                  fitter=scipy_minimize)[0]
+                      for modelspec in modelspecs]
+    return {'modelspecs': modelspecs}
+
+
+def fit_n_times_from_random_starts(modelspecs, est, ntimes,
+                                   IsReload=False, **context):
+    ''' Self explanatory. '''
+    if not IsReload:
+        if len(modelspecs) > 1:
+            raise ValueError('I only work on 1 modelspec')
+        modelspecs = [nems.analysis.api.fit_from_priors(est,
+                                                        modelspec[0],
+                                                        ntimes=ntimes)
+                      for modelspec in modelspecs]
+    return {'modelspecs': modelspecs}
+
+
+def fit_random_subsets(modelspecs, est, nsplits,
+                       IsReload=False, **context):
+    ''' Randomly sample parts of the data? Wait, HOW DOES THIS WORK? TODO?'''
+    if not IsReload:
+        if len(modelspecs) > 1:
+            raise ValueError('I only work on 1 modelspec')
+        modelspecs = nems.analysis.api.fit_random_subsets(est,
+                                                          modelspecs[0],
+                                                          nsplits=nsplits)
+    return {'modelspecs': modelspecs}
+
+
+def fit_equal_subsets(modelspecs, est, nsplits,
+                      IsReload=False, **context):
+    ''' Divide the data into nsplits equal pieces and fit each one.'''
+    if not IsReload:
+        if len(modelspecs) > 1:
+            raise ValueError('I only work on 1 modelspec')
+        modelspecs = nems.analysis.api.fit_subsets(est,
+                                                   modelspec,
+                                                   nsplits=nsplits)
+    return {'modelspecs': modelspecs}
+
+
+def fit_jackknifes(modelspecs, est, njacks,
+                   IsReload=False, **context):
+    ''' Jackknife the data, fit on those, and make predictions from those.'''
+    if not IsReload:
+        if len(modelspecs) > 1:
+            raise ValueError('I only work on 1 modelspec')
+        modelspecs = nems.analysis.api.fit_jackknifes(est,
+                                                      modelspec,
+                                                      njacks=njacks)
     return {'modelspecs': modelspecs}
 
 
@@ -220,28 +246,30 @@ def plot_summary(modelspecs, val, figures=[], **context):
     return {'figures': figures}
 
 
-def fill_in_default_metadata(rec, modelspecs, **context):
+def fill_in_default_metadata(rec, modelspecs, IsReload=False, **context):
     '''
     Sets any uninitialized metadata to defaults that should help us
     find it in nems_db again. (fitter, recording, date, etc)
     '''
-    # Add metadata to help you reload this state later
-    for modelspec in modelspecs:
-        meta = get_modelspec_metadata(modelspec)
-        if 'fitter' not in meta:
-            set_modelspec_metadata(modelspec, 'fitter', 'None')
-        if 'fit_time' not in meta:
-            set_modelspec_metadata(modelspec, 'fitter', 'None')
-        if 'recording' not in meta:
-            recname = rec.name if rec else 'None'
-            set_modelspec_metadata(modelspec, 'recording', recname)
-        if 'recording_uri' not in meta:
-            uri = rec.uri if rec and rec.uri else 'None'
-            set_modelspec_metadata(modelspec, 'recording_uri', uri)
-        if 'date' not in meta:
-            set_modelspec_metadata(modelspec, 'date', iso8601_datestring())
-        if 'hostname' not in meta:
-            set_modelspec_metadata(modelspec, 'hostname', socket.gethostname())
+    if not IsReload:
+        # Add metadata to help you reload this state later
+        for modelspec in modelspecs:
+            meta = get_modelspec_metadata(modelspec)
+            if 'fitter' not in meta:
+                set_modelspec_metadata(modelspec, 'fitter', 'None')
+            if 'fit_time' not in meta:
+                set_modelspec_metadata(modelspec, 'fitter', 'None')
+            if 'recording' not in meta:
+                recname = rec.name if rec else 'None'
+                set_modelspec_metadata(modelspec, 'recording', recname)
+            if 'recording_uri' not in meta:
+                uri = rec.uri if rec and rec.uri else 'None'
+                set_modelspec_metadata(modelspec, 'recording_uri', uri)
+            if 'date' not in meta:
+                set_modelspec_metadata(modelspec, 'date', iso8601_datestring())
+            if 'hostname' not in meta:
+                set_modelspec_metadata(modelspec, 'hostname',
+                                       socket.gethostname())
     return {'modelspecs': modelspecs}
 
 

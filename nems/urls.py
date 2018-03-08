@@ -156,7 +156,10 @@ def load_resource(uri):
     elif local_uri(uri):
         filepath = local_uri(uri)
         with open(filepath, mode='r') as f:
-            resource = f.read()
+            if filepath[-5:] == '.json':
+                resource = jsonlib.load(f)
+            else:
+                resource = f.read()
         return resource
     else:
         raise ValueError('URI resource type unknown')
