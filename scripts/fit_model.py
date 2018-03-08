@@ -34,23 +34,28 @@ def fit_model(recording_uri, modelstring, destination):
                          log=log)
 
 
-def print_usage():
-    print('''
-Usage:
-      ./fit_model <recording> <modelkwstring> <destination>
 
-Examples of valid arguments:
-       <recording>      http://potoroo/recordings/TAR010c-02-1.tar.gz
-       <recording>      file:///home/ivar/recordings/
-       <modelkwstring>  wc18x1_lvl1_fir15x1
-       <modelkwstring>  wc18x1_lvl1_fir15x1_dexp1
-       <destination>    http://potoroo/recordings/
-       <destination>    file:///home/ivar/recordings/
- ''')
+epilog = '''
+examples of valid arguments:
+  recording      http://potoroo/recordings/TAR010c-02-1.tar.gz
+  recording      file:///home/ivar/recordings/
+  modelkwstring  wc18x1_lvl1_fir15x1
+  modelkwstring  wc18x1_lvl1_fir15x1_dexp1
+  destination    http://potoroo/recordings/
+  destination    file:///home/ivar/recordings/
+ '''
 
-# Parse the command line arguments and do the fit
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='Fit NEMS model',
+                                     epilog=epilog,
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('recording', help='URI for recording')
+    parser.add_argument('modelkwstring', help='Model specification')
+    parser.add_argument('destination', help='URI to save result to')
+    args = parser.parse_args()
+    fit_model(args.recording, args.modelkwstring, args.destination)
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print_usage()
-    else:
-        fit_model(sys.argv[1], sys.argv[2], sys.argv[3])
+    main()

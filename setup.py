@@ -26,7 +26,7 @@ setup(
     classifiers=[],
     entry_points={
         'console_scripts': [
-            #'nems-fit-single=nems.application.cmd_launcher:main',
+            'fit-model=scripts.fit_model:main'
         ],
     }
 )
