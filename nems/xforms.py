@@ -10,7 +10,7 @@ from nems.modelspec import set_modelspec_metadata, get_modelspec_metadata, get_m
 import nems.plots.api as nplt
 import nems.preprocessing as preproc
 import nems.priors as priors
-from nems.urls import tree_path, save_resource, load_resource
+from nems.uri import tree_path, save_resource, load_resource
 from nems.utils import iso8601_datestring
 from nems.fitters.api import scipy_minimize
 from nems.recording import Recording
@@ -140,8 +140,7 @@ def use_all_data_for_est_and_val(rec, **context):
     return {'est': est, 'val': val}
 
 
-def init_from_keywords(modelspecs, keywordstring,
-                       IsReload=False, **context):
+def init_from_keywords(keywordstring, IsReload=False, **context):
     if not IsReload:
         modelspec = init.from_keywords(keywordstring)
         return {'modelspecs': [modelspec]}

@@ -2,7 +2,7 @@
 
 import sys
 import nems.xforms as xforms
-from nems.urls import load_resource
+from nems.uri import load_resource
 
 
 def reload_model(model_uri):

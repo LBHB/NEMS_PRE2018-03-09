@@ -8,7 +8,7 @@ import requests
 import pandas as pd
 import numpy as np
 import copy
-from nems.urls import local_uri, http_uri, targz_uri
+from nems.uri import local_uri, http_uri, targz_uri
 import nems.epoch as ep
 from .signal import Signal
 

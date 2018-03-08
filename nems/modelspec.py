@@ -5,7 +5,7 @@ import json
 import importlib
 import numpy as np
 import nems.utils
-import nems.urls as urls
+import nems.uri
 
 # Functions for saving, loading, and evaluating modelspecs
 
@@ -64,7 +64,7 @@ def save_modelspec(modelspec, filepath):
     '''
     Saves a modelspec to filepath. Overwrites any existing file.
     '''
-    urls.save_resource(filepath, json=modelspec)
+    nems.uri.save_resource(filepath, json=modelspec)
 
 
 def save_modelspecs(directory, modelspecs, basename=None):

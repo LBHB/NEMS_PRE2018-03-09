@@ -11,7 +11,7 @@ import nems.modelspec as ms
 import nems.plots.api as nplt
 import nems.analysis.api
 import nems.utils
-import nems.urls
+import nems.uri
 from nems.recording import Recording
 from nems.fitters.api import scipy_minimize
 
@@ -126,9 +126,6 @@ modelspec = nems.initializers.from_keywords('wc18x1_lvl1_fir15x1_dexp1')
 # Optional: start from some prior
 # modelspec = nems.priors.set_random_phi(modelspec)
 
-# print(nems.urls.modelspec_basepath(modelspec))
-
-exit()
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
 
