@@ -140,12 +140,21 @@ def average_away_epoch_occurrences(rec, epoch_regex='^STIM_'):
 
     return newrec
 
-def make_state_signal(rec, state_signals=['pupil'], new_signalname='state'):
+def make_state_signal(rec, state_signals=['pupil'], permute_signals=[], new_signalname='state'):
     
-    state=signal.Signal.concatenate_channels([rec[x] for x in state_signals])
+    # TODO support for signals_permute
+    if len(permute_signals):
+        raise ValueError("permute_signals not yet supported") 
+
+    x = np.ones([1,rec[state_signals[0]]._matrix.shape[1]])  # Much faster; TODO: Test if throws warnings
+    ones_sig = rec[state_signals[0]]._modified_copy(x)
+    ones_sig.name="baseline"
+    
+    state=signal.Signal.concatenate_channels([ones_sig]+[rec[x] for x in state_signals])
     state.name=new_signalname
     newrec = rec.copy()
     
     newrec.add_signal(state)
 
     return newrec
+

@@ -5,6 +5,28 @@ Updating Mar 4, 2018
 Primary goal is ot replicate the functionatility of NEMS first version. 
 Easiest thing is to list a few use cases in a bit more detail.
 
+Update Mar 8, 2018
+
+xforms is the answer??
+1. xforms.save_analysis
+2. merge scripts/fit_model.py structure into nems_db.wrappers
+2/3. loader/pre-keyword from modelname maps to a sequence of xforms
+4. mulitple xforms for plotting?
+5. xforms needed: 
+    a. figure out what recording to load and load it
+    b. est/val sep
+    c. average and compress across stim
+    d. pre-fit + fit
+    e. plot, save to file and db
+6. xforms needed: 
+    a. figure out what recording to load and load it
+    b. compute state signal
+    c. jackkinfe acros interleaved  epochs - est/val breakdown
+    d. compute psth
+    e. pre-fit + fit
+    f. plot, save to file and db
+
+  
 
 ## 1. container/load/save for modelspec + associated data ##
 
@@ -150,6 +172,7 @@ Multi-channel data? different signals for pop data? Or always save all the
 cells from one recording in a single recording???  IDEA: If "cellid" is actually
 siteid, then load all cells from that site. How to integrate with batches?
 Or should we just get rid of batches and go based on rawids???
+
 
 
 

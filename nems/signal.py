@@ -781,7 +781,10 @@ class Signal:
                 # SVD kludge to deal with rounding from floating-point time
                 # to integer bin index
                 if ub-lb < epoch_data.shape[1]:
-                    ub += epoch_data.shape[1]-(ub-lb)
+                    # epoch data may be too long bc padded with nans,
+                    # truncate!
+                    epoch_data=epoch_data[:,0:(ub-lb)]
+                    #ub += epoch_data.shape[1]-(ub-lb)
                 elif ub-lb > epoch_data.shape[1]:
                     ub -= (ub-lb)-epoch_data.shape[1]
                 if ub>data.shape[1]:

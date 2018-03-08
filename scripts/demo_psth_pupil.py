@@ -46,13 +46,16 @@ rec = Recording.load(os.path.join(signals_dir, 'eno052d-a1.tgz'))
 #URL = "http://potoroo:3004/baphy/271/bbl086b-11-1?rasterfs=200"
 #rec = Recording.load_url(URL)
 
+logging.info('Generating state signal...')
 
+rec=preproc.make_state_signal(rec,['pupil'],[],'state')
 
 # ----------------------------------------------------------------------------
 # DATA WITHHOLDING
 
 # GOAL: Split your data into estimation and validation sets so that you can
 #       know when your model exhibits overfitting.
+
 
 logging.info('Withholding validation set data...')
 
@@ -92,10 +95,10 @@ val.add_signal(respavg_val)
 logging.info('Initializing modelspec(s)...')
 
 # Method #1: create from "shorthand" keyword string
-#modelspec = nems.initializers.from_keywords('pup_wcg18x1_fir15x1_lvl1_dexp1')
-modelspec = nems.initializers.from_keywords('pup_stategain2')
+#modelspec = nems.initializers.from_keywords('wcg18x1_fir15x1_lvl1_dexp1')
+modelspec = nems.initializers.from_keywords('stategain2')
 
-#modelspec = nems.initializers.from_keywords('pup_wcg18x2_fir15x2_lvl1_stategain2')
+#modelspec = nems.initializers.from_keywords('wcg18x2_fir15x2_lvl1_stategain2')
 
 # ----------------------------------------------------------------------------
 # RUN AN ANALYSIS
