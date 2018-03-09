@@ -128,6 +128,10 @@ def average_away_stim_occurrences(est, val, **context):
     val = preproc.average_away_epoch_occurrences(val, epoch_regex='^STIM_')
     return {'est': est, 'val': val}
 
+def average_away_stim_occurrences_rec(rec, **context):
+    rec = preproc.average_away_epoch_occurrences(rec, epoch_regex='^STIM_')
+    return {'rec': rec}
+
 
 def split_at_time(rec, fraction, **context):
     est, val = rec.split_at_time(fraction)
@@ -167,6 +171,16 @@ def set_random_phi(modelspecs, IsReload=False, **context):
         modelspecs = [priors.set_random_phi(m) for m in modelspecs]
     return {'modelspecs': modelspecs}
 
+
+def fit_basic_init(modelspecs, est, IsReload=False, **context):
+    ''' A basic fit that optimizes every input modelspec. '''
+    if not IsReload:
+        modelspecs = [nems.initializers.prefit_to_target(
+                est, modelspec, nems.analysis.api.fit_basic, 'levelshift',
+                fitter=scipy_minimize,
+                fit_kwargs={'options': {'ftol': 1e-4, 'maxiter': 500}}) 
+                for modelspec in modelspecs]
+    return {'modelspecs': modelspecs}
 
 def fit_basic(modelspecs, est, IsReload=False, **context):
     ''' A basic fit that optimizes every input modelspec. '''
@@ -235,6 +249,9 @@ def save_recordings(modelspecs, est, val, **context):
 def add_summary_statistics(modelspecs, est, val, **context):
     # modelspecs = metrics.add_summary_statistics(est, val, modelspecs)
     # TODO: Add statistics to metadata of every modelspec
+    
+    modelspecs=nems.analysis.api.standard_correlation(est,val,modelspecs)
+    
     return {'modelspecs': modelspecs}
 
 
@@ -291,17 +308,20 @@ def save_analysis(destination,
                   modelspecs,
                   xfspec,
                   figures,
-                  log):
+                  log,
+                  add_treepath=True):
     '''Save an analysis file collection to a particular destination.'''
 
     # TODO: Ensure all modelspecs have the same organizing treepath
     # or these next lines may save things to the wrong place
     meta = copy.deepcopy(get_modelspec_metadata(modelspecs[0]))
     meta['modelname'] = get_modelspec_shortname(modelspecs[0])
-
-    treepath = tree_path(**meta)
-    base_uri = destination + treepath
-
+    if add_treepath:
+        treepath = tree_path(**meta)
+        base_uri = destination + treepath
+    else:
+        base_uri = destination
+        
     for number, modelspec in enumerate(modelspecs):
         save_resource(base_uri + 'modelspec.{:04d}.json'.format(number),
                       json=modelspec)

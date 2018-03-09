@@ -150,7 +150,7 @@ def _get_figure_filepath(directory, modelspecs, format):
     #       For now just uses the long name of the first modelspec until
     #       a better solution is decided on.
     mspec = modelspecs[0]
-    mname = ms.get_modelspec_name(mspec)
+    mname = ms.get_modelspec_longname(mspec)
     fname = os.path.join(directory, mname) + "." + format
     return fname
 
