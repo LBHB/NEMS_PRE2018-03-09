@@ -138,6 +138,10 @@ def average_away_stim_occurrences(est, val, **context):
     val = preproc.average_away_epoch_occurrences(val, epoch_regex='^STIM_')
     return {'est': est, 'val': val}
 
+def average_away_stim_occurrences_rec(rec, **context):
+    rec = preproc.average_away_epoch_occurrences(rec, epoch_regex='^STIM_')
+    return {'rec': rec}
+
 
 def split_at_time(rec, fraction, **context):
     est, val = rec.split_at_time(fraction)
@@ -177,6 +181,16 @@ def set_random_phi(modelspecs, IsReload=False, **context):
         modelspecs = [priors.set_random_phi(m) for m in modelspecs]
     return {'modelspecs': modelspecs}
 
+
+def fit_basic_init(modelspecs, est, IsReload=False, **context):
+    ''' A basic fit that optimizes every input modelspec. '''
+    if not IsReload:
+        modelspecs = [nems.initializers.prefit_to_target(
+                est, modelspec, nems.analysis.api.fit_basic, 'levelshift',
+                fitter=scipy_minimize,
+                fit_kwargs={'options': {'ftol': 1e-4, 'maxiter': 500}}) 
+                for modelspec in modelspecs]
+    return {'modelspecs': modelspecs}
 
 def fit_basic(modelspecs, est, IsReload=False, **context):
     ''' A basic fit that optimizes every input modelspec. '''
@@ -243,8 +257,11 @@ def save_recordings(modelspecs, est, val, **context):
 
 
 def add_summary_statistics(modelspecs, est, val, **context):
-#    modelspecs = [metrics.add_summary_statistics(est, val, modelspec)
-#                  for modelspec in modelspec]
+    # modelspecs = metrics.add_summary_statistics(est, val, modelspecs)
+    # TODO: Add statistics to metadata of every modelspec
+    
+    modelspecs=nems.analysis.api.standard_correlation(est,val,modelspecs)
+    
     return {'modelspecs': modelspecs}
 
 
@@ -271,6 +288,12 @@ def fill_in_default_metadata(rec, modelspecs, IsReload=False, **context):
                 set_modelspec_metadata(modelspec, 'fitter', 'None')
             if 'fit_time' not in meta:
                 set_modelspec_metadata(modelspec, 'fitter', 'None')
+            if 'recording' not in meta:
+                recname = rec.name if rec else 'None'
+                set_modelspec_metadata(modelspec, 'recording', recname)
+            if 'recording_uri' not in meta:
+                uri = rec.uri if rec and rec.uri else 'None'
+                set_modelspec_metadata(modelspec, 'recording_uri', uri)
             if 'date' not in meta:
                 set_modelspec_metadata(modelspec, 'date', iso8601_datestring())
             if 'hostname' not in meta:
