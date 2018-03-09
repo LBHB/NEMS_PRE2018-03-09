@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 import sys
 import nems.xforms as xforms
@@ -17,7 +17,7 @@ def fit_model(recording_uri, modelstring, destination):
                                          'epoch_regex': '^STIM_'}],
         ['nems.xforms.split_by_occurrence_counts', {'epoch_regex': '^STIM_'}],
         ['nems.xforms.init_from_keywords', {'keywordstring': modelstring}],
-        ['nems.xforms.set_random_phi',  {}],
+        # ['nems.xforms.set_random_phi',  {}],
         ['nems.xforms.fit_basic',       {}],
         # ['nems.xforms.add_summary_statistics',    {}],
         ['nems.xforms.plot_summary',    {}],
