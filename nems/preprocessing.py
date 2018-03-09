@@ -140,6 +140,40 @@ def average_away_epoch_occurrences(rec, epoch_regex='^STIM_'):
 
     return newrec
 
+def generate_psth_from_est_for_both_est_and_val(est, val):
+    '''
+    Estimates a PSTH from the EST set, and returns two signals based on the
+    est and val, in which each repetition of a stim uses the EST PSTH?
+    '''
+    # Method #0: Try to guess which stimuli have the most reps, use those for val
+    est = rec.jackknife_by_time(10, 1, invert=False, excise=False)
+    val = rec.jackknife_by_time(10, 1, invert=True, excise=False)
+
+    epoch_regex='^STIM_'
+    resp_est=est['resp']
+    resp_val=val['resp']
+
+    epochs_to_extract = ep.epoch_names_matching(resp_est.epochs, epoch_regex)
+    folded_matrices = resp_est.extract_epochs(epochs_to_extract)
+
+    # 2. Average over all reps of each stim and save into dict called psth.
+    per_stim_psth = dict()
+    for k in folded_matrices.keys():
+        per_stim_psth[k] = np.nanmean(folded_matrices[k], axis=0)
+
+    # 3. Invert the folding to unwrap the psth into a predicted spike_dict by
+    #   replacing all epochs in the signal with their average (psth)
+    respavg_est = resp_est.replace_epochs(per_stim_psth)
+    respavg_est.name = 'stim'  # TODO: SVD suggests rename 2018-03-08
+    est.add_signal(respavg_est)
+
+    respavg_val = resp_val.replace_epochs(per_stim_psth)
+    respavg_val.name = 'stim' # TODO: SVD suggests rename 2018-03-08
+    val.add_signal(respavg_val)
+
+    return est, val
+
+
 def make_state_signal(rec, state_signals=['pupil'], permute_signals=[], new_signalname='state'):
     
     # TODO support for signals_permute

@@ -13,8 +13,8 @@ keywordstring = 'wc18x1_lvl1_fir15x1_dexp1'
 
 dest = 'http://hyrax.ohsu.edu:3000/results/'
 
-# TODO: Avoid cut and paste copying like this and put this somewhere
-# that many scripts can reuse it.
+# TODO: Avoid cut and paste copying (this is from fit_model.py)
+# We should put this somewhere that many scripts can reuse it.
 def fit_model(recording_uri, modelstring, destination):
     '''
     Fit a single model and save it to nems_db.
@@ -29,16 +29,15 @@ def fit_model(recording_uri, modelstring, destination):
         ['nems.xforms.split_by_occurrence_counts', {'epoch_regex': '^STIM_'}],
         ['nems.xforms.init_from_keywords', {'keywordstring': modelstring}],
         ['nems.xforms.set_random_phi',  {}],
-        ['nems.xforms.fit_basic',       {}],
+        ['nems.xforms.fit_basic',  {}],
         # ['nems.xforms.add_summary_statistics',    {}],
-        ['nems.xforms.plot_summary',    {}],
-        # ['nems.xforms.save_recordings', {'recordings': ['est', 'val']}],
-        ['nems.xforms.fill_in_default_metadata',    {}],
+        ['nems.xforms.plot_summary',    {}]
     ]
 
     ctx, log = xforms.evaluate(xfspec)
 
     xforms.save_analysis(destination,
+                         recording=ctx['rec'],
                          modelspecs=ctx['modelspecs'],
                          xfspec=xfspec,
                          figures=ctx['figures'],

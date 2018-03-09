@@ -54,26 +54,6 @@ def targz_uri(uri):
         return None
 
 
-def tree_path(modelname='undefined',
-              recording='undefined',
-              fitter='undefined',
-              date='undefined',
-              **unused_kwargs):
-    '''
-    Returns a relative path (excluding filename, host, port) for URIs.
-    Editing this function edits the path in the file tree of every
-    file saved!
-    '''
-    # Warn if not all metadata fields were found
-    for f in [modelname, fitter, recording, date]:
-        if f == 'undefined':
-            log.warn('{} is "undefined" when making treepath'.format(f))
-
-    path = '/' + recording + '/' + modelname + '/' + fitter + '/' + date + '/'
-
-    return path
-
-
 def save_resource(uri, data=None, json=None):
     '''
     For saving a resource to a URI. Throws an exception if there was a

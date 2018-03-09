@@ -10,7 +10,7 @@ from nems.modelspec import set_modelspec_metadata, get_modelspec_metadata, get_m
 import nems.plots.api as nplt
 import nems.preprocessing as preproc
 import nems.priors as priors
-from nems.uri import tree_path, save_resource, load_resource
+from nems.uri import save_resource, load_resource
 from nems.utils import iso8601_datestring
 from nems.fitters.api import scipy_minimize
 from nems.recording import Recording
@@ -35,8 +35,18 @@ def load_xform(uri):
     '''
     Loads and returns xform saved as a JSON.
     '''
-    xform = load_resource(uri) # TODO
+    xform = load_resource(uri)
     return xform
+
+
+def xfspec_shortname(xformspec):
+    '''
+    Given an xformspec, makes a shortname for it.
+    '''
+    n = len('nems.xforms.')
+    fn_names = [xf[n:] for xf, xfa in xformspec]
+    name = ".".join(fn_names)
+    return name
 
 
 def evaluate(xformspec, context={}, stop=None):
@@ -185,7 +195,7 @@ def fit_n_times_from_random_starts(modelspecs, est, ntimes,
         if len(modelspecs) > 1:
             raise ValueError('I only work on 1 modelspec')
         modelspecs = [nems.analysis.api.fit_from_priors(est,
-                                                        modelspec[0],
+                                                        modelspec,
                                                         ntimes=ntimes)
                       for modelspec in modelspecs]
     return {'modelspecs': modelspecs}
@@ -210,7 +220,7 @@ def fit_equal_subsets(modelspecs, est, nsplits,
         if len(modelspecs) > 1:
             raise ValueError('I only work on 1 modelspec')
         modelspecs = nems.analysis.api.fit_subsets(est,
-                                                   modelspec,
+                                                   modelspecs[0],
                                                    nsplits=nsplits)
     return {'modelspecs': modelspecs}
 
@@ -222,7 +232,7 @@ def fit_jackknifes(modelspecs, est, njacks,
         if len(modelspecs) > 1:
             raise ValueError('I only work on 1 modelspec')
         modelspecs = nems.analysis.api.fit_jackknifes(est,
-                                                      modelspec,
+                                                      modelspecs[0],
                                                       njacks=njacks)
     return {'modelspecs': modelspecs}
 
@@ -233,12 +243,15 @@ def save_recordings(modelspecs, est, val, **context):
 
 
 def add_summary_statistics(modelspecs, est, val, **context):
-    # modelspecs = metrics.add_summary_statistics(est, val, modelspecs)
-    # TODO: Add statistics to metadata of every modelspec
+#    modelspecs = [metrics.add_summary_statistics(est, val, modelspec)
+#                  for modelspec in modelspec]
     return {'modelspecs': modelspecs}
 
 
-def plot_summary(modelspecs, val, figures=[], **context):
+def plot_summary(modelspecs, val, figures=None, **context):
+    # CANNOT initialize figures=[] in optional args our you will create a bug
+    if not figures:
+        figures = []
     fig = nplt.plot_summary(val, modelspecs)
     # Needed to make into a Bytes because you can't deepcopy figures!
     figures.append(nplt.fig2BytesIO(fig))
@@ -258,12 +271,6 @@ def fill_in_default_metadata(rec, modelspecs, IsReload=False, **context):
                 set_modelspec_metadata(modelspec, 'fitter', 'None')
             if 'fit_time' not in meta:
                 set_modelspec_metadata(modelspec, 'fitter', 'None')
-            if 'recording' not in meta:
-                recname = rec.name if rec else 'None'
-                set_modelspec_metadata(modelspec, 'recording', recname)
-            if 'recording_uri' not in meta:
-                uri = rec.uri if rec and rec.uri else 'None'
-                set_modelspec_metadata(modelspec, 'recording_uri', uri)
             if 'date' not in meta:
                 set_modelspec_metadata(modelspec, 'date', iso8601_datestring())
             if 'hostname' not in meta:
@@ -287,27 +294,45 @@ def fill_in_default_metadata(rec, modelspecs, IsReload=False, **context):
 # modelspecs = nems.analysis.fit_cv(est, modelspec, folds=10)
 
 
+def tree_path(recording, modelspecs, xfspec):
+    '''
+    Returns a relative path (excluding filename, host, port) for URIs.
+    Editing this function edits the path in the file tree of every
+    file saved!
+    '''
+
+    xformname = xfspec_shortname(xfspec)
+    modelname = get_modelspec_shortname(modelspecs[0])
+    recname = recording.name  # Or from rec.uri???
+    meta = get_modelspec_metadata(modelspecs[0])
+    date = meta.get('date', iso8601_datestring())
+
+    path = '/' + recname + '/' + modelname + '/' + xformname + '/' + date + '/'
+
+    return path
+
+
 def save_analysis(destination,
+                  recording,
                   modelspecs,
                   xfspec,
                   figures,
                   log):
     '''Save an analysis file collection to a particular destination.'''
 
-    # TODO: Ensure all modelspecs have the same organizing treepath
-    # or these next lines may save things to the wrong place
-    meta = copy.deepcopy(get_modelspec_metadata(modelspecs[0]))
-    meta['modelname'] = get_modelspec_shortname(modelspecs[0])
-
-    treepath = tree_path(**meta)
+    treepath = tree_path(recording, modelspecs, xfspec)
+    destination = destination[:-1] if destination[-1] == '/' else destination
     base_uri = destination + treepath
 
+    xfspec_uri = base_uri + 'xfspec.json'  # For attaching to modelspecs
+
     for number, modelspec in enumerate(modelspecs):
+        set_modelspec_metadata(modelspec, 'xfspec', xfspec_uri)
         save_resource(base_uri + 'modelspec.{:04d}.json'.format(number),
                       json=modelspec)
     for number, figure in enumerate(figures):
         save_resource(base_uri + 'figure.{:04d}.png'.format(number),
                       data=figure)
     save_resource(base_uri + 'log.txt', data=log)
-    save_resource(base_uri + 'xfspec.json', json=xfspec)
+    save_resource(xfspec_uri, json=xfspec)
     return {}

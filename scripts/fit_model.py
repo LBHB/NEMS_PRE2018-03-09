@@ -22,12 +22,12 @@ def fit_model(recording_uri, modelstring, destination):
         # ['nems.xforms.add_summary_statistics',    {}],
         ['nems.xforms.plot_summary',    {}],
         # ['nems.xforms.save_recordings', {'recordings': ['est', 'val']}],
-        ['nems.xforms.fill_in_default_metadata',    {}],
     ]
 
     ctx, log = xforms.evaluate(xfspec)
 
     xforms.save_analysis(destination,
+                         recording=ctx['rec'],
                          modelspecs=ctx['modelspecs'],
                          xfspec=xfspec,
                          figures=ctx['figures'],
