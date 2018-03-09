@@ -8,11 +8,19 @@ https://conda.io/miniconda.html
 
 # Set up an environment
 conda create -n nems-dev-intel python=3 -c intel
-conda install numpy scipy pandas matplotlib
 
-# Install the nems package
+# Get inside the environment
+source activate nems-dev-intel
+
+# Install any needed packages inside that
 pip install -e nems
 
-# Use the environment
-source activate nems-dev-intel
 ```
+
+I (Ivar) had bad luck using conda to install packages in the environment before activating the environment. This should have worked but did not:
+
+```
+conda install numpy scipy pandas matplotlib 
+```
+
+This is probably due to my inexperience with conda. The workaround is simply to use `pip` to install once I was in the conda environment.

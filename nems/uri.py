@@ -1,3 +1,4 @@
+import re
 import io
 import os
 import json as jsonlib
@@ -163,3 +164,29 @@ def load_resource(uri):
         return resource
     else:
         raise ValueError('URI resource type unknown')
+
+
+LINK_MATCHER = re.compile(r'<a href="(.*?)">(.*?)</a>')
+
+
+def list_targz_in_nginx_dir(uri):
+    '''
+    Reads NGINX directory listing at URI and returns a list of URIs that
+    end in .tar.gz that were found in the HTML directory listing.
+
+    NOTE: This is a BRITTLE HACK and should not preferred in general to
+    getting a list of files from something smarter, like a database
+    that manages 'batches'. Ideally, such a database would return a JSON
+    containing a list of URIs.
+    '''
+    r = requests.get(uri)
+
+    if r.status_code != 200:
+        return None
+
+    uris = []
+    for link, file in LINK_MATCHER.findall(r.content.decode()):
+        if link == file and file[-7:] == '.tar.gz':
+            uris.append(os.path.join(uri, file))
+
+    return uris
