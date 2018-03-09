@@ -11,7 +11,8 @@ import nems.uri
 
 # TODO: In retrospect, this should have been a class, just like Recording.
 #       Refactoring would not be too hard and would shorten many of these
-#       function names.
+#       function names. If you do so, see /docs/planning/models.py and
+#       bring the ideas into this file, then delete it from docs/planning.
 
 
 def get_modelspec_metadata(modelspec):
